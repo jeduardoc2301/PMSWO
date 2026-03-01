@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "Gestión de Proyectos Ejecutiva",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "actions": "Acciones"
+  },
+  "nav": {
+    "dashboard": "Panel de Control",
+    "projects": "Proyectos",
+    "workItems": "Elementos de Trabajo",
+    "blockers": "Bloqueadores",
+    "risks": "Riesgos",
+    "agreements": "Acuerdos",
+    "settings": "Configuración",
+    "signOut": "Cerrar Sesión"
+  },
+  "auth": {
+    "signIn": "Iniciar Sesión",
+    "signOut": "Cerrar Sesión",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "invalidCredentials": "Credenciales inválidas",
+    "sessionExpired": "Sesión expirada"
+  },
+  "header": {
+    "createProject": "Crear Proyecto",
+    "createWorkItem": "Crear Elemento de Trabajo",
+    "home": "Inicio"
+  },
+  "errors": {
+    "generic": "Algo salió mal",
+    "genericDescription": "Ha ocurrido un error inesperado. Por favor, intenta nuevamente.",
+    "notFound": "Página no encontrada",
+    "notFoundDescription": "La página que buscas no existe o ha sido movida.",
+    "unauthorized": "No autorizado",
+    "unauthorizedDescription": "No tienes permisos para acceder a este recurso.",
+    "serverError": "Error del servidor",
+    "serverErrorDescription": "Estamos experimentando problemas técnicos. Por favor, intenta más tarde.",
+    "tryAgain": "Intentar nuevamente",
+    "goHome": "Ir al inicio",
+    "contactSupport": "Contactar soporte"
+  }
+}

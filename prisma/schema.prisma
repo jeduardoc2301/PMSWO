@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Char(36)
+  name      String
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users       User[]
+  projects    Project[]
+  workItems   WorkItem[]
+  blockers    Blocker[]
+  risks       Risk[]
+  agreements  Agreement[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  name           String
+  roles          Json     // Array of UserRole enums stored as JSON
+  locale         String   @default("es")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization      Organization       @relation(fields: [organizationId], references: [id])
+  ownedWorkItems    WorkItem[]         @relation("WorkItemOwner")
+  ownedRisks        Risk[]             @relation("RiskOwner")
+  createdAgreements Agreement[]        @relation("AgreementCreator")
+  createdAgreementNotes AgreementNote[] @relation("AgreementNoteCreator")
+  workItemChanges   WorkItemChange[]
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Project {
+  id               String   @id @default(uuid()) @db.Char(36)
+  organizationId   String   @map("organization_id") @db.Char(36)
+  name             String
+  description      String   @db.Text
+  client           String
+  startDate        DateTime @map("start_date") @db.Date
+  estimatedEndDate DateTime @map("estimated_end_date") @db.Date
+  status           String   @default("PLANNING")
+  archived         Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  workItems      WorkItem[]
+  blockers       Blocker[]
+  risks          Risk[]
+  agreements     Agreement[]
+  kanbanColumns  KanbanColumn[]
+  aiAnalysisCache AIAnalysisCache?
+
+  @@index([organizationId])
+  @@index([organizationId, archived])
+  @@map("projects")
+}
+
+model KanbanColumn {
+  id          String   @id @default(uuid()) @db.Char(36)
+  projectId   String   @map("project_id") @db.Char(36)
+  name        String
+  order       Int
+  columnType  String   @map("column_type")
+
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItems   WorkItem[]
+
+  @@unique([projectId, order])
+  @@index([projectId])
+  @@map("kanban_columns")
+}
+
+model WorkItem {
+  id               String    @id @default(uuid()) @db.Char(36)
+  organizationId   String    @map("organization_id") @db.Char(36)
+  projectId        String    @map("project_id") @db.Char(36)
+  ownerId          String    @map("owner_id") @db.Char(36)
+  title            String
+  description      String    @db.Text
+  status           String
+  priority         String
+  startDate        DateTime  @map("start_date") @db.Date
+  estimatedEndDate DateTime  @map("estimated_end_date") @db.Date
+  completedAt      DateTime? @map("completed_at")
+  kanbanColumnId   String    @map("kanban_column_id") @db.Char(36)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner        User               @relation("WorkItemOwner", fields: [ownerId], references: [id])
+  kanbanColumn KanbanColumn       @relation(fields: [kanbanColumnId], references: [id])
+  blockers     Blocker[]
+  changes      WorkItemChange[]
+  agreements   AgreementWorkItem[]
+
+  @@index([organizationId, projectId])
+  @@index([ownerId])
+  @@index([status])
+  @@map("work_items")
+}
+
+model WorkItemChange {
+  id         String   @id @default(uuid()) @db.Char(36)
+  workItemId String   @map("work_item_id") @db.Char(36)
+  changedById String  @map("changed_by_id") @db.Char(36)
+  field      String
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  changedAt  DateTime @default(now()) @map("changed_at")
+
+  workItem  WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  changedBy User     @relation(fields: [changedById], references: [id])
+
+  @@index([workItemId])
+  @@map("work_item_changes")
+}
+
+model Blocker {
+  id             String    @id @default(uuid()) @db.Char(36)
+  organizationId String    @map("organization_id") @db.Char(36)
+  projectId      String    @map("project_id") @db.Char(36)
+  workItemId     String    @map("work_item_id") @db.Char(36)
+  description    String    @db.Text
+  blockedBy      String    @map("blocked_by")
+  severity       String
+  startDate      DateTime  @map("start_date") @db.Date
+  resolvedAt     DateTime? @map("resolved_at")
+  resolution     String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItem     WorkItem     @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, projectId])
+  @@index([workItemId])
+  @@index([severity])
+  @@map("blockers")
+}
+
+model Risk {
+  id             String    @id @default(uuid()) @db.Char(36)
+  organizationId String    @map("organization_id") @db.Char(36)
+  projectId      String    @map("project_id") @db.Char(36)
+  ownerId        String    @map("owner_id") @db.Char(36)
+  description    String    @db.Text
+  probability    Int
+  impact         Int
+  riskLevel      String    @map("risk_level")
+  mitigationPlan String    @map("mitigation_plan") @db.Text
+  status         String
+  identifiedAt   DateTime  @map("identified_at") @db.Date
+  closedAt       DateTime? @map("closed_at") @db.Date
+  closureNotes   String?   @map("closure_notes") @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner        User         @relation("RiskOwner", fields: [ownerId], references: [id])
+
+  @@index([organizationId, projectId])
+  @@index([ownerId])
+  @@index([riskLevel])
+  @@map("risks")
+}
+
+model Agreement {
+  id            String    @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  projectId     String    @map("project_id") @db.Char(36)
+  createdById   String    @map("created_by_id") @db.Char(36)
+  description   String    @db.Text
+  agreementDate DateTime  @map("agreement_date") @db.Date
+  participants  String    @db.Text
+  status        String
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [organizationId], references: [id])
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy    User                @relation("AgreementCreator", fields: [createdById], references: [id])
+  workItems    AgreementWorkItem[]
+  notes        AgreementNote[]
+
+  @@index([organizationId, projectId])
+  @@index([createdById])
+  @@map("agreements")
+}
+
+model AgreementWorkItem {
+  agreementId String @map("agreement_id") @db.Char(36)
+  workItemId  String @map("work_item_id") @db.Char(36)
+
+  agreement Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  workItem  WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@id([agreementId, workItemId])
+  @@index([workItemId])
+  @@map("agreement_work_items")
+}
+
+model AgreementNote {
+  id          String   @id @default(uuid()) @db.Char(36)
+  agreementId String   @map("agreement_id") @db.Char(36)
+  createdById String   @map("created_by_id") @db.Char(36)
+  note        String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  agreement Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("AgreementNoteCreator", fields: [createdById], references: [id])
+
+  @@index([agreementId])
+  @@map("agreement_notes")
+}
+
+model AIAnalysisCache {
+  id           String   @id @default(uuid()) @db.Char(36)
+  projectId    String   @unique @map("project_id") @db.Char(36)
+  analysisData Json     @map("analysis_data")
+  analyzedAt   DateTime @map("analyzed_at")
+  expiresAt    DateTime @map("expires_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("ai_analysis_cache")
+}
