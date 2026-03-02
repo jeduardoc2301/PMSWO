@@ -10,10 +10,11 @@
 import { PageHeader } from '@/components/layout/page-header'
 import { Plus, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 
 export function PageHeaderExample() {
   const router = useRouter()
+  const locale = useLocale()
   const t = useTranslations()
 
   // Example 1: Simple header with just a title
@@ -40,7 +41,7 @@ export function PageHeaderExample() {
       quickActions={[
         {
           label: 'Create Project',
-          onClick: () => router.push('/projects/new'),
+          onClick: () => router.push(`/${locale}/projects/new`),
           icon: <Plus className="h-4 w-4" />,
           variant: 'primary',
         },
@@ -66,7 +67,7 @@ export function PageHeaderExample() {
       quickActions={[
         {
           label: 'Create Work Item',
-          onClick: () => router.push('/work-items/new'),
+          onClick: () => router.push(`/${locale}/work-items/new`),
           icon: <Plus className="h-4 w-4" />,
           variant: 'primary',
         },

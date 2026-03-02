@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
+import { locales } from '@/i18n/config'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Permission } from '@/types'
 import { PageHeader } from '@/components/layout'
@@ -9,12 +11,26 @@ export const metadata: Metadata = {
   description: 'Create a new project',
 }
 
+// Generate static params for all locales
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }))
+}
+
 /**
  * Project creation page
  * Protected route requiring PROJECT_CREATE permission
  * Requirements: 3.1, 3.4, 14.3
  */
-export default function NewProjectPage() {
+export default async function NewProjectPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  
+  // Enable static rendering
+  setRequestLocale(locale)
+
   return (
     <ProtectedPage requiredPermissions={[Permission.PROJECT_CREATE]}>
       <div className="min-h-screen bg-gray-50">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useLocale, useTranslations } from 'next-intl'
 import { ProjectStatus, Permission, UserRole } from '@/types'
 import { hasPermission } from '@/lib/rbac'
 import { PageHeader } from '@/components/layout'
@@ -42,6 +43,9 @@ interface PaginationInfo {
  */
 export function ProjectsPageClient() {
   const { data: session } = useSession()
+  const locale = useLocale()
+  const t = useTranslations('projects.list')
+  const tStatus = useTranslations('projects.status')
   const [projects, setProjects] = useState<Project[]>([])
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -62,6 +66,12 @@ export function ProjectsPageClient() {
   const canCreateProject = session?.user?.roles
     ? hasPermission(session.user.roles as UserRole[], Permission.PROJECT_CREATE)
     : false
+
+  // DEBUG: Log session and permission check
+  console.log('[DEBUG] Session:', session)
+  console.log('[DEBUG] User roles:', session?.user?.roles)
+  console.log('[DEBUG] Can create project:', canCreateProject)
+  console.log('[DEBUG] Permission.PROJECT_CREATE:', Permission.PROJECT_CREATE)
 
   // Fetch projects
   const fetchProjects = async () => {
@@ -129,8 +139,26 @@ export function ProjectsPageClient() {
     }
   }
 
+  const getStatusLabel = (status: ProjectStatus) => {
+    switch (status) {
+      case ProjectStatus.PLANNING:
+        return tStatus('planning')
+      case ProjectStatus.ACTIVE:
+        return tStatus('active')
+      case ProjectStatus.ON_HOLD:
+        return tStatus('onHold')
+      case ProjectStatus.COMPLETED:
+        return tStatus('completed')
+      case ProjectStatus.ARCHIVED:
+        return tStatus('archived')
+      default:
+        return status
+    }
+  }
+
+  // ✅ CORREGIDO: Usar locale en lugar de 'en-US'
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -140,12 +168,12 @@ export function ProjectsPageClient() {
   return (
     <div className="min-h-screen bg-gray-50">
       <PageHeader
-        title="Projects"
-        description="View and manage all your projects"
+        title={t('title')}
+        description={t('description')}
         action={
           canCreateProject ? (
-            <Link href="/projects/new">
-              <Button>Create Project</Button>
+            <Link href={`/${locale}/projects/new`}>
+              <Button>{t('createProject')}</Button>
             </Link>
           ) : undefined
         }
@@ -158,12 +186,12 @@ export function ProjectsPageClient() {
             {/* Search */}
             <div>
               <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                Search by client
+                {t('searchByClient')}
               </label>
               <Input
                 id="search"
                 type="text"
-                placeholder="Search clients..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -172,7 +200,7 @@ export function ProjectsPageClient() {
             {/* Status filter */}
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                Status
+                {t('status')}
               </label>
               <select
                 id="status"
@@ -183,12 +211,12 @@ export function ProjectsPageClient() {
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All statuses</option>
-                <option value={ProjectStatus.PLANNING}>Planning</option>
-                <option value={ProjectStatus.ACTIVE}>Active</option>
-                <option value={ProjectStatus.ON_HOLD}>On Hold</option>
-                <option value={ProjectStatus.COMPLETED}>Completed</option>
-                {includeArchived && <option value={ProjectStatus.ARCHIVED}>Archived</option>}
+                <option value="">{t('allStatuses')}</option>
+                <option value={ProjectStatus.PLANNING}>{tStatus('planning')}</option>
+                <option value={ProjectStatus.ACTIVE}>{tStatus('active')}</option>
+                <option value={ProjectStatus.ON_HOLD}>{tStatus('onHold')}</option>
+                <option value={ProjectStatus.COMPLETED}>{tStatus('completed')}</option>
+                {includeArchived && <option value={ProjectStatus.ARCHIVED}>{tStatus('archived')}</option>}
               </select>
             </div>
 
@@ -204,7 +232,7 @@ export function ProjectsPageClient() {
                   }}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-sm font-medium text-gray-700">Include archived</span>
+                <span className="text-sm font-medium text-gray-700">{t('includeArchived')}</span>
               </label>
             </div>
           </div>
@@ -220,17 +248,17 @@ export function ProjectsPageClient() {
         {/* Loading state */}
         {loading && (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500">Loading projects...</p>
+            <p className="text-gray-500">{t('loading')}</p>
           </div>
         )}
 
         {/* Projects table */}
         {!loading && projects.length === 0 && (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500 mb-4">No projects found</p>
+            <p className="text-gray-500 mb-4">{t('noProjects')}</p>
             {canCreateProject && (
-              <Link href="/projects/new">
-                <Button>Create your first project</Button>
+              <Link href={`/${locale}/projects/new`}>
+                <Button>{t('createFirstProject')}</Button>
               </Link>
             )}
           </div>
@@ -244,22 +272,22 @@ export function ProjectsPageClient() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Project
+                        {t('table.project')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Client
+                        {t('table.client')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
+                        {t('table.status')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Start Date
+                        {t('table.startDate')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        End Date
+                        {t('table.endDate')}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Metrics
+                        {t('table.metrics')}
                       </th>
                     </tr>
                   </thead>
@@ -268,7 +296,7 @@ export function ProjectsPageClient() {
                       <tr key={project.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <Link
-                            href={`/projects/${project.id}`}
+                            href={`/${locale}/projects/${project.id}`}
                             className="text-sm font-medium text-blue-600 hover:text-blue-800"
                           >
                             {project.name}
@@ -286,7 +314,7 @@ export function ProjectsPageClient() {
                               project.status
                             )}`}
                           >
-                            {project.status}
+                            {getStatusLabel(project.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -299,15 +327,15 @@ export function ProjectsPageClient() {
                           <div className="flex gap-3">
                             {project._count && (
                               <>
-                                <span>{project._count.workItems} items</span>
+                                <span>{project._count.workItems} {t('metrics.items')}</span>
                                 {project._count.blockers > 0 && (
                                   <span className="text-orange-600">
-                                    {project._count.blockers} blockers
+                                    {project._count.blockers} {t('metrics.blockers')}
                                   </span>
                                 )}
                                 {project._count.risks > 0 && (
                                   <span className="text-yellow-600">
-                                    {project._count.risks} risks
+                                    {project._count.risks} {t('metrics.risks')}
                                   </span>
                                 )}
                               </>
@@ -325,8 +353,8 @@ export function ProjectsPageClient() {
             {pagination.totalPages > 1 && (
               <div className="bg-white rounded-lg shadow px-6 py-4 mt-6 flex items-center justify-between">
                 <div className="text-sm text-gray-700">
-                  Showing page {pagination.page} of {pagination.totalPages} ({pagination.total}{' '}
-                  total projects)
+                  {t('pagination.showing')} {pagination.page} {t('pagination.of')} {pagination.totalPages} ({pagination.total}{' '}
+                  {t('pagination.total')})
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -336,7 +364,7 @@ export function ProjectsPageClient() {
                     disabled={pagination.page === 1}
                     variant="outline"
                   >
-                    Previous
+                    {t('pagination.previous')}
                   </Button>
                   <Button
                     onClick={() =>
@@ -348,7 +376,7 @@ export function ProjectsPageClient() {
                     disabled={pagination.page === pagination.totalPages}
                     variant="outline"
                   >
-                    Next
+                    {t('pagination.next')}
                   </Button>
                 </div>
               </div>

@@ -1,0 +1,52 @@
+{
+  "title": "Bloqueadores",
+  "createBlocker": "Crear Bloqueador",
+  "editBlocker": "Editar Bloqueador",
+  "deleteBlocker": "Eliminar Bloqueador",
+  "resolveBlocker": "Resolver Bloqueador",
+  "blockerDetails": "Detalles del Bloqueador",
+  "blockerDescription": "Descripción del Bloqueador",
+  "blockedBy": "Bloqueado por",
+  "severity": "Severidad",
+  "startDate": "Fecha de Inicio",
+  "resolvedAt": "Resuelto el",
+  "resolution": "Resolución",
+  "duration": "Duración",
+  "activeBlockers": "Bloqueadores Activos",
+  "criticalBlockers": "Bloqueadores Críticos",
+  "resolvedBlockers": "Bloqueadores Resueltos",
+  "averageResolutionTime": "Tiempo Promedio de Resolución",
+  "noBlockers": "No hay bloqueadores",
+  "noActiveBlockers": "No hay bloqueadores activos",
+  "severityLevels": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "durationUnits": {
+    "hours": "horas",
+    "days": "días",
+    "weeks": "semanas"
+  },
+  "messages": {
+    "createSuccess": "Bloqueador creado exitosamente",
+    "updateSuccess": "Bloqueador actualizado exitosamente",
+    "deleteSuccess": "Bloqueador eliminado exitosamente",
+    "resolveSuccess": "Bloqueador resuelto exitosamente",
+    "createError": "Error al crear el bloqueador",
+    "updateError": "Error al actualizar el bloqueador",
+    "deleteError": "Error al eliminar el bloqueador",
+    "resolveError": "Error al resolver el bloqueador",
+    "escalated": "Bloqueador escalado a severidad crítica"
+  },
+  "loading": "Cargando bloqueadores...",
+  "resolved": "Resuelto",
+  "cancel": "Cancelar",
+  "creating": "Creando...",
+  "resolving": "Resolviendo...",
+  "workItemId": "ID del Elemento de Trabajo",
+  "createDialogDescription": "Agregar un nuevo bloqueador para rastrear problemas que afectan elementos de trabajo",
+  "resolveDialogDescription": "Proporcionar detalles sobre cómo se resolvió este bloqueador",
+  "resolutionPlaceholder": "Describir cómo se resolvió el bloqueador..."
+}

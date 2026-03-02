@@ -40,6 +40,18 @@ export function MainNavWrapper() {
 
   // Handle locale change
   const handleLocaleChange = async (newLocale: Locale) => {
+    // Persist locale preference (non-blocking)
+    try {
+      await fetch('/api/v1/users/locale', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: newLocale }),
+      })
+    } catch (error) {
+      // Fail silently - don't block locale change
+      console.error('Failed to persist locale preference:', error)
+    }
+
     // Get current path without locale
     const currentPath = window.location.pathname
     const pathWithoutLocale = currentPath.replace(`/${locale}`, '')

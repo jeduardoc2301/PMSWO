@@ -72,6 +72,9 @@ export default async function LocaleLayout({
 
   const messages = await getMessages({ locale })
   console.log('[LAYOUT] Messages loaded, keys:', Object.keys(messages))
+  console.log('[LAYOUT] Messages structure:', JSON.stringify(Object.keys(messages), null, 2))
+  console.log('[LAYOUT] Common messages:', messages.common ? Object.keys(messages.common) : 'NOT FOUND')
+  console.log('[LAYOUT] Cache-bust timestamp:', new Date().toISOString())
 
   return (
     <html lang={locale}>

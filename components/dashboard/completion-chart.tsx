@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { ProjectSummary } from '@/types'
 
 interface CompletionChartProps {
@@ -7,6 +8,8 @@ interface CompletionChartProps {
 }
 
 export function CompletionChart({ projects }: CompletionChartProps) {
+  const t = useTranslations('dashboard.completionChart')
+  
   // Calculate completion rate distribution
   const ranges = [
     { label: '0-25%', min: 0, max: 25, count: 0 },
@@ -28,7 +31,7 @@ export function CompletionChart({ projects }: CompletionChartProps) {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Completion Rate Distribution
+        {t('title')}
       </h3>
       
       <div className="space-y-4">
@@ -37,7 +40,7 @@ export function CompletionChart({ projects }: CompletionChartProps) {
             <div className="flex justify-between text-sm mb-1">
               <span className="text-gray-600">{range.label}</span>
               <span className="font-medium text-gray-900">
-                {range.count} {range.count === 1 ? 'project' : 'projects'}
+                {range.count} {range.count === 1 ? t('project') : t('projects')}
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
@@ -51,7 +54,7 @@ export function CompletionChart({ projects }: CompletionChartProps) {
       </div>
 
       {projects.length === 0 && (
-        <p className="text-center text-gray-500 py-8">No data available</p>
+        <p className="text-center text-gray-500 py-8">{t('noData')}</p>
       )}
     </div>
   )

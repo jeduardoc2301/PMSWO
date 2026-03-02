@@ -44,26 +44,27 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
       label: t('nav.projects'),
       permission: Permission.PROJECT_VIEW,
     },
-    {
-      href: `/${locale}/work-items`,
-      label: t('nav.workItems'),
-      permission: Permission.WORK_ITEM_VIEW,
-    },
-    {
-      href: `/${locale}/blockers`,
-      label: t('nav.blockers'),
-      permission: Permission.BLOCKER_VIEW,
-    },
-    {
-      href: `/${locale}/risks`,
-      label: t('nav.risks'),
-      permission: Permission.RISK_VIEW,
-    },
-    {
-      href: `/${locale}/agreements`,
-      label: t('nav.agreements'),
-      permission: Permission.AGREEMENT_VIEW,
-    },
+    // TODO: Implement these pages
+    // {
+    //   href: `/${locale}/work-items`,
+    //   label: t('nav.workItems'),
+    //   permission: Permission.WORK_ITEM_VIEW,
+    // },
+    // {
+    //   href: `/${locale}/blockers`,
+    //   label: t('nav.blockers'),
+    //   permission: Permission.BLOCKER_VIEW,
+    // },
+    // {
+    //   href: `/${locale}/risks`,
+    //   label: t('nav.risks'),
+    //   permission: Permission.RISK_VIEW,
+    // },
+    // {
+    //   href: `/${locale}/agreements`,
+    //   label: t('nav.agreements'),
+    //   permission: Permission.AGREEMENT_VIEW,
+    // },
     {
       href: `/${locale}/settings`,
       label: t('nav.settings'),

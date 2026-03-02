@@ -22,6 +22,7 @@ interface PageHeaderProps {
   breadcrumbs?: BreadcrumbItem[]
   quickActions?: QuickAction[]
   description?: string
+  action?: React.ReactNode
 }
 
 export function PageHeader({
@@ -29,6 +30,7 @@ export function PageHeader({
   breadcrumbs = [],
   quickActions = [],
   description,
+  action,
 }: PageHeaderProps) {
   const t = useTranslations()
   const locale = useLocale()
@@ -70,25 +72,29 @@ export function PageHeader({
             )}
           </div>
 
-          {/* Quick Actions */}
-          {quickActions.length > 0 && (
+          {/* Quick Actions or Custom Action */}
+          {(quickActions.length > 0 || action) && (
             <div className="flex items-center space-x-3 ml-4">
-              {quickActions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={action.onClick}
-                  className={cn(
-                    'inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors',
-                    'focus:outline-none focus:ring-2 focus:ring-offset-2',
-                    action.variant === 'primary'
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500'
-                  )}
-                >
-                  {action.icon && <span className="mr-2">{action.icon}</span>}
-                  {action.label}
-                </button>
-              ))}
+              {action ? (
+                action
+              ) : (
+                quickActions.map((quickAction, index) => (
+                  <button
+                    key={index}
+                    onClick={quickAction.onClick}
+                    className={cn(
+                      'inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors',
+                      'focus:outline-none focus:ring-2 focus:ring-offset-2',
+                      quickAction.variant === 'primary'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500'
+                    )}
+                  >
+                    {quickAction.icon && <span className="mr-2">{quickAction.icon}</span>}
+                    {quickAction.label}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>

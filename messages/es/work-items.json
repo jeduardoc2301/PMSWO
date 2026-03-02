@@ -1,0 +1,55 @@
+{
+  "title": "Elementos de Trabajo",
+  "createWorkItem": "Crear Elemento de Trabajo",
+  "editWorkItem": "Editar Elemento de Trabajo",
+  "deleteWorkItem": "Eliminar Elemento de Trabajo",
+  "workItemDetails": "Detalles del Elemento de Trabajo",
+  "workItemTitle": "Título",
+  "workItemDescription": "Descripción",
+  "owner": "Responsable",
+  "assignee": "Asignado a",
+  "startDate": "Fecha de Inicio",
+  "estimatedEndDate": "Fecha Estimada de Finalización",
+  "completedAt": "Completado el",
+  "workItemStatus": "Estado",
+  "workItemPriority": "Prioridad",
+  "kanbanColumn": "Columna Kanban",
+  "overdueItems": "Elementos Atrasados",
+  "completedItems": "Elementos Completados",
+  "inProgressItems": "Elementos en Progreso",
+  "blockedItems": "Elementos Bloqueados",
+  "noWorkItems": "No hay elementos de trabajo disponibles",
+  "createFirstWorkItem": "Crear tu primer elemento de trabajo",
+  "status": {
+    "backlog": "Backlog",
+    "todo": "Por Hacer",
+    "inProgress": "En Progreso",
+    "blocked": "Bloqueado",
+    "done": "Completado"
+  },
+  "priority": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "history": {
+    "title": "Historial de Cambios",
+    "field": "Campo",
+    "oldValue": "Valor Anterior",
+    "newValue": "Valor Nuevo",
+    "changedBy": "Cambiado por",
+    "changedAt": "Fecha de Cambio",
+    "noHistory": "No hay historial de cambios"
+  },
+  "messages": {
+    "createSuccess": "Elemento de trabajo creado exitosamente",
+    "updateSuccess": "Elemento de trabajo actualizado exitosamente",
+    "deleteSuccess": "Elemento de trabajo eliminado exitosamente",
+    "statusChangeSuccess": "Estado cambiado exitosamente",
+    "createError": "Error al crear el elemento de trabajo",
+    "updateError": "Error al actualizar el elemento de trabajo",
+    "deleteError": "Error al eliminar el elemento de trabajo",
+    "statusChangeError": "Error al cambiar el estado"
+  }
+}

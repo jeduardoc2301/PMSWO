@@ -2,7 +2,50 @@
 
 ## Overview
 
-This implementation plan breaks down the development of a multi-tenant SaaS platform for executive project management into discrete, sequential coding tasks. The platform uses Next.js 14+ with TypeScript, MySQL with Prisma ORM, NextAuth.js for authentication, and AWS Bedrock for AI capabilities. Each task builds incrementally on previous work, with checkpoints to validate progress.
+This implementation plan breaks down the development of a multi-tenant SaaS platform for executive project management into discrete, sequential coding tasks. The platform uses Next.js 15 with TypeScript, MySQL with Prisma ORM, NextAuth.js for authentication, and AWS Bedrock for AI capabilities. Each task builds incrementally on previous work, with checkpoints to validate progress.
+
+## ⚠️ ADVERTENCIAS CRÍTICAS - LEER ANTES DE IMPLEMENTAR
+
+**IMPORTANTE:** Durante la implementación se encontraron varios errores comunes relacionados con Next.js 15, next-intl, NextAuth y patrones de importación. Estas advertencias están incorporadas en las tareas relevantes, pero es CRÍTICO tenerlas presentes:
+
+### 1. Next.js 15 - params es Promise
+- **TODAS** las páginas con params dinámicos DEBEN usar `await params`
+- Firma correcta: `async function Page({ params }: { params: Promise<{ locale: string }> })`
+- Uso correcto: `const { locale } = await params`
+- ❌ INCORRECTO: `function Page({ params }: { params: { locale: string } })`
+
+### 2. next-intl - Manejo de locale undefined
+- En `i18n/request.ts`, NO llamar `notFound()` si locale es undefined
+- Usar `defaultLocale` como fallback
+- TODAS las páginas con [locale] DEBEN tener `generateStaticParams()` y `setRequestLocale(locale)`
+
+### 3. NextAuth - SessionProvider
+- SessionProvider DEBE estar en el layout principal (`app/[locale]/layout.tsx`)
+- DEBE envolver toda la aplicación
+- Usar `SessionProviderWrapper` (componente client)
+
+### 4. Imports de Prisma
+- **SIEMPRE** usar default import: `import prisma from '@/lib/prisma'`
+- ❌ NUNCA usar named import: `import { prisma } from '@/lib/prisma'`
+
+### 5. Imports de Permission
+- **SIEMPRE** importar desde `@/types`: `import { Permission } from '@/types'`
+- ❌ NUNCA importar desde `@/lib/rbac`: `import { Permission } from '@/lib/rbac'`
+
+### 6. withAuth middleware
+- El tercer parámetro es `authContext`, NO `req.user`
+- Firma correcta: `async (req: NextRequest, context: any, authContext: any) => { ... }`
+- Acceso correcto: `authContext.organizationId`, `authContext.userId`
+
+### 7. Redirecciones
+- **SIEMPRE** incluir locale en las rutas: `/es/dashboard`, NO `/dashboard`
+- Usar locale dinámico cuando sea posible
+
+### 8. Tarea de Auditoría Pre-deployment
+- La tarea 44.5 incluye una auditoría completa de estos patrones
+- EJECUTAR esta tarea antes de cualquier deployment
+
+Para más detalles, consultar el archivo `IMPORTANTE.md` en la raíz del proyecto.
 
 ## Tasks
 
@@ -337,22 +380,24 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Test progress note addition
     - _Requirements: 7.1, 7.2, 7.4_
 
-- [ ] 12. AI service integration with AWS Bedrock
-  - [ ] 12.1 Set up AWS Bedrock client and configuration
+- [x] 12. AI service integration with AWS Bedrock
+  - [x] 12.1 Set up AWS Bedrock client and configuration
     - Install AWS SDK for Bedrock Runtime
     - Configure Bedrock client with credentials from Secrets Manager
     - Set up guardrails configuration (content policy, PII detection)
     - Define model ID (Claude 3 Sonnet)
+    - **⚠️ IMPORTANTE: Usar variables de entorno para credenciales AWS (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)**
     - _Requirements: 8.1, 9.3_
 
-  - [ ] 12.2 Create AIService base class with error handling
+  - [x] 12.2 Create AIService base class with error handling
     - Implement executeBedrockRequest with retry logic
     - Handle GuardrailsException, ThrottlingException, TimeoutError
     - Implement exponential backoff for retries (max 3 attempts)
     - Create custom error classes: AIGuardrailsError, AIServiceError
+    - **⚠️ IMPORTANTE: Implementar manejo robusto de errores con retry logic (max 3 intentos con backoff exponencial)**
     - _Requirements: 9.3, 16.5_
 
-  - [ ] 12.3 Implement generateProjectReport method
+  - [x] 12.3 Implement generateProjectReport method
     - Create prompt template with project data (work items, blockers, risks, agreements)
     - Support detail levels: EXECUTIVE, DETAILED, COMPLETE
     - Call Bedrock with structured prompt
@@ -363,7 +408,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - **Property 18: Contenido Completo en Reportes de IA**
     - **Validates: Requirements 8.3**
 
-  - [ ] 12.5 Implement analyzeProject method with caching
+  - [x] 12.5 Implement analyzeProject method with caching
     - Check for cached analysis (< 24 hours old)
     - If cache miss, create analysis prompt with project data
     - Call Bedrock to generate suggestions, detected risks, overdue items
@@ -379,14 +424,14 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - **Property 20: Sugerencias Proactivas para Work Items Atrasados**
     - **Validates: Requirements 9.2**
 
-  - [ ] 12.8 Implement improveText method
+  - [x] 12.8 Implement improveText method
     - Create prompt template for text improvement
     - Support different purposes (email, report, description)
     - Call Bedrock with text and purpose
     - Return improved text
     - _Requirements: 8.4_
 
-  - [ ] 12.9 Implement cache management methods
+  - [x] 12.9 Implement cache management methods
     - Create getCachedAnalysis method
     - Create invalidateCache method (delete expired or manual invalidation)
     - _Requirements: 9.4_
@@ -480,22 +525,23 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Test email formatting
     - _Requirements: 11.1, 11.2, 12.1_
 
-- [ ] 16. Internationalization (i18n) setup
-  - [ ] 16.1 Configure next-intl for App Router
-    - Install next-intl package
-    - Create i18n configuration with locales (es, pt)
-    - Set up middleware for locale detection
-    - Configure default locale (es)
+- [x] 16. Internationalization (i18n) setup
+  - [x] 16.1 Configure next-intl for App Router
+    - **✅ PARCIALMENTE IMPLEMENTADO: next-intl ya está configurado**
+    - Verificar que i18n/request.ts maneje locale undefined correctamente (usar defaultLocale en lugar de notFound())
+    - Verificar que todas las páginas con [locale] tengan generateStaticParams() y setRequestLocale()
+    - **⚠️ CRÍTICO: En i18n/request.ts, NO llamar notFound() si locale es undefined, usar defaultLocale**
+    - **⚠️ CRÍTICO: Todas las páginas con [locale] DEBEN tener generateStaticParams() y setRequestLocale(locale)**
     - _Requirements: 13.1, 13.2_
 
-  - [ ] 16.2 Create translation files structure
+  - [x] 16.2 Create translation files structure
     - Create messages/es and messages/pt directories
     - Create translation files: common.json, projects.json, work-items.json, blockers.json, risks.json, agreements.json, dashboard.json, errors.json
     - Populate Spanish translations (primary language)
     - Populate Portuguese translations
     - _Requirements: 13.1_
 
-  - [ ] 16.3 Implement I18nService for locale management
+  - [x] 16.3 Implement I18nService for locale management
     - Create getCurrentLocale, setLocale methods
     - Implement translate method with parameter interpolation
     - Implement formatDate and formatNumber with locale-specific formatting
@@ -506,7 +552,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - **Property 26: Persistencia de Preferencia de Idioma**
     - **Validates: Requirements 13.4**
 
-  - [ ] 16.5 Create error message translation system
+  - [x] 16.5 Create error message translation system
     - Map error codes to translation keys
     - Implement translateError function
     - Ensure all error messages are user-friendly and localized
@@ -527,21 +573,26 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Validate email and password
     - Authenticate user with NextAuth
     - Return JWT token and user data
+    - **⚠️ CRÍTICO: Usar default import para Prisma: `import prisma from '@/lib/prisma'`**
     - _Requirements: 15.1_
 
   - [x] 17.2 Create POST /api/v1/auth/signout endpoint
     - Invalidate JWT token
     - Clear session
+    - **⚠️ CRÍTICO: Usar default import para Prisma: `import prisma from '@/lib/prisma'`**
     - _Requirements: 15.1_
 
   - [x] 17.3 Create POST /api/v1/auth/refresh endpoint
     - Validate refresh token
     - Generate new access token
+    - **⚠️ CRÍTICO: Usar default import para Prisma: `import prisma from '@/lib/prisma'`**
     - _Requirements: 15.1_
 
   - [x] 17.4 Create GET /api/v1/auth/me endpoint
     - Return current authenticated user
     - Include organization and roles
+    - **⚠️ CRÍTICO: Usar default import para Prisma: `import prisma from '@/lib/prisma'`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 15.1_
 
   - [ ]\* 17.5 Write property test for token validation
@@ -557,27 +608,37 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Protect with withAuth middleware
     - Validate user belongs to organization
     - Return organization with settings
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 1.1, 2.1_
 
   - [x] 18.2 Create PATCH /api/v1/organizations/:id endpoint
     - Protect with ORG_MANAGE permission
     - Validate and update organization settings
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 1.1, 2.2_
 
   - [x] 18.3 Create GET /api/v1/organizations/:id/users endpoint
     - Protect with USER_VIEW permission
     - Return users in organization with roles
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 2.3_
 
   - [x] 18.4 Create POST /api/v1/organizations/:id/users endpoint
     - Protect with USER_CREATE permission
     - Create user with hashed password
     - Assign roles
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 2.3, 2.4_
 
   - [x] 18.5 Create DELETE /api/v1/organizations/:id/users/:userId endpoint
     - Protect with USER_DELETE permission
     - Deactivate user (soft delete)
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 2.5, 2.6_
 
   - [ ]\* 18.6 Write integration tests for organization endpoints
@@ -592,42 +653,58 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Filter by organization_id automatically
     - Support pagination, filtering (status, client), sorting
     - Exclude archived projects by default
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 3.1, 3.5_
 
   - [x] 19.2 Create POST /api/v1/projects endpoint
     - Protect with PROJECT_CREATE permission
     - Validate project data with Zod schema
     - Create project with automatic Kanban board
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 3.1, 3.2_
 
   - [x] 19.3 Create GET /api/v1/projects/:id endpoint
     - Protect with PROJECT_VIEW permission
     - Return project with related data (work items count, blocker count, etc.)
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 3.1_
 
   - [x] 19.4 Create PATCH /api/v1/projects/:id endpoint
     - Protect with PROJECT_UPDATE permission
     - Validate and update project fields
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 3.4_
 
   - [x] 19.5 Create DELETE /api/v1/projects/:id endpoint
     - Protect with PROJECT_ARCHIVE permission
     - Archive project (set archived = true)
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 3.5_
 
   - [x] 19.6 Create GET /api/v1/projects/:id/kanban endpoint
     - Protect with PROJECT_VIEW permission
     - Return Kanban board with columns and work items
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 3.3_
 
   - [x] 19.7 Create GET /api/v1/projects/:id/metrics endpoint
     - Protect with PROJECT_VIEW permission
     - Return project metrics (completion rate, blocker stats, etc.)
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 10.2_
 
   - [x] 19.8 Create GET /api/v1/projects/:id/health endpoint
     - Protect with PROJECT_VIEW permission
     - Return project health score and factors
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 10.3_
 
   - [ ]\* 19.9 Write integration tests for project endpoints
@@ -643,39 +720,53 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Filter by project and organization
     - Support filtering by status, priority, owner
     - Support pagination and sorting
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 4.1_
 
   - [x] 20.2 Create POST /api/v1/projects/:projectId/work-items endpoint
     - Protect with WORK_ITEM_CREATE permission
     - Validate work item data
     - Create work item with automatic organization_id and kanban_column_id
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 4.1, 4.3_
 
   - [x] 20.3 Create GET /api/v1/work-items/:id endpoint
     - Protect with WORK_ITEM_VIEW permission
     - Return work item with related data (blockers, agreements)
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 4.1_
 
   - [x] 20.4 Create PATCH /api/v1/work-items/:id endpoint
     - Protect with WORK_ITEM_UPDATE or WORK_ITEM_UPDATE_OWN permission
     - Validate and update work item
     - Create audit log entry for changes
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 4.2, 4.4_
 
   - [x] 20.5 Create PATCH /api/v1/work-items/:id/status endpoint
     - Protect with WORK_ITEM_UPDATE permission
     - Change status and sync Kanban column
     - Set completedAt if status is DONE
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 4.3_
 
   - [x] 20.6 Create GET /api/v1/work-items/:id/history endpoint
     - Protect with WORK_ITEM_VIEW permission
     - Return work item change history
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 4.6_
 
   - [x] 20.7 Create GET /api/v1/projects/:projectId/work-items/overdue endpoint
     - Protect with WORK_ITEM_VIEW permission
     - Return overdue work items for project
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 4.5_
 
   - [ ]\* 20.8 Write integration tests for work item endpoints
@@ -693,6 +784,8 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Protect with BLOCKER_VIEW permission
     - Filter by project and organization
     - Support filtering by severity, resolved status
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 5.1_
 
   - [x] 22.2 Create POST /api/v1/projects/:projectId/blockers endpoint
@@ -700,27 +793,37 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Validate blocker data
     - Create blocker linked to work item
     - Update work item status to BLOCKED
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 5.1_
 
   - [x] 22.3 Create GET /api/v1/blockers/:id endpoint
     - Protect with BLOCKER_VIEW permission
     - Return blocker with duration calculation
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 5.1, 5.2_
 
   - [x] 22.4 Create PATCH /api/v1/blockers/:id endpoint
     - Protect with BLOCKER_UPDATE permission
     - Validate and update blocker fields
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 5.1_
 
   - [x] 22.5 Create POST /api/v1/blockers/:id/resolve endpoint
     - Protect with BLOCKER_RESOLVE permission
     - Set resolvedAt and resolution text
     - Move work item from Blockers column
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 5.3_
 
   - [x] 22.6 Create GET /api/v1/projects/:projectId/blockers/critical endpoint
     - Protect with BLOCKER_VIEW permission
     - Return critical blockers (severity = CRITICAL or duration > threshold)
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 5.4, 5.5_
 
   - [ ]\* 22.7 Write integration tests for blocker endpoints
@@ -735,41 +838,55 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Filter by project and organization
     - Support filtering by risk level, status
     - Sort by risk level (descending)
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 6.1, 6.4_
 
   - [x] 23.2 Create POST /api/v1/projects/:projectId/risks endpoint
     - Protect with RISK_CREATE permission
     - Validate risk data (probability and impact 1-5)
     - Calculate and set risk level automatically
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 6.1, 6.2_
 
   - [x] 23.3 Create GET /api/v1/risks/:id endpoint
     - Protect with RISK_VIEW permission
     - Return risk with calculated risk level
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 6.1_
 
   - [x] 23.4 Create PATCH /api/v1/risks/:id endpoint
     - Protect with RISK_UPDATE permission
     - Validate and update risk
     - Recalculate risk level if probability or impact changed
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 6.1, 6.2_
 
   - [x] 23.5 Create POST /api/v1/risks/:id/convert-to-blocker endpoint
     - Protect with RISK_UPDATE and BLOCKER_CREATE permissions
     - Create blocker from risk data
     - Update risk status to MATERIALIZED
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 6.3_
 
   - [x] 23.6 Create POST /api/v1/risks/:id/convert-to-work-item endpoint
     - Protect with RISK_UPDATE and WORK_ITEM_CREATE permissions
     - Create work item from risk data
     - Update risk status to MITIGATING
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 6.3_
 
   - [x] 23.7 Create POST /api/v1/risks/:id/close endpoint
     - Protect with RISK_UPDATE permission
     - Set closedAt and closure notes
     - Update status to CLOSED
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 6.1_
 
   - [ ]\* 23.8 Write integration tests for risk endpoints
@@ -779,45 +896,59 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Test risk ordering
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 24. API routes - Agreement endpoints
-  - [ ] 24.1 Create GET /api/v1/projects/:projectId/agreements endpoint
+- [x] 24. API routes - Agreement endpoints
+  - [x] 24.1 Create GET /api/v1/projects/:projectId/agreements endpoint
     - Protect with AGREEMENT_VIEW permission
     - Filter by project and organization
     - Support filtering by status
     - Include linked work items and progress notes
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 7.1_
 
-  - [ ] 24.2 Create POST /api/v1/projects/:projectId/agreements endpoint
+  - [x] 24.2 Create POST /api/v1/projects/:projectId/agreements endpoint
     - Protect with AGREEMENT_CREATE permission
     - Validate agreement data
     - Create agreement
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 7.1_
 
-  - [ ] 24.3 Create GET /api/v1/agreements/:id endpoint
+  - [x] 24.3 Create GET /api/v1/agreements/:id endpoint
     - Protect with AGREEMENT_VIEW permission
     - Return agreement with work items and notes
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 7.1_
 
-  - [ ] 24.4 Create PATCH /api/v1/agreements/:id endpoint
+  - [x] 24.4 Create PATCH /api/v1/agreements/:id endpoint
     - Protect with AGREEMENT_UPDATE permission
     - Validate and update agreement
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 7.1_
 
-  - [ ] 24.5 Create POST /api/v1/agreements/:id/link-work-item endpoint
+  - [x] 24.5 Create POST /api/v1/agreements/:id/link-work-item endpoint
     - Protect with AGREEMENT_UPDATE permission
     - Validate work item belongs to same project
     - Create AgreementWorkItem link
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 7.2_
 
-  - [ ] 24.6 Create POST /api/v1/agreements/:id/progress-notes endpoint
+  - [x] 24.6 Create POST /api/v1/agreements/:id/progress-notes endpoint
     - Protect with AGREEMENT_UPDATE permission
     - Create progress note with user and timestamp
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 7.4_
 
-  - [ ] 24.7 Create POST /api/v1/agreements/:id/complete endpoint
+  - [x] 24.7 Create POST /api/v1/agreements/:id/complete endpoint
     - Protect with AGREEMENT_UPDATE permission
     - Set completedAt timestamp
     - Update status to COMPLETED
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 7.1_
 
   - [ ]\* 24.8 Write integration tests for agreement endpoints
@@ -826,44 +957,56 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Test progress note addition
     - _Requirements: 7.1, 7.2, 7.4_
 
-- [ ] 25. API routes - AI assistant endpoints
-  - [ ] 25.1 Create POST /api/v1/ai/generate-report endpoint
+- [x] 25. API routes - AI assistant endpoints
+  - [x] 25.1 Create POST /api/v1/ai/generate-report endpoint
     - Protect with AI_USE permission
     - Validate project ID and detail level
     - Call AIService.generateProjectReport
     - Return formatted report text
     - Handle AI errors gracefully
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 8.1, 8.2, 8.3_
 
-  - [ ] 25.2 Create POST /api/v1/ai/analyze-project endpoint
+  - [x] 25.2 Create POST /api/v1/ai/analyze-project endpoint
     - Protect with AI_USE permission
     - Validate project ID
     - Call AIService.analyzeProject (with caching)
     - Return analysis with suggestions
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 9.1, 9.2_
 
-  - [ ] 25.3 Create POST /api/v1/ai/suggest-description endpoint
+  - [x] 25.3 Create POST /api/v1/ai/suggest-description endpoint
     - Protect with AI_USE permission
     - Validate context string
     - Call AIService.suggestWorkItemDescription
     - Return suggestion array
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 8.4_
 
-  - [ ] 25.4 Create POST /api/v1/ai/improve-text endpoint
+  - [x] 25.4 Create POST /api/v1/ai/improve-text endpoint
     - Protect with AI_USE permission
     - Validate text and purpose
     - Call AIService.improveText
     - Return improved text
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 8.4_
 
-  - [ ] 25.5 Create GET /api/v1/ai/cached-analysis/:projectId endpoint
+  - [x] 25.5 Create GET /api/v1/ai/cached-analysis/:projectId endpoint
     - Protect with AI_USE permission
     - Return cached analysis if exists and not expired
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 9.4_
 
-  - [ ] 25.6 Create DELETE /api/v1/ai/cached-analysis/:projectId endpoint
+  - [x] 25.6 Create DELETE /api/v1/ai/cached-analysis/:projectId endpoint
     - Protect with AI_USE permission
     - Invalidate cached analysis for project
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types**
     - _Requirements: 9.4_
 
   - [ ]\* 25.7 Write property test for async AI processing
@@ -876,30 +1019,38 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Test error handling for guardrails violations
     - _Requirements: 8.1, 9.1, 9.3_
 
-- [ ] 26. API routes - Dashboard and export endpoints
-  - [ ] 26.1 Create GET /api/v1/dashboard/executive endpoint
+- [x] 26. API routes - Dashboard and export endpoints
+  - [x] 26.1 Create GET /api/v1/dashboard/executive endpoint
     - Protect with DASHBOARD_EXECUTIVE permission
     - Parse and validate filters from query params
     - Call DashboardService.getExecutiveDashboard
     - Return dashboard data with metrics
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 10.1, 10.2, 10.5_
 
-  - [ ] 26.2 Create GET /api/v1/dashboard/metrics endpoint
+  - [x] 26.2 Create GET /api/v1/dashboard/metrics endpoint
     - Protect with DASHBOARD_EXECUTIVE permission
     - Call DashboardService.getOrganizationMetrics
     - Return organization-wide metrics
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 10.2_
 
-  - [ ] 26.3 Create POST /api/v1/export/project/:projectId endpoint
+  - [x] 26.3 Create POST /api/v1/export/project/:projectId endpoint
     - Protect with EXPORT_PROJECT permission
     - Validate export options
     - Call ExportService.exportProject
     - Return formatted export content
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - _Requirements: 11.1, 11.2, 11.5_
 
-  - [ ] 26.4 Create POST /api/v1/export/notification endpoint
+  - [x] 26.4 Create POST /api/v1/export/notification endpoint
     - Protect with EXPORT_PROJECT permission
     - Validate notification type and entity ID
+    - **⚠️ CRÍTICO: withAuth pasa authContext como tercer parámetro: `async (req, context, authContext) => { ... }`**
+    - **⚠️ CRÍTICO: Importar Permission desde @/types, NO desde @/lib/rbac**
     - Call ExportService.generateNotificationMessage
     - Return notification message
     - _Requirements: 12.1, 12.3_
@@ -913,11 +1064,15 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
 - [ ] 27. Checkpoint - Verify all API routes
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 28. Frontend - Layout and navigation components
+- [x] 28. Frontend - Layout and navigation components
   - [x] 28.1 Create root layout with i18n provider
     - Set up next-intl provider in root layout
     - Create locale-based routing structure
     - Add metadata and viewport configuration
+    - **⚠️ CRÍTICO Next.js 15: params es Promise, usar `const { locale } = await params`**
+    - **⚠️ CRÍTICO: Agregar generateStaticParams() para pre-renderizar locales**
+    - **⚠️ CRÍTICO: Llamar setRequestLocale(locale) al inicio del componente**
+    - **⚠️ CRÍTICO: SessionProvider DEBE envolver toda la app en el layout principal (usar SessionProviderWrapper)**
     - _Requirements: 13.1_
 
   - [x] 28.2 Create main navigation component
@@ -939,13 +1094,15 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Create user-friendly error messages
     - _Requirements: 14.3, 17.1_
 
-- [ ] 29. Frontend - Authentication pages
+- [x] 29. Frontend - Authentication pages
   - [x] 29.1 Create sign-in page
     - Build sign-in form with email and password fields
     - Implement form validation with Zod
     - Handle authentication with NextAuth
     - Show error messages for failed login
     - Redirect to dashboard on success
+    - **⚠️ CRÍTICO: Incluir locale en redirecciones (ej: router.push('/es/dashboard'), NO '/dashboard')**
+    - **⚠️ CRÍTICO Next.js 15: Si la página tiene params, usar `const { locale } = await params`**
     - _Requirements: 15.1, 14.3_
 
   - [x] 29.2 Create sign-out functionality
@@ -959,12 +1116,14 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Check user permissions for routes
     - _Requirements: 15.4, 2.1_
 
-- [ ] 30. Frontend - Dashboard pages
+- [x] 30. Frontend - Dashboard pages
   - [x] 30.1 Create executive dashboard page
     - Display key metrics cards (active projects, at-risk projects, critical blockers, high risks)
     - Show project list with health indicators
     - Implement filter controls (date range, client, PM, status)
     - Add charts for completion rate and trends
+    - **⚠️ CRÍTICO Next.js 15: Si la página tiene params, usar `const { locale } = await params`**
+    - **⚠️ CRÍTICO: Verificar que SessionProvider esté configurado antes de usar useSession()**
     - _Requirements: 10.1, 10.2, 10.4, 10.5_
 
   - [x] 30.2 Create project health visualization component
@@ -977,12 +1136,13 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Show loading states during data fetch
     - _Requirements: 10.6_
 
-- [ ] 31. Frontend - Project management pages
+- [x] 31. Frontend - Project management pages
   - [x] 31.1 Create projects list page
     - Display projects in card or table view
     - Implement search and filtering
     - Show project status and key metrics
     - Add "Create Project" button (role-based visibility)
+    - **⚠️ CRÍTICO Next.js 15: Si la página tiene params, usar `const { locale } = await params`**
     - _Requirements: 3.1, 3.5_
 
   - [x] 31.2 Create project creation/edit form
@@ -990,6 +1150,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Implement validation with Zod
     - Handle form submission to API
     - Show success/error messages
+    - **⚠️ CRÍTICO: Incluir locale en redirecciones después de crear/editar**
     - _Requirements: 3.1, 3.4, 14.3_
 
   - [x] 31.3 Create project detail page
@@ -997,6 +1158,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Show tabs for: Kanban board, Work Items, Blockers, Risks, Agreements
     - Include project metrics summary
     - Add AI-powered report generation button
+    - **⚠️ CRÍTICO Next.js 15: params es Promise, usar `const { locale, id } = await params`**
     - _Requirements: 3.1, 8.1_
 
   - [x] 31.4 Create Kanban board component
@@ -1012,7 +1174,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Allow viewing archived projects in separate view
     - _Requirements: 3.5_
 
-- [ ] 32. Frontend - Work item management pages
+- [x] 32. Frontend - Work item management pages
   - [x] 32.1 Create work item list view
     - Display work items in table with sorting and filtering
     - Show status, priority, owner, dates
@@ -1041,8 +1203,8 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Reflect changes in Kanban board
     - _Requirements: 4.3_
 
-- [ ] 33. Frontend - Blocker, risk, and agreement pages
-  - [ ] 33.1 Create blocker list and management
+- [x] 33. Frontend - Blocker, risk, and agreement pages
+  - [x] 33.1 Create blocker list and management
     - Display active blockers with severity indicators
     - Show blocker duration
     - Implement blocker creation form
@@ -1050,7 +1212,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Highlight critical blockers
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ] 33.2 Create risk list and management
+  - [x] 33.2 Create risk list and management
     - Display risks sorted by risk level
     - Show risk matrix visualization (probability vs impact)
     - Implement risk creation/edit form
@@ -1058,7 +1220,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Add close risk functionality
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-  - [ ] 33.3 Create agreement list and management
+  - [x] 33.3 Create agreement list and management
     - Display agreements with status
     - Show linked work items
     - Implement agreement creation/edit form
@@ -1067,8 +1229,8 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Add complete agreement action
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-- [ ] 34. Frontend - AI assistant features
-  - [ ] 34.1 Create AI report generation interface
+- [x] 34. Frontend - AI assistant features
+  - [x] 34.1 Create AI report generation interface
     - Add "Generate Report" button in project detail
     - Show detail level selector (Executive, Detailed, Complete)
     - Display loading state during generation
@@ -1076,65 +1238,65 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Add copy to clipboard functionality
     - _Requirements: 8.1, 8.2, 8.3_
 
-  - [ ] 34.2 Create AI project analysis interface
+  - [x] 34.2 Create AI project analysis interface
     - Add "Analyze Project" button
     - Display analysis results with suggestions
     - Show detected risks and overdue items
     - Allow user to act on suggestions (create blocker, adjust dates)
     - _Requirements: 9.1, 9.2_
 
-  - [ ] 34.3 Implement AI text improvement features
+  - [x] 34.3 Implement AI text improvement features
     - Add "Improve with AI" button in text fields
     - Show improved text suggestions
     - Allow user to accept or reject suggestions
     - _Requirements: 8.4_
 
-  - [ ] 34.4 Add AI loading and error states
+  - [x] 34.4 Add AI loading and error states
     - Show loading spinner during AI requests
     - Display user-friendly error messages for AI failures
     - Handle guardrails violations gracefully
     - _Requirements: 9.3, 14.3_
 
-- [ ] 35. Frontend - Export and notification features
-  - [ ] 35.1 Create export functionality
+- [x] 35. Frontend - Export and notification features
+  - [x] 35.1 Create export functionality
     - Add "Export Project" button
     - Show export options dialog (detail level, sections to include)
     - Generate and download export file
     - Show success message
     - _Requirements: 11.1, 11.2, 11.5_
 
-  - [ ] 35.2 Create notification message generation
+  - [x] 35.2 Create notification message generation
     - Add "Generate Notification" button for critical items
     - Display generated message in modal
     - Add copy to clipboard functionality
     - Support email formatting
     - _Requirements: 12.1, 12.2, 12.3_
 
-- [ ] 36. Frontend - User settings and preferences
-  - [ ] 36.1 Create user settings page
+- [x] 36. Frontend - User settings and preferences
+  - [x] 36.1 Create user settings page
     - Display user profile information
     - Add locale preference selector
     - Save preferences to database
     - _Requirements: 13.3, 13.4_
 
-  - [ ] 36.2 Implement locale switching
+  - [x] 36.2 Implement locale switching
     - Add language switcher in navigation
     - Update UI immediately on locale change
     - Persist preference for future sessions
     - _Requirements: 13.3, 13.4_
 
-- [ ] 37. Checkpoint - Verify frontend implementation
+- [x] 37. Checkpoint - Verify frontend implementation
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 38. Error handling and logging
-  - [ ] 38.1 Implement global error handler
+- [x] 38. Error handling and logging
+  - [x] 38.1 Implement global error handler
     - Create error handler middleware for API routes
     - Map errors to appropriate HTTP status codes
     - Return standardized error responses
     - Log errors to CloudWatch (in production)
     - _Requirements: 14.3, 17.2_
 
-  - [ ] 38.2 Create error logging service
+  - [x] 38.2 Create error logging service
     - Implement logger with Winston
     - Configure CloudWatch transport for production
     - Log errors with context (user, request, stack trace)
@@ -1144,7 +1306,7 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - **Property 33: Registro de Errores del Sistema**
     - **Validates: Requirements 17.2**
 
-  - [ ] 38.4 Implement audit logging for security events
+  - [x] 38.4 Implement audit logging for security events
     - Log authentication failures
     - Log authorization failures
     - Log sensitive operations (user creation, role changes)
@@ -1156,27 +1318,27 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
     - Test logging functionality
     - _Requirements: 14.3, 17.2_
 
-- [ ] 39. Performance optimization
-  - [ ] 39.1 Implement database query optimization
+- [x] 39. Performance optimization
+  - [x] 39.1 Implement database query optimization
     - Add composite indexes for common queries
     - Implement MySQL connection pooling
     - Optimize N+1 queries with Prisma includes
     - _Requirements: 16.3_
 
-  - [ ] 39.2 Implement caching strategy
+  - [x] 39.2 Implement caching strategy
     - Set up Redis for session and data caching (optional)
     - Cache AI analysis results in database
     - Implement cache invalidation on data changes
     - _Requirements: 9.4, 16.4_
 
-  - [ ] 39.3 Optimize frontend performance
+  - [x] 39.3 Optimize frontend performance
     - Implement code splitting for routes
     - Add image optimization with Next.js Image
     - Implement lazy loading for heavy components
     - Use React Query for efficient data fetching
     - _Requirements: 16.1_
 
-  - [ ] 39.4 Add performance monitoring
+  - [x] 39.4 Add performance monitoring
     - Implement API response time tracking
     - Add custom CloudWatch metrics
     - Monitor database query performance
@@ -1255,6 +1417,59 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
 
 - [ ] 44. Checkpoint - Verify all tests pass
   - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 44.5 Audit y corrección de patrones comunes (Pre-deployment)
+  - [ ] 44.5.1 Auditar imports de Prisma
+    - Verificar que TODOS los imports de Prisma usen default import: `import prisma from '@/lib/prisma'`
+    - Buscar y corregir cualquier named import: `import { prisma } from '@/lib/prisma'`
+    - **⚠️ CRÍTICO: lib/prisma.ts exporta default, NO named export**
+    - _Requirements: 16.1_
+
+  - [ ] 44.5.2 Auditar imports de Permission
+    - Verificar que TODOS los imports de Permission sean desde @/types
+    - Buscar y corregir cualquier import desde @/lib/rbac
+    - **⚠️ CRÍTICO: Permission está definido en @/types, NO en @/lib/rbac**
+    - _Requirements: 2.1_
+
+  - [ ] 44.5.3 Auditar páginas con params dinámicos
+    - Verificar que TODAS las páginas con params usen `await params`
+    - Verificar que params tenga tipo Promise en la firma
+    - Buscar patrones incorrectos: `{ params }: { params: { locale: string } }`
+    - **⚠️ CRÍTICO Next.js 15: params DEBE ser Promise y usar await**
+    - _Requirements: 13.1, 16.1_
+
+  - [ ] 44.5.4 Auditar páginas con [locale]
+    - Verificar que TODAS las páginas con [locale] tengan generateStaticParams()
+    - Verificar que TODAS las páginas con [locale] llamen setRequestLocale(locale)
+    - **⚠️ CRÍTICO: Requerido para next-intl con App Router**
+    - _Requirements: 13.1_
+
+  - [ ] 44.5.5 Auditar redirecciones
+    - Verificar que TODAS las redirecciones incluyan locale en la ruta
+    - Buscar patrones incorrectos: `router.push('/dashboard')`
+    - Corregir a: `router.push('/es/dashboard')` o usar locale dinámico
+    - **⚠️ CRÍTICO: Redirecciones sin locale causan errores 404**
+    - _Requirements: 13.1_
+
+  - [ ] 44.5.6 Auditar uso de withAuth middleware
+    - Verificar que TODOS los handlers con withAuth usen la firma correcta
+    - Verificar que accedan a authContext (tercer parámetro), NO a req.user
+    - Patrón correcto: `async (req, context, authContext) => { const orgId = authContext.organizationId }`
+    - **⚠️ CRÍTICO: withAuth NO agrega user a req, usa authContext**
+    - _Requirements: 15.4_
+
+  - [ ] 44.5.7 Auditar configuración de SessionProvider
+    - Verificar que SessionProvider esté en el layout principal (app/[locale]/layout.tsx)
+    - Verificar que envuelva toda la aplicación
+    - Verificar que todos los componentes que usan useSession estén dentro del provider
+    - **⚠️ CRÍTICO: useSession requiere SessionProvider en el árbol de componentes**
+    - _Requirements: 15.1_
+
+  - [ ] 44.5.8 Auditar manejo de locale undefined en i18n/request.ts
+    - Verificar que NO se llame notFound() cuando locale es undefined
+    - Verificar que se use defaultLocale como fallback
+    - **⚠️ CRÍTICO: notFound() con locale undefined causa errores en producción**
+    - _Requirements: 13.1_
 
 - [ ] 45. AWS infrastructure setup
   - [ ] 45.1 Set up VPC and networking
@@ -1403,3 +1618,6 @@ This implementation plan breaks down the development of a multi-tenant SaaS plat
 - All code should be written in TypeScript for type safety
 - All user-facing text should be internationalized (Spanish and Portuguese)
 - Security and performance are built in from the start, not added later
+- **IMPORTANTE:** Este proyecto usa Next.js 15, que tiene cambios significativos respecto a Next.js 14 (ver sección de advertencias al inicio)
+- **IMPORTANTE:** Consultar el archivo `IMPORTANTE.md` para detalles completos sobre errores comunes y soluciones
+- **IMPORTANTE:** Ejecutar la tarea 44.5 (Auditoría pre-deployment) antes de cualquier deployment a producción

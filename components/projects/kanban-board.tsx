@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary, type KanbanColumnWithItems } from '@/types'
 
@@ -17,6 +18,7 @@ interface KanbanBoardProps {
  * Requirements: 3.3, 4.3
  */
 export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove }: KanbanBoardProps) {
+  const t = useTranslations('kanban')
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState<string | null>(null)
 
@@ -69,7 +71,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove }: K
         await onWorkItemMove(draggedItemId, targetColumn.id, newStatus)
       } catch (error) {
         console.error('Failed to move work item:', error)
-        alert('Failed to move work item. Please try again.')
+        alert(t('moveError'))
       }
     }
 
@@ -142,7 +144,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove }: K
                 <CardContent className="space-y-3">
                   {columnWorkItems.length === 0 ? (
                     <div className="text-center py-8 text-gray-400 text-sm">
-                      No items
+                      {t('noItems')}
                     </div>
                   ) : (
                     columnWorkItems.map((workItem) => (

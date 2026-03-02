@@ -2,11 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import { PageHeader } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KanbanBoard } from '@/components/projects/kanban-board'
+import { BlockersTab } from '@/components/projects/blockers-tab'
+import { RisksTab } from '@/components/projects/risks-tab'
+import { AgreementsTab } from '@/components/projects/agreements-tab'
+import { AIReportDialog } from '@/components/ai/ai-report-dialog'
+import { AIAnalysisDialog } from '@/components/ai/ai-analysis-dialog'
+import { ExportProjectDialog } from '@/components/projects/export-project-dialog'
 import { ProjectStatus, WorkItemStatus, type KanbanBoard as KanbanBoardType } from '@/types'
 
 interface Project {
@@ -27,11 +34,8 @@ interface ProjectMetrics {
   completedWorkItems: number
   completionRate: number
   activeBlockers: number
-  criticalBlockers: number
-  highRisks: number
-  totalRisks: number
-  overdueWorkItems: number
-  averageBlockerResolutionTime: number
+  averageBlockerResolutionTimeHours: number
+  highPriorityRisks: number
 }
 
 interface ProjectDetailClientProps {
@@ -46,13 +50,14 @@ interface ProjectDetailClientProps {
  */
 export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations('projects')
   const [project, setProject] = useState<Project | null>(null)
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null)
   const [kanbanBoard, setKanbanBoard] = useState<KanbanBoardType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
-  const [generatingReport, setGeneratingReport] = useState(false)
 
   // Fetch project data
   useEffect(() => {
@@ -86,8 +91,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         const metricsData = await metricsResponse.json()
         const kanbanData = await kanbanResponse.json()
 
-        setProject(projectData)
-        setMetrics(metricsData)
+        // Extraer los datos de los objetos envueltos
+        setProject(projectData.project)
+        setMetrics(metricsData.metrics)
         setKanbanBoard(kanbanData.kanbanBoard)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -98,38 +104,6 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
     fetchProject()
   }, [projectId])
-
-  const handleGenerateReport = async () => {
-    try {
-      setGeneratingReport(true)
-      
-      const response = await fetch('/api/v1/ai/generate-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          projectId,
-          detailLevel: 'DETAILED',
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to generate report')
-      }
-
-      const data = await response.json()
-      
-      // Open report in a new window or modal
-      // For now, we'll just show an alert with the report
-      alert('Report generated successfully!\n\n' + data.report)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to generate report')
-    } finally {
-      setGeneratingReport(false)
-    }
-  }
 
   // Handle work item movement in Kanban board
   const handleWorkItemMove = async (workItemId: string, newColumnId: string, newStatus: WorkItemStatus) => {
@@ -181,7 +155,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       const metricsResponse = await fetch(`/api/v1/projects/${projectId}/metrics`)
       if (metricsResponse.ok) {
         const metricsData = await metricsResponse.json()
-        setMetrics(metricsData)
+        setMetrics(metricsData.metrics)
       }
     } catch (err) {
       throw err // Re-throw to let KanbanBoard handle the error
@@ -205,8 +179,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     }
   }
 
+  // ✅ CORREGIDO: Usar locale en lugar de 'en-US'
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -218,7 +193,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500">Loading project...</p>
+            <p className="text-gray-500">{t('loadingProject')}</p>
           </div>
         </div>
       </div>
@@ -230,10 +205,10 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error || 'Project not found'}
+            {error || t('projectNotFound')}
           </div>
-          <Button onClick={() => router.push('/projects')} className="mt-4">
-            Back to Projects
+          <Button onClick={() => router.push(`/${locale}/projects`)} className="mt-4">
+            {t('backToProjects')}
           </Button>
         </div>
       </div>
@@ -244,14 +219,14 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     <div className="min-h-screen bg-gray-50">
       <PageHeader
         title={project.name}
-        description={`Client: ${project.client}`}
+        description={`${t('client')}: ${project.client}`}
         action={
           <div className="flex gap-2">
-            <Button onClick={handleGenerateReport} disabled={generatingReport} variant="outline">
-              {generatingReport ? 'Generating...' : '🤖 Generate AI Report'}
-            </Button>
-            <Button onClick={() => router.push(`/projects/${projectId}/edit`)}>
-              Edit Project
+            <ExportProjectDialog projectId={projectId} />
+            <AIAnalysisDialog projectId={projectId} />
+            <AIReportDialog projectId={projectId} />
+            <Button onClick={() => router.push(`/${locale}/projects/${projectId}/edit`)}>
+              {t('editProject')}
             </Button>
           </div>
         }
@@ -278,17 +253,17 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <p className="text-sm font-medium text-gray-500">Client</p>
+                <p className="text-sm font-medium text-gray-500">{t('client')}</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">{project.client}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Start Date</p>
+                <p className="text-sm font-medium text-gray-500">{t('startDate')}</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">
                   {formatDate(project.startDate)}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Estimated End Date</p>
+                <p className="text-sm font-medium text-gray-500">{t('estimatedEndDate')}</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">
                   {formatDate(project.estimatedEndDate)}
                 </p>
@@ -302,56 +277,56 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardDescription>Completion Rate</CardDescription>
+                <CardDescription>{t('completionRate')}</CardDescription>
                 <CardTitle className="text-3xl">
                   {Math.round(metrics.completionRate)}%
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500">
-                  {metrics.completedWorkItems} of {metrics.totalWorkItems} items completed
+                  {metrics.completedWorkItems} {t('ofItemsCompleted', { total: metrics.totalWorkItems })}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardDescription>Active Blockers</CardDescription>
+                <CardDescription>{t('activeBlockers')}</CardDescription>
                 <CardTitle className="text-3xl text-orange-600">
                   {metrics.activeBlockers}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500">
-                  {metrics.criticalBlockers} critical
+                  {metrics.activeBlockers > 0 ? t('critical') : t('none')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardDescription>Risks</CardDescription>
+                <CardDescription>{t('risks')}</CardDescription>
                 <CardTitle className="text-3xl text-yellow-600">
-                  {metrics.totalRisks}
+                  {metrics.highPriorityRisks}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500">
-                  {metrics.highRisks} high priority
+                  {t('highPriority')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardDescription>Overdue Items</CardDescription>
-                <CardTitle className="text-3xl text-red-600">
-                  {metrics.overdueWorkItems}
+                <CardDescription>{t('averageBlockerResolutionTime')}</CardDescription>
+                <CardTitle className="text-3xl text-blue-600">
+                  {Math.round(metrics.averageBlockerResolutionTimeHours)} {t('hours')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500">
-                  Require immediate attention
+                  {t('averageTime')}
                 </p>
               </CardContent>
             </Card>
@@ -363,23 +338,23 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           <CardContent className="pt-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full justify-start">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
-                <TabsTrigger value="work-items">Work Items</TabsTrigger>
-                <TabsTrigger value="blockers">Blockers</TabsTrigger>
-                <TabsTrigger value="risks">Risks</TabsTrigger>
-                <TabsTrigger value="agreements">Agreements</TabsTrigger>
+                <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
+                <TabsTrigger value="kanban">{t('kanbanBoard')}</TabsTrigger>
+                <TabsTrigger value="work-items">{t('workItems')}</TabsTrigger>
+                <TabsTrigger value="blockers">{t('blockers')}</TabsTrigger>
+                <TabsTrigger value="risks">{t('risks')}</TabsTrigger>
+                <TabsTrigger value="agreements">{t('agreements')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
                 <div className="py-6">
-                  <h3 className="text-lg font-semibold mb-4">Project Overview</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t('projectOverview')}</h3>
                   <p className="text-gray-600 mb-4">{project.description}</p>
                   
                   {metrics && (
                     <div className="space-y-4">
                       <div>
-                        <h4 className="font-medium mb-2">Progress</h4>
+                        <h4 className="font-medium mb-2">{t('progress')}</h4>
                         <div className="w-full bg-gray-200 rounded-full h-2.5">
                           <div
                             className="bg-blue-600 h-2.5 rounded-full"
@@ -387,15 +362,15 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                           ></div>
                         </div>
                         <p className="text-sm text-gray-500 mt-1">
-                          {metrics.completedWorkItems} of {metrics.totalWorkItems} work items completed
+                          {metrics.completedWorkItems} {t('ofItemsCompleted', { total: metrics.totalWorkItems })}
                         </p>
                       </div>
 
-                      {metrics.averageBlockerResolutionTime > 0 && (
+                      {metrics.averageBlockerResolutionTimeHours > 0 && (
                         <div>
-                          <h4 className="font-medium mb-2">Average Blocker Resolution Time</h4>
+                          <h4 className="font-medium mb-2">{t('averageBlockerResolutionTime')}</h4>
                           <p className="text-2xl font-semibold text-gray-900">
-                            {Math.round(metrics.averageBlockerResolutionTime)} hours
+                            {Math.round(metrics.averageBlockerResolutionTimeHours)} {t('hours')}
                           </p>
                         </div>
                       )}
@@ -415,7 +390,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     />
                   ) : (
                     <div className="text-center text-gray-500">
-                      <p>Loading Kanban board...</p>
+                      <p>{t('loadingKanbanBoard')}</p>
                     </div>
                   )}
                 </div>
@@ -423,30 +398,21 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
               <TabsContent value="work-items">
                 <div className="py-6 text-center text-gray-500">
-                  <p>Work items list will be implemented here</p>
-                  <p className="text-sm mt-2">This will show all work items for this project</p>
+                  <p>{t('workItemsListPlaceholder')}</p>
+                  <p className="text-sm mt-2">{t('workItemsListDescription')}</p>
                 </div>
               </TabsContent>
 
               <TabsContent value="blockers">
-                <div className="py-6 text-center text-gray-500">
-                  <p>Blockers list will be implemented here</p>
-                  <p className="text-sm mt-2">This will show all blockers affecting this project</p>
-                </div>
+                <BlockersTab projectId={projectId} />
               </TabsContent>
 
               <TabsContent value="risks">
-                <div className="py-6 text-center text-gray-500">
-                  <p>Risks list will be implemented here</p>
-                  <p className="text-sm mt-2">This will show all risks identified for this project</p>
-                </div>
+                <RisksTab projectId={projectId} />
               </TabsContent>
 
               <TabsContent value="agreements">
-                <div className="py-6 text-center text-gray-500">
-                  <p>Agreements list will be implemented here</p>
-                  <p className="text-sm mt-2">This will show all agreements related to this project</p>
-                </div>
+                <AgreementsTab projectId={projectId} />
               </TabsContent>
             </Tabs>
           </CardContent>

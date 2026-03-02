@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import { z } from 'zod'
 import { ProjectStatus } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -10,25 +11,25 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 
 /**
- * Validation schema for project form
+ * Create validation schema for project form with translations
  * Requirements: 3.1, 3.4, 14.3
  */
-const projectFormSchema = z.object({
+const createProjectFormSchema = (t: (key: string) => string) => z.object({
   name: z
     .string()
-    .min(1, 'Project name is required')
-    .max(255, 'Project name must be 255 characters or less'),
-  description: z.string().min(1, 'Project description is required'),
+    .min(1, t('validation.nameRequired'))
+    .max(255, t('validation.nameMaxLength')),
+  description: z.string().min(1, t('validation.descriptionRequired')),
   client: z
     .string()
-    .min(1, 'Client name is required')
-    .max(255, 'Client name must be 255 characters or less'),
-  startDate: z.string().min(1, 'Start date is required'),
-  estimatedEndDate: z.string().min(1, 'Estimated end date is required'),
+    .min(1, t('validation.clientRequired'))
+    .max(255, t('validation.clientMaxLength')),
+  startDate: z.string().min(1, t('validation.startDateRequired')),
+  estimatedEndDate: z.string().min(1, t('validation.endDateRequired')),
   status: z.nativeEnum(ProjectStatus),
 })
 
-type ProjectFormData = z.infer<typeof projectFormSchema>
+type ProjectFormData = z.infer<ReturnType<typeof createProjectFormSchema>>
 
 interface ProjectFormProps {
   /**
@@ -64,7 +65,12 @@ interface ProjectFormProps {
  */
 export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   const router = useRouter()
+  const locale = useLocale()
+  const t = useTranslations('projects.form')
   const isEditMode = !!initialData
+
+  // Create schema with translations
+  const projectFormSchema = createProjectFormSchema(t)
 
   // Form state
   const [formData, setFormData] = useState<ProjectFormData>({
@@ -118,7 +124,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       if (endDate <= startDate) {
         setErrors({
-          estimatedEndDate: 'Estimated end date must be after start date',
+          estimatedEndDate: t('validation.endDateAfterStart'),
         })
         return false
       }
@@ -177,9 +183,9 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
             fieldErrors[error.field] = error.message
           })
           setErrors(fieldErrors)
-          setSubmitError(data.message || 'Validation failed')
+          setSubmitError(data.message || t('validation.validationFailed'))
         } else {
-          setSubmitError(data.message || 'An error occurred while saving the project')
+          setSubmitError(data.message || t('validation.saveError'))
         }
         return
       }
@@ -193,12 +199,12 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       } else {
         // Default behavior: redirect to project detail page
         setTimeout(() => {
-          router.push(`/projects/${data.project.id}`)
+          router.push(`/${locale}/projects/${data.project.id}`)
         }, 1000)
       }
     } catch (error) {
       console.error('Form submission error:', error)
-      setSubmitError('An unexpected error occurred. Please try again.')
+      setSubmitError(t('validation.unexpectedError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -210,8 +216,8 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {submitSuccess && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
           {isEditMode
-            ? 'Project updated successfully!'
-            : 'Project created successfully! Redirecting...'}
+            ? t('messages.updateSuccess')
+            : t('messages.createSuccess')}
         </div>
       )}
 
@@ -225,7 +231,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {/* Project Name */}
       <div>
         <Label htmlFor="name" className="block text-gray-700 mb-2">
-          Project Name <span className="text-red-500">*</span>
+          {t('projectName')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Input
           id="name"
@@ -233,7 +239,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           type="text"
           value={formData.name}
           onChange={handleChange}
-          placeholder="Enter project name"
+          placeholder={t('placeholders.projectName')}
           disabled={isSubmitting}
           className={errors.name ? 'border-red-500' : ''}
         />
@@ -243,14 +249,14 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {/* Description */}
       <div>
         <Label htmlFor="description" className="block text-gray-700 mb-2">
-          Description <span className="text-red-500">*</span>
+          {t('description')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleChange}
-          placeholder="Enter project description"
+          placeholder={t('placeholders.description')}
           rows={4}
           disabled={isSubmitting}
           className={errors.description ? 'border-red-500' : ''}
@@ -261,7 +267,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {/* Client */}
       <div>
         <Label htmlFor="client" className="block text-gray-700 mb-2">
-          Client <span className="text-red-500">*</span>
+          {t('client')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Input
           id="client"
@@ -269,7 +275,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           type="text"
           value={formData.client}
           onChange={handleChange}
-          placeholder="Enter client name"
+          placeholder={t('placeholders.client')}
           disabled={isSubmitting}
           className={errors.client ? 'border-red-500' : ''}
         />
@@ -281,7 +287,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         {/* Start Date */}
         <div>
           <Label htmlFor="startDate" className="block text-gray-700 mb-2">
-            Start Date <span className="text-red-500">*</span>
+            {t('startDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <Input
             id="startDate"
@@ -298,7 +304,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
         {/* Estimated End Date */}
         <div>
           <Label htmlFor="estimatedEndDate" className="block text-gray-700 mb-2">
-            Estimated End Date <span className="text-red-500">*</span>
+            {t('estimatedEndDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <Input
             id="estimatedEndDate"
@@ -318,7 +324,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {/* Status */}
       <div>
         <Label htmlFor="status" className="block text-gray-700 mb-2">
-          Status <span className="text-red-500">*</span>
+          {t('status')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <select
           id="status"
@@ -330,10 +336,10 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
             errors.status ? 'border-red-500' : 'border-gray-300'
           }`}
         >
-          <option value={ProjectStatus.PLANNING}>Planning</option>
-          <option value={ProjectStatus.ACTIVE}>Active</option>
-          <option value={ProjectStatus.ON_HOLD}>On Hold</option>
-          <option value={ProjectStatus.COMPLETED}>Completed</option>
+          <option value={ProjectStatus.PLANNING}>{t('statusOptions.planning')}</option>
+          <option value={ProjectStatus.ACTIVE}>{t('statusOptions.active')}</option>
+          <option value={ProjectStatus.ON_HOLD}>{t('statusOptions.onHold')}</option>
+          <option value={ProjectStatus.COMPLETED}>{t('statusOptions.completed')}</option>
         </select>
         {errors.status && <p className="mt-1 text-sm text-red-600">{errors.status}</p>}
       </div>
@@ -341,7 +347,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {/* Form actions */}
       <div className="flex gap-4 pt-4">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving...' : isEditMode ? 'Update Project' : 'Create Project'}
+          {isSubmitting ? t('buttons.saving') : isEditMode ? t('buttons.updateProject') : t('buttons.createProject')}
         </Button>
         <Button
           type="button"
@@ -349,7 +355,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           onClick={() => router.back()}
           disabled={isSubmitting}
         >
-          Cancel
+          {t('buttons.cancel')}
         </Button>
       </div>
     </form>

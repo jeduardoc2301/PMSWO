@@ -1,0 +1,73 @@
+{
+  "title": "Asistente IA",
+  "generateReport": "Generar Reporte",
+  "analyzeProject": "Analizar Proyecto",
+  "improveText": "Mejorar con IA",
+  "generating": "Generando...",
+  "analyzing": "Analizando...",
+  "improving": "Mejorando...",
+  "reportGenerated": "Reporte generado exitosamente",
+  "analysisComplete": "Análisis completado",
+  "textImproved": "Texto mejorado",
+  "copyToClipboard": "Copiar al portapapeles",
+  "copied": "Copiado",
+  "detailLevel": {
+    "title": "Nivel de Detalle",
+    "executive": "Ejecutivo",
+    "detailed": "Detallado",
+    "complete": "Completo",
+    "executiveDesc": "Resumen de alto nivel para ejecutivos",
+    "detailedDesc": "Información detallada con métricas clave",
+    "completeDesc": "Reporte completo con todos los detalles"
+  },
+  "report": {
+    "title": "Reporte del Proyecto",
+    "generatedAt": "Generado el",
+    "close": "Cerrar"
+  },
+  "analysis": {
+    "title": "Análisis del Proyecto",
+    "suggestions": "Sugerencias",
+    "detectedRisks": "Riesgos Detectados",
+    "overdueItems": "Items Atrasados",
+    "noSuggestions": "No hay sugerencias en este momento",
+    "noRisks": "No se detectaron riesgos",
+    "noOverdueItems": "No hay items atrasados",
+    "priority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta"
+    },
+    "suggestionTypes": {
+      "createBlocker": "Crear Blocker",
+      "adjustDates": "Ajustar Fechas",
+      "createRisk": "Crear Riesgo",
+      "reassign": "Reasignar"
+    },
+    "actions": {
+      "createBlocker": "Crear Blocker",
+      "adjustDates": "Ajustar Fechas",
+      "dismiss": "Descartar"
+    }
+  },
+  "textImprovement": {
+    "title": "Sugerencias de Mejora",
+    "original": "Texto Original",
+    "improved": "Texto Mejorado",
+    "accept": "Aceptar",
+    "reject": "Rechazar"
+  },
+  "errors": {
+    "generateReportFailed": "Error al generar el reporte",
+    "analyzeProjectFailed": "Error al analizar el proyecto",
+    "improveTextFailed": "Error al mejorar el texto",
+    "guardrailsViolation": "El contenido no cumple con las políticas de seguridad",
+    "aiServiceUnavailable": "El servicio de IA no está disponible en este momento",
+    "rateLimitExceeded": "Se ha excedido el límite de solicitudes. Por favor, intente más tarde"
+  },
+  "loading": {
+    "generatingReport": "Generando reporte con IA...",
+    "analyzingProject": "Analizando proyecto...",
+    "improvingText": "Mejorando texto..."
+  }
+}

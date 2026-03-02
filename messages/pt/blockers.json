@@ -1,0 +1,52 @@
+{
+  "title": "Bloqueadores",
+  "createBlocker": "Criar Bloqueador",
+  "editBlocker": "Editar Bloqueador",
+  "deleteBlocker": "Excluir Bloqueador",
+  "resolveBlocker": "Resolver Bloqueador",
+  "blockerDetails": "Detalhes do Bloqueador",
+  "blockerDescription": "Descrição do Bloqueador",
+  "blockedBy": "Bloqueado por",
+  "severity": "Severidade",
+  "startDate": "Data de Início",
+  "resolvedAt": "Resolvido em",
+  "resolution": "Resolução",
+  "duration": "Duração",
+  "activeBlockers": "Bloqueadores Ativos",
+  "criticalBlockers": "Bloqueadores Críticos",
+  "resolvedBlockers": "Bloqueadores Resolvidos",
+  "averageResolutionTime": "Tempo Médio de Resolução",
+  "noBlockers": "Não há bloqueadores",
+  "noActiveBlockers": "Não há bloqueadores ativos",
+  "severityLevels": {
+    "low": "Baixa",
+    "medium": "Média",
+    "high": "Alta",
+    "critical": "Crítica"
+  },
+  "durationUnits": {
+    "hours": "horas",
+    "days": "dias",
+    "weeks": "semanas"
+  },
+  "messages": {
+    "createSuccess": "Bloqueador criado com sucesso",
+    "updateSuccess": "Bloqueador atualizado com sucesso",
+    "deleteSuccess": "Bloqueador excluído com sucesso",
+    "resolveSuccess": "Bloqueador resolvido com sucesso",
+    "createError": "Erro ao criar o bloqueador",
+    "updateError": "Erro ao atualizar o bloqueador",
+    "deleteError": "Erro ao excluir o bloqueador",
+    "resolveError": "Erro ao resolver o bloqueador",
+    "escalated": "Bloqueador escalado para severidade crítica"
+  },
+  "loading": "Carregando bloqueadores...",
+  "resolved": "Resolvido",
+  "cancel": "Cancelar",
+  "creating": "Criando...",
+  "resolving": "Resolvendo...",
+  "workItemId": "ID do Item de Trabalho",
+  "createDialogDescription": "Adicionar um novo bloqueador para rastrear problemas que afetam itens de trabalho",
+  "resolveDialogDescription": "Fornecer detalhes sobre como este bloqueador foi resolvido",
+  "resolutionPlaceholder": "Descrever como o bloqueador foi resolvido..."
+}

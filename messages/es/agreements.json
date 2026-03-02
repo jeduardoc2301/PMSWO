@@ -1,0 +1,51 @@
+{
+  "title": "Acuerdos",
+  "createAgreement": "Crear Acuerdo",
+  "editAgreement": "Editar Acuerdo",
+  "deleteAgreement": "Eliminar Acuerdo",
+  "completeAgreement": "Completar Acuerdo",
+  "agreementDetails": "Detalles del Acuerdo",
+  "agreementDescription": "Descripción del Acuerdo",
+  "createdBy": "Creado por",
+  "agreementDate": "Fecha del Acuerdo",
+  "participants": "Participantes",
+  "agreementStatus": "Estado del Acuerdo",
+  "completedAt": "Completado el",
+  "linkedWorkItems": "Elementos de Trabajo Vinculados",
+  "progressNotes": "Notas de Progreso",
+  "addProgressNote": "Agregar Nota de Progreso",
+  "linkWorkItem": "Vincular Elemento de Trabajo",
+  "unlinkWorkItem": "Desvincular Elemento de Trabajo",
+  "activeAgreements": "Acuerdos Activos",
+  "completedAgreements": "Acuerdos Completados",
+  "pendingAgreements": "Acuerdos Pendientes",
+  "noAgreements": "No hay acuerdos",
+  "noActiveAgreements": "No hay acuerdos activos",
+  "status": {
+    "pending": "Pendiente",
+    "inProgress": "En Progreso",
+    "completed": "Completado",
+    "cancelled": "Cancelado"
+  },
+  "noteFields": {
+    "note": "Nota",
+    "createdBy": "Creado por",
+    "createdAt": "Fecha de Creación"
+  },
+  "messages": {
+    "createSuccess": "Acuerdo creado exitosamente",
+    "updateSuccess": "Acuerdo actualizado exitosamente",
+    "deleteSuccess": "Acuerdo eliminado exitosamente",
+    "completeSuccess": "Acuerdo completado exitosamente",
+    "linkWorkItemSuccess": "Elemento de trabajo vinculado exitosamente",
+    "unlinkWorkItemSuccess": "Elemento de trabajo desvinculado exitosamente",
+    "addNoteSuccess": "Nota agregada exitosamente",
+    "createError": "Error al crear el acuerdo",
+    "updateError": "Error al actualizar el acuerdo",
+    "deleteError": "Error al eliminar el acuerdo",
+    "completeError": "Error al completar el acuerdo",
+    "linkWorkItemError": "Error al vincular el elemento de trabajo",
+    "unlinkWorkItemError": "Error al desvincular el elemento de trabajo",
+    "addNoteError": "Error al agregar la nota"
+  }
+}

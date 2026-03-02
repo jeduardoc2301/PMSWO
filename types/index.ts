@@ -270,3 +270,6 @@ export interface NotificationMessage {
   body: string
   priority: 'LOW' | 'MEDIUM' | 'HIGH'
 }
+
+// Re-export AI types
+export * from './ai'

@@ -1,0 +1,100 @@
+{
+  "title": "Painel de Controle Executivo",
+  "overview": "Resumo Geral",
+  "dateRange": "Intervalo de Datas",
+  "client": "Cliente",
+  "projectManager": "Gerente de Projeto",
+  "projectStatus": "Status do Projeto",
+  "applyFilters": "Aplicar Filtros",
+  "clearFilters": "Limpar Filtros",
+  "exportReport": "Exportar Relatório",
+  "refreshData": "Atualizar Dados",
+  "lastUpdated": "Última atualização",
+  "metrics": {
+    "activeProjects": "Projetos Ativos",
+    "projectsAtRisk": "Projetos em Risco",
+    "criticalBlockers": "Bloqueadores Críticos",
+    "highRisks": "Riscos Altos",
+    "completionRate": "Taxa de Conclusão Geral",
+    "averageBlockerResolutionTime": "Tempo Médio de Resolução de Bloqueadores",
+    "overdueWorkItems": "Itens de Trabalho Atrasados",
+    "activeAgreements": "Acordos Ativos",
+    "ofActive": "de ativos",
+    "requireImmediateAttention": "Requerem atenção imediata",
+    "highCriticalSeverity": "Alta e crítica severidade",
+    "acrossAllProjects": "Em todos os projetos",
+    "averageTimeToResolve": "Tempo médio de resolução",
+    "noResolvedBlockersYet": "Sem bloqueadores resolvidos ainda"
+  },
+  "filters": {
+    "startDate": "Data de Início",
+    "endDate": "Data de Fim",
+    "searchByClient": "Pesquisar por cliente...",
+    "allStatuses": "Todos os Status",
+    "planning": "Planejamento",
+    "active": "Ativo",
+    "onHold": "Em Espera",
+    "completed": "Concluído"
+  },
+  "projectSummary": {
+    "title": "Projetos",
+    "projectName": "Projeto",
+    "client": "Cliente",
+    "status": "Status",
+    "health": "Saúde",
+    "completion": "Conclusão",
+    "blockers": "Bloqueadores",
+    "risks": "Riscos",
+    "viewDetails": "Ver Detalhes",
+    "noProjects": "Nenhum projeto encontrado",
+    "issues": "Problemas",
+    "critical": "Crítico",
+    "overdue": "Atrasado",
+    "noIssues": "Sem problemas",
+    "healthStatus": {
+      "healthy": "SAUDÁVEL",
+      "at-risk": "EM RISCO",
+      "critical": "CRÍTICO"
+    }
+  },
+  "trends": {
+    "title": "Tendências",
+    "weekOverWeek": "Semana a Semana",
+    "monthOverMonth": "Mês a Mês",
+    "increased": "Aumentou",
+    "decreased": "Diminuiu",
+    "unchanged": "Sem alterações"
+  },
+  "aiInsights": {
+    "title": "Insights de IA",
+    "analyzing": "Analisando projetos...",
+    "suggestions": "Sugestões",
+    "detectedRisks": "Riscos Detectados",
+    "overdueItems": "Itens Atrasados",
+    "noInsights": "Não há insights disponíveis",
+    "refreshInsights": "Atualizar Insights"
+  },
+  "messages": {
+    "loadError": "Erro ao carregar o painel",
+    "filterError": "Erro ao aplicar filtros",
+    "exportError": "Erro ao exportar o relatório",
+    "refreshSuccess": "Dados atualizados com sucesso",
+    "loading": "Carregando painel...",
+    "error": "Erro",
+    "noData": "Não há dados disponíveis"
+  },
+  "completionChart": {
+    "title": "Distribuição de Taxa de Conclusão",
+    "project": "projeto",
+    "projects": "projetos",
+    "noData": "Não há dados disponíveis"
+  },
+  "trendsChart": {
+    "title": "Resumo de Status dos Projetos",
+    "planning": "Planejamento",
+    "active": "Ativo",
+    "onHold": "Em Espera",
+    "completed": "Concluído",
+    "noData": "Não há dados disponíveis"
+  }
+}

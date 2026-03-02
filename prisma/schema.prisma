@@ -117,6 +117,10 @@ model WorkItem {
   @@index([organizationId, projectId])
   @@index([ownerId])
   @@index([status])
+  // Índice compuesto para filtrado eficiente por organización, estado y prioridad
+  @@index([organizationId, status, priority])
+  // Índice para consultas de items atrasados
+  @@index([estimatedEndDate])
   @@map("work_items")
 }
 
@@ -157,6 +161,8 @@ model Blocker {
   @@index([organizationId, projectId])
   @@index([workItemId])
   @@index([severity])
+  // Índice compuesto para filtrar blockers activos por organización
+  @@index([organizationId, resolvedAt])
   @@map("blockers")
 }
 
@@ -184,6 +190,8 @@ model Risk {
   @@index([organizationId, projectId])
   @@index([ownerId])
   @@index([riskLevel])
+  // Índice compuesto para filtrado de riesgos por organización, estado y nivel
+  @@index([organizationId, status, riskLevel])
   @@map("risks")
 }
 
@@ -208,6 +216,8 @@ model Agreement {
 
   @@index([organizationId, projectId])
   @@index([createdById])
+  // Índice para filtrado por estado
+  @@index([status])
   @@map("agreements")
 }
 
@@ -246,5 +256,7 @@ model AIAnalysisCache {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  // Índice para limpieza de cache expirado
+  @@index([expiresAt])
   @@map("ai_analysis_cache")
 }

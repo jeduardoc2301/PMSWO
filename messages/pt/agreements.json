@@ -1,0 +1,51 @@
+{
+  "title": "Acordos",
+  "createAgreement": "Criar Acordo",
+  "editAgreement": "Editar Acordo",
+  "deleteAgreement": "Excluir Acordo",
+  "completeAgreement": "Concluir Acordo",
+  "agreementDetails": "Detalhes do Acordo",
+  "agreementDescription": "Descrição do Acordo",
+  "createdBy": "Criado por",
+  "agreementDate": "Data do Acordo",
+  "participants": "Participantes",
+  "agreementStatus": "Status do Acordo",
+  "completedAt": "Concluído em",
+  "linkedWorkItems": "Itens de Trabalho Vinculados",
+  "progressNotes": "Notas de Progresso",
+  "addProgressNote": "Adicionar Nota de Progresso",
+  "linkWorkItem": "Vincular Item de Trabalho",
+  "unlinkWorkItem": "Desvincular Item de Trabalho",
+  "activeAgreements": "Acordos Ativos",
+  "completedAgreements": "Acordos Concluídos",
+  "pendingAgreements": "Acordos Pendentes",
+  "noAgreements": "Não há acordos",
+  "noActiveAgreements": "Não há acordos ativos",
+  "status": {
+    "pending": "Pendente",
+    "inProgress": "Em Progresso",
+    "completed": "Concluído",
+    "cancelled": "Cancelado"
+  },
+  "noteFields": {
+    "note": "Nota",
+    "createdBy": "Criado por",
+    "createdAt": "Data de Criação"
+  },
+  "messages": {
+    "createSuccess": "Acordo criado com sucesso",
+    "updateSuccess": "Acordo atualizado com sucesso",
+    "deleteSuccess": "Acordo excluído com sucesso",
+    "completeSuccess": "Acordo concluído com sucesso",
+    "linkWorkItemSuccess": "Item de trabalho vinculado com sucesso",
+    "unlinkWorkItemSuccess": "Item de trabalho desvinculado com sucesso",
+    "addNoteSuccess": "Nota adicionada com sucesso",
+    "createError": "Erro ao criar o acordo",
+    "updateError": "Erro ao atualizar o acordo",
+    "deleteError": "Erro ao excluir o acordo",
+    "completeError": "Erro ao concluir o acordo",
+    "linkWorkItemError": "Erro ao vincular o item de trabalho",
+    "unlinkWorkItemError": "Erro ao desvincular o item de trabalho",
+    "addNoteError": "Erro ao adicionar a nota"
+  }
+}

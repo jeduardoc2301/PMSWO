@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { ProjectSummary, ProjectStatus } from '@/types'
 
 interface TrendsChartProps {
@@ -7,6 +8,8 @@ interface TrendsChartProps {
 }
 
 export function TrendsChart({ projects }: TrendsChartProps) {
+  const t = useTranslations('dashboard.trendsChart')
+  
   // Group projects by status
   const statusCounts = {
     [ProjectStatus.PLANNING]: 0,
@@ -22,10 +25,10 @@ export function TrendsChart({ projects }: TrendsChartProps) {
   })
 
   const statusData = [
-    { label: 'Planning', count: statusCounts[ProjectStatus.PLANNING], color: 'bg-purple-500' },
-    { label: 'Active', count: statusCounts[ProjectStatus.ACTIVE], color: 'bg-blue-500' },
-    { label: 'On Hold', count: statusCounts[ProjectStatus.ON_HOLD], color: 'bg-yellow-500' },
-    { label: 'Completed', count: statusCounts[ProjectStatus.COMPLETED], color: 'bg-green-500' },
+    { label: t('planning'), count: statusCounts[ProjectStatus.PLANNING], color: 'bg-purple-500' },
+    { label: t('active'), count: statusCounts[ProjectStatus.ACTIVE], color: 'bg-blue-500' },
+    { label: t('onHold'), count: statusCounts[ProjectStatus.ON_HOLD], color: 'bg-yellow-500' },
+    { label: t('completed'), count: statusCounts[ProjectStatus.COMPLETED], color: 'bg-green-500' },
   ]
 
   const total = projects.length
@@ -33,7 +36,7 @@ export function TrendsChart({ projects }: TrendsChartProps) {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Project Status Overview
+        {t('title')}
       </h3>
       
       <div className="space-y-4">
@@ -60,7 +63,7 @@ export function TrendsChart({ projects }: TrendsChartProps) {
       </div>
 
       {projects.length === 0 && (
-        <p className="text-center text-gray-500 py-8">No data available</p>
+        <p className="text-center text-gray-500 py-8">{t('noData')}</p>
       )}
     </div>
   )

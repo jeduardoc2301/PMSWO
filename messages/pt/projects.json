@@ -1,0 +1,184 @@
+{
+  "title": "Projetos",
+  "createProject": "Criar Projeto",
+  "editProject": "Editar Projeto",
+  "editProjectTitle": "Editar Projeto",
+  "editProjectDescription": "Atualizar as informações do projeto",
+  "deleteProject": "Excluir Projeto",
+  "none": "nenhum",
+  "averageTime": "tempo médio",
+  "archiveProject": "Arquivar Projeto",
+  "projectDetails": "Detalhes do Projeto",
+  "projectName": "Nome do Projeto",
+  "projectDescription": "Descrição do Projeto",
+  "client": "Cliente",
+  "startDate": "Data de Início",
+  "estimatedEndDate": "Data Estimada de Conclusão",
+  "actualEndDate": "Data Real de Conclusão",
+  "projectStatus": "Status do Projeto",
+  "projectHealth": "Saúde do Projeto",
+  "activeProjects": "Projetos Ativos",
+  "archivedProjects": "Projetos Arquivados",
+  "projectsAtRisk": "Projetos em Risco",
+  "completionRate": "Taxa de Conclusão",
+  "noProjects": "Não há projetos disponíveis",
+  "createFirstProject": "Criar seu primeiro projeto",
+  "status": {
+    "planning": "Planejamento",
+    "active": "Ativo",
+    "onHold": "Em Espera",
+    "completed": "Concluído",
+    "archived": "Arquivado"
+  },
+  "health": {
+    "healthy": "Saudável",
+    "atRisk": "Em Risco",
+    "critical": "Crítico"
+  },
+  "filters": {
+    "all": "Todos",
+    "byStatus": "Por Status",
+    "byClient": "Por Cliente",
+    "byHealth": "Por Saúde"
+  },
+  "messages": {
+    "createSuccess": "Projeto criado com sucesso",
+    "updateSuccess": "Projeto atualizado com sucesso",
+    "deleteSuccess": "Projeto excluído com sucesso",
+    "archiveSuccess": "Projeto arquivado com sucesso",
+    "createError": "Erro ao criar o projeto",
+    "updateError": "Erro ao atualizar o projeto",
+    "deleteError": "Erro ao excluir o projeto",
+    "archiveError": "Erro ao arquivar o projeto"
+  },
+  "export": {
+    "title": "Exportar Projeto",
+    "button": "Exportar Projeto",
+    "detailLevel": "Nível de Detalhe",
+    "sections": "Seções a Incluir",
+    "includeWorkItems": "Incluir Itens de Trabalho",
+    "includeBlockers": "Incluir Bloqueadores",
+    "includeRisks": "Incluir Riscos",
+    "includeAgreements": "Incluir Acordos",
+    "useAINarrative": "Usar Narrativa com IA",
+    "generate": "Gerar Exportação",
+    "download": "Baixar",
+    "success": "Projeto exportado com sucesso",
+    "error": "Erro ao exportar o projeto",
+    "detailLevels": {
+      "EXECUTIVE": "Executivo",
+      "DETAILED": "Detalhado",
+      "COMPLETE": "Completo"
+    }
+  },
+  "notification": {
+    "title": "Gerar Notificação",
+    "button": "Gerar Notificação",
+    "generate": "Gerar Mensagem",
+    "copy": "Copiar para Área de Transferência",
+    "copied": "Copiado para área de transferência",
+    "success": "Notificação gerada com sucesso",
+    "error": "Erro ao gerar a notificação",
+    "subject": "Assunto",
+    "body": "Mensagem",
+    "priority": "Prioridade"
+  },
+  "activeBlockers": "Bloqueadores Ativos",
+  "risks": "Riscos",
+  "overdueItems": "Itens Atrasados",
+  "requireImmediateAttention": "Requerem atenção imediata",
+  "overview": "Resumo",
+  "kanbanBoard": "Quadro Kanban",
+  "workItems": "Itens de Trabalho",
+  "blockers": "Bloqueadores",
+  "agreements": "Acordos",
+  "projectOverview": "Resumo do Projeto",
+  "progress": "Progresso",
+  "ofItemsCompleted": "de {total} itens concluídos",
+  "averageBlockerResolutionTime": "Tempo Médio de Resolução de Bloqueadores",
+  "hours": "horas",
+  "loadingProject": "Carregando projeto...",
+  "projectNotFound": "Projeto não encontrado",
+  "backToProjects": "Voltar para Projetos",
+  "critical": "crítico",
+  "highPriority": "alta prioridade",
+  "loadingKanbanBoard": "Carregando quadro Kanban...",
+  "workItemsListPlaceholder": "A lista de itens de trabalho será implementada aqui",
+  "workItemsListDescription": "Isso mostrará todos os itens de trabalho para este projeto",
+  "form": {
+    "projectName": "Nome do Projeto",
+    "description": "Descrição",
+    "client": "Cliente",
+    "startDate": "Data de Início",
+    "estimatedEndDate": "Data Estimada de Conclusão",
+    "status": "Status",
+    "required": "*",
+    "placeholders": {
+      "projectName": "Digite o nome do projeto",
+      "description": "Digite a descrição do projeto",
+      "client": "Digite o nome do cliente"
+    },
+    "statusOptions": {
+      "planning": "Planejamento",
+      "active": "Ativo",
+      "onHold": "Em Espera",
+      "completed": "Concluído"
+    },
+    "buttons": {
+      "saving": "Salvando...",
+      "updateProject": "Atualizar Projeto",
+      "createProject": "Criar Projeto",
+      "cancel": "Cancelar"
+    },
+    "validation": {
+      "nameRequired": "O nome do projeto é obrigatório",
+      "nameMaxLength": "O nome do projeto deve ter 255 caracteres ou menos",
+      "descriptionRequired": "A descrição do projeto é obrigatória",
+      "clientRequired": "O nome do cliente é obrigatório",
+      "clientMaxLength": "O nome do cliente deve ter 255 caracteres ou menos",
+      "startDateRequired": "A data de início é obrigatória",
+      "endDateRequired": "A data estimada de conclusão é obrigatória",
+      "endDateAfterStart": "A data estimada de conclusão deve ser posterior à data de início",
+      "validationFailed": "Validação falhou",
+      "saveError": "Ocorreu um erro ao salvar o projeto",
+      "unexpectedError": "Ocorreu um erro inesperado. Por favor, tente novamente."
+    },
+    "messages": {
+      "updateSuccess": "Projeto atualizado com sucesso!",
+      "createSuccess": "Projeto criado com sucesso! Redirecionando..."
+    }
+  },
+  "list": {
+    "title": "Projetos",
+    "description": "Ver e gerenciar todos os seus projetos",
+    "createProject": "Criar Projeto",
+    "searchByClient": "Pesquisar por cliente",
+    "searchPlaceholder": "Pesquisar clientes...",
+    "status": "Status",
+    "allStatuses": "Todos os status",
+    "includeArchived": "Incluir arquivados",
+    "loading": "Carregando projetos...",
+    "noProjects": "Nenhum projeto encontrado",
+    "createFirstProject": "Criar seu primeiro projeto",
+    "table": {
+      "project": "Projeto",
+      "client": "Cliente",
+      "status": "Status",
+      "startDate": "Data de Início",
+      "endDate": "Data de Fim",
+      "metrics": "Métricas"
+    },
+    "metrics": {
+      "items": "itens",
+      "blockers": "bloqueadores",
+      "risks": "riscos"
+    },
+    "pagination": {
+      "showing": "Mostrando página",
+      "of": "de",
+      "total": "total de projetos",
+      "previous": "Anterior",
+      "next": "Próximo"
+    }
+  }
+}

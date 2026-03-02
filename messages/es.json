@@ -12,7 +12,30 @@
     "search": "Buscar",
     "filter": "Filtrar",
     "sort": "Ordenar",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "reset": "Restablecer",
+    "clear": "Limpiar",
+    "apply": "Aplicar",
+    "export": "Exportar",
+    "import": "Importar",
+    "download": "Descargar",
+    "upload": "Subir",
+    "view": "Ver",
+    "details": "Detalles",
+    "status": "Estado",
+    "priority": "Prioridad",
+    "date": "Fecha",
+    "name": "Nombre",
+    "description": "Descripción",
+    "notes": "Notas",
+    "yes": "Sí",
+    "no": "No"
   },
   "nav": {
     "dashboard": "Panel de Control",
@@ -37,6 +60,16 @@
     "createProject": "Crear Proyecto",
     "createWorkItem": "Crear Elemento de Trabajo",
     "home": "Inicio"
+  },
+  "settings": {
+    "title": "Configuración de Usuario",
+    "profile": "Perfil",
+    "language": "Idioma",
+    "languageDescription": "Selecciona tu idioma preferido",
+    "spanish": "Español",
+    "portuguese": "Português",
+    "saveSuccess": "Preferencias guardadas correctamente",
+    "saveError": "Error al guardar preferencias"
   },
   "errors": {
     "generic": "Algo salió mal",

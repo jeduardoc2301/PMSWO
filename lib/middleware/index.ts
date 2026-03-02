@@ -6,3 +6,5 @@
 
 export { withAuth, createAuthResponse } from './withAuth'
 export type { AuthContext, WithAuthOptions, ProtectedRouteHandler } from './withAuth'
+
+export { handleError, asyncHandler, asyncHandlerWithParams } from './error-handler'
