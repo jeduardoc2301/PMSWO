@@ -14,11 +14,11 @@ import { Permission } from '@/types'
  */
 async function getOrganizationHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Validate that the user belongs to the requested organization
     if (authContext.organizationId !== id) {
@@ -86,11 +86,11 @@ export const GET = withAuth(getOrganizationHandler)
  */
 async function patchOrganizationHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Validate that the user belongs to the requested organization
     if (authContext.organizationId !== id) {

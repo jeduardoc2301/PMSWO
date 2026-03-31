@@ -31,7 +31,7 @@ const analyzeProjectSchema = z.object({
  */
 async function analyzeProjectHandler(
   request: NextRequest,
-  context: { params: {} },
+  context: { params: Promise<{}> },
   authContext: AuthContext
 ): Promise<NextResponse> {
   try {
@@ -44,7 +44,7 @@ async function analyzeProjectHandler(
         {
           error: 'Validation Error',
           message: 'Invalid request data',
-          details: validationResult.error.errors.map((err) => ({
+          details: validationResult.error.issues.map((err) => ({
             field: err.path.join('.'),
             message: err.message,
           })),

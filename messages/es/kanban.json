@@ -1,4 +1,7 @@
 {
   "noItems": "Sin elementos",
-  "moveError": "Error al mover el elemento de trabajo. Por favor, intente nuevamente."
+  "noPhase": "Sin Fase",
+  "moveError": "Error al mover el elemento de trabajo. Por favor, intente nuevamente.",
+  "createWorkItem": "Crear Elemento de Trabajo",
+  "createSuccess": "Elemento de trabajo creado exitosamente"
 }

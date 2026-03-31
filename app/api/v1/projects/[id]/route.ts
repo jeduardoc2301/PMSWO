@@ -17,11 +17,11 @@ import { z } from 'zod'
  */
 async function getProjectHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Get project with related data
     const project = await projectService.getProject(id)
@@ -124,11 +124,11 @@ const updateProjectSchema = z.object({
  */
 async function updateProjectHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // First, verify the project exists and belongs to the user's organization
     const existingProject = await projectService.getProject(id)
@@ -268,11 +268,11 @@ export const PATCH = withAuth(updateProjectHandler, {
  */
 async function deleteProjectHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // First, verify the project exists and belongs to the user's organization
     const existingProject = await projectService.getProject(id)

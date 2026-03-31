@@ -5,6 +5,10 @@ async function seed() {
   const org = await prisma.organization.findFirst()
   const user = await prisma.user.findFirst({ where: { email: 'admin@test.com' } })
   
+  if (!org || !user) {
+    throw new Error('Organization or user not found')
+  }
+  
   const project = await prisma.project.create({
     data: {
       id: randomUUID(),

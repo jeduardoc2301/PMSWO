@@ -105,7 +105,7 @@ export class UserService {
         email: data.email,
         passwordHash,
         name: data.name.trim(),
-        roles: data.roles as any,
+        roles: JSON.parse(JSON.stringify(data.roles)), // Ensure proper JSON serialization
         locale: data.locale || Locale.ES,
         active: true,
       },

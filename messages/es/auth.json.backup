@@ -1,0 +1,15 @@
+{
+  "login": "Iniciar Sesión",
+  "logout": "Cerrar Sesión",
+  "register": "Registrarse",
+  "email": "Correo Electrónico",
+  "password": "Contraseña",
+  "forgotPassword": "¿Olvidaste tu contraseña?",
+  "rememberMe": "Recordarme",
+  "signIn": "Iniciar Sesión",
+  "signUp": "Registrarse",
+  "signOut": "Cerrar Sesión",
+  "showPassword": "Mostrar contraseña",
+  "hidePassword": "Ocultar contraseña",
+  "invalidCredentials": "Credenciales inválidas"
+}

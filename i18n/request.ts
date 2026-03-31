@@ -49,6 +49,9 @@ async function loadMessages(locale: string) {
     header,
     settings,
     kanban,
+    users,
+    templates,
+    categories,
     legacy
   ] = await Promise.all([
     import(`../messages/${locale}/common.json`).then(m => m.default),
@@ -65,6 +68,9 @@ async function loadMessages(locale: string) {
     import(`../messages/${locale}/header.json`).then(m => m.default).catch(() => ({})),
     import(`../messages/${locale}/settings.json`).then(m => m.default).catch(() => ({})),
     import(`../messages/${locale}/kanban.json`).then(m => m.default).catch(() => ({})),
+    import(`../messages/${locale}/users.json`).then(m => m.default).catch(() => ({})),
+    import(`../messages/${locale}/templates.json`).then(m => m.default).catch(() => ({})),
+    import(`../messages/${locale}/categories.json`).then(m => m.default).catch(() => ({})),
     import(`../messages/${locale}.json`).then(m => m.default).catch(() => ({}))
   ])
 
@@ -83,6 +89,9 @@ async function loadMessages(locale: string) {
     header,
     settings,
     kanban,
+    users,
+    templates,
+    categories,
     // Merge legacy messages for backward compatibility
     ...legacy
   }

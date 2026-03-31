@@ -16,11 +16,11 @@ import { NotFoundError, ValidationError } from '@/lib/errors'
  */
 async function getAgreementHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Get agreement with related data
     const agreement = await agreementService.getAgreement(id)
@@ -54,7 +54,7 @@ async function getAgreementHandler(
         id: note.id,
         note: note.note,
         createdAt: note.createdAt,
-        createdBy: note.createdBy,
+        createdById: note.createdById,
       })),
     }
 
@@ -111,11 +111,11 @@ export const GET = withAuth(getAgreementHandler, {
  */
 async function updateAgreementHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // First, verify the agreement exists and belongs to the user's organization
     const existingAgreement = await agreementService.getAgreement(id)

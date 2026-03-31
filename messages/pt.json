@@ -35,7 +35,9 @@
     "description": "Descrição",
     "notes": "Notas",
     "yes": "Sim",
-    "no": "Não"
+    "no": "Não",
+    "landingSubtitle": "Plataforma SaaS multi-tenant para gestão de projetos executivos",
+    "goToDashboard": "Ir ao Dashboard"
   },
   "nav": {
     "dashboard": "Painel de Controle",

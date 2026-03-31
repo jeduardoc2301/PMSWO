@@ -485,7 +485,7 @@ Responde ÚNICAMENTE con un objeto JSON válido (sin markdown, sin texto adicion
       "type": "CREATE_BLOCKER" | "ADJUST_DATES" | "CREATE_RISK" | "REASSIGN",
       "priority": "LOW" | "MEDIUM" | "HIGH",
       "description": "descripción de la sugerencia",
-      "affectedEntityId": "id del work item o entidad afectada",
+      "affectedEntityId": "id del work item o entidad afectada (DEBE SER EL ID, NO EL TÍTULO)",
       "suggestedAction": {}
     }
   ],
@@ -499,13 +499,18 @@ Responde ÚNICAMENTE con un objeto JSON válido (sin markdown, sin texto adicion
   ],
   "overdueItems": [
     {
-      "workItemId": "id",
-      "title": "título",
+      "workItemId": "id del work item (DEBE SER EL ID UUID, NO EL TÍTULO)",
+      "title": "título del work item",
       "daysOverdue": número,
       "suggestedAction": "acción sugerida"
     }
   ]
 }
+
+IMPORTANTE: 
+- En "affectedEntityId" y "workItemId" SIEMPRE usa el ID (UUID) del work item, NO el título.
+- Los IDs están en el formato UUID (ejemplo: "123e4567-e89b-12d3-a456-426614174000")
+- El campo "title" en overdueItems es donde va el título del work item.
 
 Analiza:
 1. Work items atrasados (${overdueWorkItems.length} encontrados)
@@ -558,10 +563,11 @@ Analiza:
    */
   static async improveText(
     text: string,
-    purpose: TextPurpose
+    purpose: TextPurpose,
+    context?: { projectName?: string; projectDescription?: string }
   ): Promise<string> {
     try {
-      const prompt = this.buildImproveTextPrompt(text, purpose)
+      const prompt = this.buildImproveTextPrompt(text, purpose, context)
 
       const improvedText = await this.executeBedrockRequest<string>(prompt, {
         maxTokens: 2048,
@@ -584,7 +590,8 @@ Analiza:
    */
   private static buildImproveTextPrompt(
     text: string,
-    purpose: TextPurpose
+    purpose: TextPurpose,
+    context?: { projectName?: string; projectDescription?: string }
   ): string {
     const purposeInstructions = {
       [TextPurpose.EMAIL]: 'un email profesional',
@@ -592,7 +599,19 @@ Analiza:
       [TextPurpose.DESCRIPTION]: 'una descripción clara y concisa',
     }
 
+    let contextSection = ''
+    if (context?.projectName || context?.projectDescription) {
+      contextSection = `
+Contexto del proyecto:
+${context.projectName ? `- Nombre del proyecto: ${context.projectName}` : ''}
+${context.projectDescription ? `- Descripción del proyecto: ${context.projectDescription}` : ''}
+
+Este texto forma parte de una actividad dentro de este proyecto.
+`
+    }
+
     return `
+${contextSection}
 Mejora el siguiente texto para ${purposeInstructions[purpose]}:
 
 "${text}"
@@ -602,6 +621,7 @@ Instrucciones:
 - Mejora la claridad y profesionalismo
 - Corrige errores gramaticales y ortográficos
 - Usa un tono apropiado para ${purposeInstructions[purpose]}
+${context ? '- Considera el contexto del proyecto para generar una descripción relevante' : ''}
 - Responde ÚNICAMENTE con el texto mejorado, sin explicaciones adicionales
 `
   }

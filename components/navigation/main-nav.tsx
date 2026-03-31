@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { hasPermission } from '@/lib/rbac'
 import { UserRole, Permission, Locale } from '@/types'
 import { cn } from '@/lib/utils'
@@ -27,8 +27,12 @@ interface NavItem {
 
 export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
   const t = useTranslations()
-  const locale = useLocale() as Locale
   const pathname = usePathname()
+  
+  // Extract locale from pathname instead of using useLocale()
+  // This ensures we always get the current locale from the URL
+  const locale = (pathname.startsWith('/pt') ? 'pt' : 'es') as Locale
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
@@ -37,7 +41,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
     {
       href: `/${locale}/dashboard`,
       label: t('nav.dashboard'),
-      permission: Permission.DASHBOARD_PROJECT, // Changed from DASHBOARD_EXECUTIVE to allow more roles
+      permission: Permission.DASHBOARD_EXECUTIVE, // Only ADMIN and EXECUTIVE can see this
     },
     {
       href: `/${locale}/projects`,
@@ -71,6 +75,15 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
       permission: Permission.ORG_MANAGE,
     },
   ]
+
+  // Add Templates menu item for ADMIN and PROJECT_MANAGER roles
+  if (user.roles.includes(UserRole.ADMIN) || user.roles.includes(UserRole.PROJECT_MANAGER)) {
+    navItems.splice(navItems.length - 1, 0, {
+      href: `/${locale}/templates`,
+      label: t('templates.title'),
+      permission: undefined, // No permission check needed since we already checked roles
+    })
+  }
 
   // Filter nav items based on user permissions
   const visibleNavItems = navItems.filter((item) => {
@@ -122,21 +135,20 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-40 h-screen transition-transform bg-white border-r border-gray-200',
+          'fixed top-0 left-0 z-40 h-screen transition-transform bg-black border-r border-gray-800',
           'w-64 lg:translate-x-0',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo/Brand */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <Link href={`/${locale}/dashboard`} className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">PM</span>
-              </div>
-              <span className="font-semibold text-gray-900 text-sm">
-                {t('common.appName')}
-              </span>
+          <div className="flex items-center justify-between p-4 border-b border-gray-800">
+            <Link href={`/${locale}/dashboard`} className="flex items-center space-x-3">
+              <img 
+                src="/SoftwareOne_Logo_Sml_RGB_Rev.svg" 
+                alt="SoftwareOne" 
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 
@@ -149,8 +161,8 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
                 className={cn(
                   'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                   isActive(item.href)
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                 )}
               >
                 {item.label}
@@ -159,13 +171,16 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
           </nav>
 
           {/* Bottom section with locale switcher and user profile */}
-          <div className="border-t border-gray-200 p-4 space-y-3">
+          <div className="border-t border-gray-800 p-4 space-y-3">
             {/* Locale Switcher */}
             <button
               onClick={handleLocaleSwitch}
-              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 rounded-md hover:bg-gray-800 hover:text-white transition-colors"
             >
-              <span>🌐 {locale === Locale.ES ? 'Español' : 'Português'}</span>
+              <span className="flex items-center gap-2">
+                <span className="text-lg">{locale === Locale.ES ? '🇪🇸' : '🇧🇷'}</span>
+                <span>{locale === Locale.ES ? 'Español' : 'Português'}</span>
+              </span>
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -185,20 +200,20 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
             <div className="relative">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-md hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-md hover:bg-gray-800 transition-colors"
               >
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-700 font-medium text-xs">
+                <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
+                  <span className="text-white font-medium text-xs">
                     {user.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900 truncate">{user.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  <p className="font-medium text-white truncate">{user.name}</p>
+                  <p className="text-xs text-gray-700 truncate">{user.email}</p>
                 </div>
                 <svg
                   className={cn(
-                    'w-4 h-4 text-gray-500 transition-transform',
+                    'w-4 h-4 text-gray-700 transition-transform',
                     isProfileOpen && 'rotate-180'
                   )}
                   fill="none"
@@ -216,15 +231,15 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
 
               {/* Dropdown Menu */}
               {isProfileOpen && (
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-md shadow-lg border border-gray-200 py-1">
-                  <div className="px-4 py-2 border-b border-gray-100">
-                    <p className="text-xs text-gray-500">
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-900 rounded-md shadow-lg border border-gray-800 py-1">
+                  <div className="px-4 py-2 border-b border-gray-800">
+                    <p className="text-xs text-gray-700">
                       {user.roles.map((role) => role.replace('_', ' ')).join(', ')}
                     </p>
                   </div>
                   <button
                     onClick={onSignOut}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-800 transition-colors"
                   >
                     {t('nav.signOut')}
                   </button>

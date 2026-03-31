@@ -26,7 +26,8 @@
     "averageTimeToResolve": "Tiempo promedio de resolución",
     "noResolvedBlockersYet": "Sin bloqueadores resueltos aún"
   },
-  "filters": {
+  "filters": "Filtros",
+  "filtersSection": {
     "startDate": "Fecha de Inicio",
     "endDate": "Fecha de Fin",
     "searchByClient": "Buscar por cliente...",

@@ -95,9 +95,11 @@ async function getProjectsHandler(
       )
     }
 
-    // Query projects with automatic organization_id filtering
+    // Query projects with automatic organization_id filtering and role-based access
     const result = await projectService.queryProjects({
       organizationId: authContext.organizationId,
+      userId: authContext.userId,           // ⭐ ADDED: For ownership filtering
+      userRoles: authContext.roles as any,         // ⭐ ADDED: For role-based filtering
       page,
       limit,
       status: status || undefined,
@@ -128,13 +130,23 @@ async function getProjectsHandler(
       { status: 200 }
     )
   } catch (error) {
-    console.error('Get projects error:', error)
+    console.error('[GET /api/v1/projects] Error:', error)
+    console.error('[GET /api/v1/projects] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      authContext: {
+        userId: authContext.userId,
+        organizationId: authContext.organizationId,
+        roles: authContext.roles,
+      },
+    })
 
     // Generic server error
     return NextResponse.json(
       {
         error: 'INTERNAL_ERROR',
         message: 'An unexpected error occurred while fetching projects',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -229,6 +241,7 @@ async function createProjectHandler(
     // ProjectService.createProject handles automatic Kanban board creation
     const project = await projectService.createProject({
       organizationId: authContext.organizationId,
+      ownerId: authContext.userId,  // ⭐ ADDED: Set creator as owner
       name: data.name,
       description: data.description,
       client: data.client,

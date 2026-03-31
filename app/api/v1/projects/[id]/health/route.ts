@@ -17,11 +17,11 @@ import { NotFoundError } from '@/lib/errors'
  */
 async function getProjectHealthHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Verify the project exists and belongs to user's organization
     const project = await projectService.getProject(id)

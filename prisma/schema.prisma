@@ -7,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
 model Organization {
   id        String   @id @default(uuid()) @db.Char(36)
   name      String
@@ -16,12 +14,14 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users       User[]
-  projects    Project[]
-  workItems   WorkItem[]
-  blockers    Blocker[]
-  risks       Risk[]
-  agreements  Agreement[]
+  users              User[]
+  projects           Project[]
+  workItems          WorkItem[]
+  blockers           Blocker[]
+  risks              Risk[]
+  agreements         Agreement[]
+  templates          Template[]
+  templateCategories TemplateCategory[]
 
   @@map("organizations")
 }
@@ -32,18 +32,21 @@ model User {
   email          String   @unique
   passwordHash   String   @map("password_hash")
   name           String
-  roles          Json     // Array of UserRole enums stored as JSON
+  roles          Json // Array of UserRole enums stored as JSON
   locale         String   @default("es")
   active         Boolean  @default(true)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization      Organization       @relation(fields: [organizationId], references: [id])
-  ownedWorkItems    WorkItem[]         @relation("WorkItemOwner")
-  ownedRisks        Risk[]             @relation("RiskOwner")
-  createdAgreements Agreement[]        @relation("AgreementCreator")
-  createdAgreementNotes AgreementNote[] @relation("AgreementNoteCreator")
-  workItemChanges   WorkItemChange[]
+  organization          Organization          @relation(fields: [organizationId], references: [id])
+  ownedProjects         Project[]             @relation("ProjectOwner")
+  projectCollaborations ProjectCollaborator[]
+  ownedWorkItems        WorkItem[]            @relation("WorkItemOwner")
+  ownedRisks            Risk[]                @relation("RiskOwner")
+  createdAgreements     Agreement[]           @relation("AgreementCreator")
+  createdAgreementNotes AgreementNote[]       @relation("AgreementNoteCreator")
+  workItemChanges       WorkItemChange[]
+  templateUsage         TemplateUsage[]
 
   @@index([organizationId])
   @@map("users")
@@ -52,6 +55,7 @@ model User {
 model Project {
   id               String   @id @default(uuid()) @db.Char(36)
   organizationId   String   @map("organization_id") @db.Char(36)
+  ownerId          String   @map("owner_id") @db.Char(36)
   name             String
   description      String   @db.Text
   client           String
@@ -62,28 +66,48 @@ model Project {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  organization   Organization     @relation(fields: [organizationId], references: [id])
-  workItems      WorkItem[]
-  blockers       Blocker[]
-  risks          Risk[]
-  agreements     Agreement[]
-  kanbanColumns  KanbanColumn[]
+  organization    Organization          @relation(fields: [organizationId], references: [id])
+  owner           User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
+  collaborators   ProjectCollaborator[]
+  workItems       WorkItem[]
+  blockers        Blocker[]
+  risks           Risk[]
+  agreements      Agreement[]
+  kanbanColumns   KanbanColumn[]
   aiAnalysisCache AIAnalysisCache?
+  templateUsage   TemplateUsage[]
 
   @@index([organizationId])
   @@index([organizationId, archived])
+  @@index([ownerId])
   @@map("projects")
 }
 
-model KanbanColumn {
-  id          String   @id @default(uuid()) @db.Char(36)
-  projectId   String   @map("project_id") @db.Char(36)
-  name        String
-  order       Int
-  columnType  String   @map("column_type")
+model ProjectCollaborator {
+  id        String   @id @default(uuid()) @db.Char(36)
+  projectId String   @map("project_id") @db.Char(36)
+  userId    String   @map("user_id") @db.Char(36)
+  role      String   @default("COLLABORATOR") // "OWNER" or "COLLABORATOR"
+  createdAt DateTime @default(now()) @map("created_at")
 
-  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  workItems   WorkItem[]
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_collaborators")
+}
+
+model KanbanColumn {
+  id         String @id @default(uuid()) @db.Char(36)
+  projectId  String @map("project_id") @db.Char(36)
+  name       String
+  order      Int
+  columnType String @map("column_type")
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItems WorkItem[]
 
   @@unique([projectId, order])
   @@index([projectId])
@@ -97,19 +121,21 @@ model WorkItem {
   ownerId          String    @map("owner_id") @db.Char(36)
   title            String
   description      String    @db.Text
+  phase            String?
   status           String
   priority         String
   startDate        DateTime  @map("start_date") @db.Date
   estimatedEndDate DateTime  @map("estimated_end_date") @db.Date
   completedAt      DateTime? @map("completed_at")
+  estimatedHours   Int?      @map("estimated_hours")
   kanbanColumnId   String    @map("kanban_column_id") @db.Char(36)
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  organization Organization       @relation(fields: [organizationId], references: [id])
-  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  owner        User               @relation("WorkItemOwner", fields: [ownerId], references: [id])
-  kanbanColumn KanbanColumn       @relation(fields: [kanbanColumnId], references: [id])
+  organization Organization        @relation(fields: [organizationId], references: [id])
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner        User                @relation("WorkItemOwner", fields: [ownerId], references: [id])
+  kanbanColumn KanbanColumn        @relation(fields: [kanbanColumnId], references: [id])
   blockers     Blocker[]
   changes      WorkItemChange[]
   agreements   AgreementWorkItem[]
@@ -117,6 +143,7 @@ model WorkItem {
   @@index([organizationId, projectId])
   @@index([ownerId])
   @@index([status])
+  @@index([phase])
   // Índice compuesto para filtrado eficiente por organización, estado y prioridad
   @@index([organizationId, status, priority])
   // Índice para consultas de items atrasados
@@ -125,13 +152,13 @@ model WorkItem {
 }
 
 model WorkItemChange {
-  id         String   @id @default(uuid()) @db.Char(36)
-  workItemId String   @map("work_item_id") @db.Char(36)
-  changedById String  @map("changed_by_id") @db.Char(36)
-  field      String
-  oldValue   Json?    @map("old_value")
-  newValue   Json?    @map("new_value")
-  changedAt  DateTime @default(now()) @map("changed_at")
+  id          String   @id @default(uuid()) @db.Char(36)
+  workItemId  String   @map("work_item_id") @db.Char(36)
+  changedById String   @map("changed_by_id") @db.Char(36)
+  field       String
+  oldValue    Json?    @map("old_value")
+  newValue    Json?    @map("new_value")
+  changedAt   DateTime @default(now()) @map("changed_at")
 
   workItem  WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
   changedBy User     @relation(fields: [changedById], references: [id])
@@ -196,17 +223,18 @@ model Risk {
 }
 
 model Agreement {
-  id            String    @id @default(uuid()) @db.Char(36)
-  organizationId String   @map("organization_id") @db.Char(36)
-  projectId     String    @map("project_id") @db.Char(36)
-  createdById   String    @map("created_by_id") @db.Char(36)
-  description   String    @db.Text
-  agreementDate DateTime  @map("agreement_date") @db.Date
-  participants  String    @db.Text
-  status        String
-  completedAt   DateTime? @map("completed_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Char(36)
+  organizationId String    @map("organization_id") @db.Char(36)
+  projectId      String    @map("project_id") @db.Char(36)
+  createdById    String    @map("created_by_id") @db.Char(36)
+  title          String    @db.VarChar(255)
+  description    String    @db.Text
+  agreementDate  DateTime  @map("agreement_date") @db.Date
+  participants   String    @db.Text
+  status         String
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   organization Organization        @relation(fields: [organizationId], references: [id])
   project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -259,4 +287,87 @@ model AIAnalysisCache {
   // Índice para limpieza de cache expirado
   @@index([expiresAt])
   @@map("ai_analysis_cache")
+}
+
+model Template {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  name           String   @db.VarChar(255)
+  description    String   @db.Text
+  categoryId     String?  @map("category_id") @db.Char(36)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization      @relation(fields: [organizationId], references: [id])
+  category     TemplateCategory? @relation(fields: [categoryId], references: [id])
+  phases       TemplatePhase[]
+  usageRecords TemplateUsage[]
+
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([organizationId, categoryId])
+  @@map("templates")
+}
+
+model TemplateCategory {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  name           String   @db.VarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  templates    Template[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("template_categories")
+}
+
+model TemplatePhase {
+  id         String   @id @default(uuid()) @db.Char(36)
+  templateId String   @map("template_id") @db.Char(36)
+  name       String   @db.VarChar(255)
+  order      Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  template   Template           @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  activities TemplateActivity[]
+
+  @@unique([templateId, order])
+  @@index([templateId])
+  @@map("template_phases")
+}
+
+model TemplateActivity {
+  id                String   @id @default(uuid()) @db.Char(36)
+  phaseId           String   @map("phase_id") @db.Char(36)
+  title             String   @db.VarChar(255)
+  description       String   @db.Text
+  priority          String // LOW, MEDIUM, HIGH, CRITICAL
+  estimatedDuration Int      @map("estimated_duration") // in hours
+  order             Int
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  phase TemplatePhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@unique([phaseId, order])
+  @@index([phaseId])
+  @@map("template_activities")
+}
+
+model TemplateUsage {
+  id         String   @id @default(uuid()) @db.Char(36)
+  templateId String   @map("template_id") @db.Char(36)
+  projectId  String   @map("project_id") @db.Char(36)
+  userId     String   @map("user_id") @db.Char(36)
+  appliedAt  DateTime @default(now()) @map("applied_at")
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([templateId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("template_usage")
 }

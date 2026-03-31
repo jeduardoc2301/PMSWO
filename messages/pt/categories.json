@@ -1,0 +1,48 @@
+{
+  "title": "Categorias de Modelos",
+  "description": "Gerenciar categorias para organizar modelos de atividades",
+  "createCategory": "Criar Categoria",
+  "editCategory": "Editar Categoria",
+  "deleteCategory": "Excluir Categoria",
+  "categoryName": "Nome da Categoria",
+  "createdAt": "Data de Criação",
+  "actions": "Ações",
+  "noCategories": "Não há categorias disponíveis",
+  "loadingCategories": "Carregando categorias...",
+  "createCategoryDialog": {
+    "title": "Criar Nova Categoria",
+    "description": "Digite o nome da nova categoria de modelos",
+    "namePlaceholder": "Ex: Desenvolvimento, Marketing, Vendas",
+    "cancel": "Cancelar",
+    "create": "Criar",
+    "creating": "Criando..."
+  },
+  "editCategoryDialog": {
+    "title": "Editar Categoria",
+    "description": "Modificar o nome da categoria",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "saving": "Salvando..."
+  },
+  "deleteCategoryDialog": {
+    "title": "Excluir Categoria",
+    "description": "Tem certeza de que deseja excluir esta categoria?",
+    "warning": "Esta ação não pode ser desfeita. Os modelos associados a esta categoria ficarão sem categoria.",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "deleting": "Excluindo..."
+  },
+  "messages": {
+    "createSuccess": "Categoria criada com sucesso",
+    "createError": "Erro ao criar a categoria",
+    "updateSuccess": "Categoria atualizada com sucesso",
+    "updateError": "Erro ao atualizar a categoria",
+    "deleteSuccess": "Categoria excluída com sucesso",
+    "deleteError": "Erro ao excluir a categoria",
+    "duplicateName": "Já existe uma categoria com este nome"
+  },
+  "validation": {
+    "nameRequired": "O nome é obrigatório",
+    "nameMaxLength": "O nome não pode exceder 100 caracteres"
+  }
+}

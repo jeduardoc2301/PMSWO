@@ -82,6 +82,27 @@ async function main() {
   })
   console.log('✓ Created executive:', executive.email)
 
+  // Create template categories
+  const categories = [
+    'Desarrollo de Software',
+    'Marketing Digital',
+    'Ventas',
+    'Recursos Humanos',
+    'Finanzas',
+    'Operaciones',
+  ]
+
+  for (const categoryName of categories) {
+    await prisma.templateCategory.create({
+      data: {
+        id: randomUUID(),
+        organizationId: orgId,
+        name: categoryName,
+      },
+    })
+    console.log('✓ Created category:', categoryName)
+  }
+
   console.log('\nSeed completed successfully!')
   console.log('\nTest credentials (use bcrypt to hash "password123" for actual use):')
   console.log('- admin@test.com')

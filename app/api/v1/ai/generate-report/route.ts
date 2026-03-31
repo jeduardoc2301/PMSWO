@@ -19,7 +19,7 @@ import prisma from '@/lib/prisma'
 const generateReportSchema = z.object({
   projectId: z.string().uuid('Invalid project ID format'),
   detailLevel: z.nativeEnum(ReportDetailLevel, {
-    errorMap: () => ({ message: 'Invalid detail level. Must be EXECUTIVE, DETAILED, or COMPLETE' }),
+    message: 'Invalid detail level. Must be EXECUTIVE, DETAILED, or COMPLETE',
   }),
 })
 
@@ -33,7 +33,7 @@ const generateReportSchema = z.object({
  */
 async function generateReportHandler(
   request: NextRequest,
-  context: { params: {} },
+  context: { params: Promise<{}> },
   authContext: AuthContext
 ): Promise<NextResponse> {
   try {
@@ -46,7 +46,7 @@ async function generateReportHandler(
         {
           error: 'Validation Error',
           message: 'Invalid request data',
-          details: validationResult.error.errors.map((err) => ({
+          details: validationResult.error.issues.map((err) => ({
             field: err.path.join('.'),
             message: err.message,
           })),

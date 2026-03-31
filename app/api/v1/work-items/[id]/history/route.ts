@@ -16,11 +16,11 @@ import { NotFoundError } from '@/lib/errors'
  */
 async function getWorkItemHistoryHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // First, verify the work item exists and belongs to the user's organization
     const workItem = await workItemService.getWorkItem(id, authContext.organizationId)

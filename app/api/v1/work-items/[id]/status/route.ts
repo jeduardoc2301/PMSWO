@@ -30,11 +30,11 @@ const changeStatusSchema = z.object({
  */
 async function changeStatusHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // First, verify the work item exists and belongs to the user's organization
     const existingWorkItem = await workItemService.getWorkItem(id, authContext.organizationId)

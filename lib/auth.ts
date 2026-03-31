@@ -27,17 +27,11 @@ declare module 'next-auth' {
   }
 }
 
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id: string
-    organizationId: string
-    roles: UserRole[]
-    locale: string
-  }
-}
+// Note: JWT module augmentation not needed in NextAuth v5
+// The JWT type is inferred from the session callback
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -109,10 +103,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id
-        session.user.organizationId = token.organizationId
-        session.user.roles = token.roles
-        session.user.locale = token.locale
+        session.user.id = token.id as string
+        session.user.organizationId = token.organizationId as string
+        session.user.roles = token.roles as UserRole[]
+        session.user.locale = token.locale as string
       }
       return session
     },

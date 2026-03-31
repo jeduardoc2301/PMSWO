@@ -1,0 +1,48 @@
+{
+  "title": "Categorías de Plantillas",
+  "description": "Gestionar categorías para organizar plantillas de actividades",
+  "createCategory": "Crear Categoría",
+  "editCategory": "Editar Categoría",
+  "deleteCategory": "Eliminar Categoría",
+  "categoryName": "Nombre de la Categoría",
+  "createdAt": "Fecha de Creación",
+  "actions": "Acciones",
+  "noCategories": "No hay categorías disponibles",
+  "loadingCategories": "Cargando categorías...",
+  "createCategoryDialog": {
+    "title": "Crear Nueva Categoría",
+    "description": "Ingrese el nombre de la nueva categoría de plantillas",
+    "namePlaceholder": "Ej: Desarrollo, Marketing, Ventas",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "creating": "Creando..."
+  },
+  "editCategoryDialog": {
+    "title": "Editar Categoría",
+    "description": "Modificar el nombre de la categoría",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saving": "Guardando..."
+  },
+  "deleteCategoryDialog": {
+    "title": "Eliminar Categoría",
+    "description": "¿Está seguro de que desea eliminar esta categoría?",
+    "warning": "Esta acción no se puede deshacer. Las plantillas asociadas a esta categoría quedarán sin categoría.",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "deleting": "Eliminando..."
+  },
+  "messages": {
+    "createSuccess": "Categoría creada exitosamente",
+    "createError": "Error al crear la categoría",
+    "updateSuccess": "Categoría actualizada exitosamente",
+    "updateError": "Error al actualizar la categoría",
+    "deleteSuccess": "Categoría eliminada exitosamente",
+    "deleteError": "Error al eliminar la categoría",
+    "duplicateName": "Ya existe una categoría con este nombre"
+  },
+  "validation": {
+    "nameRequired": "El nombre es requerido",
+    "nameMaxLength": "El nombre no puede exceder 100 caracteres"
+  }
+}

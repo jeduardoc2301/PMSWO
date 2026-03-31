@@ -11,11 +11,12 @@ export function TrendsChart({ projects }: TrendsChartProps) {
   const t = useTranslations('dashboard.trendsChart')
   
   // Group projects by status
-  const statusCounts = {
+  const statusCounts: Record<ProjectStatus, number> = {
     [ProjectStatus.PLANNING]: 0,
     [ProjectStatus.ACTIVE]: 0,
     [ProjectStatus.ON_HOLD]: 0,
     [ProjectStatus.COMPLETED]: 0,
+    [ProjectStatus.ARCHIVED]: 0,
   }
 
   projects.forEach((project) => {
@@ -46,7 +47,7 @@ export function TrendsChart({ projects }: TrendsChartProps) {
           return (
             <div key={status.label}>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">{status.label}</span>
+                <span className="text-gray-800">{status.label}</span>
                 <span className="font-medium text-gray-900">
                   {status.count} ({percentage.toFixed(0)}%)
                 </span>
@@ -63,7 +64,7 @@ export function TrendsChart({ projects }: TrendsChartProps) {
       </div>
 
       {projects.length === 0 && (
-        <p className="text-center text-gray-500 py-8">{t('noData')}</p>
+        <p className="text-center text-gray-700 py-8">{t('noData')}</p>
       )}
     </div>
   )

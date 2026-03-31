@@ -20,11 +20,11 @@ import prisma from '@/lib/prisma'
  */
 async function convertToBlockerHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Validate that risk exists and belongs to user's organization
     const risk = await prisma.risk.findUnique({

@@ -46,6 +46,8 @@
   "creating": "Criando...",
   "resolving": "Resolvendo...",
   "workItemId": "ID do Item de Trabalho",
+  "workItem": "Item de Trabalho",
+  "selectWorkItem": "Selecione um item de trabalho",
   "createDialogDescription": "Adicionar um novo bloqueador para rastrear problemas que afetam itens de trabalho",
   "resolveDialogDescription": "Fornecer detalhes sobre como este bloqueador foi resolvido",
   "resolutionPlaceholder": "Descrever como o bloqueador foi resolvido..."

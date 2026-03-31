@@ -7,6 +7,7 @@ import { z } from 'zod'
 export interface CreateAgreementDTO {
   projectId: string
   createdById: string
+  title: string
   description: string
   agreementDate: Date
   participants: string
@@ -21,6 +22,7 @@ export interface UpdateAgreementDTO {
 }
 
 // Validation schemas
+const titleSchema = z.string().min(1, 'Title is required').max(255, 'Title must be 255 characters or less')
 const descriptionSchema = z.string().min(1, 'Description is required')
 const participantsSchema = z.string().min(1, 'Participants are required')
 
@@ -30,6 +32,16 @@ export class AgreementService {
    * Requirement: 7.1
    */
   async createAgreement(data: CreateAgreementDTO) {
+    // Validate title
+    try {
+      titleSchema.parse(data.title)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ValidationError(error.issues[0].message)
+      }
+      throw error
+    }
+
     // Validate description
     try {
       descriptionSchema.parse(data.description)
@@ -98,6 +110,7 @@ export class AgreementService {
         organizationId: project.organizationId,
         projectId: data.projectId,
         createdById: data.createdById,
+        title: data.title.trim(),
         description: data.description.trim(),
         agreementDate: data.agreementDate,
         participants: data.participants.trim(),

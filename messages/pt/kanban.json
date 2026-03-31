@@ -1,4 +1,7 @@
 {
   "noItems": "Sem itens",
-  "moveError": "Erro ao mover o item de trabalho. Por favor, tente novamente."
+  "noPhase": "Sem Fase",
+  "moveError": "Erro ao mover o item de trabalho. Por favor, tente novamente.",
+  "createWorkItem": "Criar Item de Trabalho",
+  "createSuccess": "Item de trabalho criado com sucesso"
 }

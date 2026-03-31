@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,11 +33,19 @@ interface Risk {
 
 interface RisksTabProps {
   projectId: string
+  onMetricsChange?: () => void
+  initialRiskData?: {
+    description: string
+    probability: number
+    impact: number
+  } | null
+  onRiskDataUsed?: () => void
 }
 
-export function RisksTab({ projectId }: RisksTabProps) {
+export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDataUsed }: RisksTabProps) {
   const t = useTranslations('risks')
   const [risks, setRisks] = useState<Risk[]>([])
+  const [users, setUsers] = useState<Array<{ id: string; name: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -59,6 +67,45 @@ export function RisksTab({ projectId }: RisksTabProps) {
   useEffect(() => {
     fetchRisks()
   }, [projectId])
+
+  useEffect(() => {
+    if (showCreateDialog) {
+      fetchUsers()
+    }
+  }, [showCreateDialog])
+
+  // Handle initial risk data from AI
+  useEffect(() => {
+    if (initialRiskData) {
+      console.log('[RisksTab] Received initial risk data from AI:', initialRiskData)
+      setFormData({
+        description: initialRiskData.description,
+        probability: initialRiskData.probability,
+        impact: initialRiskData.impact,
+        mitigationPlan: '',
+        ownerId: '',
+      })
+      setShowCreateDialog(true)
+      
+      // Clean up after using the data
+      if (onRiskDataUsed) {
+        onRiskDataUsed()
+      }
+    }
+  }, [initialRiskData, onRiskDataUsed])
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(`/api/v1/projects/${projectId}/users`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch users')
+      }
+      const data = await response.json()
+      setUsers(data.users || [])
+    } catch (err) {
+      console.error('Error fetching users:', err)
+    }
+  }
 
   const fetchRisks = async () => {
     try {
@@ -102,6 +149,11 @@ export function RisksTab({ projectId }: RisksTabProps) {
       await fetchRisks()
       setShowCreateDialog(false)
       resetForm()
+      
+      // Notify parent to refresh metrics
+      if (onMetricsChange) {
+        onMetricsChange()
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : t('messages.createError'))
     } finally {
@@ -134,6 +186,11 @@ export function RisksTab({ projectId }: RisksTabProps) {
       setShowCloseDialog(false)
       setSelectedRisk(null)
       setClosureNotes('')
+      
+      // Notify parent to refresh metrics
+      if (onMetricsChange) {
+        onMetricsChange()
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : t('messages.closeError'))
     } finally {
@@ -218,7 +275,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
 
   if (loading) {
     return (
-      <div className="py-6 text-center text-gray-500">
+      <div className="py-6 text-center text-gray-700">
         <p>{t('loading')}</p>
       </div>
     )
@@ -241,12 +298,12 @@ export function RisksTab({ projectId }: RisksTabProps) {
         <div className="flex gap-4">
           <div className="text-sm">
             <span className="font-semibold text-gray-900">{activeRisks.length}</span>
-            <span className="text-gray-500 ml-1">{t('activeRisks')}</span>
+            <span className="text-gray-700 ml-1">{t('activeRisks')}</span>
           </div>
           {highRisks.length > 0 && (
             <div className="text-sm">
               <span className="font-semibold text-orange-600">{highRisks.length}</span>
-              <span className="text-gray-500 ml-1">{t('highRisks')}</span>
+              <span className="text-gray-700 ml-1">{t('highRisks')}</span>
             </div>
           )}
         </div>
@@ -266,17 +323,17 @@ export function RisksTab({ projectId }: RisksTabProps) {
           <CardContent>
             <div className="grid grid-cols-6 gap-1">
               {/* Header row */}
-              <div className="text-xs font-medium text-gray-500 flex items-center justify-center"></div>
+              <div className="text-xs font-medium text-gray-700 flex items-center justify-center"></div>
               {[1, 2, 3, 4, 5].map(i => (
-                <div key={`impact-${i}`} className="text-xs font-medium text-gray-500 text-center">
+                <div key={`impact-${i}`} className="text-xs font-medium text-gray-700 text-center">
                   {i}
                 </div>
               ))}
               
               {/* Matrix rows */}
               {[5, 4, 3, 2, 1].map(prob => (
-                <>
-                  <div key={`prob-${prob}`} className="text-xs font-medium text-gray-500 flex items-center justify-center">
+                <React.Fragment key={`row-${prob}`}>
+                  <div className="text-xs font-medium text-gray-700 flex items-center justify-center">
                     {prob}
                   </div>
                   {[1, 2, 3, 4, 5].map(impact => {
@@ -296,10 +353,10 @@ export function RisksTab({ projectId }: RisksTabProps) {
                       </div>
                     )
                   })}
-                </>
+                </React.Fragment>
               ))}
             </div>
-            <div className="mt-4 flex items-center gap-4 text-xs text-gray-600">
+            <div className="mt-4 flex items-center gap-4 text-xs text-gray-800">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{t('yAxis')}</span>
               </div>
@@ -328,7 +385,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
                         <Badge variant="outline" className={getStatusColor(risk.status)}>
                           {t(`status.${risk.status.toLowerCase()}`)}
                         </Badge>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-700">
                           P: {risk.probability} × I: {risk.impact}
                         </span>
                       </div>
@@ -369,7 +426,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
       {activeRisks.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <AlertTriangle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-          <p className="text-gray-600">{t('noActiveRisks')}</p>
+          <p className="text-gray-800">{t('noActiveRisks')}</p>
         </div>
       )}
 
@@ -414,7 +471,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="description">{t('riskDescription')}</Label>
+                <Label htmlFor="description" className="text-gray-900">{t('riskDescription')}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -425,7 +482,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="probability">{t('probability')}</Label>
+                  <Label htmlFor="probability" className="text-gray-900">{t('probability')}</Label>
                   <Select
                     value={formData.probability.toString()}
                     onValueChange={(value: string) => setFormData({ ...formData, probability: parseInt(value) })}
@@ -443,7 +500,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="impact">{t('impact')}</Label>
+                  <Label htmlFor="impact" className="text-gray-900">{t('impact')}</Label>
                   <Select
                     value={formData.impact.toString()}
                     onValueChange={(value: string) => setFormData({ ...formData, impact: parseInt(value) })}
@@ -462,7 +519,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mitigationPlan">{t('mitigationPlan')}</Label>
+                <Label htmlFor="mitigationPlan" className="text-gray-900">{t('mitigationPlan')}</Label>
                 <Textarea
                   id="mitigationPlan"
                   value={formData.mitigationPlan}
@@ -470,6 +527,25 @@ export function RisksTab({ projectId }: RisksTabProps) {
                   required
                   rows={3}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="owner" className="text-gray-900">{t('owner')}</Label>
+                <Select
+                  value={formData.ownerId}
+                  onValueChange={(value) => setFormData({ ...formData, ownerId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('selectOwner')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-700">{t('ownerOptional')}</p>
               </div>
             </div>
             <DialogFooter>
@@ -496,7 +572,7 @@ export function RisksTab({ projectId }: RisksTabProps) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="closureNotes">{t('closureNotes')}</Label>
+                <Label htmlFor="closureNotes" className="text-gray-900">{t('closureNotes')}</Label>
                 <Textarea
                   id="closureNotes"
                   value={closureNotes}

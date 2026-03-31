@@ -45,12 +45,12 @@ export function PageHeader({
               {breadcrumbs.map((item, index) => (
                 <li key={index} className="flex items-center">
                   {index > 0 && (
-                    <ChevronRight className="h-4 w-4 text-gray-400 mx-2" />
+                    <ChevronRight className="h-4 w-4 text-gray-700 mx-2" />
                   )}
                   {item.href ? (
                     <Link
                       href={item.href}
-                      className="text-gray-500 hover:text-gray-700 transition-colors"
+                      className="text-gray-700 hover:text-gray-700 transition-colors"
                     >
                       {item.label}
                     </Link>
@@ -68,7 +68,7 @@ export function PageHeader({
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-gray-900 truncate">{title}</h1>
             {description && (
-              <p className="mt-1 text-sm text-gray-500">{description}</p>
+              <p className="mt-1 text-sm text-gray-700">{description}</p>
             )}
           </div>
 

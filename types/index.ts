@@ -150,6 +150,10 @@ export interface WorkItemSummary {
   kanbanColumnId: string
   ownerId: string
   ownerName: string
+  startDate?: string
+  estimatedEndDate?: string
+  phase?: string | null
+  estimatedHours?: number | null
 }
 
 // Project Metrics types

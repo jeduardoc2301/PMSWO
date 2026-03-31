@@ -1,6 +1,7 @@
 {
   "title": "Elementos de Trabajo",
   "createWorkItem": "Crear Elemento de Trabajo",
+  "applyTemplate": "Aplicar Plantilla",
   "editWorkItem": "Editar Elemento de Trabajo",
   "deleteWorkItem": "Eliminar Elemento de Trabajo",
   "workItemDetails": "Detalles del Elemento de Trabajo",
@@ -19,6 +20,7 @@
   "inProgressItems": "Elementos en Progreso",
   "blockedItems": "Elementos Bloqueados",
   "noWorkItems": "No hay elementos de trabajo disponibles",
+  "noPhase": "Sin Fase",
   "createFirstWorkItem": "Crear tu primer elemento de trabajo",
   "status": {
     "backlog": "Backlog",
@@ -51,5 +53,73 @@
     "updateError": "Error al actualizar el elemento de trabajo",
     "deleteError": "Error al eliminar el elemento de trabajo",
     "statusChangeError": "Error al cambiar el estado"
-  }
+  },
+  "deleteDialog": {
+    "title": "Eliminar Elemento de Trabajo",
+    "description": "¿Estás seguro de que deseas eliminar este elemento de trabajo?",
+    "warning": "Esta acción no se puede deshacer. Se eliminarán también todos los bloqueadores y cambios asociados.",
+    "workItemTitle": "Elemento a eliminar:",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "deleting": "Eliminando..."
+  },
+  "createDialog": {
+    "title": "Crear Elemento de Trabajo",
+    "titleLabel": "Título",
+    "titlePlaceholder": "Ingrese el título del elemento de trabajo",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Describa el elemento de trabajo",
+    "phaseLabel": "Fase (opcional)",
+    "phasePlaceholder": "Sin fase o escribir nueva...",
+    "phaseSearchPlaceholder": "Buscar o crear fase...",
+    "phaseEmptyText": "Presiona Enter para crear",
+    "phaseHint": "Usa números al inicio para ordenar (ej: 1. Análisis, 2. Desarrollo)",
+    "ownerLabel": "Responsable",
+    "selectOwner": "Seleccione un responsable",
+    "loadingUsers": "Cargando usuarios...",
+    "priorityLabel": "Prioridad",
+    "selectPriority": "Seleccione una prioridad",
+    "startDateLabel": "Fecha de Inicio",
+    "endDateLabel": "Fecha Estimada de Finalización",
+    "estimatedHoursLabel": "Horas estimadas (opcional)",
+    "estimatedHoursPlaceholder": "Ej: 8",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "creating": "Creando..."
+  },
+  "editDates": {
+    "title": "Ajustar Fechas",
+    "description": "Modificar las fechas del elemento",
+    "update": "Actualizar",
+    "updating": "Actualizando..."
+  },
+  "editDialog": {
+    "description": "Modificar los datos del elemento de trabajo",
+    "update": "Actualizar",
+    "updating": "Actualizando..."
+  },
+  "validation": {
+    "titleRequired": "El título es requerido",
+    "titleTooLong": "El título no puede exceder 255 caracteres",
+    "titleRequiredForSuggestion": "Ingrese un título primero para sugerir una descripción",
+    "descriptionRequired": "La descripción es requerida",
+    "ownerRequired": "Debe seleccionar un responsable",
+    "priorityRequired": "Debe seleccionar una prioridad",
+    "startDateRequired": "La fecha de inicio es requerida",
+    "endDateRequired": "La fecha estimada de finalización es requerida",
+    "endDateMustBeAfterStartDate": "La fecha de fin debe ser posterior a la fecha de inicio"
+  },
+  "errors": {
+    "failedToLoadUsers": "Error al cargar la lista de usuarios",
+    "createFailed": "Error al crear el elemento de trabajo",
+    "updateFailed": "Error al actualizar el elemento de trabajo"
+  },
+  "searchPlaceholder": "Buscar por título...",
+  "filterByStatus": "Estado",
+  "filterByPriority": "Prioridad",
+  "allStatuses": "Todos los estados",
+  "allPriorities": "Todas las prioridades",
+  "clearFilters": "Limpiar",
+  "showingResults": "Mostrando {count} de {total} elementos",
+  "noResultsFound": "No se encontraron resultados con los filtros aplicados"
 }

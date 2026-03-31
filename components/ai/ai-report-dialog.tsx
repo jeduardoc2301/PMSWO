@@ -131,7 +131,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="EXECUTIVE">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.executive')}</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-700">
                         {t('detailLevel.executiveDesc')}
                       </span>
                     </div>
@@ -139,7 +139,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="DETAILED">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.detailed')}</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-700">
                         {t('detailLevel.detailedDesc')}
                       </span>
                     </div>
@@ -147,7 +147,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="COMPLETE">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.complete')}</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-700">
                         {t('detailLevel.completeDesc')}
                       </span>
                     </div>
@@ -161,7 +161,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
           {generating && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <p className="text-sm text-gray-600">{t('loading.generatingReport')}</p>
+              <p className="text-sm text-gray-800">{t('loading.generatingReport')}</p>
             </div>
           )}
 
@@ -169,7 +169,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
           {report && !generating && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-700">
                   {t('report.generatedAt')}: {generatedAt?.toLocaleString()}
                 </p>
                 <Button

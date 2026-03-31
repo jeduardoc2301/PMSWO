@@ -30,11 +30,19 @@ interface Blocker {
 
 interface BlockersTabProps {
   projectId: string
+  onMetricsChange?: () => void
+  initialBlockerData?: {
+    workItemId: string
+    description: string
+    severity: string
+  } | null
+  onBlockerDataUsed?: () => void
 }
 
-export function BlockersTab({ projectId }: BlockersTabProps) {
+export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, onBlockerDataUsed }: BlockersTabProps) {
   const t = useTranslations('blockers')
   const [blockers, setBlockers] = useState<Blocker[]>([])
+  const [workItems, setWorkItems] = useState<Array<{ id: string; title: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -55,7 +63,40 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
 
   useEffect(() => {
     fetchBlockers()
+    fetchWorkItems()
   }, [projectId])
+
+  useEffect(() => {
+    if (initialBlockerData) {
+      // Pre-fill form with AI suggestion data
+      setFormData({
+        workItemId: initialBlockerData.workItemId,
+        description: initialBlockerData.description,
+        blockedBy: '', // User needs to fill this
+        severity: initialBlockerData.severity as BlockerSeverity,
+        startDate: new Date().toISOString().split('T')[0],
+      })
+      setShowCreateDialog(true)
+      
+      // Notify parent that data was used
+      if (onBlockerDataUsed) {
+        onBlockerDataUsed()
+      }
+    }
+  }, [initialBlockerData])
+
+  const fetchWorkItems = async () => {
+    try {
+      const response = await fetch(`/api/v1/projects/${projectId}/work-items`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch work items')
+      }
+      const data = await response.json()
+      setWorkItems(data.workItems || [])
+    } catch (err) {
+      console.error('Error fetching work items:', err)
+    }
+  }
 
   const fetchBlockers = async () => {
     try {
@@ -99,6 +140,11 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
       await fetchBlockers()
       setShowCreateDialog(false)
       resetForm()
+      
+      // Notify parent to refresh metrics
+      if (onMetricsChange) {
+        onMetricsChange()
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : t('messages.createError'))
     } finally {
@@ -131,6 +177,11 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
       setShowResolveDialog(false)
       setSelectedBlocker(null)
       setResolution('')
+      
+      // Notify parent to refresh metrics
+      if (onMetricsChange) {
+        onMetricsChange()
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : t('messages.resolveError'))
     } finally {
@@ -146,6 +197,16 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
       severity: BlockerSeverity.MEDIUM,
       startDate: new Date().toISOString().split('T')[0],
     })
+  }
+
+  const getSeverityLabel = (severity: BlockerSeverity) => {
+    const severityMap: Record<string, string> = {
+      [BlockerSeverity.LOW]: 'low',
+      [BlockerSeverity.MEDIUM]: 'medium',
+      [BlockerSeverity.HIGH]: 'high',
+      [BlockerSeverity.CRITICAL]: 'critical',
+    }
+    return t(`severityLevels.${severityMap[severity] || 'medium'}`)
   }
 
   const getSeverityColor = (severity: BlockerSeverity) => {
@@ -183,7 +244,7 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
 
   if (loading) {
     return (
-      <div className="py-6 text-center text-gray-500">
+      <div className="py-6 text-center text-gray-700">
         <p>{t('loading')}</p>
       </div>
     )
@@ -206,12 +267,12 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
         <div className="flex gap-4">
           <div className="text-sm">
             <span className="font-semibold text-gray-900">{activeBlockers.length}</span>
-            <span className="text-gray-500 ml-1">{t('activeBlockers')}</span>
+            <span className="text-gray-700 ml-1">{t('activeBlockers')}</span>
           </div>
           {criticalBlockers.length > 0 && (
             <div className="text-sm">
               <span className="font-semibold text-red-600">{criticalBlockers.length}</span>
-              <span className="text-gray-500 ml-1">{t('criticalBlockers')}</span>
+              <span className="text-gray-700 ml-1">{t('criticalBlockers')}</span>
             </div>
           )}
         </div>
@@ -233,9 +294,9 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <Badge className={getSeverityColor(blocker.severity)}>
-                          {t(`severityLevels.${blocker.severity.toLowerCase()}`)}
+                          {getSeverityLabel(blocker.severity)}
                         </Badge>
-                        <div className="flex items-center text-sm text-gray-500">
+                        <div className="flex items-center text-sm text-gray-700">
                           <Clock className="h-4 w-4 mr-1" />
                           {calculateDuration(blocker.startDate, blocker.resolvedAt)}
                         </div>
@@ -270,7 +331,7 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
       {activeBlockers.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-          <p className="text-gray-600">{t('noActiveBlockers')}</p>
+          <p className="text-gray-800">{t('noActiveBlockers')}</p>
         </div>
       )}
 
@@ -289,7 +350,7 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           {t('resolved')}
                         </Badge>
-                        <div className="flex items-center text-sm text-gray-500">
+                        <div className="flex items-center text-sm text-gray-700">
                           <Clock className="h-4 w-4 mr-1" />
                           {calculateDuration(blocker.startDate, blocker.resolvedAt)}
                         </div>
@@ -319,16 +380,25 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="workItemId">{t('workItemId')}</Label>
-                <Input
-                  id="workItemId"
+                <Label htmlFor="workItemId" className="text-gray-900">{t('workItem')}</Label>
+                <Select
                   value={formData.workItemId}
-                  onChange={(e) => setFormData({ ...formData, workItemId: e.target.value })}
-                  required
-                />
+                  onValueChange={(value) => setFormData({ ...formData, workItemId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('selectWorkItem')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">{t('blockerDescription')}</Label>
+                <Label htmlFor="description" className="text-gray-900">{t('blockerDescription')}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -338,7 +408,7 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="blockedBy">{t('blockedBy')}</Label>
+                <Label htmlFor="blockedBy" className="text-gray-900">{t('blockedBy')}</Label>
                 <Input
                   id="blockedBy"
                   value={formData.blockedBy}
@@ -347,7 +417,7 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="severity">{t('severity')}</Label>
+                <Label htmlFor="severity" className="text-gray-900">{t('severity')}</Label>
                 <Select
                   value={formData.severity}
                   onValueChange={(value) => setFormData({ ...formData, severity: value as BlockerSeverity })}
@@ -364,7 +434,7 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="startDate">{t('startDate')}</Label>
+                <Label htmlFor="startDate" className="text-gray-900">{t('startDate')}</Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -398,7 +468,7 @@ export function BlockersTab({ projectId }: BlockersTabProps) {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="resolution">{t('resolution')}</Label>
+                <Label htmlFor="resolution" className="text-gray-900">{t('resolution')}</Label>
                 <Textarea
                   id="resolution"
                   value={resolution}

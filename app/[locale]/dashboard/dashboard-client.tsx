@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useLocale, useTranslations } from 'next-intl' // ✅ AGREGADO: useLocale y useTranslations
-import { ExecutiveDashboard } from '@/types'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { useLocale, useTranslations } from 'next-intl'
+import { ExecutiveDashboard, Permission } from '@/types'
+import { hasPermission } from '@/lib/rbac'
 import { MetricCard } from '@/components/dashboard/metric-card'
 import { ProjectList } from '@/components/dashboard/project-list'
 import { DashboardFilters, FilterValues } from '@/components/dashboard/dashboard-filters'
@@ -10,11 +13,35 @@ import { CompletionChart } from '@/components/dashboard/completion-chart'
 import { TrendsChart } from '@/components/dashboard/trends-chart'
 
 export function DashboardClient() {
-  const locale = useLocale() // ✅ AGREGADO
-  const t = useTranslations('dashboard') // ✅ AGREGADO
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const locale = useLocale()
+  const t = useTranslations('dashboard')
   const [dashboard, setDashboard] = useState<ExecutiveDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Check permissions - redirect if user doesn't have DASHBOARD_EXECUTIVE permission
+  useEffect(() => {
+    if (status === 'loading') return
+    
+    if (status === 'unauthenticated') {
+      router.push(`/${locale}/auth/signin`)
+      return
+    }
+
+    if (session?.user?.roles) {
+      const canViewExecutiveDashboard = hasPermission(
+        session.user.roles,
+        Permission.DASHBOARD_EXECUTIVE
+      )
+      
+      if (!canViewExecutiveDashboard) {
+        // Redirect to projects if user doesn't have permission
+        router.push(`/${locale}/projects`)
+      }
+    }
+  }, [session, status, router, locale])
 
   const fetchDashboard = async (filters?: FilterValues) => {
     try {
@@ -58,7 +85,7 @@ export function DashboardClient() {
     return (
       <div className="p-8">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">{t('messages.loading', { defaultValue: 'Cargando dashboard...' })}</div>
+          <div className="text-gray-700">{t('messages.loading', { defaultValue: 'Cargando dashboard...' })}</div>
         </div>
       </div>
     )
@@ -78,7 +105,7 @@ export function DashboardClient() {
   if (!dashboard) {
     return (
       <div className="p-8">
-        <div className="text-gray-500">{t('messages.noData', { defaultValue: 'No hay datos disponibles' })}</div>
+        <div className="text-gray-700">{t('messages.noData', { defaultValue: 'No hay datos disponibles' })}</div>
       </div>
     )
   }

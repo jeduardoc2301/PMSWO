@@ -18,11 +18,11 @@ import { NotFoundError, ValidationError } from '@/lib/errors'
  */
 async function addProgressNoteHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // First, verify the agreement exists and belongs to the user's organization
     const existingAgreement = await agreementService.getAgreement(id)

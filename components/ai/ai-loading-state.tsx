@@ -41,7 +41,7 @@ export function AILoadingState({ message, type = 'report' }: AILoadingStateProps
         <p className="text-sm font-medium text-gray-900">
           {message || getDefaultMessage()}
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-700">
           Esto puede tomar unos segundos...
         </p>
       </div>

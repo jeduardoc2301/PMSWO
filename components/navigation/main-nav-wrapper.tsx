@@ -21,9 +21,9 @@
 
 'use client'
 
+import { useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useLocale } from 'next-intl'
+import { useRouter, usePathname } from 'next/navigation'
 import { MainNav } from './main-nav'
 import { signOut } from '@/lib/auth-client'
 import { Locale, UserRole } from '@/types'
@@ -31,7 +31,11 @@ import { Locale, UserRole } from '@/types'
 export function MainNavWrapper() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const locale = useLocale() as Locale
+  const pathname = usePathname()
+  
+  // Extract locale from pathname instead of using useLocale()
+  // This ensures we always get the current locale from the URL
+  const locale = (pathname.startsWith('/pt') ? 'pt' : 'es') as Locale
 
   // Handle sign-out
   const handleSignOut = async () => {
@@ -40,6 +44,11 @@ export function MainNavWrapper() {
 
   // Handle locale change
   const handleLocaleChange = async (newLocale: Locale) => {
+    // Don't do anything if already in the target locale
+    if (locale === newLocale) {
+      return
+    }
+
     // Persist locale preference (non-blocking)
     try {
       await fetch('/api/v1/users/locale', {
@@ -54,12 +63,20 @@ export function MainNavWrapper() {
 
     // Get current path without locale
     const currentPath = window.location.pathname
-    const pathWithoutLocale = currentPath.replace(`/${locale}`, '')
+    // Remove the current locale prefix (e.g., /es or /pt)
+    // Use a more robust regex that ensures we only match the locale at the start
+    const pathWithoutLocale = currentPath.replace(new RegExp(`^/(es|pt)`), '')
     
-    // Navigate to the same path with new locale
-    router.push(`/${newLocale}${pathWithoutLocale}`)
-    router.refresh()
+    // Use window.location.href for a full page reload to ensure locale changes
+    window.location.href = `/${newLocale}${pathWithoutLocale}`
   }
+
+  // Redirect to sign-in if not authenticated (only after loading is complete)
+  useEffect(() => {
+    if (status === 'unauthenticated' || (!session?.user && status !== 'loading')) {
+      router.push(`/${locale}/auth/signin`)
+    }
+  }, [status, session, router, locale])
 
   // Show loading state while session is being fetched
   if (status === 'loading') {
@@ -72,9 +89,7 @@ export function MainNavWrapper() {
     )
   }
 
-  // Redirect to sign-in if not authenticated
   if (status === 'unauthenticated' || !session?.user) {
-    router.push(`/${locale}/auth/signin`)
     return null
   }
 

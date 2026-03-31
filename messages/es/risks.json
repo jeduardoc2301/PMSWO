@@ -7,6 +7,8 @@
   "riskDetails": "Detalles del Riesgo",
   "riskDescription": "Descripción del Riesgo",
   "owner": "Responsable",
+  "selectOwner": "Seleccione un responsable (opcional)",
+  "ownerOptional": "Si no se selecciona, se asignará al usuario actual",
   "probability": "Probabilidad",
   "impact": "Impacto",
   "riskLevel": "Nivel de Riesgo",

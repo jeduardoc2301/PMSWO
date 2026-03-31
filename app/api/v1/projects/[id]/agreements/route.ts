@@ -20,11 +20,11 @@ import { NotFoundError, ValidationError } from '@/lib/errors'
  */
 async function getProjectAgreementsHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
     const { searchParams } = new URL(request.url)
     const statusParam = searchParams.get('status')
 
@@ -62,6 +62,7 @@ async function getProjectAgreementsHandler(
     const formattedAgreements = agreements.map((agreement) => ({
       id: agreement.id,
       projectId: agreement.projectId,
+      title: agreement.title,
       description: agreement.description,
       agreementDate: agreement.agreementDate,
       participants: agreement.participants,
@@ -145,16 +146,36 @@ export const GET = withAuth(getProjectAgreementsHandler, {
  */
 async function createAgreementHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Parse request body
     const body = await request.json()
 
     // Validate required fields
+    if (!body.title || typeof body.title !== 'string' || body.title.trim().length === 0) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'Title is required',
+        },
+        { status: 400 }
+      )
+    }
+
+    if (body.title.length > 255) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'Title must be 255 characters or less',
+        },
+        { status: 400 }
+      )
+    }
+
     if (!body.description || typeof body.description !== 'string' || body.description.trim().length === 0) {
       return NextResponse.json(
         {
@@ -212,6 +233,7 @@ async function createAgreementHandler(
     const agreement = await agreementService.createAgreement({
       projectId: id,
       createdById: authContext.userId,
+      title: body.title,
       description: body.description,
       agreementDate,
       participants: body.participants,
@@ -235,6 +257,7 @@ async function createAgreementHandler(
         agreement: {
           id: agreement.id,
           projectId: agreement.projectId,
+          title: agreement.title,
           description: agreement.description,
           agreementDate: agreement.agreementDate,
           participants: agreement.participants,

@@ -162,7 +162,7 @@ export function ProtectedRoute({
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-800">Loading...</p>
         </div>
       </div>
     )
@@ -179,7 +179,7 @@ export function ProtectedRoute({
         <div className="text-center max-w-md p-8">
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-800 mb-6">
             You don't have permission to access this page. Please contact your administrator
             if you believe this is an error.
           </p>

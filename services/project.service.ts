@@ -8,13 +8,15 @@ import {
   WorkItemSummary,
   ProjectMetrics,
   WorkItemStatus,
-  RiskLevel
+  RiskLevel,
+  UserRole
 } from '@/types'
 import { z } from 'zod'
 
 // DTOs
 export interface CreateProjectDTO {
   organizationId: string
+  ownerId: string  // ⭐ ADDED: Owner of the project (usually the creator)
   name: string
   description: string
   client: string
@@ -34,6 +36,8 @@ export interface UpdateProjectDTO {
 
 export interface QueryProjectsDTO {
   organizationId: string
+  userId?: string  // ⭐ ADDED: For filtering by ownership/collaboration
+  userRoles?: UserRole[]  // ⭐ ADDED: For role-based filtering
   page?: number
   limit?: number
   status?: ProjectStatus
@@ -115,10 +119,11 @@ export class ProjectService {
       throw new NotFoundError('Organization')
     }
 
-    // Create project with automatic organization_id assignment
+    // Create project with automatic organization_id assignment and owner
     const project = await prisma.project.create({
       data: {
         organizationId: data.organizationId,
+        ownerId: data.ownerId,  // ⭐ ADDED: Assign owner
         name: data.name.trim(),
         description: data.description.trim(),
         client: data.client.trim(),
@@ -157,6 +162,8 @@ export class ProjectService {
   async queryProjects(data: QueryProjectsDTO) {
     const {
       organizationId,
+      userId,
+      userRoles,
       page = 1,
       limit = 20,
       status,
@@ -166,9 +173,72 @@ export class ProjectService {
       sortOrder = 'desc',
     } = data
 
+    console.log('[ProjectService.queryProjects] START')
+    console.log('[ProjectService.queryProjects] Input:', JSON.stringify({
+      organizationId,
+      userId,
+      userRoles,
+      page,
+      limit,
+    }, null, 2))
+
     // Build where clause
     const where: any = {
       organizationId,
+    }
+
+    // ⭐ ROLE-BASED FILTERING
+    try {
+      if (userId && userRoles && userRoles.length > 0) {
+        // Convert roles to strings for comparison (in case they come as enum values)
+        const roleStrings = userRoles.map(r => String(r))
+        
+        console.log('[ProjectService.queryProjects] roleStrings:', roleStrings)
+        
+        const isAdminOrExecutive = roleStrings.some(
+          (role) => role === 'ADMIN' || role === 'EXECUTIVE'
+        )
+
+        console.log('[ProjectService.queryProjects] isAdminOrExecutive:', isAdminOrExecutive)
+
+        if (!isAdminOrExecutive) {
+          const isProjectManager = roleStrings.includes('PROJECT_MANAGER')
+          const isConsultant = roleStrings.includes('INTERNAL_CONSULTANT') || 
+                              roleStrings.includes('EXTERNAL_CONSULTANT')
+
+          console.log('[ProjectService.queryProjects] isProjectManager:', isProjectManager)
+          console.log('[ProjectService.queryProjects] isConsultant:', isConsultant)
+
+          if (isProjectManager) {
+            // PROJECT_MANAGER: See projects where they are owner OR collaborator
+            where.OR = [
+              { ownerId: userId },
+              {
+                collaborators: {
+                  some: { userId },
+                },
+              },
+            ]
+            console.log('[ProjectService.queryProjects] Applied PM filter')
+          } else if (isConsultant) {
+            // CONSULTANTS: See projects where they have assigned work items
+            where.workItems = {
+              some: { ownerId: userId },
+            }
+            console.log('[ProjectService.queryProjects] Applied consultant filter')
+          } else {
+            // Other roles: No projects visible
+            where.id = 'non-existent-id' // Force empty result
+            console.log('[ProjectService.queryProjects] Applied no-access filter')
+          }
+        } else {
+          console.log('[ProjectService.queryProjects] Admin/Executive - no filter applied')
+        }
+        // ADMIN/EXECUTIVE: No additional filtering (see all projects in organization)
+      }
+    } catch (filterError) {
+      console.error('[ProjectService.queryProjects] Error in role filtering:', filterError)
+      throw filterError
     }
 
     // Exclude archived projects by default
@@ -181,13 +251,15 @@ export class ProjectService {
       where.status = status
     }
 
-    // Filter by client if provided (case-insensitive partial match)
+    // Filter by client if provided (partial match)
+    // Note: MySQL is case-insensitive by default for LIKE queries
     if (client) {
       where.client = {
         contains: client,
-        mode: 'insensitive',
       }
     }
+
+    console.log('[ProjectService.queryProjects] Final where clause:', JSON.stringify(where, null, 2))
 
     // Calculate pagination
     const skip = (page - 1) * limit
@@ -198,41 +270,77 @@ export class ProjectService {
       [sortBy]: sortOrder,
     }
 
-    // Execute query with pagination
-    const [projects, total] = await Promise.all([
-      prisma.project.findMany({
-        where,
-        orderBy,
-        skip,
-        take,
-        include: {
-          _count: {
-            select: {
-              workItems: true,
-              blockers: true,
-              risks: true,
+    try {
+      console.log('[ProjectService.queryProjects] Executing Prisma query...')
+      
+      // Execute query with pagination
+      const [projects, total] = await Promise.all([
+        prisma.project.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            collaborators: {
+              select: {
+                id: true,
+                userId: true,
+                role: true,
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+            _count: {
+              select: {
+                workItems: true,
+                blockers: true,
+                risks: true,
+              },
             },
           },
+        }),
+        prisma.project.count({ where }),
+      ])
+
+      console.log('[ProjectService.queryProjects] Query successful')
+      console.log('[ProjectService.queryProjects] Found projects:', projects.length)
+      console.log('[ProjectService.queryProjects] Total count:', total)
+
+      // Calculate pagination metadata
+      const totalPages = Math.ceil(total / limit)
+      const hasNextPage = page < totalPages
+      const hasPreviousPage = page > 1
+
+      return {
+        projects,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage,
         },
-      }),
-      prisma.project.count({ where }),
-    ])
-
-    // Calculate pagination metadata
-    const totalPages = Math.ceil(total / limit)
-    const hasNextPage = page < totalPages
-    const hasPreviousPage = page > 1
-
-    return {
-      projects,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasNextPage,
-        hasPreviousPage,
-      },
+      }
+    } catch (prismaError) {
+      console.error('[ProjectService.queryProjects] Prisma error:', prismaError)
+      console.error('[ProjectService.queryProjects] Prisma error details:', {
+        message: prismaError instanceof Error ? prismaError.message : 'Unknown',
+        stack: prismaError instanceof Error ? prismaError.stack : undefined,
+      })
+      throw prismaError
     }
   }
 
@@ -449,6 +557,9 @@ export class ProjectService {
         kanbanColumnId: item.kanbanColumnId,
         ownerId: item.ownerId,
         ownerName: item.owner.name,
+        startDate: item.startDate.toISOString().split('T')[0],
+        estimatedEndDate: item.estimatedEndDate.toISOString().split('T')[0],
+        phase: item.phase,
       }
     })
 

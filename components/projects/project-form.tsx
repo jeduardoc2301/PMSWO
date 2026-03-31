@@ -83,7 +83,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
     estimatedEndDate: initialData?.estimatedEndDate
       ? new Date(initialData.estimatedEndDate).toISOString().split('T')[0]
       : '',
-    status: initialData?.status || ProjectStatus.PLANNING,
+    status: initialData?.status || ('' as any),
   })
 
   // UI state
@@ -334,8 +334,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           disabled={isSubmitting}
           className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
             errors.status ? 'border-red-500' : 'border-gray-300'
-          }`}
+          } ${!formData.status ? 'text-gray-500' : 'text-gray-900'}`}
         >
+          <option value="" disabled className="text-gray-500">
+            {t('placeholders.selectStatus')}
+          </option>
           <option value={ProjectStatus.PLANNING}>{t('statusOptions.planning')}</option>
           <option value={ProjectStatus.ACTIVE}>{t('statusOptions.active')}</option>
           <option value={ProjectStatus.ON_HOLD}>{t('statusOptions.onHold')}</option>

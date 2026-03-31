@@ -49,7 +49,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
         )
       case HealthFactorImpact.NEUTRAL:
         return (
-          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
           </svg>
         )
@@ -108,7 +108,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
             <span className={`text-3xl font-bold ${colors.text}`}>
               {health.score}
             </span>
-            <span className="text-sm text-gray-500">/ 100</span>
+            <span className="text-sm text-gray-700">/ 100</span>
           </div>
         </div>
       </div>
@@ -136,7 +136,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
                 <p className="text-sm font-medium text-gray-900">
                   {factor.name}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-800 mt-1">
                   {factor.description}
                 </p>
               </div>
@@ -147,19 +147,19 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
 
       {/* Legend */}
       <div className="mt-6 pt-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500 mb-2">Health Score Ranges:</p>
+        <p className="text-xs text-gray-700 mb-2">Health Score Ranges:</p>
         <div className="flex flex-wrap gap-3 text-xs">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span className="text-gray-600">Healthy (70-100)</span>
+            <span className="text-gray-800">Healthy (70-100)</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <span className="text-gray-600">At Risk (40-69)</span>
+            <span className="text-gray-800">At Risk (40-69)</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-red-500"></div>
-            <span className="text-gray-600">Critical (&lt;40)</span>
+            <span className="text-gray-800">Critical (&lt;40)</span>
           </div>
         </div>
       </div>

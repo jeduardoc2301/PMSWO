@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useLocale, useTranslations } from 'next-intl'
+import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ProjectStatus, Permission, UserRole } from '@/types'
 import { hasPermission } from '@/lib/rbac'
 import { PageHeader } from '@/components/layout'
@@ -43,7 +44,9 @@ interface PaginationInfo {
  */
 export function ProjectsPageClient() {
   const { data: session } = useSession()
-  const locale = useLocale()
+  const pathname = usePathname()
+  // Extract locale from pathname instead of using useLocale()
+  const locale = pathname.startsWith('/pt') ? 'pt' : 'es'
   const t = useTranslations('projects.list')
   const tStatus = useTranslations('projects.status')
   const [projects, setProjects] = useState<Project[]>([])
@@ -209,7 +212,9 @@ export function ProjectsPageClient() {
                   setStatusFilter(e.target.value as ProjectStatus | '')
                   setPagination((prev) => ({ ...prev, page: 1 }))
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                  statusFilter === '' ? 'text-gray-700' : 'text-gray-900'
+                }`}
               >
                 <option value="">{t('allStatuses')}</option>
                 <option value={ProjectStatus.PLANNING}>{tStatus('planning')}</option>
@@ -248,14 +253,14 @@ export function ProjectsPageClient() {
         {/* Loading state */}
         {loading && (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500">{t('loading')}</p>
+            <p className="text-gray-700">{t('loading')}</p>
           </div>
         )}
 
         {/* Projects table */}
         {!loading && projects.length === 0 && (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500 mb-4">{t('noProjects')}</p>
+            <p className="text-gray-700 mb-4">{t('noProjects')}</p>
             {canCreateProject && (
               <Link href={`/${locale}/projects/new`}>
                 <Button>{t('createFirstProject')}</Button>
@@ -271,22 +276,22 @@ export function ProjectsPageClient() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         {t('table.project')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         {t('table.client')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         {t('table.status')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         {t('table.startDate')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         {t('table.endDate')}
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         {t('table.metrics')}
                       </th>
                     </tr>
@@ -301,7 +306,7 @@ export function ProjectsPageClient() {
                           >
                             {project.name}
                           </Link>
-                          <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                          <p className="text-sm text-gray-700 mt-1 line-clamp-1">
                             {project.description}
                           </p>
                         </td>
@@ -317,13 +322,13 @@ export function ProjectsPageClient() {
                             {getStatusLabel(project.status)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           {formatDate(project.startDate)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           {formatDate(project.estimatedEndDate)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           <div className="flex gap-3">
                             {project._count && (
                               <>

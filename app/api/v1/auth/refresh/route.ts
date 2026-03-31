@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 // Validation schema for refresh request
 const refreshSchema = z.object({
-  token: z.string({ required_error: 'Token is required' }).min(1, 'Token is required'),
+  token: z.string({ message: 'Token is required' }).min(1, 'Token is required'),
 })
 
 /**

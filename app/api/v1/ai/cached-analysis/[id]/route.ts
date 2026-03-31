@@ -31,12 +31,13 @@ const paramsSchema = z.object({
  */
 async function getCachedAnalysisHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ): Promise<NextResponse> {
   try {
     // Validate params
-    const validationResult = paramsSchema.safeParse(context.params)
+    const params = await context.params
+    const validationResult = paramsSchema.safeParse(params)
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -134,12 +135,13 @@ async function getCachedAnalysisHandler(
  */
 async function deleteCachedAnalysisHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ): Promise<NextResponse> {
   try {
     // Validate params
-    const validationResult = paramsSchema.safeParse(context.params)
+    const params = await context.params
+    const validationResult = paramsSchema.safeParse(params)
 
     if (!validationResult.success) {
       return NextResponse.json(

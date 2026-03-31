@@ -91,7 +91,7 @@ export function AIErrorState({ error, onRetry, type = 'general' }: AIErrorStateP
       )}
 
       {type === 'guardrails' && (
-        <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+        <div className="text-sm text-gray-800 bg-gray-50 rounded-lg p-4">
           <p className="font-medium mb-2">¿Por qué veo este mensaje?</p>
           <p>
             El contenido solicitado no cumple con nuestras políticas de seguridad y uso
@@ -101,7 +101,7 @@ export function AIErrorState({ error, onRetry, type = 'general' }: AIErrorStateP
       )}
 
       {type === 'rateLimit' && (
-        <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+        <div className="text-sm text-gray-800 bg-gray-50 rounded-lg p-4">
           <p className="font-medium mb-2">¿Qué puedo hacer?</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Espere unos minutos antes de intentar nuevamente</li>

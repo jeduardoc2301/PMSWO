@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle2, Plus, Link as LinkIcon, FileText } from 'lucide-react'
 import { AgreementStatus } from '@/types'
 
 interface Agreement {
   id: string
+  title: string
   description: string
   agreementDate: string
   participants: string
@@ -27,7 +29,7 @@ interface Agreement {
     id: string
     title: string
   }>
-  progressNotes?: Array<{
+  notes?: Array<{
     id: string
     note: string
     createdAt: string
@@ -46,6 +48,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
   const t = useTranslations('agreements')
   const locale = useLocale() // ✅ CORREGIDO: Agregado useLocale
   const [agreements, setAgreements] = useState<Agreement[]>([])
+  const [workItems, setWorkItems] = useState<Array<{ id: string; title: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -56,6 +59,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
 
   // Form state
   const [formData, setFormData] = useState({
+    title: '',
     description: '',
     agreementDate: new Date().toISOString().split('T')[0],
     participants: '',
@@ -67,6 +71,25 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
   useEffect(() => {
     fetchAgreements()
   }, [projectId])
+
+  useEffect(() => {
+    if (showLinkDialog) {
+      fetchWorkItems()
+    }
+  }, [showLinkDialog])
+
+  const fetchWorkItems = async () => {
+    try {
+      const response = await fetch(`/api/v1/projects/${projectId}/work-items`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch work items')
+      }
+      const data = await response.json()
+      setWorkItems(data.workItems || [])
+    } catch (err) {
+      console.error('Error fetching work items:', err)
+    }
+  }
 
   const fetchAgreements = async () => {
     try {
@@ -182,7 +205,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
   }
 
   const handleCompleteAgreement = async (agreementId: string) => {
-    if (!confirm('Mark this agreement as completed?')) return
+    if (!confirm(t('completeConfirm'))) return
 
     try {
       const response = await fetch(`/api/v1/agreements/${agreementId}/complete`, {
@@ -205,6 +228,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
 
   const resetForm = () => {
     setFormData({
+      title: '',
       description: '',
       agreementDate: new Date().toISOString().split('T')[0],
       participants: '',
@@ -231,8 +255,8 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
 
   if (loading) {
     return (
-      <div className="py-6 text-center text-gray-500">
-        <p>Loading agreements...</p>
+      <div className="py-6 text-center text-gray-700">
+        <p>{t('loading')}</p>
       </div>
     )
   }
@@ -254,11 +278,11 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
         <div className="flex gap-4">
           <div className="text-sm">
             <span className="font-semibold text-gray-900">{activeAgreements.length}</span>
-            <span className="text-gray-500 ml-1">{t('activeAgreements')}</span>
+            <span className="text-gray-700 ml-1">{t('activeAgreements')}</span>
           </div>
           <div className="text-sm">
             <span className="font-semibold text-green-600">{completedAgreements.length}</span>
-            <span className="text-gray-500 ml-1">{t('completedAgreements')}</span>
+            <span className="text-gray-700 ml-1">{t('completedAgreements')}</span>
           </div>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
@@ -281,15 +305,18 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                         <Badge className={getStatusColor(agreement.status)}>
                           {t(`status.${agreement.status.toLowerCase().replace('_', '')}`)}
                         </Badge>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-700">
                           {/* ✅ CORREGIDO: Usar locale */}
                           {new Date(agreement.agreementDate).toLocaleDateString(locale)}
                         </span>
                       </div>
-                      <CardTitle className="text-base">{agreement.description}</CardTitle>
-                      <CardDescription className="mt-2">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">{agreement.title}</h3>
+                      <p className="text-sm text-gray-700 mb-2">
+                        {agreement.description}
+                      </p>
+                      <p className="text-sm text-gray-800">
                         <span className="font-medium">{t('participants')}:</span> {agreement.participants}
-                      </CardDescription>
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -341,15 +368,15 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                 )}
 
                 {/* Progress Notes */}
-                {agreement.progressNotes && agreement.progressNotes.length > 0 && (
+                {agreement.notes && agreement.notes.length > 0 && (
                   <CardContent className="border-t">
                     <div className="space-y-3">
                       <h4 className="text-sm font-medium text-gray-700">{t('progressNotes')}</h4>
                       <div className="space-y-2">
-                        {agreement.progressNotes.map((note) => (
+                        {agreement.notes.map((note) => (
                           <div key={note.id} className="bg-gray-50 p-3 rounded-lg">
                             <p className="text-sm text-gray-900">{note.note}</p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-700 mt-1">
                               {/* ✅ CORREGIDO: Usar locale */}
                               {note.createdBy.name} • {new Date(note.createdAt).toLocaleDateString(locale)}
                             </p>
@@ -367,8 +394,8 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
 
       {activeAgreements.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <CheckCircle2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">{t('noActiveAgreements')}</p>
+          <CheckCircle2 className="h-12 w-12 text-gray-700 mx-auto mb-4" />
+          <p className="text-gray-800">{t('noActiveAgreements')}</p>
         </div>
       )}
 
@@ -387,15 +414,18 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           {t('status.completed')}
                         </Badge>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-700">
                           {/* ✅ CORREGIDO: Usar locale */}
                           {new Date(agreement.agreementDate).toLocaleDateString(locale)}
                         </span>
                       </div>
-                      <CardTitle className="text-base">{agreement.description}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {t('participants')}: {agreement.participants}
-                      </CardDescription>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">{agreement.title}</h3>
+                      <p className="text-sm text-gray-700 mb-2">
+                        {agreement.description}
+                      </p>
+                      <p className="text-sm text-gray-800">
+                        <span className="font-medium">{t('participants')}:</span> {agreement.participants}
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
@@ -412,22 +442,33 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
             <DialogHeader>
               <DialogTitle>{t('createAgreement')}</DialogTitle>
               <DialogDescription>
-                Document a new agreement or commitment for this project
+                {t('createDialogDescription')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="description">{t('agreementDescription')}</Label>
+                <Label htmlFor="title" className="text-gray-900">{t('agreementTitle')}</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                  placeholder={t('agreementTitlePlaceholder')}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-gray-900">{t('agreementDescription')}</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   required
                   rows={4}
+                  placeholder={t('agreementDescriptionPlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="agreementDate">{t('agreementDate')}</Label>
+                <Label htmlFor="agreementDate" className="text-gray-900">{t('agreementDate')}</Label>
                 <Input
                   id="agreementDate"
                   type="date"
@@ -437,22 +478,22 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="participants">{t('participants')}</Label>
+                <Label htmlFor="participants" className="text-gray-900">{t('participants')}</Label>
                 <Input
                   id="participants"
                   value={formData.participants}
                   onChange={(e) => setFormData({ ...formData, participants: e.target.value })}
                   required
-                  placeholder="e.g., John Doe, Jane Smith, Client Team"
+                  placeholder={t('participantsPlaceholder')}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Creating...' : t('createAgreement')}
+                {submitting ? t('creating') : t('createAgreement')}
               </Button>
             </DialogFooter>
           </form>
@@ -466,27 +507,35 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
             <DialogHeader>
               <DialogTitle>{t('linkWorkItem')}</DialogTitle>
               <DialogDescription>
-                Link a work item to this agreement
+                {t('linkWorkItemDescription')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="workItemId">Work Item ID</Label>
-                <Input
-                  id="workItemId"
+                <Label htmlFor="workItemId" className="text-gray-900">{t('workItem')}</Label>
+                <Select
                   value={workItemId}
-                  onChange={(e) => setWorkItemId(e.target.value)}
-                  required
-                  placeholder="Enter work item ID"
-                />
+                  onValueChange={(value) => setWorkItemId(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('selectWorkItem')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowLinkDialog(false)}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Linking...' : t('linkWorkItem')}
+                {submitting ? t('linking') : t('linkWorkItem')}
               </Button>
             </DialogFooter>
           </form>
@@ -500,28 +549,28 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
             <DialogHeader>
               <DialogTitle>{t('addProgressNote')}</DialogTitle>
               <DialogDescription>
-                Add a note about the progress of this agreement
+                {t('addProgressNoteDescription')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="progressNote">{t('noteFields.note')}</Label>
+                <Label htmlFor="progressNote" className="text-gray-900">{t('noteFields.note')}</Label>
                 <Textarea
                   id="progressNote"
                   value={progressNote}
                   onChange={(e) => setProgressNote(e.target.value)}
                   required
                   rows={4}
-                  placeholder="Describe the progress or updates..."
+                  placeholder={t('noteFields.notePlaceholder')}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowNoteDialog(false)}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Adding...' : t('addProgressNote')}
+                {submitting ? t('adding') : t('addProgressNote')}
               </Button>
             </DialogFooter>
           </form>

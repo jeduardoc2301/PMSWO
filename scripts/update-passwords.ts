@@ -10,14 +10,14 @@ async function updatePasswords() {
     console.log('✅ Generated password hash')
     
     const users = await prisma.user.findMany()
-    console.log(📋 Found  users)
+    console.log(`📋 Found ${users.length} users`)
     
     for (const user of users) {
       await prisma.user.update({
         where: { id: user.id },
         data: { passwordHash: hash }
       })
-      console.log(✅ Updated password for: )
+      console.log(`✅ Updated password for: ${user.email}`)
     }
     
     console.log('\n✅ All passwords updated successfully!')
@@ -29,7 +29,7 @@ async function updatePasswords() {
     console.error('❌ Password update failed:', error)
     process.exit(1)
   } finally {
-    await prisma.()
+    await prisma.$disconnect()
   }
 }
 

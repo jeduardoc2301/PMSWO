@@ -105,6 +105,136 @@
   "loadingKanbanBoard": "Cargando tablero Kanban...",
   "workItemsListPlaceholder": "La lista de elementos de trabajo se implementará aquí",
   "workItemsListDescription": "Esto mostrará todos los elementos de trabajo para este proyecto",
+  "executiveDashboard": {
+    "title": "Dashboard Ejecutivo",
+    "questions": {
+      "meetDeadline": "¿Vamos a cumplir con la fecha de entrega?",
+      "progress": "¿Cuánto hemos avanzado?",
+      "blockers": "¿Qué nos está bloqueando?",
+      "risks": "¿Hay riesgos que deba conocer?"
+    },
+    "status": {
+      "onTime": "En tiempo",
+      "atRisk": "En riesgo",
+      "delayed": "Atrasado",
+      "overdue": "Vencido",
+      "underControl": "Bajo control",
+      "noBlockers": "Sin bloqueos",
+      "lowRisk": "Bajo riesgo",
+      "moderateRisk": "Riesgo moderado",
+      "highRisk": "Alto riesgo"
+    },
+    "labels": {
+      "days": "días",
+      "deadline": "Fecha límite",
+      "tasks": "tareas",
+      "pendingTasks": "tareas pendientes",
+      "impediments": "impedimento",
+      "impedimentsPlural": "impedimentos",
+      "requiresAttention": "requiere atención inmediata",
+      "requiresAttentionPlural": "requieren atención inmediata",
+      "averageResolutionTime": "Tiempo promedio de resolución",
+      "highPriorityRisk": "riesgo de alta prioridad identificado",
+      "highPriorityRisksPlural": "riesgos de alta prioridad identificados"
+    },
+    "messages": {
+      "onTrack": "Con {completion}% completado, vamos bien encaminados.",
+      "needAcceleration": "Con {completion}% completado, necesitamos acelerar el ritmo.",
+      "noImpediments": "No hay impedimentos activos en este momento.",
+      "noHighPriorityRisks": "No hay riesgos de alta prioridad identificados."
+    },
+    "health": {
+      "title": "Estado General del Proyecto",
+      "excellent": "Excelente",
+      "good": "Bueno",
+      "fair": "Regular",
+      "critical": "Crítico",
+      "excellentMessage": "El proyecto está en excelente estado. Continúa con el buen trabajo.",
+      "goodMessage": "El proyecto va bien, pero hay áreas que requieren atención.",
+      "fairMessage": "El proyecto necesita atención. Revisa los bloqueos y riesgos.",
+      "criticalMessage": "El proyecto está en estado crítico. Se requiere intervención inmediata."
+    },
+    "quickActions": {
+      "title": "Acciones Rápidas",
+      "viewTasks": "Ver Tareas",
+      "viewBlockers": "Ver Bloqueos",
+      "viewRisks": "Ver Riesgos",
+      "viewKanban": "Ver Kanban"
+    }
+  },
+  "tacticalDashboard": {
+    "title": "Vista Táctica",
+    "questions": {
+      "overdueTasks": "¿Hay tareas atrasadas?",
+      "pendingAgreements": "¿Qué acuerdos están pendientes?",
+      "completedThisWeek": "¿Qué se completó esta semana?",
+      "upcomingTasks": "¿Qué sigue?",
+      "blockedDependencies": "¿Hay dependencias bloqueadas?",
+      "teamWorkload": "¿Quién está sobrecargado?"
+    },
+    "status": {
+      "noneOverdue": "Sin atrasos",
+      "someOverdue": "Requieren atención",
+      "manyOverdue": "Crítico",
+      "noPending": "Todo acordado",
+      "somePending": "Pendientes",
+      "manyPending": "Muchos pendientes",
+      "goodProgress": "Buen ritmo",
+      "slowProgress": "Ritmo lento",
+      "noProgress": "Sin avances",
+      "nothingUpcoming": "Sin próximas",
+      "fewUpcoming": "Pocas próximas",
+      "manyUpcoming": "Muchas próximas",
+      "noDependencies": "Sin bloqueos",
+      "someDependencies": "Algunas bloqueadas",
+      "manyDependencies": "Muchas bloqueadas",
+      "balanced": "Balanceado",
+      "someOverloaded": "Algunos sobrecargados",
+      "notAvailable": "No disponible"
+    },
+    "labels": {
+      "overdueTasks": "tarea atrasada",
+      "overdueTasksPlural": "tareas atrasadas",
+      "daysOverdue": "días de atraso promedio",
+      "pendingAgreement": "acuerdo pendiente",
+      "pendingAgreementsPlural": "acuerdos pendientes",
+      "requireDecisions": "requieren decisiones",
+      "tasksCompleted": "tarea completada",
+      "tasksCompletedPlural": "tareas completadas",
+      "lastSevenDays": "últimos 7 días",
+      "upcomingTask": "tarea próxima",
+      "upcomingTasksPlural": "tareas próximas",
+      "nextSevenDays": "próximos 7 días",
+      "blockedDependency": "dependencia bloqueada",
+      "blockedDependenciesPlural": "dependencias bloqueadas",
+      "affectingMultipleTasks": "afectando múltiples tareas",
+      "assignedTasks": "tareas asignadas",
+      "usersOverloaded": "usuarios sobrecargados",
+      "needsRebalancing": "necesita rebalanceo"
+    },
+    "messages": {
+      "noOverdueTasks": "Todas las tareas están al día.",
+      "noPendingAgreements": "No hay acuerdos pendientes de completar.",
+      "noCompletedTasks": "No se completaron tareas esta semana.",
+      "noUpcomingTasks": "No hay tareas programadas para los próximos 7 días.",
+      "noBlockedDependencies": "No hay dependencias bloqueadas en este momento.",
+      "workloadNotAvailable": "Información de carga de trabajo no disponible."
+    }
+  },
+  "projectChart": {
+    "title": "Progreso del Proyecto en el Tiempo",
+    "idealLine": "Línea Ideal",
+    "actualRemaining": "Tareas Restantes",
+    "completed": "Completadas",
+    "velocity": "Velocidad",
+    "tasksRemaining": "Tareas Restantes",
+    "tasksCompleted": "Tareas Completadas",
+    "week": "Semana",
+    "noData": "Datos insuficientes para generar la gráfica",
+    "legendIdeal": "Ritmo ideal para terminar a tiempo",
+    "legendActual": "Trabajo real restante",
+    "legendVelocity": "Tareas completadas por semana"
+  },
   "form": {
     "projectName": "Nombre del Proyecto",
     "description": "Descripción",
@@ -116,7 +246,8 @@
     "placeholders": {
       "projectName": "Ingrese el nombre del proyecto",
       "description": "Ingrese la descripción del proyecto",
-      "client": "Ingrese el nombre del cliente"
+      "client": "Ingrese el nombre del cliente",
+      "selectStatus": "Seleccione un estado"
     },
     "statusOptions": {
       "planning": "Planificación",

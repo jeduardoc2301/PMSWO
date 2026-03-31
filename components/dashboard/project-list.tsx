@@ -53,7 +53,7 @@ export function ProjectList({ projects }: ProjectListProps) {
   if (projects.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center">
-        <p className="text-gray-500">{t('projectSummary.noProjects', { defaultValue: 'No se encontraron proyectos' })}</p>
+        <p className="text-gray-700">{t('projectSummary.noProjects', { defaultValue: 'No se encontraron proyectos' })}</p>
       </div>
     )
   }
@@ -64,22 +64,22 @@ export function ProjectList({ projects }: ProjectListProps) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 {t('projectSummary.projectName')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 {t('projectSummary.client')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 {t('projectSummary.status')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 {t('projectSummary.health')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 {t('projectSummary.completion')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 {t('projectSummary.issues', { defaultValue: 'Problemas' })}
               </th>
             </tr>
@@ -121,7 +121,7 @@ export function ProjectList({ projects }: ProjectListProps) {
                       <span>{project.completionRate.toFixed(0)}%</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     <div className="flex gap-3">
                       {project.criticalBlockers > 0 && (
                         <span className="text-red-600 font-medium">
@@ -139,7 +139,7 @@ export function ProjectList({ projects }: ProjectListProps) {
                         </span>
                       )}
                       {project.overdueWorkItems > 0 && (
-                        <span className="text-gray-600">
+                        <span className="text-gray-800">
                           {project.overdueWorkItems} {t('projectSummary.overdue', { defaultValue: 'Atrasado' })}
                         </span>
                       )}

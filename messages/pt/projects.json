@@ -105,6 +105,136 @@
   "loadingKanbanBoard": "Carregando quadro Kanban...",
   "workItemsListPlaceholder": "A lista de itens de trabalho será implementada aqui",
   "workItemsListDescription": "Isso mostrará todos os itens de trabalho para este projeto",
+  "executiveDashboard": {
+    "title": "Dashboard Executivo",
+    "questions": {
+      "meetDeadline": "Vamos cumprir o prazo de entrega?",
+      "progress": "Quanto progredimos?",
+      "blockers": "O que está nos bloqueando?",
+      "risks": "Há riscos que devo conhecer?"
+    },
+    "status": {
+      "onTime": "No prazo",
+      "atRisk": "Em risco",
+      "delayed": "Atrasado",
+      "overdue": "Vencido",
+      "underControl": "Sob controle",
+      "noBlockers": "Sem bloqueios",
+      "lowRisk": "Baixo risco",
+      "moderateRisk": "Risco moderado",
+      "highRisk": "Alto risco"
+    },
+    "labels": {
+      "days": "dias",
+      "deadline": "Prazo limite",
+      "tasks": "tarefas",
+      "pendingTasks": "tarefas pendentes",
+      "impediments": "impedimento",
+      "impedimentsPlural": "impedimentos",
+      "requiresAttention": "requer atenção imediata",
+      "requiresAttentionPlural": "requerem atenção imediata",
+      "averageResolutionTime": "Tempo médio de resolução",
+      "highPriorityRisk": "risco de alta prioridade identificado",
+      "highPriorityRisksPlural": "riscos de alta prioridade identificados"
+    },
+    "messages": {
+      "onTrack": "Com {completion}% concluído, estamos no caminho certo.",
+      "needAcceleration": "Com {completion}% concluído, precisamos acelerar o ritmo.",
+      "noImpediments": "Não há impedimentos ativos no momento.",
+      "noHighPriorityRisks": "Não há riscos de alta prioridade identificados."
+    },
+    "health": {
+      "title": "Estado Geral do Projeto",
+      "excellent": "Excelente",
+      "good": "Bom",
+      "fair": "Regular",
+      "critical": "Crítico",
+      "excellentMessage": "O projeto está em excelente estado. Continue com o bom trabalho.",
+      "goodMessage": "O projeto está indo bem, mas há áreas que requerem atenção.",
+      "fairMessage": "O projeto precisa de atenção. Revise os bloqueios e riscos.",
+      "criticalMessage": "O projeto está em estado crítico. É necessária intervenção imediata."
+    },
+    "quickActions": {
+      "title": "Ações Rápidas",
+      "viewTasks": "Ver Tarefas",
+      "viewBlockers": "Ver Bloqueios",
+      "viewRisks": "Ver Riscos",
+      "viewKanban": "Ver Kanban"
+    }
+  },
+  "tacticalDashboard": {
+    "title": "Vista Tática",
+    "questions": {
+      "overdueTasks": "Há tarefas atrasadas?",
+      "pendingAgreements": "Quais acordos estão pendentes?",
+      "completedThisWeek": "O que foi concluído esta semana?",
+      "upcomingTasks": "O que vem a seguir?",
+      "blockedDependencies": "Há dependências bloqueadas?",
+      "teamWorkload": "Quem está sobrecarregado?"
+    },
+    "status": {
+      "noneOverdue": "Sem atrasos",
+      "someOverdue": "Requerem atenção",
+      "manyOverdue": "Crítico",
+      "noPending": "Tudo acordado",
+      "somePending": "Pendentes",
+      "manyPending": "Muitos pendentes",
+      "goodProgress": "Bom ritmo",
+      "slowProgress": "Ritmo lento",
+      "noProgress": "Sem avanços",
+      "nothingUpcoming": "Sem próximas",
+      "fewUpcoming": "Poucas próximas",
+      "manyUpcoming": "Muitas próximas",
+      "noDependencies": "Sem bloqueios",
+      "someDependencies": "Algumas bloqueadas",
+      "manyDependencies": "Muitas bloqueadas",
+      "balanced": "Balanceado",
+      "someOverloaded": "Alguns sobrecarregados",
+      "notAvailable": "Não disponível"
+    },
+    "labels": {
+      "overdueTasks": "tarefa atrasada",
+      "overdueTasksPlural": "tarefas atrasadas",
+      "daysOverdue": "dias de atraso médio",
+      "pendingAgreement": "acordo pendente",
+      "pendingAgreementsPlural": "acordos pendentes",
+      "requireDecisions": "requerem decisões",
+      "tasksCompleted": "tarefa concluída",
+      "tasksCompletedPlural": "tarefas concluídas",
+      "lastSevenDays": "últimos 7 dias",
+      "upcomingTask": "tarefa próxima",
+      "upcomingTasksPlural": "tarefas próximas",
+      "nextSevenDays": "próximos 7 dias",
+      "blockedDependency": "dependência bloqueada",
+      "blockedDependenciesPlural": "dependências bloqueadas",
+      "affectingMultipleTasks": "afetando múltiplas tarefas",
+      "assignedTasks": "tarefas atribuídas",
+      "usersOverloaded": "usuários sobrecarregados",
+      "needsRebalancing": "precisa rebalancear"
+    },
+    "messages": {
+      "noOverdueTasks": "Todas as tarefas estão em dia.",
+      "noPendingAgreements": "Não há acordos pendentes de completar.",
+      "noCompletedTasks": "Nenhuma tarefa foi concluída esta semana.",
+      "noUpcomingTasks": "Não há tarefas programadas para os próximos 7 dias.",
+      "noBlockedDependencies": "Não há dependências bloqueadas no momento.",
+      "workloadNotAvailable": "Informação de carga de trabalho não disponível."
+    }
+  },
+  "projectChart": {
+    "title": "Progresso do Projeto no Tempo",
+    "idealLine": "Linha Ideal",
+    "actualRemaining": "Tarefas Restantes",
+    "completed": "Completadas",
+    "velocity": "Velocidade",
+    "tasksRemaining": "Tarefas Restantes",
+    "tasksCompleted": "Tarefas Completadas",
+    "week": "Semana",
+    "noData": "Dados insuficientes para gerar a gráfica",
+    "legendIdeal": "Ritmo ideal para terminar a tempo",
+    "legendActual": "Trabalho real restante",
+    "legendVelocity": "Tarefas completadas por semana"
+  },
   "form": {
     "projectName": "Nome do Projeto",
     "description": "Descrição",
@@ -116,7 +246,8 @@
     "placeholders": {
       "projectName": "Digite o nome do projeto",
       "description": "Digite a descrição do projeto",
-      "client": "Digite o nome do cliente"
+      "client": "Digite o nome do cliente",
+      "selectStatus": "Selecione um status"
     },
     "statusOptions": {
       "planning": "Planejamento",

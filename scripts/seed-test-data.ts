@@ -55,7 +55,7 @@ async function seedTestData() {
     console.error('Error:', error)
     process.exit(1)
   } finally {
-    await prisma.\\()
+    await prisma.$disconnect()
   }
 }
 

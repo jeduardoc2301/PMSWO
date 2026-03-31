@@ -38,7 +38,7 @@ export function CompletionChart({ projects }: CompletionChartProps) {
         {ranges.map((range) => (
           <div key={range.label}>
             <div className="flex justify-between text-sm mb-1">
-              <span className="text-gray-600">{range.label}</span>
+              <span className="text-gray-800">{range.label}</span>
               <span className="font-medium text-gray-900">
                 {range.count} {range.count === 1 ? t('project') : t('projects')}
               </span>
@@ -54,7 +54,7 @@ export function CompletionChart({ projects }: CompletionChartProps) {
       </div>
 
       {projects.length === 0 && (
-        <p className="text-center text-gray-500 py-8">{t('noData')}</p>
+        <p className="text-center text-gray-700 py-8">{t('noData')}</p>
       )}
     </div>
   )

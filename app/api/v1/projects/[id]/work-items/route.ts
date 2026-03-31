@@ -1,8 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { workItemService } from '@/services/workitem.service'
+import prisma from '@/lib/prisma'
 import { Permission, WorkItemStatus, WorkItemPriority } from '@/types'
 import { NotFoundError, ValidationError } from '@/lib/errors'
+
+/**
+ * GET /api/v1/projects/[id]/work-items
+ * Get simplified list of work items for a project (for selectors)
+ */
+async function getWorkItemsHandler(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+  authContext: AuthContext
+) {
+  try {
+    const params = await context.params
+    const projectId = params.id
+
+    // Verify user has access to this project
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        organizationId: authContext.organizationId,
+      },
+    })
+
+    if (!project) {
+      return NextResponse.json(
+        { message: 'Project not found' },
+        { status: 404 }
+      )
+    }
+
+    // Get work items for this project
+    const workItems = await prisma.workItem.findMany({
+      where: {
+        projectId: projectId,
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+      },
+      orderBy: {
+        title: 'asc',
+      },
+    })
+
+    return NextResponse.json({
+      workItems,
+    })
+  } catch (error) {
+    console.error('Error fetching work items:', error)
+    return NextResponse.json(
+      { message: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// Export GET handler with authentication middleware and PROJECT_VIEW permission
+export const GET = withAuth(getWorkItemsHandler, {
+  requiredPermissions: [Permission.PROJECT_VIEW],
+})
 
 /**
  * POST /api/v1/projects/:id/work-items
@@ -25,11 +86,12 @@ import { NotFoundError, ValidationError } from '@/lib/errors'
  */
 async function createWorkItemHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id: projectId } = context.params
+    const params = await context.params
+    const projectId = params.id
 
     // Parse request body
     const body = await request.json()
@@ -150,6 +212,8 @@ async function createWorkItemHandler(
         startDate,
         estimatedEndDate,
         status: body.status,
+        phase: body.phase || null,
+        estimatedHours: body.estimatedHours != null ? parseInt(body.estimatedHours) : null,
       },
       authContext.userId
     )

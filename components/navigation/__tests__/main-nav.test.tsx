@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MainNav } from '../main-nav'
@@ -16,6 +17,7 @@ vi.mock('next-intl', () => ({
       'nav.agreements': 'Agreements',
       'nav.settings': 'Settings',
       'nav.signOut': 'Sign Out',
+      'templates.title': 'Templates',
     }
     return translations[key] || key
   },
@@ -47,7 +49,8 @@ describe('MainNav', () => {
 
   it('renders the navigation component', () => {
     render(<MainNav {...defaultProps} />)
-    expect(screen.getByText('Project Management')).toBeInTheDocument()
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Projects')).toBeInTheDocument()
   })
 
   it('displays user name and email', () => {
@@ -62,10 +65,7 @@ describe('MainNav', () => {
     // PROJECT_MANAGER should see these items
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Projects')).toBeInTheDocument()
-    expect(screen.getByText('Work Items')).toBeInTheDocument()
-    expect(screen.getByText('Blockers')).toBeInTheDocument()
-    expect(screen.getByText('Risks')).toBeInTheDocument()
-    expect(screen.getByText('Agreements')).toBeInTheDocument()
+    expect(screen.getByText('Templates')).toBeInTheDocument()
     
     // PROJECT_MANAGER should NOT see Settings (requires ORG_MANAGE)
     expect(screen.queryByText('Settings')).not.toBeInTheDocument()
@@ -82,6 +82,46 @@ describe('MainNav', () => {
     
     render(<MainNav {...adminProps} />)
     expect(screen.getByText('Settings')).toBeInTheDocument()
+    expect(screen.getByText('Templates')).toBeInTheDocument()
+  })
+
+  it('shows Templates menu for ADMIN and PROJECT_MANAGER roles', () => {
+    // Test PROJECT_MANAGER
+    const pmProps = {
+      ...defaultProps,
+      user: {
+        ...defaultProps.user,
+        roles: [UserRole.PROJECT_MANAGER],
+      },
+    }
+    
+    const { rerender } = render(<MainNav {...pmProps} />)
+    expect(screen.getByText('Templates')).toBeInTheDocument()
+    
+    // Test ADMIN
+    const adminProps = {
+      ...defaultProps,
+      user: {
+        ...defaultProps.user,
+        roles: [UserRole.ADMIN],
+      },
+    }
+    
+    rerender(<MainNav {...adminProps} />)
+    expect(screen.getByText('Templates')).toBeInTheDocument()
+  })
+
+  it('hides Templates menu for non-ADMIN and non-PROJECT_MANAGER roles', () => {
+    const consultantProps = {
+      ...defaultProps,
+      user: {
+        ...defaultProps.user,
+        roles: [UserRole.EXTERNAL_CONSULTANT],
+      },
+    }
+    
+    render(<MainNav {...consultantProps} />)
+    expect(screen.queryByText('Templates')).not.toBeInTheDocument()
   })
 
   it('hides restricted items for EXTERNAL_CONSULTANT', () => {

@@ -566,19 +566,20 @@ export class ExportService {
    */
   async generateNotificationMessage(
     entityType: 'blocker' | 'risk',
-    entityId: string
+    entityId: string,
+    locale: string = 'es'
   ): Promise<NotificationMessage> {
     if (entityType === 'blocker') {
-      return this.generateBlockerNotification(entityId)
+      return this.generateBlockerNotification(entityId, locale)
     } else {
-      return this.generateRiskNotification(entityId)
+      return this.generateRiskNotification(entityId, locale)
     }
   }
 
   /**
    * Generate notification for a blocker
    */
-  private async generateBlockerNotification(blockerId: string): Promise<NotificationMessage> {
+  private async generateBlockerNotification(blockerId: string, locale: string = 'es'): Promise<NotificationMessage> {
     const blocker = await prisma.blocker.findUnique({
       where: { id: blockerId },
       include: {
@@ -618,25 +619,61 @@ export class ExportService {
       ? 'HIGH'
       : 'MEDIUM'
 
+    // Translations
+    const translations = {
+      es: {
+        alertTitle: 'Alerta de Bloqueador',
+        notificationTitle: 'NOTIFICACIÓN DE BLOQUEADOR',
+        severity: 'Severidad',
+        project: 'Proyecto',
+        client: 'Cliente',
+        workItem: 'Elemento de Trabajo',
+        owner: 'Responsable',
+        blockedBy: 'Bloqueado Por',
+        duration: 'Duración',
+        days: 'días',
+        since: 'desde',
+        description: 'Descripción',
+        footer: 'Este bloqueador requiere atención inmediata para desbloquear el progreso del elemento de trabajo.'
+      },
+      pt: {
+        alertTitle: 'Alerta de Bloqueador',
+        notificationTitle: 'NOTIFICAÇÃO DE BLOQUEADOR',
+        severity: 'Severidade',
+        project: 'Projeto',
+        client: 'Cliente',
+        workItem: 'Item de Trabalho',
+        owner: 'Responsável',
+        blockedBy: 'Bloqueado Por',
+        duration: 'Duração',
+        days: 'dias',
+        since: 'desde',
+        description: 'Descrição',
+        footer: 'Este bloqueador requer atenção imediata para desbloquear o progresso do item de trabalho.'
+      }
+    }
+
+    const t = translations[locale as 'es' | 'pt'] || translations.es
+
     // Generate subject
-    const subject = `[${blocker.severity}] Blocker Alert: ${blocker.project.name} - ${blocker.workItem.title}`
+    const subject = `[${blocker.severity}] ${t.alertTitle}: ${blocker.project.name} - ${blocker.workItem.title}`
 
     // Generate body
-    const body = `BLOCKER NOTIFICATION
+    const body = `${t.notificationTitle}
 
-Severity: ${blocker.severity}
-Project: ${blocker.project.name}
-Client: ${blocker.project.client}
-Work Item: ${blocker.workItem.title}
-Owner: ${blocker.workItem.owner.name}
+${t.severity}: ${blocker.severity}
+${t.project}: ${blocker.project.name}
+${t.client}: ${blocker.project.client}
+${t.workItem}: ${blocker.workItem.title}
+${t.owner}: ${blocker.workItem.owner.name}
 
-Blocked By: ${blocker.blockedBy}
-Duration: ${daysBlocked} days (since ${new Date(blocker.startDate).toLocaleDateString()})
+${t.blockedBy}: ${blocker.blockedBy}
+${t.duration}: ${daysBlocked} ${t.days} (${t.since} ${new Date(blocker.startDate).toLocaleDateString()})
 
-Description:
+${t.description}:
 ${blocker.description}
 
-This blocker requires immediate attention to unblock progress on the work item.`
+${t.footer}`
 
     return {
       subject,
@@ -648,7 +685,7 @@ This blocker requires immediate attention to unblock progress on the work item.`
   /**
    * Generate notification for a risk
    */
-  private async generateRiskNotification(riskId: string): Promise<NotificationMessage> {
+  private async generateRiskNotification(riskId: string, locale: string = 'es'): Promise<NotificationMessage> {
     const risk = await prisma.risk.findUnique({
       where: { id: riskId },
       include: {
@@ -677,28 +714,64 @@ This blocker requires immediate attention to unblock progress on the work item.`
       ? 'HIGH'
       : 'MEDIUM'
 
+    // Translations
+    const translations = {
+      es: {
+        alertTitle: 'Alerta de Riesgo',
+        notificationTitle: 'NOTIFICACIÓN DE RIESGO',
+        riskLevel: 'Nivel de Riesgo',
+        project: 'Proyecto',
+        client: 'Cliente',
+        owner: 'Responsable',
+        status: 'Estado',
+        probability: 'Probabilidad',
+        impact: 'Impacto',
+        description: 'Descripción',
+        mitigationPlan: 'Plan de Mitigación',
+        noMitigationPlan: 'No se ha definido un plan de mitigación',
+        footer: 'Este riesgo requiere monitoreo y posibles acciones para prevenir un impacto negativo en el proyecto.'
+      },
+      pt: {
+        alertTitle: 'Alerta de Risco',
+        notificationTitle: 'NOTIFICAÇÃO DE RISCO',
+        riskLevel: 'Nível de Risco',
+        project: 'Projeto',
+        client: 'Cliente',
+        owner: 'Responsável',
+        status: 'Status',
+        probability: 'Probabilidade',
+        impact: 'Impacto',
+        description: 'Descrição',
+        mitigationPlan: 'Plano de Mitigação',
+        noMitigationPlan: 'Nenhum plano de mitigação definido',
+        footer: 'Este risco requer monitoramento e possíveis ações para prevenir um impacto negativo no projeto.'
+      }
+    }
+
+    const t = translations[locale as 'es' | 'pt'] || translations.es
+
     // Generate subject
-    const subject = `[${risk.riskLevel}] Risk Alert: ${risk.project.name}`
+    const subject = `[${risk.riskLevel}] ${t.alertTitle}: ${risk.project.name}`
 
     // Generate body
-    const body = `RISK NOTIFICATION
+    const body = `${t.notificationTitle}
 
-Risk Level: ${risk.riskLevel}
-Project: ${risk.project.name}
-Client: ${risk.project.client}
-Owner: ${risk.owner.name}
-Status: ${risk.status}
+${t.riskLevel}: ${risk.riskLevel}
+${t.project}: ${risk.project.name}
+${t.client}: ${risk.project.client}
+${t.owner}: ${risk.owner.name}
+${t.status}: ${risk.status}
 
-Probability: ${risk.probability}/5
-Impact: ${risk.impact}/5
+${t.probability}: ${risk.probability}/5
+${t.impact}: ${risk.impact}/5
 
-Description:
+${t.description}:
 ${risk.description}
 
-Mitigation Plan:
-${risk.mitigationPlan || 'No mitigation plan defined'}
+${t.mitigationPlan}:
+${risk.mitigationPlan || t.noMitigationPlan}
 
-This risk requires monitoring and potential action to prevent negative impact on the project.`
+${t.footer}`
 
     return {
       subject,

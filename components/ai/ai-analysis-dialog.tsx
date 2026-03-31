@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Brain, AlertTriangle, Clock, TrendingUp } from 'lucide-react'
+import { DetectedRisk } from '@/types/ai'
 
 interface AISuggestion {
   type: 'CREATE_BLOCKER' | 'ADJUST_DATES' | 'CREATE_RISK' | 'REASSIGN'
@@ -23,17 +24,11 @@ interface AISuggestion {
   suggestedAction: any
 }
 
-interface DetectedRisk {
-  description: string
-  severity: string
-  affectedEntityId: string
-}
-
 interface OverdueItemSuggestion {
   workItemId: string
-  workItemTitle: string
+  title: string
   daysOverdue: number
-  suggestion: string
+  suggestedAction: string
 }
 
 interface AIAnalysis {
@@ -47,6 +42,9 @@ interface AIAnalysis {
 interface AIAnalysisDialogProps {
   projectId: string
   onActionTaken?: () => void
+  onCreateBlocker?: (data: { workItemId: string; description: string; severity: string }) => void
+  onAdjustDates?: (data: { workItemId: string; workItemTitle: string }) => void
+  onCreateRisk?: (data: { description: string; probability: number; impact: number }) => void
 }
 
 /**
@@ -54,7 +52,7 @@ interface AIAnalysisDialogProps {
  * Displays AI-powered project analysis with suggestions and detected issues
  * Requirements: 9.1, 9.2
  */
-export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogProps) {
+export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, onAdjustDates, onCreateRisk }: AIAnalysisDialogProps) {
   const t = useTranslations('ai')
   const tCommon = useTranslations('common')
   
@@ -132,6 +130,84 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
     }
   }
 
+  const getSuggestionTypeKey = (type: string): string => {
+    const typeMap: Record<string, string> = {
+      'CREATE_BLOCKER': 'createBlocker',
+      'ADJUST_DATES': 'adjustDates',
+      'CREATE_RISK': 'createRisk',
+      'REASSIGN': 'reassign'
+    }
+    return typeMap[type] || type.toLowerCase()
+  }
+
+  const getActionKey = (type: string): string => {
+    const actionMap: Record<string, string> = {
+      'CREATE_BLOCKER': 'createBlocker',
+      'ADJUST_DATES': 'adjustDates',
+      'CREATE_RISK': 'createRisk',
+      'REASSIGN': 'reassign'
+    }
+    return actionMap[type] || type.toLowerCase()
+  }
+
+  const handleSuggestionAction = (suggestion: AISuggestion) => {
+    console.log('[AIAnalysisDialog] handleSuggestionAction called with:', suggestion)
+    
+    if (suggestion.type === 'CREATE_BLOCKER' && onCreateBlocker) {
+      console.log('[AIAnalysisDialog] Calling onCreateBlocker')
+      // Determine severity based on suggestion priority
+      const severityMap: Record<string, string> = {
+        'HIGH': 'HIGH',
+        'MEDIUM': 'MEDIUM',
+        'LOW': 'LOW'
+      }
+      
+      onCreateBlocker({
+        workItemId: suggestion.affectedEntityId,
+        description: suggestion.description,
+        severity: severityMap[suggestion.priority] || 'MEDIUM'
+      })
+      
+      // Close the analysis dialog
+      handleOpenChange(false)
+    } else if (suggestion.type === 'ADJUST_DATES' && onAdjustDates) {
+      console.log('[AIAnalysisDialog] Calling onAdjustDates')
+      // Find the work item title from overdueItems if available
+      const overdueItem = analysis?.overdueItems.find(item => item.workItemId === suggestion.affectedEntityId)
+      
+      onAdjustDates({
+        workItemId: suggestion.affectedEntityId,
+        workItemTitle: overdueItem?.title || suggestion.affectedEntityId
+      })
+      
+      // Close the analysis dialog
+      handleOpenChange(false)
+    } else if (suggestion.type === 'CREATE_RISK' && onCreateRisk) {
+      console.log('[AIAnalysisDialog] Calling onCreateRisk')
+      // Map priority to probability/impact (HIGH priority = high probability and impact)
+      const priorityMap: Record<string, { probability: number; impact: number }> = {
+        'HIGH': { probability: 4, impact: 4 },
+        'MEDIUM': { probability: 3, impact: 3 },
+        'LOW': { probability: 2, impact: 2 }
+      }
+      
+      const riskData = priorityMap[suggestion.priority] || { probability: 3, impact: 3 }
+      
+      onCreateRisk({
+        description: suggestion.description,
+        probability: riskData.probability,
+        impact: riskData.impact
+      })
+      
+      // Close the analysis dialog
+      handleOpenChange(false)
+    } else {
+      console.log('[AIAnalysisDialog] No matching handler for suggestion type:', suggestion.type)
+      console.log('[AIAnalysisDialog] onAdjustDates available?', !!onAdjustDates)
+      console.log('[AIAnalysisDialog] onCreateRisk available?', !!onCreateRisk)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -145,7 +221,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
           <DialogTitle>{t('analysis.title')}</DialogTitle>
           <DialogDescription>
             {analysis && (
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-900">
                 {t('report.generatedAt')}: {new Date(analysis.analyzedAt).toLocaleString()}
               </span>
             )}
@@ -157,7 +233,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
           {analyzing && (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <p className="text-sm text-gray-600">{t('loading.analyzingProject')}</p>
+              <p className="text-sm text-gray-900">{t('loading.analyzingProject')}</p>
             </div>
           )}
 
@@ -174,7 +250,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
                 </CardHeader>
                 <CardContent>
                   {analysis.suggestions.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-4">
+                    <p className="text-sm text-gray-900 text-center py-4">
                       {t('analysis.noSuggestions')}
                     </p>
                   ) : (
@@ -190,14 +266,18 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
                               <Badge className={getPriorityColor(suggestion.priority)}>
                                 {t(`analysis.priority.${suggestion.priority.toLowerCase()}`)}
                               </Badge>
-                              <span className="text-xs text-gray-500">
-                                {t(`analysis.suggestionTypes.${suggestion.type.toLowerCase().replace('_', '')}`)}
+                              <span className="text-xs text-gray-900">
+                                {t(`analysis.suggestionTypes.${getSuggestionTypeKey(suggestion.type)}`)}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-700">{suggestion.description}</p>
+                            <p className="text-sm text-gray-900">{suggestion.description}</p>
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline">
-                                {t(`analysis.actions.${suggestion.type.toLowerCase().replace('_', '')}`)}
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleSuggestionAction(suggestion)}
+                              >
+                                {t(`analysis.actions.${getActionKey(suggestion.type)}`)}
                               </Button>
                               <Button size="sm" variant="ghost">
                                 {t('analysis.actions.dismiss')}
@@ -221,7 +301,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
                 </CardHeader>
                 <CardContent>
                   {analysis.detectedRisks.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-4">
+                    <p className="text-sm text-gray-900 text-center py-4">
                       {t('analysis.noRisks')}
                     </p>
                   ) : (
@@ -233,9 +313,22 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
                         >
                           <AlertTriangle className="h-5 w-5 text-orange-600 mt-1" />
                           <div className="flex-1">
-                            <p className="text-sm text-gray-700">{risk.description}</p>
+                            <p className="text-sm text-gray-900">{risk.description}</p>
                             <div className="mt-2">
-                              <Button size="sm" variant="outline">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  if (onCreateRisk) {
+                                    onCreateRisk({
+                                      description: risk.description,
+                                      probability: risk.probability,
+                                      impact: risk.impact
+                                    })
+                                    handleOpenChange(false)
+                                  }
+                                }}
+                              >
                                 {t('analysis.actions.createRisk')}
                               </Button>
                             </div>
@@ -257,7 +350,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
                 </CardHeader>
                 <CardContent>
                   {analysis.overdueItems.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-4">
+                    <p className="text-sm text-gray-900 text-center py-4">
                       {t('analysis.noOverdueItems')}
                     </p>
                   ) : (
@@ -271,18 +364,48 @@ export function AIAnalysisDialog({ projectId, onActionTaken }: AIAnalysisDialogP
                           <div className="flex-1 space-y-2">
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {item.workItemTitle}
+                                {item.title}
                               </p>
                               <p className="text-xs text-red-600">
                                 {item.daysOverdue} días de retraso
                               </p>
                             </div>
-                            <p className="text-sm text-gray-700">{item.suggestion}</p>
+                            <p className="text-sm text-gray-900">{item.suggestedAction}</p>
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  console.log('[AIAnalysisDialog] Adjust Dates button clicked for overdue item:', item)
+                                  if (onAdjustDates) {
+                                    console.log('[AIAnalysisDialog] Calling onAdjustDates from overdue items')
+                                    onAdjustDates({
+                                      workItemId: item.workItemId,
+                                      workItemTitle: item.title
+                                    })
+                                    handleOpenChange(false)
+                                  } else {
+                                    console.log('[AIAnalysisDialog] onAdjustDates is not available')
+                                  }
+                                }}
+                              >
                                 {t('analysis.actions.adjustDates')}
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  console.log('[AIAnalysisDialog] Create Blocker button clicked for overdue item:', item)
+                                  if (onCreateBlocker) {
+                                    onCreateBlocker({
+                                      workItemId: item.workItemId,
+                                      description: `Bloqueador para: ${item.title}`,
+                                      severity: 'MEDIUM'
+                                    })
+                                    handleOpenChange(false)
+                                  }
+                                }}
+                              >
                                 {t('analysis.actions.createBlocker')}
                               </Button>
                             </div>

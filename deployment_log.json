@@ -1,0 +1,5 @@
+[
+  "[AppRunner] Starting to deploy your application image.",
+  "[AppRunner] Starting to pull your application image.",
+  "[AppRunner] Successfully pulled your application image from ECR."
+]

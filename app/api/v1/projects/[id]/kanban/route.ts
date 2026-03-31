@@ -17,11 +17,11 @@ import { NotFoundError } from '@/lib/errors'
  */
 async function getKanbanBoardHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Get Kanban board from service
     const kanbanBoard = await projectService.getKanbanBoard(id)

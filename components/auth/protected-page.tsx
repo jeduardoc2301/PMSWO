@@ -78,7 +78,7 @@ export async function ProtectedPage({
           <div className="text-center max-w-md p-8">
             <div className="text-6xl mb-4">🔒</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-800 mb-6">
               You don't have permission to access this page. Please contact your administrator
               if you believe this is an error.
             </p>
@@ -106,7 +106,7 @@ export async function ProtectedPage({
           <div className="text-center max-w-md p-8">
             <div className="text-6xl mb-4">🔒</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-800 mb-6">
               You don't have the required role to access this page. Please contact your
               administrator if you believe this is an error.
             </p>

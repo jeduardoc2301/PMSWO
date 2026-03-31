@@ -18,8 +18,12 @@ import { AIServiceError, AIGuardrailsError } from '@/lib/errors'
 const improveTextSchema = z.object({
   text: z.string().min(1, 'Text cannot be empty').max(5000, 'Text is too long (max 5000 characters)'),
   purpose: z.nativeEnum(TextPurpose, {
-    errorMap: () => ({ message: 'Invalid purpose. Must be EMAIL, REPORT, or DESCRIPTION' }),
+    message: 'Invalid purpose. Must be EMAIL, REPORT, or DESCRIPTION',
   }),
+  context: z.object({
+    projectName: z.string().optional(),
+    projectDescription: z.string().optional(),
+  }).optional(),
 })
 
 /**
@@ -32,7 +36,7 @@ const improveTextSchema = z.object({
  */
 async function improveTextHandler(
   request: NextRequest,
-  context: { params: {} },
+  context: { params: Promise<{}> },
   authContext: AuthContext
 ): Promise<NextResponse> {
   try {
@@ -45,7 +49,7 @@ async function improveTextHandler(
         {
           error: 'Validation Error',
           message: 'Invalid request data',
-          details: validationResult.error.errors.map((err) => ({
+          details: validationResult.error.issues.map((err) => ({
             field: err.path.join('.'),
             message: err.message,
           })),
@@ -54,10 +58,10 @@ async function improveTextHandler(
       )
     }
 
-    const { text, purpose } = validationResult.data
+    const { text, purpose, context } = validationResult.data
 
     // Improve text using AI service
-    const improvedText = await AIService.improveText(text, purpose)
+    const improvedText = await AIService.improveText(text, purpose, context)
 
     return NextResponse.json(
       {

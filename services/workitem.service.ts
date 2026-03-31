@@ -13,6 +13,8 @@ export interface CreateWorkItemDTO {
   priority: WorkItemPriority
   startDate: Date
   estimatedEndDate: Date
+  phase?: string | null
+  estimatedHours?: number | null
 }
 
 export interface UpdateWorkItemDTO {
@@ -23,6 +25,8 @@ export interface UpdateWorkItemDTO {
   startDate?: Date
   estimatedEndDate?: Date
   ownerId?: string
+  phase?: string | null
+  estimatedHours?: number | null
 }
 
 export interface WorkItemChange {
@@ -146,10 +150,12 @@ export class WorkItemService {
         ownerId: data.ownerId,
         title: data.title.trim(),
         description: data.description.trim(),
+        phase: data.phase?.trim() || null,
         status,
         priority: data.priority,
         startDate: data.startDate,
         estimatedEndDate: data.estimatedEndDate,
+        estimatedHours: data.estimatedHours ?? null,
         kanbanColumnId: kanbanColumn.id,
         completedAt: null,
       },

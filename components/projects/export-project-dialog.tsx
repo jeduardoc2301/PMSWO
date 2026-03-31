@@ -123,7 +123,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
           <div className="space-y-6">
             {/* Detail Level */}
             <div className="space-y-2">
-              <Label htmlFor="detail-level">{t('detailLevel')}</Label>
+              <Label htmlFor="detail-level" className="text-gray-900">{t('detailLevel')}</Label>
               <Select
                 value={detailLevel}
                 onValueChange={(value) => setDetailLevel(value as ReportDetailLevel)}
@@ -147,7 +147,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
 
             {/* Sections to Include */}
             <div className="space-y-3">
-              <Label>{t('sections')}</Label>
+              <Label className="text-gray-900">{t('sections')}</Label>
               
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -157,7 +157,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-work-items"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
                 >
                   {t('includeWorkItems')}
                 </label>
@@ -171,7 +171,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-blockers"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
                 >
                   {t('includeBlockers')}
                 </label>
@@ -185,7 +185,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-risks"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
                 >
                   {t('includeRisks')}
                 </label>
@@ -199,7 +199,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-agreements"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
                 >
                   {t('includeAgreements')}
                 </label>
@@ -213,7 +213,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="use-ai-narrative"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
                 >
                   {t('useAINarrative')}
                 </label>
@@ -239,7 +239,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
           <div className="space-y-4">
             {/* Export Preview */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-              <pre className="text-sm whitespace-pre-wrap font-mono">{exportContent}</pre>
+              <pre className="text-sm whitespace-pre-wrap font-mono text-gray-900">{exportContent}</pre>
             </div>
 
             <div className="flex justify-end gap-2">

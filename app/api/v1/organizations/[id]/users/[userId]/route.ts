@@ -1,8 +1,132 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { userService } from '@/services/user.service'
-import { Permission } from '@/types'
+import { Permission, UserRole } from '@/types'
 import { NotFoundError, ValidationError } from '@/lib/errors'
+import { z } from 'zod'
+
+/**
+ * PATCH /api/v1/organizations/:id/users/:userId
+ * 
+ * Update user (name, roles, active status)
+ * Validates that the authenticated user belongs to the requested organization
+ * Validates that the user to be updated belongs to the organization
+ * Requires USER_UPDATE permission
+ * 
+ * Requirements: 2.4
+ */
+
+const updateUserSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  roles: z.array(z.nativeEnum(UserRole)).min(1).optional(),
+  active: z.boolean().optional(),
+})
+
+async function patchUserHandler(
+  request: NextRequest,
+  context: { params: Promise<{ id: string; userId: string }> },
+  authContext: AuthContext
+) {
+  try {
+    const { id: organizationId, userId } = await context.params
+
+    // Validate that the authenticated user belongs to the requested organization
+    if (authContext.organizationId !== organizationId) {
+      return NextResponse.json(
+        {
+          error: 'FORBIDDEN',
+          message: 'You do not have access to this organization',
+        },
+        { status: 403 }
+      )
+    }
+
+    // Parse and validate request body
+    const body = await request.json()
+    const validationResult = updateUserSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'Invalid request data',
+          details: validationResult.error.issues.map((err) => ({
+            field: err.path.join('.'),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      )
+    }
+
+    const updateData = validationResult.data
+
+    // Get the user to validate they belong to the organization
+    const userToUpdate = await userService.getUser(userId)
+
+    // Validate that the user belongs to the same organization
+    if (userToUpdate.organizationId !== organizationId) {
+      return NextResponse.json(
+        {
+          error: 'FORBIDDEN',
+          message: 'User does not belong to this organization',
+        },
+        { status: 403 }
+      )
+    }
+
+    // Update the user
+    const updatedUser = await userService.updateUser(userId, updateData)
+
+    // Return success response
+    return NextResponse.json(
+      {
+        message: 'User updated successfully',
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          roles: updatedUser.roles,
+          active: updatedUser.active,
+        },
+      },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('Update user error:', error)
+
+    // Handle NotFoundError
+    if (error instanceof NotFoundError) {
+      return NextResponse.json(
+        {
+          error: 'NOT_FOUND',
+          message: 'User not found',
+        },
+        { status: 404 }
+      )
+    }
+
+    // Handle ValidationError
+    if (error instanceof ValidationError) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: error.message,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Generic server error
+    return NextResponse.json(
+      {
+        error: 'INTERNAL_ERROR',
+        message: 'An unexpected error occurred while updating user',
+      },
+      { status: 500 }
+    )
+  }
+}
 
 /**
  * DELETE /api/v1/organizations/:id/users/:userId
@@ -16,11 +140,11 @@ import { NotFoundError, ValidationError } from '@/lib/errors'
  */
 async function deleteUserHandler(
   request: NextRequest,
-  context: { params: { id: string; userId: string } },
+  context: { params: Promise<{ id: string; userId: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id: organizationId, userId } = context.params
+    const { id: organizationId, userId } = await context.params
 
     // Validate that the authenticated user belongs to the requested organization
     if (authContext.organizationId !== organizationId) {
@@ -123,6 +247,11 @@ async function deleteUserHandler(
     )
   }
 }
+
+// Export PATCH handler with authentication middleware and USER_UPDATE permission
+export const PATCH = withAuth(patchUserHandler, {
+  requiredPermissions: [Permission.USER_UPDATE],
+})
 
 // Export DELETE handler with authentication middleware and USER_DELETE permission
 export const DELETE = withAuth(deleteUserHandler, {

@@ -37,7 +37,7 @@ export interface WithAuthOptions {
  */
 export type ProtectedRouteHandler<T = any> = (
   request: NextRequest,
-  context: { params: T },
+  context: { params: Promise<T> },
   authContext: AuthContext
 ) => Promise<NextResponse> | NextResponse
 
@@ -65,14 +65,17 @@ export type ProtectedRouteHandler<T = any> = (
 export function withAuth<T = any>(
   handler: ProtectedRouteHandler<T>,
   options: WithAuthOptions = {}
-): (request: NextRequest, context: { params: T }) => Promise<NextResponse> {
-  return async (request: NextRequest, context: { params: T }) => {
+): (request: NextRequest, context: { params: Promise<T> }) => Promise<NextResponse> {
+  return async (request: NextRequest, context: { params: Promise<T> }) => {
     try {
+      console.log('[WITHAUTH] Starting authentication...')
       // Get session from NextAuth
       const session = await auth()
+      console.log('[WITHAUTH] Session:', session ? 'exists' : 'null')
 
       // Check if user is authenticated
       if (!session || !session.user) {
+        console.log('[WITHAUTH] No session or user')
         return NextResponse.json(
           {
             error: 'Unauthorized',
@@ -84,9 +87,11 @@ export function withAuth<T = any>(
 
       // Extract user information from session
       const { id, organizationId, roles, locale, email, name } = session.user
+      console.log('[WITHAUTH] User:', { id, organizationId, roles })
 
       // Validate required fields
       if (!id || !organizationId || !roles) {
+        console.log('[WITHAUTH] Missing required fields')
         return NextResponse.json(
           {
             error: 'Unauthorized',
@@ -98,6 +103,7 @@ export function withAuth<T = any>(
 
       // Check permissions if required
       if (options.requiredPermissions && options.requiredPermissions.length > 0) {
+        console.log('[WITHAUTH] Checking permissions:', options.requiredPermissions)
         const userRoles = roles as any[]
         
         if (options.requireAllPermissions) {
@@ -143,10 +149,14 @@ export function withAuth<T = any>(
         name: name || '',
       }
 
+      console.log('[WITHAUTH] Calling handler...')
       // Call the protected handler with auth context
-      return await handler(request, context, authContext)
+      const result = await handler(request, context, authContext)
+      console.log('[WITHAUTH] Handler completed successfully')
+      return result
     } catch (error) {
-      console.error('Authentication middleware error:', error)
+      console.error('[WITHAUTH] Authentication middleware error:', error)
+      console.error('[WITHAUTH] Error stack:', error instanceof Error ? error.stack : 'No stack')
       
       // Handle specific error types
       if (error instanceof Error) {

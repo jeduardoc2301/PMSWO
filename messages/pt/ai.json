@@ -3,6 +3,7 @@
   "generateReport": "Gerar Relatório",
   "analyzeProject": "Analisar Projeto",
   "improveText": "Melhorar com IA",
+  "suggestDescription": "Sugerir Descrição",
   "generating": "Gerando...",
   "analyzing": "Analisando...",
   "improving": "Melhorando...",
@@ -47,6 +48,8 @@
     "actions": {
       "createBlocker": "Criar Blocker",
       "adjustDates": "Ajustar Datas",
+      "createRisk": "Criar Risco",
+      "reassign": "Reatribuir",
       "dismiss": "Descartar"
     }
   },

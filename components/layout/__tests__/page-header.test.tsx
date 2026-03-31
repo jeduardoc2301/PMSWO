@@ -44,7 +44,7 @@ describe('PageHeader', () => {
 
     it('should not render description when not provided', () => {
       const { container } = renderWithIntl(<PageHeader title="Dashboard" />)
-      const description = container.querySelector('p.text-sm.text-gray-500')
+      const description = container.querySelector('p.text-sm.text-gray-700')
       expect(description).not.toBeInTheDocument()
     })
   })

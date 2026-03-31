@@ -30,7 +30,7 @@ const suggestDescriptionSchema = z.object({
  */
 async function suggestDescriptionHandler(
   request: NextRequest,
-  context: { params: {} },
+  context: { params: Promise<{}> },
   authContext: AuthContext
 ): Promise<NextResponse> {
   try {

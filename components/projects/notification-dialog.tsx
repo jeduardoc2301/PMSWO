@@ -30,6 +30,11 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
   const t = useTranslations('projects.notification')
   const tCommon = useTranslations('common')
   
+  // Get current locale from the URL
+  const locale = typeof window !== 'undefined' 
+    ? window.location.pathname.split('/')[1] || 'es'
+    : 'es'
+  
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +58,7 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
         body: JSON.stringify({
           type,
           entityId,
+          locale,
         }),
       })
 
@@ -128,7 +134,7 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
 
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="text-gray-500">{tCommon('loading')}</div>
+            <div className="text-gray-700">{tCommon('loading')}</div>
           </div>
         )}
 
@@ -142,7 +148,7 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
           <div className="space-y-4">
             {/* Priority Badge */}
             <div className="flex items-center gap-2">
-              <Label>{t('priority')}:</Label>
+              <Label className="text-gray-900">{t('priority')}:</Label>
               <span
                 className={`px-3 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
                   notification.priority
@@ -154,17 +160,17 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
 
             {/* Subject */}
             <div className="space-y-2">
-              <Label>{t('subject')}</Label>
+              <Label className="text-gray-900">{t('subject')}</Label>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-sm font-medium">{notification.subject}</p>
+                <p className="text-sm font-medium text-gray-900">{notification.subject}</p>
               </div>
             </div>
 
             {/* Body */}
             <div className="space-y-2">
-              <Label>{t('body')}</Label>
+              <Label className="text-gray-900">{t('body')}</Label>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <pre className="text-sm whitespace-pre-wrap font-sans">{notification.body}</pre>
+                <pre className="text-sm whitespace-pre-wrap font-sans text-gray-900">{notification.body}</pre>
               </div>
             </div>
 

@@ -97,7 +97,7 @@ export function SettingsClient({ locale }: SettingsClientProps) {
   if (isFetching) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-gray-500">{t('common.loading')}</div>
+        <div className="text-gray-700">{t('common.loading')}</div>
       </div>
     )
   }

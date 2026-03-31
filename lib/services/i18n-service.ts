@@ -28,14 +28,14 @@ export class I18nService {
       })
 
       if (!user) {
-        return 'es' // Default locale
+        return Locale.ES // Default locale
       }
 
       // Return user's preferred locale
-      return (user.locale as Locale) || 'es'
+      return (user.locale as Locale) || Locale.ES
     } catch (error) {
       console.error('[I18nService] Error getting current locale:', error)
-      return 'es' // Default locale on error
+      return Locale.ES // Default locale on error
     }
   }
 
@@ -114,12 +114,13 @@ export class I18nService {
     format: 'short' | 'medium' | 'long' | 'full' = 'medium'
   ): string {
     try {
-      const options: Intl.DateTimeFormatOptions = {
+      const formatOptions: Record<string, Intl.DateTimeFormatOptions> = {
         short: { year: 'numeric', month: '2-digit', day: '2-digit' },
         medium: { year: 'numeric', month: 'short', day: 'numeric' },
         long: { year: 'numeric', month: 'long', day: 'numeric' },
         full: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-      }[format]
+      }
+      const options = formatOptions[format]
 
       return new Intl.DateTimeFormat(locale, options).format(date)
     } catch (error) {
@@ -141,7 +142,7 @@ export class I18nService {
     format: 'short' | 'medium' | 'long' | 'full' = 'medium'
   ): string {
     try {
-      const options: Intl.DateTimeFormatOptions = {
+      const formatOptions: Record<string, Intl.DateTimeFormatOptions> = {
         short: { 
           year: 'numeric', 
           month: '2-digit', 
@@ -174,7 +175,8 @@ export class I18nService {
           second: '2-digit',
           timeZoneName: 'short'
         }
-      }[format]
+      }
+      const options = formatOptions[format]
 
       return new Intl.DateTimeFormat(locale, options).format(date)
     } catch (error) {

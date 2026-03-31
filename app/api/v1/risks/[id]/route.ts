@@ -15,11 +15,11 @@ import prisma from '@/lib/prisma'
  */
 async function getRiskHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Get risk using the service
     const risk = await riskService.getRisk(id)
@@ -103,11 +103,11 @@ async function getRiskHandler(
  */
 async function updateRiskHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Validate that risk exists and belongs to user's organization
     const existingRisk = await prisma.risk.findUnique({

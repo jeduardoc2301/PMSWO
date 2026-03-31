@@ -71,7 +71,7 @@ export function EditProjectClient({ projectId }: EditProjectClientProps) {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-500">{t('loadingProject')}</p>
+            <p className="text-gray-700">{t('loadingProject')}</p>
           </div>
         </div>
       </div>
@@ -98,7 +98,7 @@ export function EditProjectClient({ projectId }: EditProjectClientProps) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">{t('editProjectTitle')}</h1>
-          <p className="mt-2 text-gray-600">{t('editProjectDescription')}</p>
+          <p className="mt-2 text-gray-800">{t('editProjectDescription')}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">

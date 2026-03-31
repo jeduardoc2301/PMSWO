@@ -18,11 +18,11 @@ import prisma from '@/lib/prisma'
  */
 async function closeRiskHandler(
   request: NextRequest,
-  context: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
   authContext: AuthContext
 ) {
   try {
-    const { id } = context.params
+    const { id } = await context.params
 
     // Parse request body
     const body = await request.json()

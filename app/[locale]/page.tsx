@@ -27,18 +27,33 @@ export default async function HomePage({
   const t = await getTranslations('common')
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-center gap-8 px-16 py-32">
-        <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50">{t('appName')}</h1>
-        <p className="text-lg text-zinc-600 dark:text-zinc-400">
-          Plataforma SaaS multi-tenant para gestión de proyectos ejecutivos
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: 'url(/ales-nesetril-Im7lZjxeLhg-unsplash.jpeg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
+
+      {/* Content */}
+      <main className="relative z-10 flex min-h-screen w-full max-w-3xl flex-col items-center justify-center gap-8 px-16 py-32">
+        <h1 className="text-5xl font-bold text-white text-center">{t('appName')}</h1>
+        <p className="text-xl text-white/90 text-center max-w-2xl">
+          {t('landingSubtitle')}
         </p>
-        <div className="flex gap-4">
+        <div className="flex gap-4 mt-4">
           <Link
             href="/dashboard"
-            className="rounded-lg bg-zinc-900 px-6 py-3 text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-lg bg-blue-600 px-8 py-4 text-white text-lg font-medium transition-colors hover:bg-blue-700 shadow-lg"
           >
-            Ir al Dashboard
+            {t('goToDashboard')}
           </Link>
         </div>
       </main>
