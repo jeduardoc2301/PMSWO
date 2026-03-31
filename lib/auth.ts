@@ -1,6 +1,5 @@
 import NextAuth, { DefaultSession } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import prisma from '@/lib/prisma'
 import { comparePassword } from '@/lib/password'
 import { UserRole } from '@/types'
@@ -31,7 +30,6 @@ declare module 'next-auth' {
 // The JWT type is inferred from the session callback
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma) as any,
   trustHost: true,
   providers: [
     CredentialsProvider({
