@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
     AUTH_SECRET: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? '',
     AUTH_URL: process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? '',
     DATABASE_URL: process.env.DATABASE_URL ?? '',
+    AWS_REGION: process.env.APP_AWS_REGION ?? process.env.AWS_REGION ?? 'us-east-1',
+    AWS_ACCESS_KEY_ID: process.env.APP_AWS_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID ?? '',
+    AWS_SECRET_ACCESS_KEY: process.env.APP_AWS_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY ?? '',
   },
   // Optimización de imágenes
   images: {
