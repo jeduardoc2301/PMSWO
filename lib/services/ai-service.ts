@@ -98,23 +98,20 @@ export class AIService {
    * Get or create Bedrock client instance
    */
   private static getBedrockClient(): BedrockRuntimeClient {
-    if (!this.bedrockClient) {
-      if (!AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
-        throw new AIServiceError(
-          'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.'
-        )
-      }
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+    const region = process.env.AWS_REGION || 'us-east-1'
 
-      this.bedrockClient = new BedrockRuntimeClient({
-        region: AWS_REGION,
-        credentials: {
-          accessKeyId: AWS_ACCESS_KEY_ID,
-          secretAccessKey: AWS_SECRET_ACCESS_KEY,
-        },
-      })
+    if (!accessKeyId || !secretAccessKey) {
+      throw new AIServiceError(
+        'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.'
+      )
     }
 
-    return this.bedrockClient
+    return new BedrockRuntimeClient({
+      region,
+      credentials: { accessKeyId, secretAccessKey },
+    })
   }
 
   /**
@@ -149,8 +146,9 @@ export class AIService {
           ],
         }
 
+        const modelId = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0'
         const input: InvokeModelCommandInput = {
-          modelId: BEDROCK_MODEL_ID,
+          modelId,
           contentType: 'application/json',
           accept: 'application/json',
           body: JSON.stringify(payload),
