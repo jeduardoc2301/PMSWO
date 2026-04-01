@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? '',
     AUTH_SECRET: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? '',
     AUTH_URL: process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? '',
+    DATABASE_URL: process.env.DATABASE_URL ?? '',
   },
   // Optimización de imágenes
   images: {
