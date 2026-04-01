@@ -4,9 +4,14 @@ import createNextIntlPlugin from 'next-intl/plugin'
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  env: {
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? process.env.AUTH_URL ?? '',
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? '',
+    AUTH_SECRET: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? '',
+    AUTH_URL: process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? '',
+  },
   // Optimización de imágenes
   images: {
     formats: ['image/avif', 'image/webp'],
