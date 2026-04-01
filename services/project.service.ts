@@ -526,6 +526,10 @@ export class ProjectService {
               },
             },
           },
+          orderBy: [
+            { phase: 'asc' },
+            { startDate: 'asc' },
+          ],
         },
       },
     })

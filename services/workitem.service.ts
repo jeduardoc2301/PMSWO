@@ -187,8 +187,8 @@ export class WorkItemService {
       status,
       priority,
       ownerId,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
+      sortBy = 'startDate',
+      sortOrder = 'asc',
     } = options
 
     // Build where clause
