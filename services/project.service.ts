@@ -527,8 +527,10 @@ export class ProjectService {
             },
           },
           orderBy: [
+            { templateOrder: 'asc' },
             { phase: 'asc' },
             { startDate: 'asc' },
+            { createdAt: 'asc' },
           ],
         },
       },

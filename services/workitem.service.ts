@@ -187,7 +187,7 @@ export class WorkItemService {
       status,
       priority,
       ownerId,
-      sortBy = 'startDate',
+      sortBy = 'templateOrder',
       sortOrder = 'asc',
     } = options
 

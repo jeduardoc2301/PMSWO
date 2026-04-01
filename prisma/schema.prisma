@@ -128,6 +128,7 @@ model WorkItem {
   estimatedEndDate DateTime  @map("estimated_end_date") @db.Date
   completedAt      DateTime? @map("completed_at")
   estimatedHours   Int?      @map("estimated_hours")
+  templateOrder    Int?      @map("template_order")
   kanbanColumnId   String    @map("kanban_column_id") @db.Char(36)
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")

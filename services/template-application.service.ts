@@ -154,7 +154,7 @@ export class TemplateApplicationService {
     const workItems = await prisma.$transaction(async (tx) => {
       // Create all work items
       const createdItems = await Promise.all(
-        calculatedActivities.map((calc) =>
+        calculatedActivities.map((calc, index) =>
           tx.workItem.create({
             data: {
               organizationId,
@@ -168,6 +168,7 @@ export class TemplateApplicationService {
               startDate: calc.startDate,
               estimatedEndDate: calc.estimatedEndDate,
               estimatedHours: calc.estimatedHours,
+              templateOrder: index,
               kanbanColumnId: backlogColumn.id,
             },
           })
