@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, Search, Filter, Check, Pencil, ChevronDown, ChevronRight, Layers, Trash2 } from 'lucide-react'
+import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -11,6 +11,85 @@ import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+// Sortable row component for drag and drop
+function SortableRow({
+  item,
+  isHighlighted,
+  getStatusBadgeColor,
+  getPriorityBadgeColor,
+  getStatusLabel,
+  getPriorityLabel,
+  onEdit,
+  onDelete,
+}: {
+  item: WorkItemSummary
+  isHighlighted: boolean
+  getStatusBadgeColor: (s: WorkItemStatus) => string
+  getPriorityBadgeColor: (p: WorkItemPriority) => string
+  getStatusLabel: (s: WorkItemStatus) => string
+  getPriorityLabel: (p: WorkItemPriority) => string
+  onEdit: (item: WorkItemSummary) => void
+  onDelete: (item: WorkItemSummary) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={`transition-all duration-500 ${isHighlighted ? 'bg-blue-100 border-l-4 border-l-blue-600 shadow-lg' : 'hover:bg-gray-50'}`}
+    >
+      <td className="px-2 py-4 w-8">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </td>
+      <td className="px-6 py-4">
+        <span className="text-sm font-medium text-gray-900">{item.title}</span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(item.status)}`}>
+          {getStatusLabel(item.status)}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityBadgeColor(item.priority)}`}>
+          {getPriorityLabel(item.priority)}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.ownerName}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-right">
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="h-8 w-8 p-0">
+            <Pencil className="h-4 w-4 text-gray-800" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onDelete(item)} className="h-8 w-8 p-0 hover:bg-red-50">
+            <Trash2 className="h-4 w-4 text-red-600" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  )
+}
 
 interface WorkItemsListProps {
   projectId: string
@@ -44,6 +123,45 @@ export function WorkItemsList({
   const [statusFilters, setStatusFilters] = useState<WorkItemStatus[]>([])
   const [priorityFilters, setPriorityFilters] = useState<WorkItemPriority[]>([])
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
+  const [localOrder, setLocalOrder] = useState<Map<string, WorkItemSummary[]>>(new Map())
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  // Sort items: templateOrder nulls go last
+  const sortItems = useCallback((items: WorkItemSummary[]) => {
+    return [...items].sort((a, b) => {
+      if (a.templateOrder == null && b.templateOrder == null) return 0
+      if (a.templateOrder == null) return 1
+      if (b.templateOrder == null) return -1
+      return a.templateOrder - b.templateOrder
+    })
+  }, [])
+
+  const handleDragEnd = async (event: DragEndEvent, phaseKey: string) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const currentItems = localOrder.get(phaseKey) || []
+    const oldIndex = currentItems.findIndex(i => i.id === active.id)
+    const newIndex = currentItems.findIndex(i => i.id === over.id)
+    const newItems = arrayMove(currentItems, oldIndex, newIndex)
+
+    setLocalOrder(prev => new Map(prev).set(phaseKey, newItems))
+
+    // Persist order - send all IDs of this phase in new order
+    try {
+      await fetch(`/api/v1/projects/${projectId}/work-items/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: newItems.map(i => i.id) }),
+      })
+    } catch (e) {
+      console.error('Failed to save order', e)
+    }
+  }
 
   const handleWorkItemCreated = () => {
     setCreateDialogOpen(false)
@@ -208,6 +326,12 @@ export function WorkItemsList({
   useEffect(() => {
     const phases = Object.keys(groupWorkItemsByPhase())
     setExpandedPhases(new Set(phases))
+    // Initialize local order
+    const orderMap = new Map<string, WorkItemSummary[]>()
+    Object.entries(groupWorkItemsByPhase()).forEach(([phase, items]) => {
+      orderMap.set(phase, sortItems(items))
+    })
+    setLocalOrder(orderMap)
   }, [workItems])
 
   const getStatusBadgeColor = (status: WorkItemStatus) => {
@@ -472,6 +596,7 @@ export function WorkItemsList({
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
+                          <th className="px-2 py-3 w-8"></th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                             {t('workItemTitle')}
                           </th>
@@ -489,66 +614,25 @@ export function WorkItemsList({
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {items.map((item) => {
-                          const isHighlighted = highlightedWorkItemId === item.id || 
-                                               highlightedWorkItemId === item.title
-                          
-                          return (
-                            <tr 
-                              key={item.id} 
-                              className={`transition-all duration-500 ${
-                                isHighlighted
-                                  ? 'bg-blue-100 border-l-4 border-l-blue-600 shadow-lg' 
-                                  : 'hover:bg-gray-50'
-                              }`}
-                            >
-                              <td className="px-6 py-4">
-                                <span className="text-sm font-medium text-gray-900">{item.title}</span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(item.status)}`}>
-                                  {getStatusLabel(item.status)}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityBadgeColor(item.priority)}`}>
-                                  {getPriorityLabel(item.priority)}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {item.ownerName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedWorkItem(item)
-                                      setEditDialogOpen(true)
-                                    }}
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <Pencil className="h-4 w-4 text-gray-800" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedWorkItem(item)
-                                      setDeleteDialogOpen(true)
-                                    }}
-                                    className="h-8 w-8 p-0 hover:bg-red-50"
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-600" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, phaseName)}>
+                        <SortableContext items={(localOrder.get(phaseName) || sortItems(items)).map(i => i.id)} strategy={verticalListSortingStrategy}>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {(localOrder.get(phaseName) || sortItems(items)).map((item) => (
+                              <SortableRow
+                                key={item.id}
+                                item={item}
+                                isHighlighted={highlightedWorkItemId === item.id}
+                                getStatusBadgeColor={getStatusBadgeColor}
+                                getPriorityBadgeColor={getPriorityBadgeColor}
+                                getStatusLabel={getStatusLabel}
+                                getPriorityLabel={getPriorityLabel}
+                                onEdit={(i) => { setSelectedWorkItem(i); setEditDialogOpen(true) }}
+                                onDelete={(i) => { setSelectedWorkItem(i); setDeleteDialogOpen(true) }}
+                              />
+                            ))}
+                          </tbody>
+                        </SortableContext>
+                      </DndContext>
                     </table>
                   </div>
                 )}

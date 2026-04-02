@@ -154,6 +154,7 @@ export interface WorkItemSummary {
   estimatedEndDate?: string
   phase?: string | null
   estimatedHours?: number | null
+  templateOrder?: number | null
 }
 
 // Project Metrics types

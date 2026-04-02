@@ -566,6 +566,7 @@ export class ProjectService {
         startDate: item.startDate.toISOString().split('T')[0],
         estimatedEndDate: item.estimatedEndDate.toISOString().split('T')[0],
         phase: item.phase,
+        templateOrder: item.templateOrder,
       }
     })
 
