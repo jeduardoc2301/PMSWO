@@ -12,19 +12,20 @@ async function reorderWorkItemsHandler(
     const { id: projectId } = await context.params
     const { orderedIds } = await request.json()
 
-    if (!Array.isArray(orderedIds)) {
-      return NextResponse.json({ message: 'orderedIds must be an array' }, { status: 400 })
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      return NextResponse.json({ message: 'orderedIds is required' }, { status: 400 })
     }
 
     // Verify project belongs to org
     const project = await prisma.project.findFirst({
       where: { id: projectId, organizationId: authContext.organizationId },
     })
+
     if (!project) {
       return NextResponse.json({ message: 'Project not found' }, { status: 404 })
     }
 
-    // Update templateOrder for each work item
+    // Update templateOrder for each item
     await prisma.$transaction(
       orderedIds.map((id: string, index: number) =>
         prisma.workItem.update({
@@ -36,11 +37,11 @@ async function reorderWorkItemsHandler(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Reorder work items error:', error)
+    console.error('Reorder error:', error)
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
   }
 }
 
 export const POST = withAuth(reorderWorkItemsHandler, {
-  requiredPermissions: [Permission.WORK_ITEM_CREATE],
+  requiredPermissions: [Permission.WORK_ITEM_EDIT],
 })
