@@ -193,7 +193,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
               </div>
               
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <pre className="whitespace-pre-wrap text-sm font-mono">{report}</pre>
+                <pre className="whitespace-pre-wrap text-sm font-mono text-gray-900">{report}</pre>
               </div>
             </div>
           )}
