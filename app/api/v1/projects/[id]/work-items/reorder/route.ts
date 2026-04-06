@@ -43,5 +43,5 @@ async function reorderWorkItemsHandler(
 }
 
 export const POST = withAuth(reorderWorkItemsHandler, {
-  requiredPermissions: [Permission.WORK_ITEM_EDIT],
+  requiredPermissions: [Permission.WORK_ITEM_UPDATE],
 })
