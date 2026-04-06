@@ -316,8 +316,8 @@ export class AIService {
 
       // Call Bedrock
       const report = await this.executeBedrockRequest<string>(prompt, {
-        maxTokens: detailLevel === ReportDetailLevel.COMPLETE ? 8000 : 4096,
-        temperature: 0.5, // Lower temperature for more factual reports
+        maxTokens: 2048,
+        temperature: 0.5,
       })
 
       return report
@@ -390,17 +390,15 @@ Usa un tono profesional y proporciona análisis específico.`
     // COMPLETE
     return `${baseInfo}
 
-Genera un reporte completo y exhaustivo (1000-1500 palabras) que incluya:
+Genera un reporte completo (700-900 palabras) que incluya:
 1. Resumen ejecutivo
-2. Análisis detallado de progreso por work item
-3. Evaluación completa de blockers con impacto y recomendaciones
+2. Análisis de progreso por work item
+3. Evaluación de blockers con impacto
 4. Análisis de riesgos con planes de mitigación
-5. Estado detallado de acuerdos y compromisos
-6. Métricas de performance
-7. Recomendaciones estratégicas y tácticas
-8. Próximos pasos con timeline
+5. Estado de acuerdos
+6. Recomendaciones y próximos pasos
 
-Usa un tono profesional y proporciona análisis profundo con datos específicos.`
+Usa un tono profesional y sé conciso pero completo.`
   }
 
   /**
