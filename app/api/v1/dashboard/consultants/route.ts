@@ -10,7 +10,8 @@ function getHealthStatus(overdueRate: number, criticalBlockers: number, critical
 }
 
 async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthContext) {
-  const consultants = await prisma.user.findMany({
+  try {
+    const consultants = await prisma.user.findMany({
     where: {
       organizationId: auth.organizationId,
       active: true,
@@ -20,8 +21,12 @@ async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthCon
   })
 
   const internalConsultants = consultants.filter((u) => {
-    const roles = Array.isArray(u.roles) ? u.roles : JSON.parse(u.roles as string)
-    return roles.includes(UserRole.INTERNAL_CONSULTANT)
+    try {
+      const roles = Array.isArray(u.roles) ? u.roles : JSON.parse(u.roles as string)
+      return roles.includes(UserRole.INTERNAL_CONSULTANT)
+    } catch {
+      return false
+    }
   })
 
   const now = new Date()
@@ -69,6 +74,10 @@ async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthCon
   )
 
   return NextResponse.json({ consultants: result })
+  } catch (error: any) {
+    console.error('Consultant dashboard error:', error)
+    return NextResponse.json({ message: error.message }, { status: 500 })
+  }
 }
 
 export const GET = withAuth(getConsultantsHandler, {
