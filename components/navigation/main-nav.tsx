@@ -90,7 +90,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
     navItems.splice(navItems.length - 1, 0, {
       href: `/${locale}/consultant-performance`,
       label: 'Rendimiento Consultores',
-      permission: Permission.DASHBOARD_CONSULTANT,
+      permission: undefined,
     })
   }
 
