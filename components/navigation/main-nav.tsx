@@ -81,7 +81,16 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
     navItems.splice(navItems.length - 1, 0, {
       href: `/${locale}/templates`,
       label: t('templates.title'),
-      permission: undefined, // No permission check needed since we already checked roles
+      permission: undefined,
+    })
+  }
+
+  // Add Consultant Performance for ADMIN only
+  if (user.roles.includes(UserRole.ADMIN)) {
+    navItems.splice(navItems.length - 1, 0, {
+      href: `/${locale}/consultant-performance`,
+      label: 'Rendimiento Consultores',
+      permission: Permission.DASHBOARD_CONSULTANT,
     })
   }
 

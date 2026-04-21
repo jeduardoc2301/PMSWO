@@ -65,6 +65,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permission.AI_USE,
     Permission.DASHBOARD_EXECUTIVE,
     Permission.DASHBOARD_PROJECT,
+    Permission.DASHBOARD_CONSULTANT,
     Permission.EXPORT_PROJECT,
   ],
 

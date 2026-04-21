@@ -123,6 +123,7 @@ export enum Permission {
   // Dashboard
   DASHBOARD_EXECUTIVE = 'dashboard:executive',
   DASHBOARD_PROJECT = 'dashboard:project',
+  DASHBOARD_CONSULTANT = 'dashboard:consultant',
 
   // Export
   EXPORT_PROJECT = 'export:project',
