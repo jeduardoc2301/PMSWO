@@ -33,7 +33,8 @@ const nextConfig: NextConfig = {
 
   // Optimización de producción
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    // Keep console.error in production for server-side error visibility in Amplify/CloudWatch
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
   },
 
   // Experimental features para mejor performance

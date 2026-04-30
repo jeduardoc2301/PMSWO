@@ -1,18 +1,14 @@
 import { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
-import { locales } from '@/i18n/config'
 import { ProtectedPage } from '@/components/auth/protected-page'
 import { Permission } from '@/types'
 import { EditProjectClient } from './edit-project-client'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Edit Project',
   description: 'Edit project information',
-}
-
-// Generate static params for all locales
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }))
 }
 
 interface EditProjectPageProps {
@@ -29,8 +25,7 @@ interface EditProjectPageProps {
  */
 export default async function EditProjectPage({ params }: EditProjectPageProps) {
   const { locale, id } = await params
-  
-  // Enable static rendering
+
   setRequestLocale(locale)
 
   return (
