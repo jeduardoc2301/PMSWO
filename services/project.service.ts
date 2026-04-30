@@ -440,11 +440,11 @@ export class ProjectService {
       }
     }
 
-    // Validate date range: end date must be after start date
-    const startDate = data.startDate || existing.startDate
-    const endDate = data.estimatedEndDate || existing.estimatedEndDate
+    // Validate date range using effective dates (submitted or existing)
+    const effectiveStartDate = data.startDate ?? existing.startDate
+    const effectiveEndDate = data.estimatedEndDate ?? existing.estimatedEndDate
 
-    if (endDate <= startDate) {
+    if (effectiveEndDate <= effectiveStartDate) {
       throw new ValidationError('Estimated end date must be after start date')
     }
 
@@ -456,17 +456,23 @@ export class ProjectService {
       }
     }
 
+    // Build update payload only with explicitly provided fields
+    const updatePayload: Record<string, unknown> = {}
+    if (data.name !== undefined) updatePayload.name = data.name.trim()
+    if (data.description !== undefined) updatePayload.description = data.description.trim()
+    if (data.client !== undefined) updatePayload.client = data.client.trim()
+    if (data.startDate !== undefined) updatePayload.startDate = data.startDate
+    if (data.estimatedEndDate !== undefined) updatePayload.estimatedEndDate = data.estimatedEndDate
+    if (data.status !== undefined) updatePayload.status = data.status
+
+    if (Object.keys(updatePayload).length === 0) {
+      throw new ValidationError('No fields provided to update')
+    }
+
     // Update project
     const project = await prisma.project.update({
       where: { id },
-      data: {
-        ...(data.name && { name: data.name.trim() }),
-        ...(data.description && { description: data.description.trim() }),
-        ...(data.client && { client: data.client.trim() }),
-        ...(data.startDate && { startDate: data.startDate }),
-        ...(data.estimatedEndDate && { estimatedEndDate: data.estimatedEndDate }),
-        ...(data.status && { status: data.status }),
-      },
+      data: updatePayload,
     })
 
     return project

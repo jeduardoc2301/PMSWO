@@ -3,6 +3,7 @@ import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { projectService } from '@/services/project.service'
 import { Permission, ProjectStatus } from '@/types'
 import { NotFoundError, ValidationError } from '@/lib/errors'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 /**
@@ -68,6 +69,15 @@ async function getProjectHandler(
           message: 'Project not found',
         },
         { status: 404 }
+      )
+    }
+
+    // Handle Prisma known errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error('Prisma error code:', error.code, 'meta:', error.meta)
+      return NextResponse.json(
+        { error: 'DATABASE_ERROR', message: 'A database error occurred while fetching the project' },
+        { status: 500 }
       )
     }
 
@@ -238,6 +248,21 @@ async function updateProjectHandler(
           message: 'Project not found',
         },
         { status: 404 }
+      )
+    }
+
+    // Handle Prisma known errors (P2025 = record not found on update, etc.)
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error('Prisma error code:', error.code, 'meta:', error.meta)
+      if (error.code === 'P2025') {
+        return NextResponse.json(
+          { error: 'NOT_FOUND', message: 'Project not found' },
+          { status: 404 }
+        )
+      }
+      return NextResponse.json(
+        { error: 'DATABASE_ERROR', message: 'A database error occurred while updating the project' },
+        { status: 500 }
       )
     }
 
