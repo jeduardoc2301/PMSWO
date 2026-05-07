@@ -23,7 +23,7 @@ async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthCon
   const internalConsultants = consultants.filter((u) => {
     try {
       const roles = Array.isArray(u.roles) ? u.roles : JSON.parse(u.roles as string)
-      return roles.includes(UserRole.INTERNAL_CONSULTANT)
+      return roles.includes(UserRole.INTERNAL_CONSULTANT) || roles.includes(UserRole.EXTERNAL_CONSULTANT)
     } catch {
       return false
     }
