@@ -20,19 +20,10 @@ async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthCon
     select: { id: true, name: true, email: true, roles: true },
   })
 
-  const internalConsultants = consultants.filter((u) => {
-    try {
-      const roles = Array.isArray(u.roles) ? u.roles : JSON.parse(u.roles as string)
-      return roles.includes(UserRole.INTERNAL_CONSULTANT) || roles.includes(UserRole.EXTERNAL_CONSULTANT)
-    } catch {
-      return false
-    }
-  })
-
   const now = new Date()
 
   const result = await Promise.all(
-    internalConsultants.map(async (c) => {
+    consultants.map(async (c) => {
       const workItems = await prisma.workItem.findMany({
         where: { ownerId: c.id, organizationId: auth.organizationId },
         select: { id: true, status: true, estimatedEndDate: true, projectId: true },
