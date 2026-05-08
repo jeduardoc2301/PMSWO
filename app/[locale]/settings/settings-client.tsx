@@ -1,25 +1,9 @@
 'use client'
 
-/**
- * Settings Client Component
- * 
- * Client-side component that handles the user settings form.
- * Allows users to view their profile and change their locale preference.
- * Requirements: 13.3, 13.4
- */
-
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Locale } from '@/types'
 
 interface SettingsClientProps {
@@ -35,154 +19,115 @@ export function SettingsClient({ locale }: SettingsClientProps) {
   const [isFetching, setIsFetching] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Fetch user's current locale preference
   useEffect(() => {
-    async function fetchLocale() {
-      try {
-        const response = await fetch('/api/v1/users/locale')
-        if (response.ok) {
-          const data = await response.json()
-          setSelectedLocale(data.locale)
-        }
-      } catch (error) {
-        console.error('Error fetching locale:', error)
-      } finally {
-        setIsFetching(false)
-      }
-    }
-
-    fetchLocale()
+    fetch('/api/v1/users/locale')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.locale) setSelectedLocale(d.locale) })
+      .catch(() => {})
+      .finally(() => setIsFetching(false))
   }, [])
 
   const handleSave = async () => {
     setIsLoading(true)
     setMessage(null)
-
     try {
-      // Save locale preference
-      const response = await fetch('/api/v1/users/locale', {
+      const res = await fetch('/api/v1/users/locale', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locale: selectedLocale }),
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to save preferences')
-      }
-
-      // Show success message
-      setMessage({
-        type: 'success',
-        text: t('settings.saveSuccess'),
-      })
-
-      // Redirect to the same page with the new locale
-      setTimeout(() => {
-        router.push(`/${selectedLocale}/settings`)
-        router.refresh()
-      }, 1000)
-    } catch (error) {
-      console.error('Error saving preferences:', error)
-      setMessage({
-        type: 'error',
-        text: t('settings.saveError'),
-      })
+      if (!res.ok) throw new Error('Failed to save preferences')
+      setMessage({ type: 'success', text: t('settings.saveSuccess') })
+      setTimeout(() => { router.push(`/${selectedLocale}/settings`); router.refresh() }, 1000)
+    } catch {
+      setMessage({ type: 'error', text: t('settings.saveError') })
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (isFetching) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-gray-700">{t('common.loading')}</div>
-      </div>
-    )
-  }
+  const initials = session?.user?.name
+    ? session.user.name.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase()
+    : '?'
+
+  if (isFetching) return (
+    <div className="flex items-center justify-center py-16 gap-3 text-zinc-500">
+      <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+      {t('common.loading')}
+    </div>
+  )
 
   return (
-    <div className="space-y-6">
-      {/* Profile Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          {t('settings.profile')}
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('auth.email')}
-            </label>
-            <div className="text-gray-900">{session?.user?.email}</div>
+    <div className="space-y-4">
+      {/* Profile card */}
+      <div className="rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-5">{t('settings.profile')}</h2>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
+            {initials}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('common.appName')}
-            </label>
-            <div className="text-gray-900">{session?.user?.name}</div>
+            <div className="text-base font-semibold text-white">{session?.user?.name}</div>
+            <div className="text-sm text-zinc-400 mt-0.5">{session?.user?.email}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+            <div className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">{t('auth.email')}</div>
+            <div className="text-sm text-zinc-200">{session?.user?.email}</div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+            <div className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Nombre</div>
+            <div className="text-sm text-zinc-200">{session?.user?.name}</div>
           </div>
           {session?.user?.roles && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Roles
-              </label>
-              <div className="text-gray-900">
-                {session.user.roles.map((role: string) => role.replace('_', ' ')).join(', ')}
+            <div className="col-span-2 rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <div className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">Roles</div>
+              <div className="flex flex-wrap gap-2">
+                {session.user.roles.map((role: string) => (
+                  <span key={role} className="text-[11px] px-2 py-1 rounded-full text-indigo-300 font-medium"
+                    style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)' }}>
+                    {role.replace(/_/g, ' ')}
+                  </span>
+                ))}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Language Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          {t('settings.language')}
-        </h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('settings.languageDescription')}
-            </label>
-            <Select
-              value={selectedLocale}
-              onValueChange={(value) => setSelectedLocale(value as Locale)}
-            >
-              <SelectTrigger className="w-full max-w-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="es">{t('settings.spanish')}</SelectItem>
-                <SelectItem value="pt">{t('settings.portuguese')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Language card */}
+      <div className="rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-5">{t('settings.language')}</h2>
+        <p className="text-sm text-zinc-400 mb-4">{t('settings.languageDescription')}</p>
 
-          {/* Message Display */}
-          {message && (
-            <div
-              className={`p-4 rounded-md ${
-                message.type === 'success'
-                  ? 'bg-green-50 text-green-800 border border-green-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-              }`}
-            >
-              {message.text}
-            </div>
-          )}
-
-          {/* Save Button */}
-          <div>
-            <Button
-              onClick={handleSave}
-              disabled={isLoading || selectedLocale === locale}
-              className="w-full max-w-xs"
-            >
-              {isLoading ? t('common.loading') : t('common.save')}
-            </Button>
-          </div>
+        <div className="flex gap-3 mb-5">
+          {(['es', 'pt'] as Locale[]).map((loc) => (
+            <button key={loc} onClick={() => setSelectedLocale(loc)}
+              className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
+              style={selectedLocale === loc
+                ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc' }
+                : { background: '#111113', border: '1px solid #27272a', color: '#71717a' }}>
+              {loc === 'es' ? t('settings.spanish') : t('settings.portuguese')}
+            </button>
+          ))}
         </div>
+
+        {message && (
+          <div className="rounded-lg p-3 text-sm mb-4"
+            style={message.type === 'success'
+              ? { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }
+              : { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
+            {message.text}
+          </div>
+        )}
+
+        <button onClick={handleSave} disabled={isLoading || selectedLocale === locale}
+          className="h-9 px-5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+          style={{ background: '#6366f1' }}>
+          {isLoading ? `${t('common.save')}...` : t('common.save')}
+        </button>
       </div>
     </div>
   )

@@ -113,16 +113,17 @@ export function TemplateList({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
-        <span className="ml-2 text-gray-700">{t('loadingTemplates', { defaultValue: 'Cargando plantillas...' })}</span>
+      <div className="flex items-center justify-center py-16 gap-3 text-zinc-500">
+        <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+        <span>{t('loadingTemplates', { defaultValue: 'Cargando plantillas...' })}</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="rounded-xl p-4 text-sm text-rose-400"
+        style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
         {error}
       </div>
     )
@@ -130,21 +131,18 @@ export function TemplateList({
 
   if (templates.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-700">
-          {searchQuery || categoryFilter
-            ? t('noResultsFound', { defaultValue: 'No se encontraron plantillas' })
-            : t('noTemplates', { defaultValue: 'No hay plantillas disponibles' })
-          }
-        </p>
+      <div className="rounded-xl p-16 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <div className="text-base font-semibold text-white">Sin plantillas que coincidan</div>
+        <div className="text-sm text-zinc-500 mt-2">
+          {searchQuery || categoryFilter ? 'Prueba ajustando los filtros.' : 'Crea tu primera plantilla.'}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Grid of template cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {templates.map((template) => (
           <TemplateCard
             key={template.id}
@@ -158,28 +156,17 @@ export function TemplateList({
         ))}
       </div>
 
-      {/* Pagination controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <div className="text-sm text-gray-700">
-            {t('page', { defaultValue: 'Página' })} {currentPage} {t('of', { defaultValue: 'de' })} {totalPages}
+        <div className="flex items-center justify-between pt-2">
+          <div className="text-xs text-zinc-500">
+            Página {currentPage} de {totalPages}
           </div>
-          
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-            >
-              {t('previous', { defaultValue: 'Anterior' })}
+            <Button variant="outline" onClick={handlePreviousPage} disabled={currentPage === 1}>
+              ← Anterior
             </Button>
-            
-            <Button
-              variant="outline"
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-            >
-              {t('next', { defaultValue: 'Siguiente' })}
+            <Button variant="outline" onClick={handleNextPage} disabled={currentPage === totalPages}>
+              Siguiente →
             </Button>
           </div>
         </div>

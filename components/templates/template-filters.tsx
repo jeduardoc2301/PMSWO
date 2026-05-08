@@ -1,17 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { Search, ChevronDown, Check, X } from 'lucide-react'
 
-interface TemplateCategory {
-  id: string
-  name: string
-}
+interface TemplateCategory { id: string; name: string }
 
 interface TemplateFiltersProps {
   onFilterChange?: (filters: FilterValues) => void
@@ -25,201 +18,163 @@ export interface FilterValues {
 }
 
 export function TemplateFilters({ onFilterChange }: TemplateFiltersProps) {
-  const t = useTranslations('templates')
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   const [categories, setCategories] = useState<TemplateCategory[]>([])
-  const [loadingCategories, setLoadingCategories] = useState(true)
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '')
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || '')
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
     (searchParams.get('sortOrder') as 'asc' | 'desc') || 'asc'
   )
+  const [catOpen, setCatOpen] = useState(false)
+  const [sortOpen, setSortOpen] = useState(false)
+  const catRef = useRef<HTMLDivElement>(null)
+  const sortRef = useRef<HTMLDivElement>(null)
 
-  // Fetch categories on mount
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoadingCategories(true)
-        const response = await fetch('/api/v1/template-categories')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories')
-        }
-        
-        const data = await response.json()
-        setCategories(data.categories || [])
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-      } finally {
-        setLoadingCategories(false)
-      }
+    const h = (e: MouseEvent) => {
+      if (!catRef.current?.contains(e.target as Node)) setCatOpen(false)
+      if (!sortRef.current?.contains(e.target as Node)) setSortOpen(false)
     }
-
-    fetchCategories()
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  // Debounced search effect (300ms)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      updateFilters({ search: searchInput || undefined })
-    }, 300)
+    fetch('/api/v1/template-categories')
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories || []))
+      .catch(() => {})
+  }, [])
 
-    return () => clearTimeout(timer)
+  useEffect(() => {
+    const t = setTimeout(() => updateFilters({ search: searchInput || undefined }), 300)
+    return () => clearTimeout(t)
   }, [searchInput])
 
   const updateFilters = (updates: Partial<FilterValues>) => {
-    const newFilters: FilterValues = {
+    const f: FilterValues = {
       category: categoryFilter || undefined,
       search: searchInput || undefined,
       sortBy,
       sortOrder,
       ...updates,
     }
-
-    // Update URL query params
     const params = new URLSearchParams()
-    
-    if (newFilters.category) {
-      params.set('category', newFilters.category)
-    }
-    
-    if (newFilters.search) {
-      params.set('search', newFilters.search)
-    }
-    
-    if (newFilters.sortBy) {
-      params.set('sortBy', newFilters.sortBy)
-    }
-    
-    if (newFilters.sortOrder) {
-      params.set('sortOrder', newFilters.sortOrder)
-    }
-
-    // Update URL without page reload
-    const queryString = params.toString()
-    router.push(queryString ? `?${queryString}` : window.location.pathname, { scroll: false })
-
-    // Notify parent component
-    if (onFilterChange) {
-      onFilterChange(newFilters)
-    }
+    if (f.category) params.set('category', f.category)
+    if (f.search) params.set('search', f.search)
+    if (f.sortBy) params.set('sortBy', f.sortBy)
+    if (f.sortOrder) params.set('sortOrder', f.sortOrder)
+    const qs = params.toString()
+    router.push(qs ? `?${qs}` : window.location.pathname, { scroll: false })
+    onFilterChange?.(f)
   }
 
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value)
-    updateFilters({ category: value || undefined })
+  const handleCategory = (v: string) => {
+    setCategoryFilter(v)
+    updateFilters({ category: v || undefined })
+    setCatOpen(false)
   }
 
-  const handleSortChange = (value: string) => {
-    setSortBy(value)
-    updateFilters({ sortBy: value })
+  const handleSort = (v: string) => {
+    setSortBy(v)
+    updateFilters({ sortBy: v })
+    setSortOpen(false)
   }
 
-  const handleSortOrderToggle = () => {
-    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc'
-    setSortOrder(newOrder)
-    updateFilters({ sortOrder: newOrder })
-  }
-
-  const handleClearFilters = () => {
-    setSearchInput('')
-    setCategoryFilter('')
-    setSortBy('name')
-    setSortOrder('asc')
-    
-    // Clear URL params
+  const clearAll = () => {
+    setSearchInput(''); setCategoryFilter(''); setSortBy('name'); setSortOrder('asc')
     router.push(window.location.pathname, { scroll: false })
-    
-    // Notify parent
-    if (onFilterChange) {
-      onFilterChange({})
-    }
+    onFilterChange?.({})
   }
 
-  const hasActiveFilters = searchInput || categoryFilter || sortBy !== 'name' || sortOrder !== 'asc'
+  const hasFilters = searchInput || categoryFilter || sortBy !== 'name' || sortOrder !== 'asc'
+
+  const sortOptions: [string, string][] = [
+    ['name', 'Nombre'], ['updatedAt', 'Actualizado'], ['usageCount', 'Más usado'], ['lastUsedAt', 'Último uso'],
+  ]
+
+  const catLabel = categories.find((c) => c.id === categoryFilter)?.name ?? 'Todas las categorías'
+  const sortLabel = sortOptions.find(([v]) => v === sortBy)?.[1] ?? 'Nombre'
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {t('filters', { defaultValue: 'Filtros' })}
-        </h3>
-        
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-            {t('clearFilters', { defaultValue: 'Limpiar Filtros' })}
-          </Button>
+    <div className="flex items-center gap-2 mb-6 flex-wrap">
+      {/* Search */}
+      <div className="relative flex-1 max-w-xs">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Buscar plantillas..."
+          className="w-full h-9 pl-9 pr-3 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+          style={{ background: '#18181b', border: '1px solid #27272a' }}
+        />
+      </div>
+
+      {/* Category dropdown */}
+      <div ref={catRef} className="relative">
+        <button
+          onClick={() => setCatOpen((o) => !o)}
+          className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm transition-all hover:border-zinc-600"
+          style={{ background: '#18181b', border: '1px solid #27272a', color: '#a1a1aa' }}>
+          <span className="text-xs text-zinc-600">Categoría:</span>
+          <span className="text-zinc-300">{catLabel}</span>
+          <ChevronDown size={12} />
+        </button>
+        {catOpen && (
+          <div className="absolute top-full left-0 mt-1 rounded-xl py-1.5 z-50"
+            style={{ background: '#1c1c1f', border: '1px solid #27272a', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', minWidth: 180 }}>
+            <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-semibold px-3 pb-2">Categoría</div>
+            {[{ id: '', name: 'Todas las categorías' }, ...categories].map((c) => (
+              <button key={c.id} onClick={() => handleCategory(c.id)}
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all">
+                {c.name}
+                {categoryFilter === c.id && <Check size={12} className="ml-auto text-indigo-400" />}
+              </button>
+            ))}
+          </div>
         )}
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Category Filter */}
-        <div>
-          <Label htmlFor="category">{t('category')}</Label>
-          {loadingCategories ? (
-            <div className="flex items-center h-10 px-3 border border-gray-300 rounded-md bg-gray-50">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-700" />
-              <span className="ml-2 text-sm text-gray-700">{t('loading')}</span>
-            </div>
-          ) : (
-            <select
-              id="category"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={categoryFilter}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-            >
-              <option value="">{t('allCategories')}</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
 
-        {/* Search Input */}
-        <div>
-          <Label htmlFor="search">{t('searchTemplates')}</Label>
-          <Input
-            id="search"
-            type="text"
-            placeholder={t('placeholders.searchTemplates')}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-
-        {/* Sort Dropdown */}
-        <div>
-          <Label htmlFor="sortBy">{t('sortBy')}</Label>
-          <div className="flex gap-2">
-            <select
-              id="sortBy"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={sortBy}
-              onChange={(e) => handleSortChange(e.target.value)}
-            >
-              <option value="name">{t('sortByName')}</option>
-              <option value="updatedAt">{t('sortByUpdated')}</option>
-              <option value="usageCount">{t('sortByUsage')}</option>
-              <option value="lastUsedAt">{t('sortByLastUsed')}</option>
-            </select>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleSortOrderToggle}
-              title={sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </Button>
+      {/* Sort dropdown */}
+      <div ref={sortRef} className="relative">
+        <button
+          onClick={() => setSortOpen((o) => !o)}
+          className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm transition-all hover:border-zinc-600"
+          style={{ background: '#18181b', border: '1px solid #27272a', color: '#a1a1aa' }}>
+          <span className="text-xs text-zinc-600">Ordenar:</span>
+          <span className="text-zinc-300">{sortLabel}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); const n = sortOrder === 'asc' ? 'desc' : 'asc'; setSortOrder(n); updateFilters({ sortOrder: n }) }}
+            className="ml-0.5 text-zinc-500 hover:text-zinc-200">
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </button>
+          <ChevronDown size={12} />
+        </button>
+        {sortOpen && (
+          <div className="absolute top-full left-0 mt-1 rounded-xl py-1.5 z-50"
+            style={{ background: '#1c1c1f', border: '1px solid #27272a', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', minWidth: 160 }}>
+            {sortOptions.map(([v, l]) => (
+              <button key={v} onClick={() => handleSort(v)}
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all">
+                {l}
+                {sortBy === v && <Check size={12} className="ml-auto text-indigo-400" />}
+              </button>
+            ))}
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Clear filters */}
+      {hasFilters && (
+        <button onClick={clearAll}
+          className="h-9 flex items-center gap-1.5 px-3 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-all"
+          style={{ border: '1px solid #27272a' }}>
+          <X size={12} /> Limpiar
+        </button>
+      )}
     </div>
   )
 }
