@@ -1,20 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { ProjectStatus, Permission, UserRole } from '@/types'
 import { hasPermission } from '@/lib/rbac'
-import { PageHeader } from '@/components/layout'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import Link from 'next/link'
+import {
+  LayoutGrid, Table2, Plus, Search, ChevronDown, Check, Flag,
+  Calendar, ShieldAlert, ArrowRight, FolderSearch, BookmarkPlus,
+  Archive, Download, UserPlus, Circle,
+} from 'lucide-react'
+
+// ─── types ───────────────────────────────────────────────────────────────────
 
 interface Project {
   id: string
   name: string
-  description: string
+  description?: string
   client: string
   startDate: string
   estimatedEndDate: string
@@ -22,373 +25,481 @@ interface Project {
   archived: boolean
   createdAt: string
   updatedAt: string
-  _count?: {
-    workItems: number
-    blockers: number
-    risks: number
+  _count?: { workItems: number; blockers: number; risks: number }
+}
+
+interface Pagination {
+  page: number; limit: number; total: number; totalPages: number
+}
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+function statusLabel(s: string) {
+  return ({ ACTIVE: 'Activo', PLANNING: 'Planeación', ON_HOLD: 'En pausa', COMPLETED: 'Completado', ARCHIVED: 'Archivado' } as Record<string, string>)[s] ?? s
+}
+
+function healthHex(pct: number) {
+  return pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444'
+}
+
+// ─── Status dropdown pill ─────────────────────────────────────────────────────
+
+function StatusPill({ projectId, status, onUpdate }: {
+  projectId: string; status: string; onUpdate: (id: string, s: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const cls: Record<string, string> = {
+    ACTIVE: 'pms-status-ACTIVE', PLANNING: 'pms-status-PLANNING',
+    ON_HOLD: 'pms-status-ON_HOLD', COMPLETED: 'pms-status-COMPLETED', ARCHIVED: 'pms-status-ARCHIVED',
   }
+
+  const dotColor: Record<string, string> = {
+    ACTIVE: 'bg-emerald-400', PLANNING: 'bg-indigo-400', ON_HOLD: 'bg-amber-400',
+    COMPLETED: 'bg-emerald-600', ARCHIVED: 'bg-zinc-600',
+  }
+
+  return (
+    <div ref={ref} className="relative" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen((o) => !o) }}>
+      <span className={`pms-status-pill ${cls[status] ?? 'pms-status-ARCHIVED'}`}>
+        {statusLabel(status)}
+        <ChevronDown size={10} />
+      </span>
+      {open && (
+        <div className="pms-menu" style={{ top: '100%', right: 0, marginTop: 4 }}
+          onClick={(e) => { e.stopPropagation(); e.preventDefault() }}>
+          <div className="pms-menu-label">Cambiar estado</div>
+          {['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED'].map((s) => (
+            <button key={s} onClick={() => { onUpdate(projectId, s); setOpen(false) }}>
+              <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${dotColor[s]}`} />
+              {statusLabel(s)}
+              {status === s && <Check size={12} className="ml-auto text-indigo-400" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
-interface PaginationInfo {
-  page: number
-  limit: number
-  total: number
-  totalPages: number
+// ─── Project Card ─────────────────────────────────────────────────────────────
+
+function ProjectCard({ project, locale, onStatusUpdate }: {
+  project: Project; locale: string; onStatusUpdate: (id: string, s: string) => void
+}) {
+  const progress = 0 // no completion rate in list view
+  const initials = project.name.slice(0, 2).toUpperCase()
+
+  return (
+    <a href={`/${locale}/projects/${project.id}`}
+      className="rounded-xl p-5 flex flex-col gap-4 transition-all hover:border-zinc-600 cursor-pointer"
+      style={{ background: '#18181b', border: '1px solid #27272a', textDecoration: 'none' }}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-indigo-900/30 text-indigo-300 border border-indigo-800/40">
+            {project.status === ProjectStatus.ACTIVE ? 'Activo' :
+             project.status === ProjectStatus.PLANNING ? 'Planeación' :
+             project.status === ProjectStatus.ON_HOLD ? 'En pausa' : 'Otro'}
+          </span>
+        </div>
+        <div onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
+          <StatusPill projectId={project.id} status={project.status} onUpdate={onStatusUpdate} />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-zinc-100 truncate">{project.name}</div>
+          <div className="text-[11px] text-zinc-500 truncate">{project.client}</div>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-zinc-500">
+            {project._count?.workItems ?? 0} tareas
+          </span>
+          <span className="text-zinc-500">{progress}%</span>
+        </div>
+        <div className="pms-progress">
+          <div style={{ width: `${progress}%`, background: healthHex(progress) }} />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid #27272a' }}>
+        <div className="flex items-center gap-1 text-[11px] text-zinc-500">
+          <Calendar size={11} />
+          {new Date(project.estimatedEndDate).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {(project._count?.blockers ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-rose-900/30 text-rose-300 border border-rose-800/40">
+              <ShieldAlert size={9} />{project._count!.blockers}
+            </span>
+          )}
+        </div>
+      </div>
+    </a>
+  )
 }
 
-/**
- * Projects list page client component
- * Displays projects in table view with search and filtering
- * Shows "Create Project" button based on role permissions
- * Requirements: 3.1, 3.5
- */
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function ProjectsPageClient() {
   const { data: session } = useSession()
   const pathname = usePathname()
-  // Extract locale from pathname instead of using useLocale()
   const locale = pathname.startsWith('/pt') ? 'pt' : 'es'
   const t = useTranslations('projects.list')
   const tStatus = useTranslations('projects.status')
+
   const [projects, setProjects] = useState<Project[]>([])
-  const [pagination, setPagination] = useState<PaginationInfo>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  })
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Filter states
+  const [view, setView] = useState<'grid' | 'table'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('')
   const [clientFilter, setClientFilter] = useState('')
   const [includeArchived, setIncludeArchived] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
-  // Check if user can create projects
   const canCreateProject = session?.user?.roles
     ? hasPermission(session.user.roles as UserRole[], Permission.PROJECT_CREATE)
     : false
 
-  // DEBUG: Log session and permission check
-  console.log('[DEBUG] Session:', session)
-  console.log('[DEBUG] User roles:', session?.user?.roles)
-  console.log('[DEBUG] Can create project:', canCreateProject)
-  console.log('[DEBUG] Permission.PROJECT_CREATE:', Permission.PROJECT_CREATE)
-
-  // Fetch projects
   const fetchProjects = async () => {
     try {
       setLoading(true)
       setError(null)
-
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
       })
-
       if (statusFilter) params.append('status', statusFilter)
       if (clientFilter) params.append('client', clientFilter)
       if (includeArchived) params.append('includeArchived', 'true')
-
-      const response = await fetch(`/api/v1/projects?${params.toString()}`)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to fetch projects')
-      }
-
-      const data = await response.json()
+      const res = await fetch(`/api/v1/projects?${params}`)
+      if (!res.ok) throw new Error((await res.json()).message ?? 'Error')
+      const data = await res.json()
       setProjects(data.projects)
       setPagination(data.pagination)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : 'Error')
     } finally {
       setLoading(false)
     }
   }
 
-  // Fetch projects on mount and when filters change
-  useEffect(() => {
-    fetchProjects()
-  }, [pagination.page, statusFilter, clientFilter, includeArchived])
+  useEffect(() => { fetchProjects() }, [pagination.page, statusFilter, clientFilter, includeArchived])
 
-  // Handle search with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery !== clientFilter) {
         setClientFilter(searchQuery)
-        setPagination((prev) => ({ ...prev, page: 1 }))
+        setPagination((p) => ({ ...p, page: 1 }))
       }
     }, 500)
-
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  const getStatusColor = (status: ProjectStatus) => {
-    switch (status) {
-      case ProjectStatus.ACTIVE:
-        return 'bg-blue-100 text-blue-800'
-      case ProjectStatus.PLANNING:
-        return 'bg-purple-100 text-purple-800'
-      case ProjectStatus.ON_HOLD:
-        return 'bg-yellow-100 text-yellow-800'
-      case ProjectStatus.COMPLETED:
-        return 'bg-green-100 text-green-800'
-      case ProjectStatus.ARCHIVED:
-        return 'bg-gray-100 text-gray-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
+  const handleStatusUpdate = async (projectId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (res.ok) fetchProjects()
+    } catch {}
   }
 
-  const getStatusLabel = (status: ProjectStatus) => {
-    switch (status) {
-      case ProjectStatus.PLANNING:
-        return tStatus('planning')
-      case ProjectStatus.ACTIVE:
-        return tStatus('active')
-      case ProjectStatus.ON_HOLD:
-        return tStatus('onHold')
-      case ProjectStatus.COMPLETED:
-        return tStatus('completed')
-      case ProjectStatus.ARCHIVED:
-        return tStatus('archived')
-      default:
-        return status
-    }
+  const toggleSel = (id: string) => {
+    const ns = new Set(selected)
+    ns.has(id) ? ns.delete(id) : ns.add(id)
+    setSelected(ns)
   }
 
-  // ✅ CORREGIDO: Usar locale en lugar de 'en-US'
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
+
+  // ─── Status filter dropdown ────────────────────────────────────────────────
+  const [statusOpen, setStatusOpen] = useState(false)
+  const statusRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (!statusRef.current?.contains(e.target as Node)) setStatusOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const statusOptions: [string, string][] = [
+    ['', 'Todos'], ['PLANNING', 'Planeación'], ['ACTIVE', 'Activo'],
+    ['ON_HOLD', 'En pausa'], ['COMPLETED', 'Completado'], ['ARCHIVED', 'Archivado'],
+  ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <PageHeader
-        title={t('title')}
-        description={t('description')}
-        action={
-          canCreateProject ? (
-            <Link href={`/${locale}/projects/new`}>
-              <Button>{t('createProject')}</Button>
-            </Link>
-          ) : undefined
-        }
-      />
+    <div className="min-h-screen" style={{ background: '#09090b' }}>
+      {/* Topbar */}
+      <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
+        <div>
+          <h1 className="text-lg font-semibold text-white">{t('title')}</h1>
+          <div className="text-xs text-zinc-500 mt-0.5">
+            {pagination.total > 0 ? `${projects.length} de ${pagination.total}` : `${projects.length} proyectos`}
+          </div>
+        </div>
+        {canCreateProject && (
+          <a href={`/${locale}/projects/new`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+            style={{ background: '#6366f1' }}>
+            <Plus size={16} /> Nuevo proyecto
+          </a>
+        )}
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div>
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('searchByClient')}
-              </label>
-              <Input
-                id="search"
-                type="text"
-                placeholder={t('searchPlaceholder')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+      <div className="p-8">
+        {/* Filter bar */}
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1 max-w-xs">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por nombre, cliente..."
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              style={{ background: '#18181b', border: '1px solid #27272a' }}
+            />
+          </div>
 
-            {/* Status filter */}
-            <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('status')}
-              </label>
-              <select
-                id="status"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as ProjectStatus | '')
-                  setPagination((prev) => ({ ...prev, page: 1 }))
-                }}
-                className={`flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
-                  statusFilter === '' ? 'text-gray-700' : 'text-gray-900'
-                }`}
-              >
-                <option value="">{t('allStatuses')}</option>
-                <option value={ProjectStatus.PLANNING}>{tStatus('planning')}</option>
-                <option value={ProjectStatus.ACTIVE}>{tStatus('active')}</option>
-                <option value={ProjectStatus.ON_HOLD}>{tStatus('onHold')}</option>
-                <option value={ProjectStatus.COMPLETED}>{tStatus('completed')}</option>
-                {includeArchived && <option value={ProjectStatus.ARCHIVED}>{tStatus('archived')}</option>}
-              </select>
-            </div>
+          {/* Status filter */}
+          <div ref={statusRef} className="relative">
+            <button
+              onClick={() => setStatusOpen((o) => !o)}
+              className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm transition-all hover:border-zinc-600"
+              style={{ background: '#18181b', border: '1px solid #27272a', color: '#a1a1aa' }}
+            >
+              <span className="text-xs text-zinc-600">Estado:</span>
+              <span className="text-zinc-300">{statusOptions.find(([v]) => v === statusFilter)?.[1] ?? 'Todos'}</span>
+              <ChevronDown size={12} />
+            </button>
+            {statusOpen && (
+              <div className="pms-menu" style={{ top: '100%', left: 0, marginTop: 4 }}>
+                {statusOptions.map(([v, l]) => (
+                  <button key={v} onClick={() => {
+                    setStatusFilter(v as ProjectStatus | '')
+                    setPagination((p) => ({ ...p, page: 1 }))
+                    setStatusOpen(false)
+                  }}>
+                    {l}
+                    {statusFilter === v && <Check size={12} className="ml-auto text-indigo-400" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {/* Include archived */}
-            <div className="flex items-end">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeArchived}
-                  onChange={(e) => {
-                    setIncludeArchived(e.target.checked)
-                    setPagination((prev) => ({ ...prev, page: 1 }))
-                  }}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">{t('includeArchived')}</span>
-              </label>
+          {/* Archived toggle */}
+          <label className="flex items-center gap-2 cursor-pointer h-9 px-3 rounded-lg text-sm text-zinc-400 hover:bg-zinc-900 transition-all"
+            style={{ border: '1px solid #27272a' }}>
+            <input type="checkbox" checked={includeArchived} onChange={(e) => {
+              setIncludeArchived(e.target.checked)
+              setPagination((p) => ({ ...p, page: 1 }))
+            }} className="w-3.5 h-3.5 accent-indigo-500" />
+            Archivados
+          </label>
+
+          <button className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm text-zinc-400 hover:bg-zinc-900 transition-all"
+            style={{ border: '1px solid #27272a' }}>
+            <BookmarkPlus size={14} /> Guardar vista
+          </button>
+
+          <div className="ml-auto flex items-center">
+            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
+              <button onClick={() => setView('grid')}
+                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'grid' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                <LayoutGrid size={15} />
+              </button>
+              <button onClick={() => setView('table')}
+                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'table' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                <Table2 size={15} />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Error message */}
+        {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <div className="rounded-xl p-4 mb-6 text-sm text-rose-400"
+            style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
             {error}
           </div>
         )}
 
-        {/* Loading state */}
+        {/* Loading */}
         {loading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-700">{t('loading')}</p>
+          <div className="flex items-center justify-center py-16 text-zinc-500 gap-3">
+            <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+            {t('loading')}
           </div>
         )}
 
-        {/* Projects table */}
+        {/* Empty state */}
         {!loading && projects.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-700 mb-4">{t('noProjects')}</p>
+          <div className="rounded-xl p-16 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+              style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
+              <FolderSearch size={28} className="text-indigo-400" />
+            </div>
+            <div className="text-base font-semibold text-white">Sin proyectos que coincidan</div>
+            <div className="text-sm text-zinc-500 mt-2 max-w-sm mx-auto">
+              Prueba ajustando los filtros, o crea tu primer proyecto.
+            </div>
             {canCreateProject && (
-              <Link href={`/${locale}/projects/new`}>
-                <Button>{t('createFirstProject')}</Button>
-              </Link>
+              <a href={`/${locale}/projects/new`}
+                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
+                style={{ background: '#6366f1' }}>
+                <Plus size={16} /> Nuevo proyecto
+              </a>
             )}
           </div>
         )}
 
-        {!loading && projects.length > 0 && (
-          <>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {t('table.project')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {t('table.client')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {t('table.status')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {t('table.startDate')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {t('table.endDate')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                        {t('table.metrics')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {projects.map((project) => (
-                      <tr key={project.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <Link
-                            href={`/${locale}/projects/${project.id}`}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                          >
-                            {project.name}
-                          </Link>
-                          <p className="text-sm text-gray-700 mt-1 line-clamp-1">
-                            {project.description}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {project.client}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                              project.status
-                            )}`}
-                          >
-                            {getStatusLabel(project.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {formatDate(project.startDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {formatDate(project.estimatedEndDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          <div className="flex gap-3">
-                            {project._count && (
-                              <>
-                                <span>{project._count.workItems} {t('metrics.items')}</span>
-                                {project._count.blockers > 0 && (
-                                  <span className="text-orange-600">
-                                    {project._count.blockers} {t('metrics.blockers')}
-                                  </span>
-                                )}
-                                {project._count.risks > 0 && (
-                                  <span className="text-yellow-600">
-                                    {project._count.risks} {t('metrics.risks')}
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        {/* Grid view */}
+        {!loading && projects.length > 0 && view === 'grid' && (
+          <div className="grid grid-cols-3 gap-4">
+            {projects.map((p) => (
+              <ProjectCard key={p.id} project={p} locale={locale} onStatusUpdate={handleStatusUpdate} />
+            ))}
+          </div>
+        )}
 
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="bg-white rounded-lg shadow px-6 py-4 mt-6 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  {t('pagination.showing')} {pagination.page} {t('pagination.of')} {pagination.totalPages} ({pagination.total}{' '}
-                  {t('pagination.total')})
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() =>
-                      setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
-                    }
-                    disabled={pagination.page === 1}
-                    variant="outline"
-                  >
-                    {t('pagination.previous')}
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        page: Math.min(prev.totalPages, prev.page + 1),
-                      }))
-                    }
-                    disabled={pagination.page === pagination.totalPages}
-                    variant="outline"
-                  >
-                    {t('pagination.next')}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
+        {/* Table view */}
+        {!loading && projects.length > 0 && view === 'table' && (
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+            <table className="w-full">
+              <thead>
+                <tr style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
+                  <th className="w-8 px-4 py-3">
+                    <input type="checkbox" className="accent-indigo-500"
+                      onChange={(e) => {
+                        if (e.target.checked) setSelected(new Set(projects.map((p) => p.id)))
+                        else setSelected(new Set())
+                      }} />
+                  </th>
+                  {['Proyecto', 'Cliente', 'Estado', 'Tareas', 'Fecha fin', ''].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((p) => (
+                  <tr key={p.id}
+                    className={`border-b transition-all hover:bg-zinc-900/40 cursor-pointer ${selected.has(p.id) ? 'bg-indigo-950/20' : ''}`}
+                    style={{ borderColor: '#27272a' }}>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSel(p.id)}
+                        className="accent-indigo-500" />
+                    </td>
+                    <td className="px-4 py-3" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`pms-priority-bar pms-priority-HIGH`} style={{ height: 24 }} />
+                        <div>
+                          <div className="text-sm font-medium text-zinc-100">{p.name}</div>
+                          <div className="text-[11px] text-zinc-500">{p.description?.slice(0, 40) ?? ''}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-300" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                      {p.client}
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <StatusPill projectId={p.id} status={p.status} onUpdate={handleStatusUpdate} />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-400" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                      {p._count?.workItems ?? 0}
+                      {(p._count?.blockers ?? 0) > 0 && (
+                        <span className="ml-2 text-rose-400">{p._count!.blockers} bloq.</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-500" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                      {formatDate(p.estimatedEndDate)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <a href={`/${locale}/projects/${p.id}`}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all">
+                        <ArrowRight size={13} />
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-5 px-1">
+            <span className="text-xs text-zinc-500">
+              Página {pagination.page} de {pagination.totalPages} ({pagination.total} proyectos)
+            </span>
+            <div className="flex gap-2">
+              <button
+                disabled={pagination.page === 1}
+                onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                className="px-3 py-1.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ border: '1px solid #27272a' }}>
+                ← Anterior
+              </button>
+              <button
+                disabled={pagination.page === pagination.totalPages}
+                onClick={() => setPagination((p) => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
+                className="px-3 py-1.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ border: '1px solid #27272a' }}>
+                Siguiente →
+              </button>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="pms-bulkbar">
+          <span className="text-sm text-white"><b>{selected.size}</b> seleccionado(s)</span>
+          <div className="w-px h-5 bg-zinc-800" />
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+            <UserPlus size={13} /> Asignar PM
+          </button>
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+            <Circle size={13} /> Cambiar estado
+          </button>
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+            <Archive size={13} /> Archivar
+          </button>
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+            <Download size={13} /> Exportar
+          </button>
+          <div className="w-px h-5 bg-zinc-800" />
+          <button onClick={() => setSelected(new Set())}
+            className="inline-flex items-center justify-center w-6 h-6 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all text-xs">
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   )
 }
