@@ -20,21 +20,14 @@ interface NotificationDialogProps {
   triggerLabel?: string
 }
 
-/**
- * Notification Dialog Component
- * Generates notification messages for critical blockers and high risks
- * Supports copy to clipboard functionality
- * Requirements: 12.1, 12.2, 12.3
- */
 export function NotificationDialog({ type, entityId, triggerLabel }: NotificationDialogProps) {
   const t = useTranslations('projects.notification')
   const tCommon = useTranslations('common')
-  
-  // Get current locale from the URL
-  const locale = typeof window !== 'undefined' 
+
+  const locale = typeof window !== 'undefined'
     ? window.location.pathname.split('/')[1] || 'es'
     : 'es'
-  
+
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -80,7 +73,7 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
     if (!notification) return
 
     const emailContent = `${t('subject')}: ${notification.subject}\n\n${notification.body}`
-    
+
     try {
       await navigator.clipboard.writeText(emailContent)
       setCopied(true)
@@ -93,10 +86,8 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)
     if (newOpen) {
-      // Generate notification when dialog opens
       handleGenerate()
     } else {
-      // Reset state when dialog closes
       setNotification(null)
       setError(null)
       setCopied(false)
@@ -106,13 +97,13 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
   const getPriorityColor = (priority: string) => {
     switch (priority.toUpperCase()) {
       case 'HIGH':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-900/40 text-red-300'
       case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-yellow-900/40 text-yellow-300'
       case 'LOW':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-[rgba(99,102,241,0.15)] text-[#a5b4fc]'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-zinc-800 text-zinc-400'
     }
   }
 
@@ -124,31 +115,30 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
           {triggerLabel || t('button')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
         <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[#e4e4e7]">{t('title')}</DialogTitle>
+          <DialogDescription className="text-[#71717a]">
             {loading ? tCommon('loading') : t('generate')}
           </DialogDescription>
         </DialogHeader>
 
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="text-gray-700">{tCommon('loading')}</div>
+            <div className="text-[#71717a]">{tCommon('loading')}</div>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
             {error}
           </div>
         )}
 
         {notification && !loading && (
           <div className="space-y-4">
-            {/* Priority Badge */}
             <div className="flex items-center gap-2">
-              <Label className="text-gray-900">{t('priority')}:</Label>
+              <Label className="text-[#a1a1aa]">{t('priority')}:</Label>
               <span
                 className={`px-3 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
                   notification.priority
@@ -158,23 +148,20 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
               </span>
             </div>
 
-            {/* Subject */}
             <div className="space-y-2">
-              <Label className="text-gray-900">{t('subject')}</Label>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-gray-900">{notification.subject}</p>
+              <Label className="text-[#a1a1aa]">{t('subject')}</Label>
+              <div className="rounded-lg p-3" style={{ background: '#111113', border: '1px solid #27272a' }}>
+                <p className="text-sm font-medium text-[#e4e4e7]">{notification.subject}</p>
               </div>
             </div>
 
-            {/* Body */}
             <div className="space-y-2">
-              <Label className="text-gray-900">{t('body')}</Label>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <pre className="text-sm whitespace-pre-wrap font-sans text-gray-900">{notification.body}</pre>
+              <Label className="text-[#a1a1aa]">{t('body')}</Label>
+              <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: '#111113', border: '1px solid #27272a' }}>
+                <pre className="text-sm whitespace-pre-wrap font-sans text-[#e4e4e7]">{notification.body}</pre>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {tCommon('close')}

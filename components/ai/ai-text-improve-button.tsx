@@ -20,11 +20,6 @@ interface AITextImproveButtonProps {
   disabled?: boolean
 }
 
-/**
- * AI Text Improve Button Component
- * Inline button for text improvement with dialog display
- * Requirements: 8.4
- */
 export function AITextImproveButton({
   text,
   purpose = 'GENERAL',
@@ -33,7 +28,7 @@ export function AITextImproveButton({
 }: AITextImproveButtonProps) {
   const t = useTranslations('ai')
   const tCommon = useTranslations('common')
-  
+
   const [open, setOpen] = useState(false)
   const [improving, setImproving] = useState(false)
   const [improvedText, setImprovedText] = useState<string | null>(null)
@@ -44,7 +39,7 @@ export function AITextImproveButton({
       setImproving(true)
       setImprovedText(null)
       setError(null)
-      
+
       const response = await fetch('/api/v1/ai/improve-text', {
         method: 'POST',
         headers: {
@@ -109,10 +104,10 @@ export function AITextImproveButton({
           {t('improveText')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl bg-[#18181b] border-[#27272a]">
         <DialogHeader>
-          <DialogTitle>{t('textImprovement.title')}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[#e4e4e7]">{t('textImprovement.title')}</DialogTitle>
+          <DialogDescription className="text-[#71717a]">
             {t('textImprovement.original')}
           </DialogDescription>
         </DialogHeader>
@@ -120,12 +115,12 @@ export function AITextImproveButton({
         <div className="space-y-4">
           {improving && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#6366f1]" />
             </div>
           )}
 
           {error && !improving && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="px-4 py-3 rounded-lg text-red-400" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
               {error}
             </div>
           )}
@@ -133,19 +128,19 @@ export function AITextImproveButton({
           {improvedText && !improving && (
             <>
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">
+                <p className="text-sm font-medium text-[#a1a1aa] mb-2">
                   {t('textImprovement.original')}
                 </p>
-                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 max-h-32 overflow-y-auto border border-gray-200">
+                <div className="rounded-lg p-3 text-sm text-[#a1a1aa] max-h-32 overflow-y-auto" style={{ background: '#111113', border: '1px solid #27272a' }}>
                   {text}
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">
+                <p className="text-sm font-medium text-[#a1a1aa] mb-2">
                   {t('textImprovement.improved')}
                 </p>
-                <div className="bg-blue-50 rounded-lg p-3 text-sm text-gray-900 max-h-32 overflow-y-auto border border-blue-300">
+                <div className="rounded-lg p-3 text-sm text-[#e4e4e7] max-h-32 overflow-y-auto" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
                   {improvedText}
                 </div>
               </div>

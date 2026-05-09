@@ -70,7 +70,7 @@ export function Combobox({
           className={cn("w-full justify-between", className)}
           disabled={disabled}
         >
-          <span className={cn("truncate", !value && "text-gray-700")}>
+          <span className={cn("truncate", !value && "text-zinc-600")}>
             {displayValue}
           </span>
           <div className="flex items-center gap-1">
@@ -98,22 +98,22 @@ export function Combobox({
             }}
             className="mb-2"
           />
-          
+
           <div className="max-h-[200px] overflow-y-auto">
             {filteredOptions.length === 0 && !searchValue.trim() ? (
-              <div className="py-6 text-center text-sm text-gray-700">
+              <div className="py-6 text-center text-sm text-zinc-500">
                 <p className="mb-2">No hay fases en este proyecto</p>
                 <p className="text-xs">Escribe un nombre para crear una nueva fase</p>
               </div>
             ) : filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-gray-700">
+              <div className="py-6 text-center text-sm text-zinc-500">
                 {emptyText}
                 {searchValue.trim() && (
                   <div className="mt-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-zinc-800/50"
                       onClick={handleCreateNew}
                     >
                       <Check className="mr-2 h-4 w-4" />
@@ -129,8 +129,8 @@ export function Combobox({
                     key={option}
                     onClick={() => handleSelect(option)}
                     className={cn(
-                      "w-full flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 text-left",
-                      value === option && "bg-gray-100"
+                      "w-full flex items-center px-2 py-1.5 text-sm rounded hover:bg-zinc-800/50 text-zinc-100 text-left",
+                      value === option && "bg-zinc-800/50"
                     )}
                   >
                     <Check
@@ -145,7 +145,7 @@ export function Combobox({
                 {searchValue.trim() && !filteredOptions.includes(searchValue.trim()) && (
                   <button
                     onClick={handleCreateNew}
-                    className="w-full flex items-center px-2 py-1.5 text-sm rounded hover:bg-blue-50 text-blue-600 text-left"
+                    className="w-full flex items-center px-2 py-1.5 text-sm rounded hover:bg-zinc-800/50 text-blue-600 text-left"
                   >
                     <Check className="mr-2 h-4 w-4 opacity-0" />
                     Crear "{searchValue.trim()}"

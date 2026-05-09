@@ -27,21 +27,15 @@ interface ExportProjectDialogProps {
   projectId: string
 }
 
-/**
- * Export Project Dialog Component
- * Allows users to export project data with customizable options
- * Requirements: 11.1, 11.2, 11.5
- */
 export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
   const t = useTranslations('projects.export')
   const tCommon = useTranslations('common')
-  
+
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [exportContent, setExportContent] = useState<string | null>(null)
-  
-  // Export options
+
   const [detailLevel, setDetailLevel] = useState<ReportDetailLevel>(ReportDetailLevel.DETAILED)
   const [includeWorkItems, setIncludeWorkItems] = useState(true)
   const [includeBlockers, setIncludeBlockers] = useState(true)
@@ -111,19 +105,18 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
           {t('button')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
         <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[#e4e4e7]">{t('title')}</DialogTitle>
+          <DialogDescription className="text-[#71717a]">
             {exportContent ? t('download') : t('sections')}
           </DialogDescription>
         </DialogHeader>
 
         {!exportContent ? (
           <div className="space-y-6">
-            {/* Detail Level */}
             <div className="space-y-2">
-              <Label htmlFor="detail-level" className="text-gray-900">{t('detailLevel')}</Label>
+              <Label htmlFor="detail-level" className="text-[#a1a1aa]">{t('detailLevel')}</Label>
               <Select
                 value={detailLevel}
                 onValueChange={(value) => setDetailLevel(value as ReportDetailLevel)}
@@ -145,10 +138,9 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
               </Select>
             </div>
 
-            {/* Sections to Include */}
             <div className="space-y-3">
-              <Label className="text-gray-900">{t('sections')}</Label>
-              
+              <Label className="text-[#a1a1aa]">{t('sections')}</Label>
+
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="include-work-items"
@@ -157,7 +149,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-work-items"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
                 >
                   {t('includeWorkItems')}
                 </label>
@@ -171,7 +163,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-blockers"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
                 >
                   {t('includeBlockers')}
                 </label>
@@ -185,7 +177,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-risks"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
                 >
                   {t('includeRisks')}
                 </label>
@@ -199,7 +191,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-agreements"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
                 >
                   {t('includeAgreements')}
                 </label>
@@ -213,7 +205,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="use-ai-narrative"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
                 >
                   {t('useAINarrative')}
                 </label>
@@ -221,7 +213,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
                 {error}
               </div>
             )}
@@ -237,9 +229,8 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Export Preview */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
-              <pre className="text-sm whitespace-pre-wrap font-mono text-gray-900">{exportContent}</pre>
+            <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <pre className="text-sm whitespace-pre-wrap font-mono text-[#e4e4e7]">{exportContent}</pre>
             </div>
 
             <div className="flex justify-end gap-2">

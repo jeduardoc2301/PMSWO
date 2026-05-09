@@ -14,11 +14,6 @@ interface AITextImproverProps {
   onReject?: () => void
 }
 
-/**
- * AI Text Improver Component
- * Provides AI-powered text improvement suggestions
- * Requirements: 8.4
- */
 export function AITextImprover({
   originalText,
   purpose = 'GENERAL',
@@ -27,7 +22,7 @@ export function AITextImprover({
 }: AITextImproverProps) {
   const t = useTranslations('ai')
   const tCommon = useTranslations('common')
-  
+
   const [improving, setImproving] = useState(false)
   const [improvedText, setImprovedText] = useState<string | null>(null)
   const [showSuggestion, setShowSuggestion] = useState(false)
@@ -36,7 +31,7 @@ export function AITextImprover({
     try {
       setImproving(true)
       setImprovedText(null)
-      
+
       const response = await fetch('/api/v1/ai/improve-text', {
         method: 'POST',
         headers: {
@@ -103,25 +98,25 @@ export function AITextImprover({
   }
 
   return (
-    <Card className="border-blue-200 bg-blue-50">
+    <Card style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-blue-600" />
+        <CardTitle className="text-base flex items-center gap-2 text-[#a5b4fc]">
+          <Sparkles className="h-4 w-4 text-[#6366f1]" />
           {t('textImprovement.title')}
         </CardTitle>
-        <CardDescription>{t('textImprovement.original')}</CardDescription>
+        <CardDescription className="text-[#71717a]">{t('textImprovement.original')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="bg-white rounded-lg p-3 border border-gray-200">
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{originalText}</p>
+        <div className="rounded-lg p-3" style={{ background: '#111113', border: '1px solid #27272a' }}>
+          <p className="text-sm text-[#a1a1aa] whitespace-pre-wrap">{originalText}</p>
         </div>
-        
+
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">
+          <p className="text-sm font-medium text-[#a1a1aa] mb-2">
             {t('textImprovement.improved')}
           </p>
-          <div className="bg-white rounded-lg p-3 border border-blue-300">
-            <p className="text-sm text-gray-900 whitespace-pre-wrap">{improvedText}</p>
+          <div className="rounded-lg p-3" style={{ background: '#111113', border: '1px solid rgba(99,102,241,0.3)' }}>
+            <p className="text-sm text-[#e4e4e7] whitespace-pre-wrap">{improvedText}</p>
           </div>
         </div>
 

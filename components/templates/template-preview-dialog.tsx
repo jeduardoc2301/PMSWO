@@ -22,7 +22,6 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set())
 
-  // Fetch preview data when dialog opens or templateId changes
   useEffect(() => {
     if (open && templateId) {
       fetchPreview()
@@ -39,7 +38,7 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
     setLoading(true)
     try {
       const response = await fetch(`/api/v1/templates/${templateId}/preview`)
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error(t('errors.notFound'))
@@ -49,7 +48,6 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
       const data = await response.json()
       setPreview(data)
-      // Expand first phase by default
       if (data.template.phases.length > 0) {
         setExpandedPhases(new Set([data.template.phases[0].id]))
       }
@@ -107,32 +105,29 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <p className="text-gray-700">{t('loading')}</p>
+            <p className="text-zinc-400">{t('loading')}</p>
           </div>
         ) : preview ? (
           <div className="space-y-4">
-            {/* Template Name and Description */}
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-900">{preview.template.name}</h3>
-              <p className="text-sm text-gray-800">{preview.template.description}</p>
+              <h3 className="text-lg font-semibold text-zinc-100">{preview.template.name}</h3>
+              <p className="text-sm text-zinc-300">{preview.template.description}</p>
             </div>
 
-            {/* Summary Metrics */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border-2 border-blue-600 rounded-lg p-4 text-center">
-                <p className="text-xs font-medium text-gray-900 uppercase mb-1">{t('activityCount')}</p>
-                <p className="text-3xl font-bold text-blue-600">{preview.totalActivities}</p>
+              <div style={{ background: '#18181b', border: '2px solid #6366f1' }} className="rounded-lg p-4 text-center">
+                <p className="text-xs font-medium text-zinc-400 uppercase mb-1">{t('activityCount')}</p>
+                <p className="text-3xl font-bold text-[#6366f1]">{preview.totalActivities}</p>
               </div>
-              <div className="bg-white border-2 border-green-600 rounded-lg p-4 text-center">
-                <p className="text-xs font-medium text-gray-900 uppercase mb-1">{t('totalDuration')}</p>
-                <p className="text-3xl font-bold text-green-600">{preview.totalEstimatedDuration}h</p>
+              <div style={{ background: '#18181b', border: '2px solid #16a34a' }} className="rounded-lg p-4 text-center">
+                <p className="text-xs font-medium text-zinc-400 uppercase mb-1">{t('totalDuration')}</p>
+                <p className="text-3xl font-bold text-green-500">{preview.totalEstimatedDuration}h</p>
               </div>
             </div>
 
-            {/* Phases with Activities - Tree Style */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-gray-900">
+                <h4 className="text-sm font-medium text-zinc-100">
                   {t('phases')} ({preview.template.phases.length})
                 </h4>
                 <div className="flex gap-2">
@@ -144,24 +139,24 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
                       setExpandedPhases(new Set(allPhaseIds))
                       setExpandedActivities(new Set(allActivityIds))
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                    className="text-xs text-[#6366f1] hover:text-[#a5b4fc] hover:underline"
                   >
                     {t('expandAll', { defaultValue: 'Expandir todo' })}
                   </button>
-                  <span className="text-xs text-gray-700">|</span>
+                  <span className="text-xs text-zinc-500">|</span>
                   <button
                     type="button"
                     onClick={() => {
                       setExpandedPhases(new Set())
                       setExpandedActivities(new Set())
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                    className="text-xs text-[#6366f1] hover:text-[#a5b4fc] hover:underline"
                   >
                     {t('collapseAll', { defaultValue: 'Contraer todo' })}
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 {preview.template.phases
                   .sort((a, b) => a.order - b.order)
@@ -171,18 +166,15 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
                     return (
                       <div key={phase.id} className="relative">
-                        {/* Vertical line connector */}
                         {phaseIndex < preview.template.phases.length - 1 && (
-                          <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-gray-200" />
+                          <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-[#27272a]" />
                         )}
 
-                        {/* Phase Row */}
                         <div className="flex items-start gap-2">
-                          {/* Expand/Collapse Button */}
                           <button
                             type="button"
                             onClick={() => togglePhase(phase.id)}
-                            className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors flex-shrink-0 mt-0.5"
+                            className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-[#6366f1] hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
                           >
                             {isPhaseExpanded ? (
                               <ChevronDown className="w-4 h-4" />
@@ -191,48 +183,41 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
                             )}
                           </button>
 
-                          {/* Phase Content */}
                           <div className="flex-1 min-w-0">
-                            {/* Phase Header */}
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-base font-semibold text-gray-900">
+                              <span className="text-base font-semibold text-zinc-100">
                                 {t('phase')} {phaseIndex + 1}: {phase.name}
                               </span>
                               {!isPhaseExpanded && (
-                                <span className="text-sm text-gray-700">
+                                <span className="text-sm text-zinc-400">
                                   ({sortedActivities.length} {sortedActivities.length === 1 ? t('activity') : t('activities')})
                                 </span>
                               )}
                             </div>
 
-                            {/* Expanded Content */}
                             {isPhaseExpanded && (
                               <div className="space-y-3 pb-3">
-                                {/* Activities */}
-                                <div className="pl-6 border-l-2 border-gray-200">
+                                <div className="pl-6 border-l-2 border-[#27272a]">
                                   <div className="space-y-2">
-                                    <h5 className="text-sm font-medium text-gray-900">
+                                    <h5 className="text-sm font-medium text-zinc-100">
                                       {t('activities')} ({sortedActivities.length})
                                     </h5>
-                                    
+
                                     <div className="space-y-2">
                                       {sortedActivities.map((activity, activityIndex) => {
                                         const isActivityExpanded = expandedActivities.has(activity.id)
 
                                         return (
                                           <div key={activity.id} className="relative">
-                                            {/* Vertical line connector */}
                                             {activityIndex < sortedActivities.length - 1 && (
-                                              <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-gray-200" />
+                                              <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-[#27272a]" />
                                             )}
 
-                                            {/* Activity Row */}
                                             <div className="flex items-start gap-2">
-                                              {/* Expand/Collapse Button */}
                                               <button
                                                 type="button"
                                                 onClick={() => toggleActivity(activity.id)}
-                                                className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-gray-400 hover:bg-gray-500 text-white transition-colors flex-shrink-0 mt-0.5"
+                                                className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-zinc-700 hover:bg-zinc-600 text-white transition-colors flex-shrink-0 mt-0.5"
                                               >
                                                 {isActivityExpanded ? (
                                                   <ChevronDown className="w-4 h-4" />
@@ -241,39 +226,36 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
                                                 )}
                                               </button>
 
-                                              {/* Activity Content */}
                                               <div className="flex-1 min-w-0">
-                                                {/* Activity Header */}
                                                 <div className="flex items-center gap-2 mb-2">
-                                                  <span className="text-sm font-medium text-gray-900">
+                                                  <span className="text-sm font-medium text-zinc-100">
                                                     {activity.title}
                                                   </span>
                                                   {!isActivityExpanded && (
                                                     <>
-                                                      <span className="text-xs text-gray-700">
+                                                      <span className="text-xs text-zinc-400">
                                                         {getPriorityLabel(activity.priority)}
                                                       </span>
-                                                      <span className="text-xs text-gray-700">
+                                                      <span className="text-xs text-zinc-400">
                                                         {activity.estimatedDuration}h
                                                       </span>
                                                     </>
                                                   )}
                                                 </div>
 
-                                                {/* Expanded Content */}
                                                 {isActivityExpanded && (
                                                   <div className="space-y-2 pb-3">
-                                                    <p className="text-sm text-gray-800">{activity.description}</p>
+                                                    <p className="text-sm text-zinc-300">{activity.description}</p>
                                                     <div className="flex items-center gap-4 text-xs">
                                                       <div>
-                                                        <span className="text-gray-700">{t('priority')}:</span>{' '}
-                                                        <span className="font-medium text-gray-900">
+                                                        <span className="text-zinc-400">{t('priority')}:</span>{' '}
+                                                        <span className="font-medium text-zinc-100">
                                                           {getPriorityLabel(activity.priority)}
                                                         </span>
                                                       </div>
                                                       <div>
-                                                        <span className="text-gray-700">{t('estimatedDuration')}:</span>{' '}
-                                                        <span className="font-medium text-gray-900">
+                                                        <span className="text-zinc-400">{t('estimatedDuration')}:</span>{' '}
+                                                        <span className="font-medium text-zinc-100">
                                                           {formatDuration(activity.estimatedDuration)}
                                                         </span>
                                                       </div>
@@ -300,7 +282,7 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
           </div>
         ) : (
           <div className="flex items-center justify-center py-8">
-            <p className="text-gray-700">{t('errors.notFound')}</p>
+            <p className="text-zinc-400">{t('errors.notFound')}</p>
           </div>
         )}
 

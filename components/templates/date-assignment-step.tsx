@@ -77,7 +77,6 @@ export function DateAssignmentStep({
   const [error, setError] = useState<string | null>(null)
   const [calculatedActivities, setCalculatedActivities] = useState<CalculatedActivity[]>([])
 
-  // Fetch template preview data
   useEffect(() => {
     const fetchTemplatePreview = async () => {
       if (!selectedTemplateId) return
@@ -105,7 +104,6 @@ export function DateAssignmentStep({
     fetchTemplatePreview()
   }, [selectedTemplateId])
 
-  // Calculate dates for selected activities whenever startDate or template data changes
   useEffect(() => {
     if (!templateData?.template || selectedActivityIds.length === 0) {
       setCalculatedActivities([])
@@ -115,21 +113,16 @@ export function DateAssignmentStep({
     const calculated: CalculatedActivity[] = []
     let currentDate = new Date(startDate)
 
-    // Process phases in order
     const sortedPhases = [...templateData.template.phases].sort((a, b) => a.order - b.order)
 
     for (const phase of sortedPhases) {
-      // Process activities in order within each phase
       const sortedActivities = [...phase.activities].sort((a, b) => a.order - b.order)
 
       for (const activity of sortedActivities) {
-        // Only include selected activities
         if (!selectedActivityIds.includes(activity.id)) {
           continue
         }
 
-        // Calculate end date by adding estimated duration (in hours) to start date
-        // Assuming 8-hour work days
         const durationInDays = Math.ceil(activity.estimatedDuration / 8)
         const activityStartDate = new Date(currentDate)
         const activityEndDate = new Date(currentDate)
@@ -145,7 +138,6 @@ export function DateAssignmentStep({
           endDate: activityEndDate.toISOString().split('T')[0],
         })
 
-        // Next activity starts when this one ends
         currentDate = activityEndDate
       }
     }
@@ -153,7 +145,6 @@ export function DateAssignmentStep({
     setCalculatedActivities(calculated)
   }, [templateData, selectedActivityIds, startDate])
 
-  // Handle start date input change
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = new Date(e.target.value)
     if (!isNaN(newDate.getTime())) {
@@ -161,7 +152,6 @@ export function DateAssignmentStep({
     }
   }
 
-  // Format date for input field (YYYY-MM-DD)
   const formatDateForInput = (date: Date): string => {
     return date.toISOString().split('T')[0]
   }
@@ -169,8 +159,8 @@ export function DateAssignmentStep({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
-        <span className="ml-2 text-gray-700">{t('loading')}</span>
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+        <span className="ml-2 text-zinc-400">{t('loading')}</span>
       </div>
     )
   }
@@ -185,10 +175,9 @@ export function DateAssignmentStep({
 
   return (
     <div className="space-y-6">
-      {/* Start Date Picker */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div style={{ background: '#111113', border: '1px solid #27272a' }} className="rounded-lg p-4">
         <div className="space-y-2">
-          <Label htmlFor="startDate" className="text-gray-900 font-medium">
+          <Label htmlFor="startDate" className="text-zinc-100 font-medium">
             {t('startDate')}
           </Label>
           <Input
@@ -199,66 +188,65 @@ export function DateAssignmentStep({
             required
             className="max-w-xs"
           />
-          <p className="text-xs text-gray-700">
+          <p className="text-xs text-zinc-400">
             {t('descriptions.assignDatesStep')}
           </p>
         </div>
       </div>
 
-      {/* Calculated Dates Preview */}
       <div>
-        <h4 className="font-medium text-gray-900 mb-3">
+        <h4 className="font-medium text-zinc-100 mb-3">
           {t('calculatedDates')}
         </h4>
 
         {calculatedActivities.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-700">
+          <div style={{ background: '#111113', border: '1px solid #27272a' }} className="rounded-lg p-4 text-center text-zinc-400">
             {t('validation.noActivitiesSelected')}
           </div>
         ) : (
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="border border-[#27272a] rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-[#27272a]">
+              <thead style={{ background: '#111113' }}>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">
                     {t('phase')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">
                     {t('activityTitle')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">
                     {t('priority')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">
                     {t('estimatedDuration')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">
                     {t('startDate')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">
                     {t('estimatedEndDate')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody style={{ background: '#18181b' }} className="divide-y divide-[#27272a]">
                 {calculatedActivities.map((activity) => (
-                  <tr key={activity.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">
+                  <tr key={activity.id} className="hover:bg-zinc-800/50">
+                    <td className="px-4 py-3 text-sm text-zinc-100">
                       {activity.phaseName}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
+                    <td className="px-4 py-3 text-sm text-zinc-100">
                       {activity.title}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-800">
+                    <td className="px-4 py-3 text-sm text-zinc-300">
                       {t(`priorityEnum.${activity.priority.toLowerCase()}`)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-800">
+                    <td className="px-4 py-3 text-sm text-zinc-300">
                       {activity.estimatedDuration} {t('hours')}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-800">
+                    <td className="px-4 py-3 text-sm text-zinc-300">
                       {new Date(activity.startDate).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-800">
+                    <td className="px-4 py-3 text-sm text-zinc-300">
                       {new Date(activity.endDate).toLocaleDateString()}
                     </td>
                   </tr>
@@ -268,14 +256,13 @@ export function DateAssignmentStep({
           </div>
         )}
 
-        {/* Summary */}
         {calculatedActivities.length > 0 && (
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="mt-4 rounded-lg p-4" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-blue-900 font-medium">
+              <span className="text-[#a5b4fc] font-medium">
                 {t('workItemsToCreate')}: {calculatedActivities.length}
               </span>
-              <span className="text-blue-900">
+              <span className="text-[#a5b4fc]">
                 {t('totalDuration')}: {calculatedActivities.reduce((sum, a) => sum + a.estimatedDuration, 0)} {t('hours')}
               </span>
             </div>
@@ -283,8 +270,7 @@ export function DateAssignmentStep({
         )}
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-between pt-4 border-t">
+      <div className="flex justify-between pt-4 border-t border-[#27272a]">
         <Button type="button" variant="outline" onClick={onBack}>
           {t('back')}
         </Button>

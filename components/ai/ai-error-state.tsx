@@ -11,11 +11,6 @@ interface AIErrorStateProps {
   type?: 'general' | 'guardrails' | 'rateLimit' | 'unavailable'
 }
 
-/**
- * AI Error State Component
- * Displays user-friendly error messages for AI failures
- * Requirements: 9.3, 14.3
- */
 export function AIErrorState({ error, onRetry, type = 'general' }: AIErrorStateProps) {
   const t = useTranslations('ai')
   const tCommon = useTranslations('common')
@@ -91,8 +86,8 @@ export function AIErrorState({ error, onRetry, type = 'general' }: AIErrorStateP
       )}
 
       {type === 'guardrails' && (
-        <div className="text-sm text-gray-800 bg-gray-50 rounded-lg p-4">
-          <p className="font-medium mb-2">¿Por qué veo este mensaje?</p>
+        <div className="text-sm text-[#a1a1aa] rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+          <p className="font-medium mb-2 text-[#e4e4e7]">¿Por qué veo este mensaje?</p>
           <p>
             El contenido solicitado no cumple con nuestras políticas de seguridad y uso
             responsable de IA. Por favor, revise el contenido e intente nuevamente.
@@ -101,8 +96,8 @@ export function AIErrorState({ error, onRetry, type = 'general' }: AIErrorStateP
       )}
 
       {type === 'rateLimit' && (
-        <div className="text-sm text-gray-800 bg-gray-50 rounded-lg p-4">
-          <p className="font-medium mb-2">¿Qué puedo hacer?</p>
+        <div className="text-sm text-[#a1a1aa] rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+          <p className="font-medium mb-2 text-[#e4e4e7]">¿Qué puedo hacer?</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Espere unos minutos antes de intentar nuevamente</li>
             <li>Use el análisis cacheado si está disponible</li>

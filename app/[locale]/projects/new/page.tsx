@@ -33,11 +33,11 @@ export default async function NewProjectPage({
 
   return (
     <ProtectedPage requiredPermissions={[Permission.PROJECT_CREATE]}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#09090b]">
         <PageHeader title="Create Project" description="Create a new project for your organization" />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-lg shadow p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
             <ProjectForm />
           </div>
         </div>

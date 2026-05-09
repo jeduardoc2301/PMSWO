@@ -80,7 +80,6 @@ export function FinalPreviewStep({
   const [error, setError] = useState<string | null>(null)
   const [calculatedActivities, setCalculatedActivities] = useState<CalculatedActivity[]>([])
 
-  // Fetch template preview data
   useEffect(() => {
     const fetchTemplatePreview = async () => {
       if (!selectedTemplateId) return
@@ -108,7 +107,6 @@ export function FinalPreviewStep({
     fetchTemplatePreview()
   }, [selectedTemplateId])
 
-  // Calculate dates for selected activities whenever startDate or template data changes
   useEffect(() => {
     if (!templateData?.template || selectedActivityIds.length === 0) {
       setCalculatedActivities([])
@@ -118,21 +116,16 @@ export function FinalPreviewStep({
     const calculated: CalculatedActivity[] = []
     let currentDate = new Date(startDate)
 
-    // Process phases in order
     const sortedPhases = [...templateData.template.phases].sort((a, b) => a.order - b.order)
 
     for (const phase of sortedPhases) {
-      // Process activities in order within each phase
       const sortedActivities = [...phase.activities].sort((a, b) => a.order - b.order)
 
       for (const activity of sortedActivities) {
-        // Only include selected activities
         if (!selectedActivityIds.includes(activity.id)) {
           continue
         }
 
-        // Calculate end date by adding estimated duration (in hours) to start date
-        // Assuming 8-hour work days
         const durationInDays = Math.ceil(activity.estimatedDuration / 8)
         const activityStartDate = new Date(currentDate)
         const activityEndDate = new Date(currentDate)
@@ -149,7 +142,6 @@ export function FinalPreviewStep({
           endDate: activityEndDate.toISOString().split('T')[0],
         })
 
-        // Next activity starts when this one ends
         currentDate = activityEndDate
       }
     }
@@ -157,7 +149,6 @@ export function FinalPreviewStep({
     setCalculatedActivities(calculated)
   }, [templateData, selectedActivityIds, startDate])
 
-  // Group activities by phase for display
   const groupActivitiesByPhase = () => {
     const grouped: Record<string, CalculatedActivity[]> = {}
 
@@ -173,8 +164,7 @@ export function FinalPreviewStep({
 
   const activitiesByPhase = groupActivitiesByPhase()
   const totalDuration = calculatedActivities.reduce((sum, a) => sum + a.estimatedDuration, 0)
-  
-  // Track expanded phases
+
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set(Object.keys(groupActivitiesByPhase())))
 
   const togglePhase = (phaseName: string) => {
@@ -192,8 +182,8 @@ export function FinalPreviewStep({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-700" />
-        <span className="ml-2 text-gray-700">{t('loading')}</span>
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+        <span className="ml-2 text-zinc-400">{t('loading')}</span>
       </div>
     )
   }
@@ -208,47 +198,43 @@ export function FinalPreviewStep({
 
   return (
     <div className="space-y-6">
-      {/* Summary Card */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="rounded-lg p-4" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="font-medium text-blue-900">
+            <h4 className="font-medium text-[#a5b4fc]">
               {t('workItemsToCreate')}: {calculatedActivities.length}
             </h4>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="text-sm text-[#a5b4fc] mt-1">
               {t('totalDuration')}: {totalDuration} {t('hours')}
             </p>
           </div>
-          <div className="text-sm text-blue-700">
+          <div className="text-sm text-[#a5b4fc]">
             {t('startDate')}: {new Date(startDate).toLocaleDateString()}
           </div>
         </div>
       </div>
 
-      {/* Activities by Phase - Tree View */}
       <div>
-        <h4 className="font-medium text-gray-900 mb-3">
+        <h4 className="font-medium text-zinc-100 mb-3">
           {t('selectedActivities')}
         </h4>
 
         {calculatedActivities.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-700">
+          <div style={{ background: '#111113', border: '1px solid #27272a' }} className="rounded-lg p-4 text-center text-zinc-400">
             {t('validation.noActivitiesSelected')}
           </div>
         ) : (
           <div className="space-y-4">
             {Object.entries(activitiesByPhase).map(([phaseName, activities], phaseIndex) => {
               const isExpanded = expandedPhases.has(phaseName)
-              
+
               return (
                 <div key={phaseName} className="relative">
-                  {/* Phase Header */}
                   <div className="flex items-start gap-3">
-                    {/* Phase Toggle Button */}
                     <button
                       type="button"
                       onClick={() => togglePhase(phaseName)}
-                      className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-colors"
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-[#6366f1] text-white flex items-center justify-center hover:bg-[#5254cc] transition-colors"
                     >
                       {isExpanded ? (
                         <ChevronDown className="h-4 w-4" />
@@ -257,70 +243,62 @@ export function FinalPreviewStep({
                       )}
                     </button>
 
-                    {/* Phase Info */}
                     <div className="flex-1 pt-1">
                       <div className="flex items-center justify-between">
-                        <h5 className="font-semibold text-gray-900 text-lg">
+                        <h5 className="font-semibold text-zinc-100 text-lg">
                           {phaseName}
                         </h5>
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-zinc-400">
                           {activities.length} {activities.length === 1 ? t('activity') : t('activities').toLowerCase()}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Activities List */}
                   {isExpanded && (
-                    <div className="ml-4 mt-3 border-l-2 border-gray-200 pl-4 space-y-3">
+                    <div className="ml-4 mt-3 border-l-2 border-[#27272a] pl-4 space-y-3">
                       {activities.map((activity, activityIndex) => (
                         <div key={activity.id} className="relative">
-                          {/* Connector Line */}
-                          <div className="absolute left-0 top-4 w-4 h-0.5 bg-gray-200" />
-                          
+                          <div className="absolute left-0 top-4 w-4 h-0.5 bg-[#27272a]" />
+
                           <div className="flex items-start gap-3">
-                            {/* Activity Icon */}
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-400 text-white flex items-center justify-center">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-700 text-white flex items-center justify-center">
                               <ChevronRight className="h-4 w-4" />
                             </div>
 
-                            {/* Activity Details Card */}
-                            <div className="flex-1 p-4 border border-gray-200 rounded-lg bg-white">
-                              {/* Activity Title */}
-                              <h6 className="font-medium text-gray-900 mb-2">
+                            <div className="flex-1 p-4 border border-[#27272a] rounded-lg" style={{ background: '#18181b' }}>
+                              <h6 className="font-medium text-zinc-100 mb-2">
                                 {activity.title}
                               </h6>
 
-                              {/* Activity Description */}
                               {activity.description && (
-                                <p className="text-sm text-gray-800 mb-3">
+                                <p className="text-sm text-zinc-300 mb-3">
                                   {activity.description}
                                 </p>
                               )}
 
-                              {/* Activity Details Grid */}
                               <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
-                                  <span className="text-gray-700">{t('priority')}:</span>{' '}
-                                  <span className="font-medium text-gray-900">
+                                  <span className="text-zinc-400">{t('priority')}:</span>{' '}
+                                  <span className="font-medium text-zinc-100">
                                     {t(`priorityEnum.${activity.priority.toLowerCase()}`)}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-700">{t('estimatedDuration')}:</span>{' '}
-                                  <span className="font-medium text-gray-900">
+                                  <span className="text-zinc-400">{t('estimatedDuration')}:</span>{' '}
+                                  <span className="font-medium text-zinc-100">
                                     {activity.estimatedDuration} {t('hours')}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-700">{t('startDate')}:</span>{' '}
-                                  <span className="font-medium text-gray-900">
+                                  <span className="text-zinc-400">{t('startDate')}:</span>{' '}
+                                  <span className="font-medium text-zinc-100">
                                     {new Date(activity.startDate).toLocaleDateString()}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-700">{t('estimatedEndDate')}:</span>{' '}
-                                  <span className="font-medium text-gray-900">
+                                  <span className="text-zinc-400">{t('estimatedEndDate')}:</span>{' '}
+                                  <span className="font-medium text-zinc-100">
                                     {new Date(activity.endDate).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -338,15 +316,13 @@ export function FinalPreviewStep({
         )}
       </div>
 
-      {/* Warning Message */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <p className="text-sm text-yellow-900">
           {t('confirmations.applyTemplateWarning', { count: calculatedActivities.length })}
         </p>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex justify-between pt-4 border-t">
+      <div className="flex justify-between pt-4 border-t border-[#27272a]">
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onBack} disabled={submitting}>
             {t('back')}

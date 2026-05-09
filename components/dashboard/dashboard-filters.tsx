@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl' // ✅ AGREGADO
+import { useTranslations } from 'next-intl'
 import { ProjectStatus } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,7 +19,7 @@ export interface FilterValues {
 }
 
 export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
-  const t = useTranslations('dashboard') // ✅ AGREGADO
+  const t = useTranslations('dashboard')
   const [filters, setFilters] = useState<FilterValues>({})
 
   const handleFilterChange = (key: keyof FilterValues, value: string) => {
@@ -37,9 +37,9 @@ export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('filters')}</h3>
-      
+    <div className="bg-[#18181b] rounded-lg p-6" style={{ border: '1px solid #27272a' }}>
+      <h3 className="text-lg font-semibold text-[#e4e4e7] mb-4">{t('filters')}</h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <Label htmlFor="startDate">{t('filtersSection.startDate', { defaultValue: 'Fecha de Inicio' })}</Label>
@@ -76,7 +76,12 @@ export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
           <Label htmlFor="status">{t('projectStatus')}</Label>
           <select
             id="status"
-            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-full rounded-md px-3 py-2 text-sm ring-offset-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{
+              background: '#111113',
+              border: '1px solid #27272a',
+              color: '#e4e4e7',
+            }}
             value={filters.status || ''}
             onChange={(e) => handleFilterChange('status', e.target.value)}
           >

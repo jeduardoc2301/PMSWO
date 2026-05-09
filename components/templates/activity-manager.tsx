@@ -29,10 +29,10 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
   const [expandedActivities, setExpandedActivities] = useState<Set<number>>(new Set())
 
   const addActivity = () => {
-    const newOrder = activities.length > 0 
-      ? Math.max(...activities.map(a => a.order)) + 1 
+    const newOrder = activities.length > 0
+      ? Math.max(...activities.map(a => a.order)) + 1
       : 1
-    
+
     const newActivity: ActivityFormData = {
       title: '',
       description: '',
@@ -40,9 +40,8 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
       estimatedDuration: '',
       order: newOrder,
     }
-    
+
     onChange([...activities, newActivity])
-    // Expand the newly added activity
     const newExpanded = new Set(expandedActivities)
     newExpanded.add(activities.length)
     setExpandedActivities(newExpanded)
@@ -50,21 +49,19 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
 
   const removeActivity = (index: number) => {
     const updatedActivities = activities.filter((_, i) => i !== index)
-    // Reorder remaining activities
     const reorderedActivities = updatedActivities.map((activity, i) => ({
       ...activity,
       order: i + 1,
     }))
     onChange(reorderedActivities)
-    
-    // Remove from expanded set
+
     const newExpanded = new Set(expandedActivities)
     newExpanded.delete(index)
     setExpandedActivities(newExpanded)
   }
 
   const updateActivity = (index: number, field: keyof ActivityFormData, value: string | number) => {
-    const updatedActivities = activities.map((activity, i) => 
+    const updatedActivities = activities.map((activity, i) =>
       i === index ? { ...activity, [field]: value } : activity
     )
     onChange(updatedActivities)
@@ -83,7 +80,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Label className="text-sm font-medium text-gray-900">
+        <Label className="text-sm font-medium text-zinc-100">
           {t('activities')} ({activities.length})
         </Label>
         <button
@@ -98,9 +95,9 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
       </div>
 
       {activities.length === 0 && (
-        <div className="border border-dashed border-gray-300 rounded-md p-6 text-center">
-          <p className="text-sm text-gray-700">{t('noActivities')}</p>
-          <p className="text-xs text-gray-700 mt-1">{t('clickAddActivity')}</p>
+        <div className="border border-dashed border-[#27272a] rounded-md p-6 text-center">
+          <p className="text-sm text-zinc-400">{t('noActivities')}</p>
+          <p className="text-xs text-zinc-500 mt-1">{t('clickAddActivity')}</p>
         </div>
       )}
 
@@ -110,19 +107,16 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
 
           return (
             <div key={index} className="relative">
-              {/* Vertical line connector */}
               {index < activities.length - 1 && (
-                <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-gray-200" />
+                <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-[#27272a]" />
               )}
 
-              {/* Activity Row */}
               <div className="flex items-start gap-2">
-                {/* Expand/Collapse Button */}
                 <button
                   type="button"
                   onClick={() => toggleExpand(index)}
                   disabled={disabled}
-                  className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-gray-400 hover:bg-gray-500 text-white transition-colors flex-shrink-0 mt-0.5"
+                  className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-zinc-700 hover:bg-zinc-600 text-white transition-colors flex-shrink-0 mt-0.5"
                 >
                   {isExpanded ? (
                     <ChevronDown className="w-4 h-4" />
@@ -131,9 +125,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                   )}
                 </button>
 
-                {/* Activity Content */}
                 <div className="flex-1 min-w-0">
-                  {/* Activity Header with Inline Input */}
                   <div className="flex items-center gap-2 mb-2">
                     <Input
                       value={activity.title}
@@ -143,12 +135,12 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                       className="h-8 text-sm flex-1"
                     />
                     {!isExpanded && activity.priority && (
-                      <span className="text-xs text-gray-700 flex-shrink-0">
+                      <span className="text-xs text-zinc-400 flex-shrink-0">
                         {t(`priorityEnum.${activity.priority.toLowerCase()}`)}
                       </span>
                     )}
                     {!isExpanded && activity.estimatedDuration && (
-                      <span className="text-xs text-gray-700 flex-shrink-0">
+                      <span className="text-xs text-zinc-400 flex-shrink-0">
                         {activity.estimatedDuration}h
                       </span>
                     )}
@@ -164,12 +156,10 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                     </Button>
                   </div>
 
-                  {/* Expanded Content */}
                   {isExpanded && (
                     <div className="space-y-3 pb-3">
-                      {/* Description */}
                       <div className="space-y-1">
-                        <Label htmlFor={`activity-description-${index}`} className="text-xs text-gray-700">
+                        <Label htmlFor={`activity-description-${index}`} className="text-xs text-zinc-400">
                           {t('activityDescription')} *
                         </Label>
                         <Textarea
@@ -183,10 +173,9 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                         />
                       </div>
 
-                      {/* Priority and Duration */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label htmlFor={`activity-priority-${index}`} className="text-xs text-gray-700">
+                          <Label htmlFor={`activity-priority-${index}`} className="text-xs text-zinc-400">
                             {t('priority')} *
                           </Label>
                           <Select
@@ -197,7 +186,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                             <SelectTrigger className="h-8 text-sm">
                               <SelectValue placeholder={t('placeholders.selectPriority')} />
                             </SelectTrigger>
-                            <SelectContent className="bg-white">
+                            <SelectContent style={{ background: '#111113', border: '1px solid #27272a' }}>
                               <SelectItem value={WorkItemPriority.LOW}>
                                 {t('priorityEnum.low')}
                               </SelectItem>
@@ -215,7 +204,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                         </div>
 
                         <div className="space-y-1">
-                          <Label htmlFor={`activity-duration-${index}`} className="text-xs text-gray-700">
+                          <Label htmlFor={`activity-duration-${index}`} className="text-xs text-zinc-400">
                             {t('estimatedDuration')} (h) *
                           </Label>
                           <Input

@@ -214,7 +214,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Success message */}
       {submitSuccess && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+        <div className="bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 px-4 py-3 rounded-lg">
           {isEditMode
             ? t('messages.updateSuccess')
             : t('messages.createSuccess')}
@@ -223,14 +223,14 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Error message */}
       {submitError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-red-950/30 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg">
           {submitError}
         </div>
       )}
 
       {/* Project Name */}
       <div>
-        <Label htmlFor="name" className="block text-gray-700 mb-2">
+        <Label htmlFor="name" className="block text-zinc-300 mb-2">
           {t('projectName')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Input
@@ -248,7 +248,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Description */}
       <div>
-        <Label htmlFor="description" className="block text-gray-700 mb-2">
+        <Label htmlFor="description" className="block text-zinc-300 mb-2">
           {t('description')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Textarea
@@ -266,7 +266,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Client */}
       <div>
-        <Label htmlFor="client" className="block text-gray-700 mb-2">
+        <Label htmlFor="client" className="block text-zinc-300 mb-2">
           {t('client')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Input
@@ -286,7 +286,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Start Date */}
         <div>
-          <Label htmlFor="startDate" className="block text-gray-700 mb-2">
+          <Label htmlFor="startDate" className="block text-zinc-300 mb-2">
             {t('startDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <Input
@@ -303,7 +303,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
         {/* Estimated End Date */}
         <div>
-          <Label htmlFor="estimatedEndDate" className="block text-gray-700 mb-2">
+          <Label htmlFor="estimatedEndDate" className="block text-zinc-300 mb-2">
             {t('estimatedEndDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <Input
@@ -323,7 +323,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Status */}
       <div>
-        <Label htmlFor="status" className="block text-gray-700 mb-2">
+        <Label htmlFor="status" className="block text-zinc-300 mb-2">
           {t('status')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <select
@@ -332,17 +332,18 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           value={formData.status}
           onChange={handleChange}
           disabled={isSubmitting}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
-            errors.status ? 'border-red-500' : 'border-gray-300'
-          } ${!formData.status ? 'text-gray-500' : 'text-gray-900'}`}
+          className={`w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#18181b] ${
+            errors.status ? 'border-red-500' : ''
+          } ${!formData.status ? 'text-zinc-500' : 'text-zinc-100'}`}
+          style={{ background: '#111113', border: errors.status ? '1px solid #ef4444' : '1px solid #27272a' }}
         >
-          <option value="" disabled className="text-gray-500">
+          <option value="" disabled className="text-zinc-500" style={{ background: '#111113' }}>
             {t('placeholders.selectStatus')}
           </option>
-          <option value={ProjectStatus.PLANNING}>{t('statusOptions.planning')}</option>
-          <option value={ProjectStatus.ACTIVE}>{t('statusOptions.active')}</option>
-          <option value={ProjectStatus.ON_HOLD}>{t('statusOptions.onHold')}</option>
-          <option value={ProjectStatus.COMPLETED}>{t('statusOptions.completed')}</option>
+          <option value={ProjectStatus.PLANNING} style={{ background: '#111113' }}>{t('statusOptions.planning')}</option>
+          <option value={ProjectStatus.ACTIVE} style={{ background: '#111113' }}>{t('statusOptions.active')}</option>
+          <option value={ProjectStatus.ON_HOLD} style={{ background: '#111113' }}>{t('statusOptions.onHold')}</option>
+          <option value={ProjectStatus.COMPLETED} style={{ background: '#111113' }}>{t('statusOptions.completed')}</option>
         </select>
         {errors.status && <p className="mt-1 text-sm text-red-600">{errors.status}</p>}
       </div>

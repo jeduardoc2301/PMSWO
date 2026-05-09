@@ -133,12 +133,12 @@ export default function SignInPage() {
         </div>
 
         {/* Sign In Card */}
-        <div className="rounded-lg bg-white/95 backdrop-blur-sm p-8 shadow-2xl">
+        <div className="rounded-lg backdrop-blur-sm p-8 shadow-2xl" style={{ background: '#18181b', border: '1px solid #27272a' }}>
           <div className="mb-6">
-            <h1 className="text-center text-2xl font-bold text-gray-900">
+            <h1 className="text-center text-2xl font-bold text-zinc-100">
               {t('common.appName')}
             </h1>
-            <h2 className="mt-2 text-center text-lg font-medium text-gray-800">
+            <h2 className="mt-2 text-center text-lg font-medium text-zinc-300">
               {t('auth.signIn')}
             </h2>
           </div>
@@ -156,7 +156,7 @@ export default function SignInPage() {
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email" className="block text-gray-900">
+                <Label htmlFor="email" className="block text-zinc-100">
                   {t('auth.email')}
                 </Label>
                 <Input
@@ -179,7 +179,7 @@ export default function SignInPage() {
               </div>
 
               <div>
-                <Label htmlFor="password" className="block text-gray-900">
+                <Label htmlFor="password" className="block text-zinc-100">
                   {t('auth.password')}
                 </Label>
                 <div className="relative mt-1">
@@ -198,7 +198,7 @@ export default function SignInPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500 hover:text-zinc-400"
                     aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   >
                     {showPassword ? (

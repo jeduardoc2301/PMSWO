@@ -18,23 +18,24 @@ export default function EditProjectError({ error, reset }: EditProjectErrorProps
   }, [error])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-lg shadow p-8 text-center">
-        <h2 className="text-xl font-semibold text-red-600 mb-2">Error al cargar la página</h2>
-        <p className="text-gray-600 mb-1 text-sm">{error.message}</p>
+    <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+      <div className="max-w-md w-full rounded-lg shadow p-8 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <h2 className="text-xl font-semibold text-red-400 mb-2">Error al cargar la página</h2>
+        <p className="text-zinc-400 mb-1 text-sm">{error.message}</p>
         {error.digest && (
-          <p className="text-gray-400 text-xs mb-4">Código: {error.digest}</p>
+          <p className="text-zinc-500 text-xs mb-4">Código: {error.digest}</p>
         )}
         <div className="flex gap-3 justify-center mt-4">
           <button
             onClick={reset}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
           >
             Reintentar
           </button>
           <button
             onClick={() => router.push(`/${locale}/projects`)}
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
+            className="px-4 py-2 rounded-md text-zinc-300 hover:bg-zinc-800 text-sm transition-colors"
+            style={{ border: '1px solid #27272a' }}
           >
             Volver a Proyectos
           </button>

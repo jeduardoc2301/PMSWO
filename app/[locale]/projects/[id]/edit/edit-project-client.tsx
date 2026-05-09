@@ -68,10 +68,10 @@ export function EditProjectClient({ projectId }: EditProjectClientProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#09090b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-700">{t('loadingProject')}</p>
+          <div className="rounded-lg shadow p-8 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+            <p className="text-zinc-300">{t('loadingProject')}</p>
           </div>
         </div>
       </div>
@@ -80,9 +80,9 @@ export function EditProjectClient({ projectId }: EditProjectClientProps) {
 
   if (error || !project) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#09090b]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="bg-red-950/30 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg">
             {error || t('projectNotFound')}
           </div>
           <Button onClick={() => router.push(`/${locale}/projects`)} className="mt-4">
@@ -94,14 +94,14 @@ export function EditProjectClient({ projectId }: EditProjectClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#09090b]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">{t('editProjectTitle')}</h1>
-          <p className="mt-2 text-gray-800">{t('editProjectDescription')}</p>
+          <h1 className="text-3xl font-bold text-zinc-100">{t('editProjectTitle')}</h1>
+          <p className="mt-2 text-zinc-300">{t('editProjectDescription')}</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="rounded-lg shadow p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
           <ProjectForm
             initialData={{
               id: project.id,

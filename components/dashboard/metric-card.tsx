@@ -9,20 +9,20 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, subtitle, variant = 'default' }: MetricCardProps) {
   const variantStyles = {
-    default: 'text-gray-900',
-    success: 'text-green-600',
-    warning: 'text-orange-600',
-    danger: 'text-red-600',
+    default: 'text-[#e4e4e7]',
+    success: 'text-[#34d399]',
+    warning: 'text-[#fbbf24]',
+    danger: 'text-[#f87171]',
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-sm font-medium text-gray-700 mb-2">{title}</h3>
+    <div className="bg-[#18181b] rounded-lg p-6" style={{ border: '1px solid #27272a' }}>
+      <h3 className="text-sm font-medium text-[#a1a1aa] mb-2">{title}</h3>
       <p className={`text-3xl font-bold ${variantStyles[variant]}`}>
         {value}
       </p>
       {subtitle && (
-        <p className="text-sm text-gray-800 mt-2">{subtitle}</p>
+        <p className="text-sm text-[#71717a] mt-2">{subtitle}</p>
       )}
     </div>
   )

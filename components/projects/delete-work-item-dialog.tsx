@@ -56,35 +56,35 @@ export function DeleteWorkItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-[#18181b] border-[#27272a]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
+          <DialogTitle className="flex items-center gap-2 text-red-400">
             <AlertTriangle className="h-5 w-5" />
             {t('deleteDialog.title')}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-[#71717a]">
             {t('deleteDialog.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
               {error}
             </div>
           )}
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800 mb-2">
+          <div className="rounded-lg p-4" style={{ background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)' }}>
+            <p className="text-sm text-yellow-300 mb-2">
               <strong>{t('deleteDialog.warning')}</strong>
             </p>
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-gray-600 mb-1">
+          <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+            <p className="text-sm text-[#71717a] mb-1">
               {t('deleteDialog.workItemTitle')}
             </p>
-            <p className="font-medium text-gray-900">{workItem.title}</p>
+            <p className="font-medium text-[#e4e4e7]">{workItem.title}</p>
           </div>
         </div>
 

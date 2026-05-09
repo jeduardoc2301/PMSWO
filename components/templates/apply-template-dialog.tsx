@@ -27,13 +27,13 @@ interface WizardState {
 
 /**
  * ApplyTemplateDialog component - Multi-step wizard for applying templates to projects
- * 
+ *
  * Orchestrates the template application flow:
  * 1. Template Selection - Browse and select a template
  * 2. Activity Selection - Choose which activities to include
  * 3. Date Assignment - Set start date and view calculated dates
  * 4. Final Preview - Review and confirm before creating work items
- * 
+ *
  * Requirements: 9.1, 9.5, 10.1, 11.1, 12.7, 12.9, 17.1, 17.9, 17.10, 20.5, 20.6
  */
 export function ApplyTemplateDialog({
@@ -44,17 +44,16 @@ export function ApplyTemplateDialog({
 }: ApplyTemplateDialogProps) {
   const t = useTranslations('templates')
   const { toast } = useToast()
-  
+
   const [wizardState, setWizardState] = useState<WizardState>({
     currentStep: 'template-selection',
     selectedTemplateId: null,
     selectedActivityIds: [],
     startDate: new Date(),
   })
-  
+
   const [submitting, setSubmitting] = useState(false)
 
-  // Reset wizard state when dialog closes
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setWizardState({
@@ -68,16 +67,14 @@ export function ApplyTemplateDialog({
     onOpenChange(newOpen)
   }
 
-  // Handle template selection
   const handleTemplateSelect = (templateId: string) => {
     setWizardState(prev => ({
       ...prev,
       selectedTemplateId: templateId,
-      selectedActivityIds: [], // Reset activity selection when template changes
+      selectedActivityIds: [],
     }))
   }
 
-  // Handle activity selection
   const handleActivitySelect = (activityIds: string[]) => {
     setWizardState(prev => ({
       ...prev,
@@ -85,7 +82,6 @@ export function ApplyTemplateDialog({
     }))
   }
 
-  // Handle start date change
   const handleStartDateChange = (date: Date) => {
     setWizardState(prev => ({
       ...prev,
@@ -93,7 +89,6 @@ export function ApplyTemplateDialog({
     }))
   }
 
-  // Navigate to next step
   const handleNext = () => {
     const stepOrder: WizardStep[] = [
       'template-selection',
@@ -110,7 +105,6 @@ export function ApplyTemplateDialog({
     }
   }
 
-  // Navigate to previous step
   const handleBack = () => {
     const stepOrder: WizardStep[] = [
       'template-selection',
@@ -127,7 +121,6 @@ export function ApplyTemplateDialog({
     }
   }
 
-  // Handle final confirmation and API call
   const handleConfirm = async () => {
     if (!wizardState.selectedTemplateId || wizardState.selectedActivityIds.length === 0) {
       toast({
@@ -149,7 +142,7 @@ export function ApplyTemplateDialog({
         body: JSON.stringify({
           templateId: wizardState.selectedTemplateId,
           selectedActivityIds: wizardState.selectedActivityIds,
-          startDate: wizardState.startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+          startDate: wizardState.startDate.toISOString().split('T')[0],
         }),
       })
 
@@ -160,16 +153,13 @@ export function ApplyTemplateDialog({
 
       const data = await response.json()
 
-      // Show success toast with created count
       toast({
         title: t('success.applied', { count: data.createdCount }),
         variant: 'default',
       })
 
-      // Call onSuccess to refresh work items list
       onSuccess()
 
-      // Close dialog
       handleOpenChange(false)
     } catch (error) {
       console.error('Error applying template:', error)
@@ -183,7 +173,6 @@ export function ApplyTemplateDialog({
     }
   }
 
-  // Get dialog title based on current step
   const getDialogTitle = () => {
     switch (wizardState.currentStep) {
       case 'template-selection':
@@ -199,7 +188,6 @@ export function ApplyTemplateDialog({
     }
   }
 
-  // Get current step number
   const getCurrentStepNumber = () => {
     const stepOrder: WizardStep[] = [
       'template-selection',
@@ -212,7 +200,6 @@ export function ApplyTemplateDialog({
 
   const totalSteps = 4
 
-  // Get dialog description based on current step
   const getDialogDescription = () => {
     switch (wizardState.currentStep) {
       case 'template-selection':
@@ -234,22 +221,20 @@ export function ApplyTemplateDialog({
         <DialogHeader>
           <div className="flex items-center justify-between mb-2">
             <DialogTitle>{getDialogTitle()}</DialogTitle>
-            <div className="text-sm font-medium text-gray-900">
+            <div className="text-sm font-medium text-zinc-300">
               Paso {getCurrentStepNumber()} de {totalSteps}
             </div>
           </div>
           <DialogDescription>{getDialogDescription()}</DialogDescription>
-          
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+
+          <div className="w-full bg-zinc-800 rounded-full h-2 mt-4">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-[#6366f1] h-2 rounded-full transition-all duration-300"
               style={{ width: `${(getCurrentStepNumber() / totalSteps) * 100}%` }}
             />
           </div>
         </DialogHeader>
 
-        {/* Render current step */}
         {wizardState.currentStep === 'template-selection' && (
           <TemplateSelectionStep
             selectedTemplateId={wizardState.selectedTemplateId}

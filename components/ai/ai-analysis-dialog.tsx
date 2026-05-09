@@ -47,15 +47,10 @@ interface AIAnalysisDialogProps {
   onCreateRisk?: (data: { description: string; probability: number; impact: number }) => void
 }
 
-/**
- * AI Project Analysis Dialog Component
- * Displays AI-powered project analysis with suggestions and detected issues
- * Requirements: 9.1, 9.2
- */
 export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, onAdjustDates, onCreateRisk }: AIAnalysisDialogProps) {
   const t = useTranslations('ai')
   const tCommon = useTranslations('common')
-  
+
   const [open, setOpen] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null)
@@ -64,7 +59,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
     try {
       setAnalyzing(true)
       setAnalysis(null)
-      
+
       const response = await fetch('/api/v1/ai/analyze-project', {
         method: 'POST',
         headers: {
@@ -93,11 +88,9 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)
     if (newOpen && !analysis) {
-      // Auto-analyze when opening
       handleAnalyzeProject()
     }
     if (!newOpen) {
-      // Reset state when closing
       setAnalysis(null)
     }
   }
@@ -105,13 +98,13 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'HIGH':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-900/40 text-red-300'
       case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-yellow-900/40 text-yellow-300'
       case 'LOW':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-[rgba(99,102,241,0.15)] text-[#a5b4fc]'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-zinc-800 text-zinc-400'
     }
   }
 
@@ -152,54 +145,48 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
 
   const handleSuggestionAction = (suggestion: AISuggestion) => {
     console.log('[AIAnalysisDialog] handleSuggestionAction called with:', suggestion)
-    
+
     if (suggestion.type === 'CREATE_BLOCKER' && onCreateBlocker) {
       console.log('[AIAnalysisDialog] Calling onCreateBlocker')
-      // Determine severity based on suggestion priority
       const severityMap: Record<string, string> = {
         'HIGH': 'HIGH',
         'MEDIUM': 'MEDIUM',
         'LOW': 'LOW'
       }
-      
+
       onCreateBlocker({
         workItemId: suggestion.affectedEntityId,
         description: suggestion.description,
         severity: severityMap[suggestion.priority] || 'MEDIUM'
       })
-      
-      // Close the analysis dialog
+
       handleOpenChange(false)
     } else if (suggestion.type === 'ADJUST_DATES' && onAdjustDates) {
       console.log('[AIAnalysisDialog] Calling onAdjustDates')
-      // Find the work item title from overdueItems if available
       const overdueItem = analysis?.overdueItems.find(item => item.workItemId === suggestion.affectedEntityId)
-      
+
       onAdjustDates({
         workItemId: suggestion.affectedEntityId,
         workItemTitle: overdueItem?.title || suggestion.affectedEntityId
       })
-      
-      // Close the analysis dialog
+
       handleOpenChange(false)
     } else if (suggestion.type === 'CREATE_RISK' && onCreateRisk) {
       console.log('[AIAnalysisDialog] Calling onCreateRisk')
-      // Map priority to probability/impact (HIGH priority = high probability and impact)
       const priorityMap: Record<string, { probability: number; impact: number }> = {
         'HIGH': { probability: 4, impact: 4 },
         'MEDIUM': { probability: 3, impact: 3 },
         'LOW': { probability: 2, impact: 2 }
       }
-      
+
       const riskData = priorityMap[suggestion.priority] || { probability: 3, impact: 3 }
-      
+
       onCreateRisk({
         description: suggestion.description,
         probability: riskData.probability,
         impact: riskData.impact
       })
-      
-      // Close the analysis dialog
+
       handleOpenChange(false)
     } else {
       console.log('[AIAnalysisDialog] No matching handler for suggestion type:', suggestion.type)
@@ -216,12 +203,12 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
           {t('analyzeProject')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
         <DialogHeader>
-          <DialogTitle>{t('analysis.title')}</DialogTitle>
+          <DialogTitle className="text-[#e4e4e7]">{t('analysis.title')}</DialogTitle>
           <DialogDescription>
             {analysis && (
-              <span className="text-sm text-gray-900">
+              <span className="text-sm text-[#a1a1aa]">
                 {t('report.generatedAt')}: {new Date(analysis.analyzedAt).toLocaleString()}
               </span>
             )}
@@ -229,28 +216,25 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Loading State */}
           {analyzing && (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <p className="text-sm text-gray-900">{t('loading.analyzingProject')}</p>
+              <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
+              <p className="text-sm text-[#a1a1aa]">{t('loading.analyzingProject')}</p>
             </div>
           )}
 
-          {/* Analysis Results */}
           {analysis && !analyzing && (
             <div className="space-y-6">
-              {/* Suggestions */}
-              <Card>
+              <Card style={{ background: '#111113', border: '1px solid #27272a' }}>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t('analysis.suggestions')}</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.suggestions')}</CardTitle>
+                  <CardDescription className="text-[#71717a]">
                     {analysis.suggestions.length} {t('analysis.suggestions').toLowerCase()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analysis.suggestions.length === 0 ? (
-                    <p className="text-sm text-gray-900 text-center py-4">
+                    <p className="text-sm text-[#a1a1aa] text-center py-4">
                       {t('analysis.noSuggestions')}
                     </p>
                   ) : (
@@ -258,22 +242,23 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                       {analysis.suggestions.map((suggestion, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          className="flex items-start gap-3 p-3 rounded-lg"
+                          style={{ background: '#18181b', border: '1px solid #27272a' }}
                         >
-                          <div className="mt-1">{getSuggestionIcon(suggestion.type)}</div>
+                          <div className="mt-1 text-[#a1a1aa]">{getSuggestionIcon(suggestion.type)}</div>
                           <div className="flex-1 space-y-2">
                             <div className="flex items-center gap-2">
                               <Badge className={getPriorityColor(suggestion.priority)}>
                                 {t(`analysis.priority.${suggestion.priority.toLowerCase()}`)}
                               </Badge>
-                              <span className="text-xs text-gray-900">
+                              <span className="text-xs text-[#71717a]">
                                 {t(`analysis.suggestionTypes.${getSuggestionTypeKey(suggestion.type)}`)}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-900">{suggestion.description}</p>
+                            <p className="text-sm text-[#e4e4e7]">{suggestion.description}</p>
                             <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => handleSuggestionAction(suggestion)}
                               >
@@ -291,17 +276,16 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                 </CardContent>
               </Card>
 
-              {/* Detected Risks */}
-              <Card>
+              <Card style={{ background: '#111113', border: '1px solid #27272a' }}>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t('analysis.detectedRisks')}</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.detectedRisks')}</CardTitle>
+                  <CardDescription className="text-[#71717a]">
                     {analysis.detectedRisks.length} {t('analysis.detectedRisks').toLowerCase()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analysis.detectedRisks.length === 0 ? (
-                    <p className="text-sm text-gray-900 text-center py-4">
+                    <p className="text-sm text-[#a1a1aa] text-center py-4">
                       {t('analysis.noRisks')}
                     </p>
                   ) : (
@@ -309,14 +293,15 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                       {analysis.detectedRisks.map((risk, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200"
+                          className="flex items-start gap-3 p-3 rounded-lg"
+                          style={{ background: '#18181b', border: '1px solid #27272a' }}
                         >
-                          <AlertTriangle className="h-5 w-5 text-orange-600 mt-1" />
+                          <AlertTriangle className="h-5 w-5 text-orange-400 mt-1" />
                           <div className="flex-1">
-                            <p className="text-sm text-gray-900">{risk.description}</p>
+                            <p className="text-sm text-[#e4e4e7]">{risk.description}</p>
                             <div className="mt-2">
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => {
                                   if (onCreateRisk) {
@@ -340,17 +325,16 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                 </CardContent>
               </Card>
 
-              {/* Overdue Items */}
-              <Card>
+              <Card style={{ background: '#111113', border: '1px solid #27272a' }}>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t('analysis.overdueItems')}</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.overdueItems')}</CardTitle>
+                  <CardDescription className="text-[#71717a]">
                     {analysis.overdueItems.length} {t('analysis.overdueItems').toLowerCase()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analysis.overdueItems.length === 0 ? (
-                    <p className="text-sm text-gray-900 text-center py-4">
+                    <p className="text-sm text-[#a1a1aa] text-center py-4">
                       {t('analysis.noOverdueItems')}
                     </p>
                   ) : (
@@ -358,22 +342,23 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                       {analysis.overdueItems.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200"
+                          className="flex items-start gap-3 p-3 rounded-lg"
+                          style={{ background: '#18181b', border: '1px solid #27272a' }}
                         >
-                          <Clock className="h-5 w-5 text-red-600 mt-1" />
+                          <Clock className="h-5 w-5 text-red-400 mt-1" />
                           <div className="flex-1 space-y-2">
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-medium text-[#e4e4e7]">
                                 {item.title}
                               </p>
-                              <p className="text-xs text-red-600">
+                              <p className="text-xs text-red-400">
                                 {item.daysOverdue} días de retraso
                               </p>
                             </div>
-                            <p className="text-sm text-gray-900">{item.suggestedAction}</p>
+                            <p className="text-sm text-[#a1a1aa]">{item.suggestedAction}</p>
                             <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => {
                                   console.log('[AIAnalysisDialog] Adjust Dates button clicked for overdue item:', item)
@@ -391,8 +376,8 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                               >
                                 {t('analysis.actions.adjustDates')}
                               </Button>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => {
                                   console.log('[AIAnalysisDialog] Create Blocker button clicked for overdue item:', item)
@@ -419,7 +404,6 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">
             {analysis && (
               <Button variant="outline" onClick={handleAnalyzeProject} disabled={analyzing}>

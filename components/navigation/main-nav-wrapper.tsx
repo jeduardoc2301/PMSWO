@@ -81,9 +81,9 @@ export function MainNavWrapper() {
   // Show loading state while session is being fetched
   if (status === 'loading') {
     return (
-      <aside className="fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-gray-200">
+      <aside className="fixed top-0 left-0 z-40 h-screen w-64" style={{ background: '#18181b', borderRight: '1px solid #27272a' }}>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
         </div>
       </aside>
     )

@@ -27,15 +27,10 @@ interface AIReportDialogProps {
   projectId: string
 }
 
-/**
- * AI Report Generation Dialog Component
- * Allows users to generate AI-powered project reports with different detail levels
- * Requirements: 8.1, 8.2, 8.3
- */
 export function AIReportDialog({ projectId }: AIReportDialogProps) {
   const t = useTranslations('ai')
   const tCommon = useTranslations('common')
-  
+
   const [open, setOpen] = useState(false)
   const [detailLevel, setDetailLevel] = useState<ReportDetailLevel>('DETAILED')
   const [generating, setGenerating] = useState(false)
@@ -47,7 +42,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
     try {
       setGenerating(true)
       setReport(null)
-      
+
       const response = await fetch('/api/v1/ai/generate-report', {
         method: 'POST',
         headers: {
@@ -81,7 +76,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
     try {
       await navigator.clipboard.writeText(report)
       setCopied(true)
-      
+
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       alert('Failed to copy to clipboard')
@@ -91,7 +86,6 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)
     if (!newOpen) {
-      // Reset state when closing
       setReport(null)
       setGeneratedAt(null)
       setCopied(false)
@@ -106,19 +100,18 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
           {t('generateReport')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
         <DialogHeader>
-          <DialogTitle>{t('report.title')}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[#e4e4e7]">{t('report.title')}</DialogTitle>
+          <DialogDescription className="text-[#71717a]">
             {t('detailLevel.title')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Detail Level Selector */}
           {!report && (
             <div className="space-y-2">
-              <Label htmlFor="detail-level">{t('detailLevel.title')}</Label>
+              <Label htmlFor="detail-level" className="text-[#a1a1aa]">{t('detailLevel.title')}</Label>
               <Select
                 value={detailLevel}
                 onValueChange={(value) => setDetailLevel(value as ReportDetailLevel)}
@@ -131,7 +124,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="EXECUTIVE">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.executive')}</span>
-                      <span className="text-xs text-gray-700">
+                      <span className="text-xs text-[#71717a]">
                         {t('detailLevel.executiveDesc')}
                       </span>
                     </div>
@@ -139,7 +132,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="DETAILED">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.detailed')}</span>
-                      <span className="text-xs text-gray-700">
+                      <span className="text-xs text-[#71717a]">
                         {t('detailLevel.detailedDesc')}
                       </span>
                     </div>
@@ -147,7 +140,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="COMPLETE">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.complete')}</span>
-                      <span className="text-xs text-gray-700">
+                      <span className="text-xs text-[#71717a]">
                         {t('detailLevel.completeDesc')}
                       </span>
                     </div>
@@ -157,19 +150,17 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
             </div>
           )}
 
-          {/* Loading State */}
           {generating && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              <p className="text-sm text-gray-800">{t('loading.generatingReport')}</p>
+              <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
+              <p className="text-sm text-[#a1a1aa]">{t('loading.generatingReport')}</p>
             </div>
           )}
 
-          {/* Generated Report */}
           {report && !generating && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-[#71717a]">
                   {t('report.generatedAt')}: {generatedAt?.toLocaleString()}
                 </p>
                 <Button
@@ -191,14 +182,13 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   )}
                 </Button>
               </div>
-              
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <pre className="whitespace-pre-wrap text-sm font-mono text-gray-900">{report}</pre>
+
+              <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+                <pre className="whitespace-pre-wrap text-sm font-mono text-[#e4e4e7]">{report}</pre>
               </div>
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">
             {!report && (
               <Button onClick={handleGenerateReport} disabled={generating}>
