@@ -27,12 +27,12 @@ const CustomTooltip = ({ active, payload }: any) => {
   const d = payload[1]?.payload ?? payload[0]?.payload
   if (!d) return null
   return (
-    <div className="bg-white border border-gray-200 rounded shadow p-3 text-sm">
-      <p className="font-semibold text-gray-800 mb-1">{d.phase}</p>
-      <p className="text-gray-600">Inicio: <span className="font-medium">{d.startLabel}</span></p>
-      <p className="text-gray-600">Fin: <span className="font-medium">{d.endLabel}</span></p>
-      <p className="text-gray-600">Duración: <span className="font-medium">{d.durationLabel}</span></p>
-      <p className="text-gray-600">Actividades: <span className="font-medium">{d.itemCount}</span></p>
+    <div style={{ background: '#1c1c1f', border: '1px solid #27272a', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
+      <p style={{ fontWeight: 600, color: '#e4e4e7', marginBottom: 4 }}>{d.phase}</p>
+      <p style={{ color: '#71717a' }}>Inicio: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.startLabel}</span></p>
+      <p style={{ color: '#71717a' }}>Fin: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.endLabel}</span></p>
+      <p style={{ color: '#71717a' }}>Duración: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.durationLabel}</span></p>
+      <p style={{ color: '#71717a' }}>Actividades: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.itemCount}</span></p>
     </div>
   )
 }
@@ -107,7 +107,7 @@ export function ProjectGanttChart({ workItems }: ProjectGanttChartProps) {
 
   if (!chartData) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-500">
+      <div className="flex items-center justify-center h-48 text-zinc-500">
         No hay fases con fechas asignadas para mostrar en el diagrama.
       </div>
     )
@@ -131,22 +131,26 @@ export function ProjectGanttChart({ workItems }: ProjectGanttChartProps) {
           margin={{ top: 5, right: 30, left: 10, bottom: 20 }}
           barSize={26}
         >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#27272a" />
           <XAxis
             type="number"
             domain={[0, maxVal + 1]}
             tickCount={maxVal + 2}
             tickFormatter={tickFormatter}
-            tick={{ fontSize: 11 }}
-            label={{ value: 'Fecha', position: 'insideBottom', offset: -10, fontSize: 12 }}
+            tick={{ fontSize: 11, fill: '#71717a' }}
+            label={{ value: 'Fecha', position: 'insideBottom', offset: -10, fontSize: 12, fill: '#71717a' }}
+            axisLine={{ stroke: '#27272a' }}
+            tickLine={{ stroke: '#27272a' }}
           />
           <YAxis
             type="category"
             dataKey="phase"
             width={230}
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 12, fill: '#a1a1aa' }}
+            axisLine={{ stroke: '#27272a' }}
+            tickLine={{ stroke: '#27272a' }}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.05)' }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
           {/* Invisible offset bar */}
           <Bar dataKey="startOffset" stackId="g" fill="transparent" />
           {/* Visible duration bar */}

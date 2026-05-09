@@ -1,12 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2, GripVertical } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Checkbox } from '@/components/ui/checkbox'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
@@ -28,13 +24,35 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import React from 'react'
 
-// Sortable row component for drag and drop
+const STATUS_STYLE: Record<WorkItemStatus, React.CSSProperties> = {
+  [WorkItemStatus.BACKLOG]: { background: 'rgba(113,113,122,0.2)', color: '#a1a1aa', border: '1px solid rgba(113,113,122,0.35)' },
+  [WorkItemStatus.TODO]: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' },
+  [WorkItemStatus.IN_PROGRESS]: { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' },
+  [WorkItemStatus.BLOCKED]: { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' },
+  [WorkItemStatus.DONE]: { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' },
+}
+
+const PRIORITY_STYLE: Record<WorkItemPriority, React.CSSProperties> = {
+  [WorkItemPriority.CRITICAL]: { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' },
+  [WorkItemPriority.HIGH]: { background: 'rgba(249,115,22,0.15)', color: '#fb923c', border: '1px solid rgba(249,115,22,0.3)' },
+  [WorkItemPriority.MEDIUM]: { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' },
+  [WorkItemPriority.LOW]: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' },
+}
+
+const inputStyle: React.CSSProperties = {
+  background: '#111113',
+  border: '1px solid #27272a',
+  color: '#e4e4e7',
+  borderRadius: 8,
+  fontSize: 13,
+  outline: 'none',
+}
+
 function SortableRow({
   item,
   isHighlighted,
-  getStatusBadgeColor,
-  getPriorityBadgeColor,
   getStatusLabel,
   getPriorityLabel,
   onEdit,
@@ -42,8 +60,6 @@ function SortableRow({
 }: {
   item: WorkItemSummary
   isHighlighted: boolean
-  getStatusBadgeColor: (s: WorkItemStatus) => string
-  getPriorityBadgeColor: (p: WorkItemPriority) => string
   getStatusLabel: (s: WorkItemStatus) => string
   getPriorityLabel: (p: WorkItemPriority) => string
   onEdit: (item: WorkItemSummary) => void
@@ -55,36 +71,36 @@ function SortableRow({
   return (
     <tr
       ref={setNodeRef}
-      style={style}
-      className={`transition-all duration-500 ${isHighlighted ? 'bg-blue-100 border-l-4 border-l-blue-600 shadow-lg' : 'hover:bg-gray-50'}`}
+      style={{ ...style, ...(isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid #6366f1' } : {}) }}
+      className="border-b border-zinc-800/60 hover:bg-zinc-900/30 transition-all"
     >
-      <td className="px-2 py-4 w-8">
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
+      <td className="px-2 py-3.5 w-8">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400">
           <GripVertical className="h-4 w-4" />
         </button>
       </td>
-      <td className="px-6 py-4">
-        <span className="text-sm font-medium text-gray-900">{item.title}</span>
+      <td className="px-4 py-3.5">
+        <span className="text-sm font-medium text-zinc-100">{item.title}</span>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(item.status)}`}>
+      <td className="px-4 py-3.5 whitespace-nowrap">
+        <span style={{ ...STATUS_STYLE[item.status], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
           {getStatusLabel(item.status)}
         </span>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityBadgeColor(item.priority)}`}>
+      <td className="px-4 py-3.5 whitespace-nowrap">
+        <span style={{ ...PRIORITY_STYLE[item.priority], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
           {getPriorityLabel(item.priority)}
         </span>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.ownerName}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-right">
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="h-8 w-8 p-0">
-            <Pencil className="h-4 w-4 text-gray-800" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(item)} className="h-8 w-8 p-0 hover:bg-red-50">
-            <Trash2 className="h-4 w-4 text-red-600" />
-          </Button>
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{item.ownerName}</td>
+      <td className="px-4 py-3.5 whitespace-nowrap text-right">
+        <div className="flex items-center justify-end gap-1">
+          <button onClick={() => onEdit(item)} className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all">
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => onDelete(item)} className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </td>
     </tr>
@@ -104,11 +120,11 @@ interface WorkItemsListProps {
   onApplyTemplate?: () => void
 }
 
-export function WorkItemsList({ 
-  projectId, 
-  workItems, 
-  onWorkItemCreated, 
-  editDatesData, 
+export function WorkItemsList({
+  projectId,
+  workItems,
+  onWorkItemCreated,
+  editDatesData,
   onEditDatesDataUsed,
   canCreateWorkItems = false,
   onApplyTemplate
@@ -124,13 +140,25 @@ export function WorkItemsList({
   const [priorityFilters, setPriorityFilters] = useState<WorkItemPriority[]>([])
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
   const [localOrder, setLocalOrder] = useState<Map<string, WorkItemSummary[]>>(new Map())
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
+  const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false)
+  const statusRef = useRef<HTMLDivElement>(null)
+  const priorityRef = useRef<HTMLDivElement>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // Sort items: templateOrder nulls go last
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) setStatusDropdownOpen(false)
+      if (priorityRef.current && !priorityRef.current.contains(e.target as Node)) setPriorityDropdownOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   const sortItems = useCallback((items: WorkItemSummary[]) => {
     return [...items].sort((a, b) => {
       if (a.templateOrder == null && b.templateOrder == null) return 0
@@ -151,7 +179,6 @@ export function WorkItemsList({
 
     setLocalOrder(prev => new Map(prev).set(phaseKey, newItems))
 
-    // Persist order - send all IDs of this phase in new order
     try {
       await fetch(`/api/v1/projects/${projectId}/work-items/reorder`, {
         method: 'POST',
@@ -165,78 +192,41 @@ export function WorkItemsList({
 
   const handleWorkItemCreated = () => {
     setCreateDialogOpen(false)
-    if (onWorkItemCreated) {
-      onWorkItemCreated()
-    }
+    if (onWorkItemCreated) onWorkItemCreated()
   }
 
   const handleDatesUpdated = () => {
     setEditDialogOpen(false)
     setSelectedWorkItem(null)
-    if (onWorkItemCreated) {
-      onWorkItemCreated() // Refresh work items
-    }
+    if (onWorkItemCreated) onWorkItemCreated()
   }
 
   const handleWorkItemDeleted = () => {
     setDeleteDialogOpen(false)
     setSelectedWorkItem(null)
-    if (onWorkItemCreated) {
-      onWorkItemCreated() // Refresh work items
-    }
+    if (onWorkItemCreated) onWorkItemCreated()
   }
 
   useEffect(() => {
-    console.log('[WorkItemsList] editDatesData changed:', editDatesData)
     if (editDatesData) {
-      console.log('[WorkItemsList] Available work items:', workItems.map(wi => ({ id: wi.id, title: wi.title })))
-      
-      // Try to find by ID first
       let workItem = workItems.find(wi => wi.id === editDatesData.workItemId)
-      console.log('[WorkItemsList] Search by ID result:', workItem)
-      
-      // If not found by ID, try by title (AI sometimes returns title instead of ID)
       if (!workItem) {
-        // Use case-insensitive and trimmed comparison
         const searchTitle = editDatesData.workItemId.trim().toLowerCase()
         const searchTitle2 = editDatesData.workItemTitle.trim().toLowerCase()
-        
-        workItem = workItems.find(wi => 
-          wi.title.trim().toLowerCase() === searchTitle || 
+        workItem = workItems.find(wi =>
+          wi.title.trim().toLowerCase() === searchTitle ||
           wi.title.trim().toLowerCase() === searchTitle2
         )
-        console.log('[WorkItemsList] Search by title result:', workItem)
       }
-      
-      console.log('[WorkItemsList] Found work item:', workItem)
-      
       if (workItem) {
-        // Highlight the row using the actual work item ID
         setHighlightedWorkItemId(workItem.id)
-        
-        // Open the edit dialog
         setSelectedWorkItem(workItem)
         setEditDialogOpen(true)
-        
-        // Remove highlight after 5 seconds
-        const highlightTimer = setTimeout(() => {
-          setHighlightedWorkItemId(null)
-        }, 5000)
-        
-        // Clean up
-        if (onEditDatesDataUsed) {
-          onEditDatesDataUsed()
-        }
-        
-        return () => {
-          clearTimeout(highlightTimer)
-        }
+        const highlightTimer = setTimeout(() => setHighlightedWorkItemId(null), 5000)
+        if (onEditDatesDataUsed) onEditDatesDataUsed()
+        return () => clearTimeout(highlightTimer)
       } else {
-        console.error('[WorkItemsList] Could not find work item with ID or title:', editDatesData)
-        // Still clean up even if not found
-        if (onEditDatesDataUsed) {
-          onEditDatesDataUsed()
-        }
+        if (onEditDatesDataUsed) onEditDatesDataUsed()
       }
     }
   }, [editDatesData, workItems, onEditDatesDataUsed])
@@ -263,70 +253,50 @@ export function WorkItemsList({
   }
 
   const toggleStatusFilter = (status: WorkItemStatus) => {
-    setStatusFilters(prev => 
-      prev.includes(status) 
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
+    setStatusFilters(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
     )
   }
 
   const togglePriorityFilter = (priority: WorkItemPriority) => {
-    setPriorityFilters(prev => 
-      prev.includes(priority)
-        ? prev.filter(p => p !== priority)
-        : [...prev, priority]
+    setPriorityFilters(prev =>
+      prev.includes(priority) ? prev.filter(p => p !== priority) : [...prev, priority]
     )
   }
 
-  const clearStatusFilters = () => setStatusFilters([])
-  const clearPriorityFilters = () => setPriorityFilters([])
-
-  // Filter work items
   const filteredWorkItems = workItems.filter(item => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilters.length === 0 || statusFilters.includes(item.status)
     const matchesPriority = priorityFilters.length === 0 || priorityFilters.includes(item.priority)
-    
     return matchesSearch && matchesStatus && matchesPriority
   })
 
-  // Group work items by phase
   const groupWorkItemsByPhase = () => {
     const grouped: Record<string, WorkItemSummary[]> = {}
     const noPhaseKey = '__NO_PHASE__'
-    
     filteredWorkItems.forEach(item => {
       const phaseKey = item.phase || noPhaseKey
-      if (!grouped[phaseKey]) {
-        grouped[phaseKey] = []
-      }
+      if (!grouped[phaseKey]) grouped[phaseKey] = []
       grouped[phaseKey].push(item)
     })
-    
     return grouped
   }
 
   const workItemsByPhase = groupWorkItemsByPhase()
   const hasPhases = Object.keys(workItemsByPhase).some(key => key !== '__NO_PHASE__')
 
-  // Toggle phase expansion
   const togglePhase = (phaseName: string) => {
     setExpandedPhases(prev => {
       const newSet = new Set(prev)
-      if (newSet.has(phaseName)) {
-        newSet.delete(phaseName)
-      } else {
-        newSet.add(phaseName)
-      }
+      if (newSet.has(phaseName)) newSet.delete(phaseName)
+      else newSet.add(phaseName)
       return newSet
     })
   }
 
-  // Expand all phases by default on mount
   useEffect(() => {
     const phases = Object.keys(groupWorkItemsByPhase())
     setExpandedPhases(new Set(phases))
-    // Initialize local order
     const orderMap = new Map<string, WorkItemSummary[]>()
     Object.entries(groupWorkItemsByPhase()).forEach(([phase, items]) => {
       orderMap.set(phase, sortItems(items))
@@ -334,45 +304,16 @@ export function WorkItemsList({
     setLocalOrder(orderMap)
   }, [workItems])
 
-  const getStatusBadgeColor = (status: WorkItemStatus) => {
-    switch (status) {
-      case WorkItemStatus.BACKLOG:
-        return 'bg-gray-100 text-gray-800'
-      case WorkItemStatus.TODO:
-        return 'bg-blue-100 text-blue-800'
-      case WorkItemStatus.IN_PROGRESS:
-        return 'bg-yellow-100 text-yellow-800'
-      case WorkItemStatus.BLOCKED:
-        return 'bg-red-100 text-red-800'
-      case WorkItemStatus.DONE:
-        return 'bg-green-100 text-green-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getPriorityBadgeColor = (priority: WorkItemPriority) => {
-    switch (priority) {
-      case WorkItemPriority.CRITICAL:
-        return 'bg-red-100 text-red-800'
-      case WorkItemPriority.HIGH:
-        return 'bg-orange-100 text-orange-800'
-      case WorkItemPriority.MEDIUM:
-        return 'bg-yellow-100 text-yellow-800'
-      case WorkItemPriority.LOW:
-        return 'bg-blue-100 text-blue-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    })
+  const thStyle: React.CSSProperties = {
+    padding: '10px 16px',
+    textAlign: 'left',
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#71717a',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    background: '#111113',
+    borderBottom: '1px solid #27272a',
   }
 
   return (
@@ -382,138 +323,119 @@ export function WorkItemsList({
         <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700 w-4 h-4" />
-            <Input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+            <input
               placeholder={t('searchPlaceholder', { defaultValue: 'Buscar por título...' })}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              style={{ ...inputStyle, paddingLeft: 36, paddingRight: 12, paddingTop: 8, paddingBottom: 8, width: '100%' }}
             />
           </div>
 
           {/* Status Filter */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-[180px] justify-start">
-                <Filter className="mr-2 h-4 w-4" />
-                {statusFilters.length > 0 ? (
-                  <span>{t('filterByStatus')} ({statusFilters.length})</span>
-                ) : (
-                  t('filterByStatus', { defaultValue: 'Estado' })
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="start">
-              <div className="p-2">
-                <div className="flex items-center justify-between px-2 py-1.5">
-                  <span className="text-sm font-medium text-gray-900">{t('filterByStatus')}</span>
+          <div ref={statusRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => { setStatusDropdownOpen(p => !p); setPriorityDropdownOpen(false) }}
+              style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer', minWidth: 160, whiteSpace: 'nowrap' }}
+            >
+              <Filter className="h-4 w-4 text-zinc-500" />
+              <span style={{ color: statusFilters.length > 0 ? '#a5b4fc' : '#71717a', fontSize: 13 }}>
+                {t('filterByStatus', { defaultValue: 'Estado' })}
+                {statusFilters.length > 0 && ` (${statusFilters.length})`}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 text-zinc-600 ml-auto" />
+            </button>
+            {statusDropdownOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: '#18181b', border: '1px solid #27272a', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#a1a1aa' }}>{t('filterByStatus', { defaultValue: 'Estado' })}</span>
                   {statusFilters.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 text-xs text-gray-800 hover:text-gray-900"
-                      onClick={clearStatusFilters}
-                    >
+                    <button onClick={() => setStatusFilters([])} style={{ fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {t('clearFilters', { defaultValue: 'Limpiar' })}
-                    </Button>
+                    </button>
                   )}
                 </div>
-                <div className="space-y-1 mt-2">
-                  {[
-                    WorkItemStatus.BACKLOG,
-                    WorkItemStatus.TODO,
-                    WorkItemStatus.IN_PROGRESS,
-                    WorkItemStatus.BLOCKED,
-                    WorkItemStatus.DONE
-                  ].map((status) => (
-                    <label
-                      key={status}
-                      className="flex items-center space-x-2 px-2 py-1.5 rounded hover:bg-gray-100 cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={statusFilters.includes(status)}
-                        onCheckedChange={() => toggleStatusFilter(status)}
-                      />
-                      <span className="text-sm text-gray-900">
-                        {getStatusLabel(status)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                {[WorkItemStatus.BACKLOG, WorkItemStatus.TODO, WorkItemStatus.IN_PROGRESS, WorkItemStatus.BLOCKED, WorkItemStatus.DONE].map(status => (
+                  <label key={status} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}
+                    className="hover:bg-zinc-800/50">
+                    <input
+                      type="checkbox"
+                      checked={statusFilters.includes(status)}
+                      onChange={() => toggleStatusFilter(status)}
+                      style={{ accentColor: '#6366f1', width: 14, height: 14 }}
+                    />
+                    <span style={{ fontSize: 13, color: '#d4d4d8' }}>{getStatusLabel(status)}</span>
+                  </label>
+                ))}
               </div>
-            </PopoverContent>
-          </Popover>
+            )}
+          </div>
 
           {/* Priority Filter */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-[180px] justify-start">
-                <Filter className="mr-2 h-4 w-4" />
-                {priorityFilters.length > 0 ? (
-                  <span>{t('filterByPriority')} ({priorityFilters.length})</span>
-                ) : (
-                  t('filterByPriority', { defaultValue: 'Prioridad' })
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="start">
-              <div className="p-2">
-                <div className="flex items-center justify-between px-2 py-1.5">
-                  <span className="text-sm font-medium text-gray-900">{t('filterByPriority')}</span>
+          <div ref={priorityRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => { setPriorityDropdownOpen(p => !p); setStatusDropdownOpen(false) }}
+              style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer', minWidth: 160, whiteSpace: 'nowrap' }}
+            >
+              <Filter className="h-4 w-4 text-zinc-500" />
+              <span style={{ color: priorityFilters.length > 0 ? '#a5b4fc' : '#71717a', fontSize: 13 }}>
+                {t('filterByPriority', { defaultValue: 'Prioridad' })}
+                {priorityFilters.length > 0 && ` (${priorityFilters.length})`}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 text-zinc-600 ml-auto" />
+            </button>
+            {priorityDropdownOpen && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: '#18181b', border: '1px solid #27272a', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#a1a1aa' }}>{t('filterByPriority', { defaultValue: 'Prioridad' })}</span>
                   {priorityFilters.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-0 text-xs text-gray-800 hover:text-gray-900"
-                      onClick={clearPriorityFilters}
-                    >
+                    <button onClick={() => setPriorityFilters([])} style={{ fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {t('clearFilters', { defaultValue: 'Limpiar' })}
-                    </Button>
+                    </button>
                   )}
                 </div>
-                <div className="space-y-1 mt-2">
-                  {[
-                    WorkItemPriority.CRITICAL,
-                    WorkItemPriority.HIGH,
-                    WorkItemPriority.MEDIUM,
-                    WorkItemPriority.LOW
-                  ].map((priority) => (
-                    <label
-                      key={priority}
-                      className="flex items-center space-x-2 px-2 py-1.5 rounded hover:bg-gray-100 cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={priorityFilters.includes(priority)}
-                        onCheckedChange={() => togglePriorityFilter(priority)}
-                      />
-                      <span className="text-sm text-gray-900">
-                        {getPriorityLabel(priority)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                {[WorkItemPriority.CRITICAL, WorkItemPriority.HIGH, WorkItemPriority.MEDIUM, WorkItemPriority.LOW].map(priority => (
+                  <label key={priority} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}
+                    className="hover:bg-zinc-800/50">
+                    <input
+                      type="checkbox"
+                      checked={priorityFilters.includes(priority)}
+                      onChange={() => togglePriorityFilter(priority)}
+                      style={{ accentColor: '#6366f1', width: 14, height: 14 }}
+                    />
+                    <span style={{ fontSize: 13, color: '#d4d4d8' }}>{getPriorityLabel(priority)}</span>
+                  </label>
+                ))}
               </div>
-            </PopoverContent>
-          </Popover>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2">
           {canCreateWorkItems && onApplyTemplate && (
-            <Button variant="outline" onClick={onApplyTemplate}>
+            <button
+              onClick={onApplyTemplate}
+              style={{ background: 'transparent', border: '1px solid #27272a', color: '#a1a1aa', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              className="hover:border-zinc-600 hover:text-zinc-200 transition-all"
+            >
               {t('applyTemplate', { defaultValue: 'Aplicar Plantilla' })}
-            </Button>
+            </button>
           )}
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+          <button
+            onClick={() => setCreateDialogOpen(true)}
+            style={{ background: '#6366f1', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            className="hover:bg-indigo-500 transition-all"
+          >
+            <Plus className="w-4 h-4" />
             {t('createWorkItem')}
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Results count */}
-      <div className="text-sm text-gray-800">
-        {t('showingResults', { 
-          count: filteredWorkItems.length, 
+      <div style={{ fontSize: 13, color: '#71717a' }}>
+        {t('showingResults', {
+          count: filteredWorkItems.length,
           total: workItems.length,
           defaultValue: `Mostrando ${filteredWorkItems.length} de ${workItems.length} elementos`
         })}
@@ -521,153 +443,121 @@ export function WorkItemsList({
 
       {/* Work Items - Grouped by Phase or Table View */}
       {hasPhases ? (
-        /* Phase-grouped view */
         <div className="space-y-4">
           {Object.entries(workItemsByPhase)
             .sort(([phaseA], [phaseB]) => {
-              // Put "Sin Fase" at the end
               if (phaseA === '__NO_PHASE__') return 1
               if (phaseB === '__NO_PHASE__') return -1
-              // Sort other phases with natural numeric ordering
               return phaseA.localeCompare(phaseB, undefined, { numeric: true, sensitivity: 'base' })
             })
             .map(([phaseName, items]) => {
-            const isNoPhase = phaseName === '__NO_PHASE__'
-            const displayName = isNoPhase ? t('noPhase', { defaultValue: 'Sin Fase' }) : phaseName
-            const isExpanded = expandedPhases.has(phaseName)
-            
-            return (
-              <div key={phaseName} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                {/* Phase Header */}
-                <button
-                  onClick={() => togglePhase(phaseName)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Phase Icon */}
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                      isNoPhase ? 'bg-gray-400' : 'bg-blue-600'
-                    } text-white`}>
-                      {isExpanded ? (
-                        <ChevronDown className="h-5 w-5" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5" />
-                      )}
-                    </div>
-                    
-                    {/* Phase Name and Count */}
-                    <div className="text-left">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        {!isNoPhase && <Layers className="h-5 w-5 text-blue-600" />}
-                        {displayName}
-                      </h3>
-                      <p className="text-sm text-gray-700">
-                        {items.length} {items.length === 1 ? 'elemento' : 'elementos'}
-                      </p>
-                    </div>
-                  </div>
+              const isNoPhase = phaseName === '__NO_PHASE__'
+              const displayName = isNoPhase ? t('noPhase', { defaultValue: 'Sin Fase' }) : phaseName
+              const isExpanded = expandedPhases.has(phaseName)
+              const doneCount = items.filter(i => i.status === WorkItemStatus.DONE).length
+              const inProgressCount = items.filter(i => i.status === WorkItemStatus.IN_PROGRESS).length
+              const pendingCount = items.filter(i => [WorkItemStatus.BACKLOG, WorkItemStatus.TODO].includes(i.status)).length
 
-                  {/* Phase Stats */}
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="text-gray-700">Completados</div>
-                      <div className="font-semibold text-green-700">
-                        {items.filter(i => i.status === WorkItemStatus.DONE).length}
+              return (
+                <div key={phaseName} style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}>
+                  {/* Phase Header */}
+                  <button
+                    onClick={() => togglePhase(phaseName)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    className="hover:bg-zinc-800/30 transition-colors"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{
+                        flexShrink: 0, width: 36, height: 36, borderRadius: '50%',
+                        background: isNoPhase ? 'rgba(113,113,122,0.2)' : 'rgba(99,102,241,0.2)',
+                        border: `1px solid ${isNoPhase ? 'rgba(113,113,122,0.3)' : 'rgba(99,102,241,0.3)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: isNoPhase ? '#71717a' : '#a5b4fc',
+                      }}>
+                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {!isNoPhase && <Layers className="h-4 w-4" style={{ color: '#6366f1' }} />}
+                          <span style={{ fontSize: 15, fontWeight: 600, color: '#e4e4e7' }}>{displayName}</span>
+                        </div>
+                        <span style={{ fontSize: 12, color: '#71717a' }}>
+                          {items.length} {items.length === 1 ? 'elemento' : 'elementos'}
+                        </span>
                       </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-gray-700">En Progreso</div>
-                      <div className="font-semibold text-yellow-700">
-                        {items.filter(i => i.status === WorkItemStatus.IN_PROGRESS).length}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#71717a' }}>Completados</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#34d399' }}>{doneCount}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#71717a' }}>En Progreso</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#fbbf24' }}>{inProgressCount}</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#71717a' }}>Pendientes</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#a5b4fc' }}>{pendingCount}</div>
                       </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-gray-700">Pendientes</div>
-                      <div className="font-semibold text-blue-700">
-                        {items.filter(i => [WorkItemStatus.BACKLOG, WorkItemStatus.TODO].includes(i.status)).length}
-                      </div>
-                    </div>
-                  </div>
-                </button>
+                  </button>
 
-                {/* Phase Items */}
-                {isExpanded && (
-                  <div className="border-t border-gray-200">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-2 py-3 w-8"></th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                            {t('workItemTitle')}
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                            {t('workItemStatus')}
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                            {t('workItemPriority')}
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                            {t('owner')}
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-900 uppercase tracking-wider">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, phaseName)}>
-                        <SortableContext items={(localOrder.get(phaseName) || sortItems(items)).map(i => i.id)} strategy={verticalListSortingStrategy}>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {(localOrder.get(phaseName) || sortItems(items)).map((item) => (
-                              <SortableRow
-                                key={item.id}
-                                item={item}
-                                isHighlighted={highlightedWorkItemId === item.id}
-                                getStatusBadgeColor={getStatusBadgeColor}
-                                getPriorityBadgeColor={getPriorityBadgeColor}
-                                getStatusLabel={getStatusLabel}
-                                getPriorityLabel={getPriorityLabel}
-                                onEdit={(i) => { setSelectedWorkItem(i); setEditDialogOpen(true) }}
-                                onDelete={(i) => { setSelectedWorkItem(i); setDeleteDialogOpen(true) }}
-                              />
-                            ))}
-                          </tbody>
-                        </SortableContext>
-                      </DndContext>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+                  {/* Phase Items */}
+                  {isExpanded && (
+                    <div style={{ borderTop: '1px solid #27272a' }}>
+                      <table className="w-full">
+                        <thead>
+                          <tr>
+                            <th style={{ ...thStyle, width: 32, padding: '10px 8px' }}></th>
+                            <th style={thStyle}>{t('workItemTitle')}</th>
+                            <th style={thStyle}>{t('workItemStatus')}</th>
+                            <th style={thStyle}>{t('workItemPriority')}</th>
+                            <th style={thStyle}>{t('owner')}</th>
+                            <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
+                          </tr>
+                        </thead>
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, phaseName)}>
+                          <SortableContext items={(localOrder.get(phaseName) || sortItems(items)).map(i => i.id)} strategy={verticalListSortingStrategy}>
+                            <tbody>
+                              {(localOrder.get(phaseName) || sortItems(items)).map((item) => (
+                                <SortableRow
+                                  key={item.id}
+                                  item={item}
+                                  isHighlighted={highlightedWorkItemId === item.id}
+                                  getStatusLabel={getStatusLabel}
+                                  getPriorityLabel={getPriorityLabel}
+                                  onEdit={(i) => { setSelectedWorkItem(i); setEditDialogOpen(true) }}
+                                  onDelete={(i) => { setSelectedWorkItem(i); setDeleteDialogOpen(true) }}
+                                />
+                              ))}
+                            </tbody>
+                          </SortableContext>
+                        </DndContext>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
         </div>
       ) : (
-        /* Traditional table view when no phases */
-        <div className="bg-white rounded-lg border overflow-hidden">
+        /* Flat table view when no phases */
+        <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    {t('workItemTitle')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    {t('workItemStatus')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    {t('workItemPriority')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    {t('owner')}
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-900 uppercase tracking-wider">
-                    Acciones
-                  </th>
+                  <th style={thStyle}>{t('workItemTitle')}</th>
+                  <th style={thStyle}>{t('workItemStatus')}</th>
+                  <th style={thStyle}>{t('workItemPriority')}</th>
+                  <th style={thStyle}>{t('owner')}</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {filteredWorkItems.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-700">
+                    <td colSpan={5} style={{ padding: '48px 24px', textAlign: 'center', color: '#71717a', fontSize: 14 }}>
                       {searchQuery || statusFilters.length > 0 || priorityFilters.length > 0
                         ? t('noResultsFound', { defaultValue: 'No se encontraron resultados' })
                         : t('noWorkItems')
@@ -676,58 +566,43 @@ export function WorkItemsList({
                   </tr>
                 ) : (
                   filteredWorkItems.map((item) => {
-                    const isHighlighted = highlightedWorkItemId === item.id || 
-                                         highlightedWorkItemId === item.title
-                    
+                    const isHighlighted = highlightedWorkItemId === item.id || highlightedWorkItemId === item.title
                     return (
-                      <tr 
-                        key={item.id} 
-                        className={`transition-all duration-500 ${
-                          isHighlighted
-                            ? 'bg-blue-100 border-l-4 border-l-blue-600 shadow-lg' 
-                            : 'hover:bg-gray-50'
-                        }`}
+                      <tr
+                        key={item.id}
+                        style={isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid #6366f1' } : {}}
+                        className="border-b border-zinc-800/60 hover:bg-zinc-900/30 transition-all"
                       >
                         <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-gray-900">{item.title}</span>
+                          <span style={{ fontSize: 14, fontWeight: 500, color: '#e4e4e7' }}>{item.title}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(item.status)}`}>
+                          <span style={{ ...STATUS_STYLE[item.status], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
                             {getStatusLabel(item.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityBadgeColor(item.priority)}`}>
+                          <span style={{ ...PRIORITY_STYLE[item.priority], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
                             {getPriorityLabel(item.priority)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
                           {item.ownerName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedWorkItem(item)
-                                setEditDialogOpen(true)
-                              }}
-                              className="h-8 w-8 p-0"
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => { setSelectedWorkItem(item); setEditDialogOpen(true) }}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
                             >
-                              <Pencil className="h-4 w-4 text-gray-800" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedWorkItem(item)
-                                setDeleteDialogOpen(true)
-                              }}
-                              className="h-8 w-8 p-0 hover:bg-red-50"
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => { setSelectedWorkItem(item); setDeleteDialogOpen(true) }}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
                             >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -740,7 +615,6 @@ export function WorkItemsList({
         </div>
       )}
 
-      {/* Create Work Item Dialog */}
       <CreateWorkItemDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
@@ -748,7 +622,6 @@ export function WorkItemsList({
         onSuccess={handleWorkItemCreated}
       />
 
-      {/* Edit Work Item Dialog */}
       {selectedWorkItem && (
         <EditWorkItemDialog
           open={editDialogOpen}
@@ -759,7 +632,6 @@ export function WorkItemsList({
         />
       )}
 
-      {/* Delete Work Item Dialog */}
       {selectedWorkItem && (
         <DeleteWorkItemDialog
           open={deleteDialogOpen}

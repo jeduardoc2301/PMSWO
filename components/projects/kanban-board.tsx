@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, ChevronDown, ChevronRight, Layers } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary, type KanbanColumnWithItems } from '@/types'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 
@@ -16,11 +14,20 @@ interface KanbanBoardProps {
   onWorkItemCreated?: () => void
 }
 
-/**
- * Kanban board component with drag-and-drop functionality
- * Displays work items in columns and allows status changes via drag-and-drop
- * Requirements: 3.3, 4.3
- */
+const PRIORITY_BAR: Record<WorkItemPriority, string> = {
+  [WorkItemPriority.CRITICAL]: '#ef4444',
+  [WorkItemPriority.HIGH]:     '#f97316',
+  [WorkItemPriority.MEDIUM]:   '#f59e0b',
+  [WorkItemPriority.LOW]:      '#3b82f6',
+}
+
+const PRIORITY_BADGE: Record<WorkItemPriority, { bg: string; color: string; border: string }> = {
+  [WorkItemPriority.CRITICAL]: { bg: 'rgba(239,68,68,0.12)',  color: '#fca5a5', border: 'rgba(239,68,68,0.3)'  },
+  [WorkItemPriority.HIGH]:     { bg: 'rgba(249,115,22,0.12)', color: '#fdba74', border: 'rgba(249,115,22,0.3)' },
+  [WorkItemPriority.MEDIUM]:   { bg: 'rgba(245,158,11,0.12)', color: '#fcd34d', border: 'rgba(245,158,11,0.3)' },
+  [WorkItemPriority.LOW]:      { bg: 'rgba(59,130,246,0.12)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
+}
+
 export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onWorkItemCreated }: KanbanBoardProps) {
   const t = useTranslations('kanban')
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
@@ -31,490 +38,236 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   const [localWorkItems, setLocalWorkItems] = useState<WorkItemSummary[]>(workItems)
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
 
-  // Update local state when props change
-  useEffect(() => {
-    setLocalWorkItems(workItems)
-  }, [workItems])
+  useEffect(() => { setLocalWorkItems(workItems) }, [workItems])
 
-  // Group work items by phase
   const groupWorkItemsByPhase = () => {
     const grouped: Record<string, WorkItemSummary[]> = {}
-    const noPhaseKey = '__NO_PHASE__'
-    
     localWorkItems.forEach(item => {
-      const phaseKey = item.phase || noPhaseKey
-      if (!grouped[phaseKey]) {
-        grouped[phaseKey] = []
-      }
-      grouped[phaseKey].push(item)
+      const k = item.phase || '__NO_PHASE__'
+      if (!grouped[k]) grouped[k] = []
+      grouped[k].push(item)
     })
-    
     return grouped
   }
 
   const workItemsByPhase = groupWorkItemsByPhase()
-  const hasPhases = Object.keys(workItemsByPhase).some(key => key !== '__NO_PHASE__')
+  const hasPhases = Object.keys(workItemsByPhase).some(k => k !== '__NO_PHASE__')
 
-  // Toggle phase expansion
   const togglePhase = (phaseName: string) => {
     setExpandedPhases(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(phaseName)) {
-        newSet.delete(phaseName)
-      } else {
-        newSet.add(phaseName)
-      }
-      return newSet
+      const s = new Set(prev)
+      s.has(phaseName) ? s.delete(phaseName) : s.add(phaseName)
+      return s
     })
   }
 
-  // Expand all phases by default on mount
   useEffect(() => {
-    const phases = Object.keys(groupWorkItemsByPhase())
-    setExpandedPhases(new Set(phases))
+    setExpandedPhases(new Set(Object.keys(groupWorkItemsByPhase())))
   }, [workItems])
 
   const handleWorkItemCreated = () => {
     setSuccessMessage(t('createSuccess'))
     setTimeout(() => setSuccessMessage(null), 3000)
-    if (onWorkItemCreated) {
-      onWorkItemCreated()
-    }
+    onWorkItemCreated?.()
   }
 
-  // Get work items for a specific column and phase
   const getWorkItemsForColumnAndPhase = (columnId: string, phaseName: string) => {
     const phaseKey = phaseName === '__NO_PHASE__' ? null : phaseName
-    return localWorkItems.filter(item => 
-      item.kanbanColumnId === columnId && 
+    return localWorkItems.filter(item =>
+      item.kanbanColumnId === columnId &&
       (phaseKey === null ? !item.phase : item.phase === phaseKey)
     )
   }
 
-  // Handle drag start
   const handleDragStart = (e: React.DragEvent, workItemId: string) => {
     setDraggedItemId(workItemId)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/html', workItemId)
   }
 
-  // Handle drag over
   const handleDragOver = (e: React.DragEvent, columnId: string) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setIsDraggingOver(columnId)
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsDraggingOver(columnId)
   }
 
-  // Handle drag leave
-  const handleDragLeave = () => {
-    setIsDraggingOver(null)
-  }
-
-  // Handle drop with optimistic update
   const handleDrop = async (e: React.DragEvent, targetColumn: KanbanColumnWithItems) => {
-    e.preventDefault()
-    setIsDraggingOver(null)
-
+    e.preventDefault(); setIsDraggingOver(null)
     if (!draggedItemId) return
-
-    const workItem = localWorkItems.find(item => item.id === draggedItemId)
-    if (!workItem) return
-
-    // Don't do anything if dropped in the same column
-    if (workItem.kanbanColumnId === targetColumn.id) {
-      setDraggedItemId(null)
-      return
-    }
-
-    // Map column type to work item status (skip CUSTOM columns)
-    if (targetColumn.columnType === 'CUSTOM') {
-      setDraggedItemId(null)
-      return
-    }
+    const workItem = localWorkItems.find(i => i.id === draggedItemId)
+    if (!workItem || workItem.kanbanColumnId === targetColumn.id) { setDraggedItemId(null); return }
+    if (targetColumn.columnType === 'CUSTOM') { setDraggedItemId(null); return }
     const newStatus = targetColumn.columnType as unknown as WorkItemStatus
-
-    // Store original state for rollback
     const originalWorkItems = [...localWorkItems]
-    const originalColumnId = workItem.kanbanColumnId
-    const originalStatus = workItem.status
-
-    // OPTIMISTIC UPDATE: Update UI immediately
-    setLocalWorkItems(prevItems =>
-      prevItems.map(item =>
-        item.id === draggedItemId
-          ? { ...item, kanbanColumnId: targetColumn.id, status: newStatus }
-          : item
-      )
-    )
-
-    // Mark item as syncing
+    setLocalWorkItems(prev => prev.map(i => i.id === draggedItemId ? { ...i, kanbanColumnId: targetColumn.id, status: newStatus } : i))
     setSyncingItems(prev => new Set(prev).add(draggedItemId))
     setDraggedItemId(null)
-
-    // Call the callback to update on server
     if (onWorkItemMove) {
       try {
         await onWorkItemMove(draggedItemId, targetColumn.id, newStatus)
-        // Success - remove syncing indicator
-        setSyncingItems(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(draggedItemId)
-          return newSet
-        })
-      } catch (error) {
-        console.error('Failed to move work item:', error)
-        
-        // ROLLBACK: Revert to original state
+        setSyncingItems(prev => { const s = new Set(prev); s.delete(draggedItemId); return s })
+      } catch {
         setLocalWorkItems(originalWorkItems)
-        
-        // Remove syncing indicator
-        setSyncingItems(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(draggedItemId)
-          return newSet
-        })
-        
-        // Show error message
+        setSyncingItems(prev => { const s = new Set(prev); s.delete(draggedItemId); return s })
         alert(t('moveError'))
       }
     } else {
-      // No callback provided, just remove syncing indicator
-      setSyncingItems(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(draggedItemId)
-        return newSet
-      })
+      setSyncingItems(prev => { const s = new Set(prev); s.delete(draggedItemId); return s })
     }
   }
 
-  // Handle drag end
-  const handleDragEnd = () => {
-    setDraggedItemId(null)
-    setIsDraggingOver(null)
+  const handleDragEnd = () => { setDraggedItemId(null); setIsDraggingOver(null) }
+
+  const WorkItemCard = ({ workItem }: { workItem: WorkItemSummary }) => {
+    const isSyncing = syncingItems.has(workItem.id)
+    const pb = PRIORITY_BADGE[workItem.priority] ?? PRIORITY_BADGE[WorkItemPriority.MEDIUM]
+    return (
+      <div draggable onDragStart={(e) => handleDragStart(e, workItem.id)} onDragEnd={handleDragEnd}
+        className="rounded-xl p-3 cursor-move transition-all hover:border-zinc-600"
+        style={{
+          background: '#18181b', border: '1px solid #27272a',
+          borderLeft: `3px solid ${PRIORITY_BAR[workItem.priority] ?? '#3b82f6'}`,
+          opacity: draggedItemId === workItem.id ? 0.5 : 1,
+          ...(isSyncing ? { outline: '2px solid rgba(99,102,241,0.4)' } : {}),
+        }}>
+        <div className="flex items-start justify-between mb-2.5 gap-2">
+          <h4 className="text-sm font-medium text-zinc-100 line-clamp-2 flex-1">{workItem.title}</h4>
+          {isSyncing && (
+            <svg className="animate-spin h-3.5 w-3.5 text-indigo-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+            style={{ background: pb.bg, color: pb.color, border: `1px solid ${pb.border}` }}>
+            {workItem.priority}
+          </span>
+          {workItem.ownerName && (
+            <span className="text-[11px] text-zinc-500 truncate ml-2">{workItem.ownerName}</span>
+          )}
+        </div>
+      </div>
+    )
   }
 
-  // Get priority color
-  const getPriorityColor = (priority: WorkItemPriority) => {
-    switch (priority) {
-      case WorkItemPriority.CRITICAL:
-        return 'border-l-4 border-l-red-500'
-      case WorkItemPriority.HIGH:
-        return 'border-l-4 border-l-orange-500'
-      case WorkItemPriority.MEDIUM:
-        return 'border-l-4 border-l-yellow-500'
-      case WorkItemPriority.LOW:
-        return 'border-l-4 border-l-blue-500'
-      default:
-        return 'border-l-4 border-l-gray-500'
-    }
-  }
-
-  // Get priority badge color
-  const getPriorityBadgeColor = (priority: WorkItemPriority) => {
-    switch (priority) {
-      case WorkItemPriority.CRITICAL:
-        return 'bg-red-100 text-red-800'
-      case WorkItemPriority.HIGH:
-        return 'bg-orange-100 text-orange-800'
-      case WorkItemPriority.MEDIUM:
-        return 'bg-yellow-100 text-yellow-800'
-      case WorkItemPriority.LOW:
-        return 'bg-blue-100 text-blue-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
+  const KanbanColumn = ({ column, workItemsInColumn }: { column: KanbanColumnWithItems; workItemsInColumn: WorkItemSummary[] }) => {
+    const isDragTarget = isDraggingOver === column.id
+    return (
+      <div className="flex-shrink-0 w-72"
+        onDragOver={(e) => handleDragOver(e, column.id)}
+        onDragLeave={() => setIsDraggingOver(null)}
+        onDrop={(e) => handleDrop(e, column)}>
+        <div className="rounded-xl overflow-hidden h-full"
+          style={{ background: '#111113', border: `1px solid ${isDragTarget ? '#6366f1' : '#27272a'}`, transition: 'border-color 0.15s' }}>
+          <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid #1f1f23' }}>
+            <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">{column.name}</span>
+            <span className="text-xs text-zinc-600">{workItemsInColumn.length}</span>
+          </div>
+          <div className="p-2 space-y-2 min-h-[120px]">
+            {workItemsInColumn.length === 0
+              ? <div className="text-center py-8 text-zinc-700 text-xs">{t('noItems')}</div>
+              : workItemsInColumn.map(wi => <WorkItemCard key={wi.id} workItem={wi} />)}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-4">
-      {/* Header with Create Button */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           {successMessage && (
-            <div className="bg-green-50 border border-green-200 rounded-md px-4 py-2 text-sm text-green-800">
+            <div className="rounded-lg px-4 py-2 text-sm text-emerald-400"
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}>
               {successMessage}
             </div>
           )}
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('createWorkItem')}
-        </Button>
+        <button onClick={() => setCreateDialogOpen(true)}
+          className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+          style={{ background: '#6366f1' }}>
+          <Plus size={14} /> {t('createWorkItem')}
+        </button>
       </div>
 
-      {/* Kanban Board with Phase Swimlanes */}
       {hasPhases ? (
-        /* Phase-grouped swimlanes */
-        <div className="space-y-6">
+        <div className="space-y-4">
           {Object.entries(workItemsByPhase)
-            .sort(([phaseA], [phaseB]) => {
-              // Put "Sin Fase" at the end
-              if (phaseA === '__NO_PHASE__') return 1
-              if (phaseB === '__NO_PHASE__') return -1
-              // Sort other phases with natural numeric ordering
-              return phaseA.localeCompare(phaseB, undefined, { numeric: true, sensitivity: 'base' })
+            .sort(([a], [b]) => {
+              if (a === '__NO_PHASE__') return 1
+              if (b === '__NO_PHASE__') return -1
+              return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
             })
             .map(([phaseName, phaseItems]) => {
-            const isNoPhase = phaseName === '__NO_PHASE__'
-            const displayName = isNoPhase ? t('noPhase', { defaultValue: 'Sin Fase' }) : phaseName
-            const isExpanded = expandedPhases.has(phaseName)
-            
-            // Calculate phase statistics
-            const totalItems = phaseItems.length
-            const completedItems = phaseItems.filter(i => i.status === WorkItemStatus.DONE).length
-            const inProgressItems = phaseItems.filter(i => i.status === WorkItemStatus.IN_PROGRESS).length
-            const progressPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
-            
-            return (
-              <div key={phaseName} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                {/* Phase Header */}
-                <button
-                  onClick={() => togglePhase(phaseName)}
-                  className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-200"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Phase Toggle Icon */}
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      isNoPhase ? 'bg-gray-400' : 'bg-blue-600'
-                    } text-white`}>
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </div>
-                    
-                    {/* Phase Name */}
-                    <div className="text-left">
-                      <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                        {!isNoPhase && <Layers className="h-4 w-4 text-blue-600" />}
-                        {displayName}
-                      </h3>
-                      <p className="text-xs text-gray-700">
-                        {totalItems} {totalItems === 1 ? 'elemento' : 'elementos'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Phase Progress */}
-                  <div className="flex items-center gap-6">
-                    {/* Progress Bar */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-green-600 transition-all duration-300"
-                          style={{ width: `${progressPercentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-gray-900 w-12 text-right">
-                        {progressPercentage}%
-                      </span>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs">
-                      <div className="text-center">
-                        <div className="text-gray-700">Completados</div>
-                        <div className="font-semibold text-green-700">{completedItems}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-gray-700">En Progreso</div>
-                        <div className="font-semibold text-yellow-700">{inProgressItems}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-gray-700">Pendientes</div>
-                        <div className="font-semibold text-blue-700">
-                          {totalItems - completedItems - inProgressItems}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Phase Kanban Columns */}
-                {isExpanded && (
-                  <div className="p-4">
-                    <div className="flex gap-4 overflow-x-auto pb-2">
-                      {columns
-                        .sort((a, b) => a.order - b.order)
-                        .map((column) => {
-                          const columnWorkItems = getWorkItemsForColumnAndPhase(column.id, phaseName)
-                          const isDragTarget = isDraggingOver === column.id
-
-                          return (
-                            <div
-                              key={column.id}
-                              className="flex-shrink-0 w-72"
-                              onDragOver={(e) => handleDragOver(e, column.id)}
-                              onDragLeave={handleDragLeave}
-                              onDrop={(e) => handleDrop(e, column)}
-                            >
-                              <Card className={`h-full ${isDragTarget ? 'ring-2 ring-blue-500' : ''}`}>
-                                <CardHeader className="pb-3">
-                                  <CardTitle className="text-sm flex items-center justify-between">
-                                    <span className="text-gray-900">{column.name}</span>
-                                    <span className="text-xs font-normal text-gray-700">
-                                      {columnWorkItems.length}
-                                    </span>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                  {columnWorkItems.length === 0 ? (
-                                    <div className="text-center py-6 text-gray-700 text-xs">
-                                      {t('noItems')}
-                                    </div>
-                                  ) : (
-                                    columnWorkItems.map((workItem) => {
-                                      const isSyncing = syncingItems.has(workItem.id)
-                                      
-                                      return (
-                                        <div
-                                          key={workItem.id}
-                                          draggable
-                                          onDragStart={(e) => handleDragStart(e, workItem.id)}
-                                          onDragEnd={handleDragEnd}
-                                          className={`
-                                            bg-white border rounded-lg p-3 cursor-move
-                                            hover:shadow-md transition-all
-                                            ${getPriorityColor(workItem.priority)}
-                                            ${draggedItemId === workItem.id ? 'opacity-50' : ''}
-                                            ${isSyncing ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
-                                          `}
-                                        >
-                                          <div className="flex items-start justify-between mb-2">
-                                            <h4 className="font-medium text-sm line-clamp-2 flex-1 text-gray-900">
-                                              {workItem.title}
-                                            </h4>
-                                            {isSyncing && (
-                                              <div className="ml-2 flex-shrink-0">
-                                                <svg className="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div className="flex items-center justify-between text-xs">
-                                            <span
-                                              className={`px-2 py-1 rounded-full font-medium ${getPriorityBadgeColor(
-                                                workItem.priority
-                                              )}`}
-                                            >
-                                              {workItem.priority}
-                                            </span>
-                                            <span className="text-gray-700 truncate ml-2">
-                                              {workItem.ownerName}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )
-                                    })
-                                  )}
-                                </CardContent>
-                              </Card>
-                            </div>
-                          )
-                        })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      ) : (
-        /* Traditional Kanban view when no phases */
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {columns
-            .sort((a, b) => a.order - b.order)
-            .map((column) => {
-              const columnWorkItems = localWorkItems.filter(item => item.kanbanColumnId === column.id)
-              const isDragTarget = isDraggingOver === column.id
+              const isNoPhase = phaseName === '__NO_PHASE__'
+              const displayName = isNoPhase ? t('noPhase', { defaultValue: 'Sin Fase' }) : phaseName
+              const isExpanded = expandedPhases.has(phaseName)
+              const total = phaseItems.length
+              const completed = phaseItems.filter(i => i.status === WorkItemStatus.DONE).length
+              const inProgress = phaseItems.filter(i => i.status === WorkItemStatus.IN_PROGRESS).length
+              const pct = total > 0 ? Math.round((completed / total) * 100) : 0
 
               return (
-                <div
-                  key={column.id}
-                  className="flex-shrink-0 w-80"
-                  onDragOver={(e) => handleDragOver(e, column.id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, column)}
-                >
-                  <Card className={`h-full ${isDragTarget ? 'ring-2 ring-blue-500' : ''}`}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg flex items-center justify-between">
-                        <span>{column.name}</span>
-                        <span className="text-sm font-normal text-gray-700">
-                          {columnWorkItems.length}
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {columnWorkItems.length === 0 ? (
-                        <div className="text-center py-8 text-gray-700 text-sm">
-                          {t('noItems')}
+                <div key={phaseName} className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+                  {/* Phase header */}
+                  <button onClick={() => togglePhase(phaseName)}
+                    className="w-full flex items-center justify-between px-4 py-3 transition-all hover:bg-zinc-900/40"
+                    style={{ background: '#111113', borderBottom: isExpanded ? '1px solid #27272a' : 'none' }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0"
+                        style={{ background: isNoPhase ? '#52525b' : '#6366f1' }}>
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                          {!isNoPhase && <Layers size={13} className="text-indigo-400" />}
+                          {displayName}
                         </div>
-                      ) : (
-                        columnWorkItems.map((workItem) => {
-                          const isSyncing = syncingItems.has(workItem.id)
-                          
-                          return (
-                            <div
-                              key={workItem.id}
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, workItem.id)}
-                              onDragEnd={handleDragEnd}
-                              className={`
-                                bg-white border rounded-lg p-3 cursor-move
-                                hover:shadow-md transition-all
-                                ${getPriorityColor(workItem.priority)}
-                                ${draggedItemId === workItem.id ? 'opacity-50' : ''}
-                                ${isSyncing ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
-                              `}
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <h4 className="font-medium text-sm line-clamp-2 flex-1">
-                                  {workItem.title}
-                                </h4>
-                                {isSyncing && (
-                                  <div className="ml-2 flex-shrink-0">
-                                    <svg className="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-between text-xs">
-                                <span
-                                  className={`px-2 py-1 rounded-full font-medium ${getPriorityBadgeColor(
-                                    workItem.priority
-                                  )}`}
-                                >
-                                  {workItem.priority}
-                                </span>
-                                <span className="text-gray-700 truncate ml-2">
-                                  {workItem.ownerName}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })
-                      )}
-                    </CardContent>
-                  </Card>
+                        <div className="text-xs text-zinc-500">{total} elemento{total !== 1 ? 's' : ''}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-28 pms-progress">
+                          <div style={{ width: `${pct}%`, background: '#10b981' }} />
+                        </div>
+                        <span className="text-xs font-semibold text-zinc-300 w-9 text-right">{pct}%</span>
+                      </div>
+                      <div className="flex gap-4 text-xs">
+                        <div className="text-center"><div className="text-zinc-600">Hecho</div><div className="font-semibold text-emerald-400">{completed}</div></div>
+                        <div className="text-center"><div className="text-zinc-600">En progreso</div><div className="font-semibold text-amber-400">{inProgress}</div></div>
+                        <div className="text-center"><div className="text-zinc-600">Pendiente</div><div className="font-semibold text-indigo-400">{total - completed - inProgress}</div></div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="p-4" style={{ background: '#0f0f11' }}>
+                      <div className="flex gap-3 overflow-x-auto pb-2">
+                        {columns.sort((a, b) => a.order - b.order).map(column => (
+                          <KanbanColumn key={column.id} column={column}
+                            workItemsInColumn={getWorkItemsForColumnAndPhase(column.id, phaseName)} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
         </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {columns.sort((a, b) => a.order - b.order).map(column => {
+            const items = localWorkItems.filter(i => i.kanbanColumnId === column.id)
+            return <KanbanColumn key={column.id} column={column} workItemsInColumn={items} />
+          })}
+        </div>
       )}
 
-      {/* Create Work Item Dialog */}
-      <CreateWorkItemDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        projectId={projectId}
-        onSuccess={handleWorkItemCreated}
-      />
+      <CreateWorkItemDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}
+        projectId={projectId} onSuccess={handleWorkItemCreated} />
     </div>
   )
 }

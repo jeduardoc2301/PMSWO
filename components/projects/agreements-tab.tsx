@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useLocale, useTranslations } from 'next-intl' // ✅ CORREGIDO: Agregado useLocale
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useLocale, useTranslations } from 'next-intl'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,39 +11,27 @@ import { CheckCircle2, Plus, Link as LinkIcon, FileText } from 'lucide-react'
 import { AgreementStatus } from '@/types'
 
 interface Agreement {
-  id: string
-  title: string
-  description: string
-  agreementDate: string
-  participants: string
-  status: AgreementStatus
-  completedAt: string | null
-  createdBy?: {
-    id: string
-    name: string
-  }
-  workItems?: Array<{
-    id: string
-    title: string
-  }>
-  notes?: Array<{
-    id: string
-    note: string
-    createdAt: string
-    createdBy: {
-      id: string
-      name: string
-    }
-  }>
+  id: string; title: string; description: string; agreementDate: string
+  participants: string; status: AgreementStatus; completedAt: string | null
+  createdBy?: { id: string; name: string }
+  workItems?: Array<{ id: string; title: string }>
+  notes?: Array<{ id: string; note: string; createdAt: string; createdBy: { id: string; name: string } }>
 }
 
-interface AgreementsTabProps {
-  projectId: string
+interface AgreementsTabProps { projectId: string }
+
+const STATUS_STYLE: Record<AgreementStatus, { bg: string; color: string; border: string; label: string }> = {
+  [AgreementStatus.PENDING]:     { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)',  label: 'pending'    },
+  [AgreementStatus.IN_PROGRESS]: { bg: 'rgba(59,130,246,0.12)',  color: '#93c5fd', border: 'rgba(59,130,246,0.3)',  label: 'inprogress' },
+  [AgreementStatus.COMPLETED]:   { bg: 'rgba(16,185,129,0.12)',  color: '#6ee7b7', border: 'rgba(16,185,129,0.3)',  label: 'completed'  },
+  [AgreementStatus.CANCELLED]:   { bg: 'rgba(113,113,122,0.12)', color: '#a1a1aa', border: 'rgba(113,113,122,0.3)', label: 'cancelled'  },
 }
+
+const inputStyle: React.CSSProperties = { background: '#111113', border: '1px solid #27272a', color: '#e4e4e7' }
 
 export function AgreementsTab({ projectId }: AgreementsTabProps) {
   const t = useTranslations('agreements')
-  const locale = useLocale() // ✅ CORREGIDO: Agregado useLocale
+  const locale = useLocale()
   const [agreements, setAgreements] = useState<Agreement[]>([])
   const [workItems, setWorkItems] = useState<Array<{ id: string; title: string }>>([])
   const [loading, setLoading] = useState(true)
@@ -56,522 +41,309 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
   const [showNoteDialog, setShowNoteDialog] = useState(false)
   const [selectedAgreement, setSelectedAgreement] = useState<Agreement | null>(null)
   const [submitting, setSubmitting] = useState(false)
-
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    agreementDate: new Date().toISOString().split('T')[0],
-    participants: '',
-  })
-
+  const [formData, setFormData] = useState({ title: '', description: '', agreementDate: new Date().toISOString().split('T')[0], participants: '' })
   const [workItemId, setWorkItemId] = useState('')
   const [progressNote, setProgressNote] = useState('')
 
-  useEffect(() => {
-    fetchAgreements()
-  }, [projectId])
-
-  useEffect(() => {
-    if (showLinkDialog) {
-      fetchWorkItems()
-    }
-  }, [showLinkDialog])
+  useEffect(() => { fetchAgreements() }, [projectId])
+  useEffect(() => { if (showLinkDialog) fetchWorkItems() }, [showLinkDialog])
 
   const fetchWorkItems = async () => {
     try {
-      const response = await fetch(`/api/v1/projects/${projectId}/work-items`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch work items')
-      }
-      const data = await response.json()
-      setWorkItems(data.workItems || [])
-    } catch (err) {
-      console.error('Error fetching work items:', err)
-    }
+      const res = await fetch(`/api/v1/projects/${projectId}/work-items`)
+      if (res.ok) { const d = await res.json(); setWorkItems(d.workItems || []) }
+    } catch {}
   }
 
   const fetchAgreements = async () => {
     try {
-      setLoading(true)
-      setError(null)
-
-      const response = await fetch(`/api/v1/projects/${projectId}/agreements`)
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to fetch agreements')
-      }
-
-      const data = await response.json()
-      setAgreements(data.agreements || [])
+      setLoading(true); setError(null)
+      const res = await fetch(`/api/v1/projects/${projectId}/agreements`)
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to fetch agreements') }
+      const d = await res.json(); setAgreements(d.agreements || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   const handleCreateAgreement = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     try {
       setSubmitting(true)
-
-      const response = await fetch(`/api/v1/projects/${projectId}/agreements`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      const res = await fetch(`/api/v1/projects/${projectId}/agreements`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || t('messages.createError'))
-      }
-
-      await fetchAgreements()
-      setShowCreateDialog(false)
-      resetForm()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : t('messages.createError'))
-    } finally {
-      setSubmitting(false)
-    }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || t('messages.createError')) }
+      await fetchAgreements(); setShowCreateDialog(false); resetForm()
+    } catch (err) { alert(err instanceof Error ? err.message : t('messages.createError'))
+    } finally { setSubmitting(false) }
   }
 
   const handleLinkWorkItem = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!selectedAgreement) return
-
     try {
       setSubmitting(true)
-
-      const response = await fetch(`/api/v1/agreements/${selectedAgreement.id}/link-work-item`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ workItemId }),
+      const res = await fetch(`/api/v1/agreements/${selectedAgreement.id}/link-work-item`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workItemId }),
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || t('messages.linkWorkItemError'))
-      }
-
-      await fetchAgreements()
-      setShowLinkDialog(false)
-      setSelectedAgreement(null)
-      setWorkItemId('')
-    } catch (err) {
-      alert(err instanceof Error ? err.message : t('messages.linkWorkItemError'))
-    } finally {
-      setSubmitting(false)
-    }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || t('messages.linkWorkItemError')) }
+      await fetchAgreements(); setShowLinkDialog(false); setSelectedAgreement(null); setWorkItemId('')
+    } catch (err) { alert(err instanceof Error ? err.message : t('messages.linkWorkItemError'))
+    } finally { setSubmitting(false) }
   }
 
   const handleAddProgressNote = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!selectedAgreement) return
-
     try {
       setSubmitting(true)
-
-      const response = await fetch(`/api/v1/agreements/${selectedAgreement.id}/progress-notes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ note: progressNote }),
+      const res = await fetch(`/api/v1/agreements/${selectedAgreement.id}/progress-notes`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: progressNote }),
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || t('messages.addNoteError'))
-      }
-
-      await fetchAgreements()
-      setShowNoteDialog(false)
-      setSelectedAgreement(null)
-      setProgressNote('')
-    } catch (err) {
-      alert(err instanceof Error ? err.message : t('messages.addNoteError'))
-    } finally {
-      setSubmitting(false)
-    }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || t('messages.addNoteError')) }
+      await fetchAgreements(); setShowNoteDialog(false); setSelectedAgreement(null); setProgressNote('')
+    } catch (err) { alert(err instanceof Error ? err.message : t('messages.addNoteError'))
+    } finally { setSubmitting(false) }
   }
 
   const handleCompleteAgreement = async (agreementId: string) => {
     if (!confirm(t('completeConfirm'))) return
-
     try {
-      const response = await fetch(`/api/v1/agreements/${agreementId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || t('messages.completeError'))
-      }
-
+      const res = await fetch(`/api/v1/agreements/${agreementId}/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || t('messages.completeError')) }
       await fetchAgreements()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : t('messages.completeError'))
-    }
+    } catch (err) { alert(err instanceof Error ? err.message : t('messages.completeError')) }
   }
 
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      agreementDate: new Date().toISOString().split('T')[0],
-      participants: '',
-    })
-  }
-
-  const getStatusColor = (status: AgreementStatus) => {
-    switch (status) {
-      case AgreementStatus.PENDING:
-        return 'bg-yellow-100 text-yellow-800'
-      case AgreementStatus.IN_PROGRESS:
-        return 'bg-blue-100 text-blue-800'
-      case AgreementStatus.COMPLETED:
-        return 'bg-green-100 text-green-800'
-      case AgreementStatus.CANCELLED:
-        return 'bg-gray-100 text-gray-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
+  const resetForm = () => setFormData({ title: '', description: '', agreementDate: new Date().toISOString().split('T')[0], participants: '' })
 
   const activeAgreements = agreements.filter(a => a.status !== AgreementStatus.COMPLETED && a.status !== AgreementStatus.CANCELLED)
   const completedAgreements = agreements.filter(a => a.status === AgreementStatus.COMPLETED)
 
-  if (loading) {
-    return (
-      <div className="py-6 text-center text-gray-700">
-        <p>{t('loading')}</p>
-      </div>
-    )
-  }
+  if (loading) return <div className="py-12 flex items-center justify-center gap-3 text-zinc-500"><div className="w-4 h-4 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />{t('loading')}</div>
 
-  if (error) {
-    return (
-      <div className="py-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      </div>
-    )
-  }
+  if (error) return (
+    <div className="py-6">
+      <div className="rounded-xl p-4 text-sm text-rose-400" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>{error}</div>
+    </div>
+  )
 
   return (
-    <div className="py-6 space-y-6">
-      {/* Header with stats */}
+    <div className="py-2 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
-          <div className="text-sm">
-            <span className="font-semibold text-gray-900">{activeAgreements.length}</span>
-            <span className="text-gray-700 ml-1">{t('activeAgreements')}</span>
-          </div>
-          <div className="text-sm">
-            <span className="font-semibold text-green-600">{completedAgreements.length}</span>
-            <span className="text-gray-700 ml-1">{t('completedAgreements')}</span>
-          </div>
+          <span className="text-sm"><span className="font-bold text-white">{activeAgreements.length}</span> <span className="text-zinc-500">{t('activeAgreements')}</span></span>
+          <span className="text-sm"><span className="font-bold text-emerald-400">{completedAgreements.length}</span> <span className="text-zinc-500">{t('completedAgreements')}</span></span>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t('createAgreement')}
-        </Button>
+        <button onClick={() => setShowCreateDialog(true)}
+          className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+          style={{ background: '#6366f1' }}>
+          <Plus size={14} /> {t('createAgreement')}
+        </button>
       </div>
 
-      {/* Active Agreements */}
+      {/* Active agreements */}
       {activeAgreements.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">{t('activeAgreements')}</h3>
-          <div className="grid gap-4">
-            {activeAgreements.map((agreement) => (
-              <Card key={agreement.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={getStatusColor(agreement.status)}>
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">{t('activeAgreements')}</h3>
+          {activeAgreements.map(agreement => {
+            const s = STATUS_STYLE[agreement.status] ?? STATUS_STYLE[AgreementStatus.PENDING]
+            return (
+              <div key={agreement.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+                <div className="p-5" style={{ background: '#18181b' }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
                           {t(`status.${agreement.status.toLowerCase().replace('_', '')}`)}
-                        </Badge>
-                        <span className="text-sm text-gray-700">
-                          {/* ✅ CORREGIDO: Usar locale */}
-                          {new Date(agreement.agreementDate).toLocaleDateString(locale)}
                         </span>
+                        <span className="text-xs text-zinc-500">{new Date(agreement.agreementDate).toLocaleDateString(locale)}</span>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{agreement.title}</h3>
-                      <p className="text-sm text-gray-700 mb-2">
-                        {agreement.description}
-                      </p>
-                      <p className="text-sm text-gray-800">
-                        <span className="font-medium">{t('participants')}:</span> {agreement.participants}
-                      </p>
+                      <h3 className="text-base font-bold text-white mb-1">{agreement.title}</h3>
+                      <p className="text-sm text-zinc-400 mb-2">{agreement.description}</p>
+                      <p className="text-xs text-zinc-500"><span className="text-zinc-400">{t('participants')}:</span> {agreement.participants}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedAgreement(agreement)
-                          setShowLinkDialog(true)
-                        }}
-                      >
-                        <LinkIcon className="h-4 w-4 mr-1" />
-                        {t('linkWorkItem')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedAgreement(agreement)
-                          setShowNoteDialog(true)
-                        }}
-                      >
-                        <FileText className="h-4 w-4 mr-1" />
-                        {t('addProgressNote')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleCompleteAgreement(agreement.id)}
-                      >
+                    <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+                      <button onClick={() => { setSelectedAgreement(agreement); setShowLinkDialog(true) }}
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+                        style={{ border: '1px solid #27272a' }}>
+                        <LinkIcon size={12} /> {t('linkWorkItem')}
+                      </button>
+                      <button onClick={() => { setSelectedAgreement(agreement); setShowNoteDialog(true) }}
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+                        style={{ border: '1px solid #27272a' }}>
+                        <FileText size={12} /> {t('addProgressNote')}
+                      </button>
+                      <button onClick={() => handleCompleteAgreement(agreement.id)}
+                        className="h-8 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
+                        style={{ background: '#6366f1' }}>
                         {t('completeAgreement')}
-                      </Button>
+                      </button>
                     </div>
                   </div>
-                </CardHeader>
-                
-                {/* Linked Work Items */}
+                </div>
+
+                {/* Linked work items */}
                 {agreement.workItems && agreement.workItems.length > 0 && (
-                  <CardContent>
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-gray-700">{t('linkedWorkItems')}</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {agreement.workItems.map((item) => (
-                          <Badge key={item.id} variant="outline">
-                            {item.title}
-                          </Badge>
-                        ))}
-                      </div>
+                  <div className="px-5 pb-4" style={{ background: '#18181b', borderTop: '1px solid #27272a' }}>
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 pt-3">{t('linkedWorkItems')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {agreement.workItems.map(item => (
+                        <span key={item.id} className="text-[11px] px-2 py-0.5 rounded-full text-zinc-300"
+                          style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                          {item.title}
+                        </span>
+                      ))}
                     </div>
-                  </CardContent>
+                  </div>
                 )}
 
-                {/* Progress Notes */}
+                {/* Notes */}
                 {agreement.notes && agreement.notes.length > 0 && (
-                  <CardContent className="border-t">
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-gray-700">{t('progressNotes')}</h4>
-                      <div className="space-y-2">
-                        {agreement.notes.map((note) => (
-                          <div key={note.id} className="bg-gray-50 p-3 rounded-lg">
-                            <p className="text-sm text-gray-900">{note.note}</p>
-                            <p className="text-xs text-gray-700 mt-1">
-                              {/* ✅ CORREGIDO: Usar locale */}
-                              {note.createdBy.name} • {new Date(note.createdAt).toLocaleDateString(locale)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
+                  <div className="px-5 pb-4" style={{ background: '#111113', borderTop: '1px solid #27272a' }}>
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2 pt-3">{t('progressNotes')}</p>
+                    <div className="space-y-2">
+                      {agreement.notes.map(note => (
+                        <div key={note.id} className="rounded-lg p-3" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+                          <p className="text-sm text-zinc-300">{note.note}</p>
+                          <p className="text-xs text-zinc-600 mt-1">{note.createdBy.name} · {new Date(note.createdAt).toLocaleDateString(locale)}</p>
+                        </div>
+                      ))}
                     </div>
-                  </CardContent>
+                  </div>
                 )}
-              </Card>
-            ))}
-          </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
       {activeAgreements.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <CheckCircle2 className="h-12 w-12 text-gray-700 mx-auto mb-4" />
-          <p className="text-gray-800">{t('noActiveAgreements')}</p>
+        <div className="rounded-xl py-12 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+          <CheckCircle2 size={36} className="text-zinc-600 mx-auto mb-3" />
+          <p className="text-zinc-400">{t('noActiveAgreements')}</p>
         </div>
       )}
 
-      {/* Completed Agreements */}
+      {/* Completed agreements */}
       {completedAgreements.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">{t('completedAgreements')}</h3>
-          <div className="grid gap-4">
-            {completedAgreements.map((agreement) => (
-              <Card key={agreement.id} className="opacity-75">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          {t('status.completed')}
-                        </Badge>
-                        <span className="text-sm text-gray-700">
-                          {/* ✅ CORREGIDO: Usar locale */}
-                          {new Date(agreement.agreementDate).toLocaleDateString(locale)}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{agreement.title}</h3>
-                      <p className="text-sm text-gray-700 mb-2">
-                        {agreement.description}
-                      </p>
-                      <p className="text-sm text-gray-800">
-                        <span className="font-medium">{t('participants')}:</span> {agreement.participants}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">{t('completedAgreements')}</h3>
+          {completedAgreements.map(agreement => (
+            <div key={agreement.id} className="rounded-xl p-5 opacity-60" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.3)' }}>
+                  <CheckCircle2 size={10} /> {t('status.completed')}
+                </span>
+                <span className="text-xs text-zinc-500">{new Date(agreement.agreementDate).toLocaleDateString(locale)}</span>
+              </div>
+              <h3 className="text-sm font-bold text-zinc-300 mb-1">{agreement.title}</h3>
+              <p className="text-xs text-zinc-500">{agreement.description}</p>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Create Agreement Dialog */}
+      {/* Create dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" style={{ background: '#18181b', border: '1px solid #27272a' }}>
           <form onSubmit={handleCreateAgreement}>
             <DialogHeader>
-              <DialogTitle>{t('createAgreement')}</DialogTitle>
-              <DialogDescription>
-                {t('createDialogDescription')}
-              </DialogDescription>
+              <DialogTitle className="text-zinc-100">{t('createAgreement')}</DialogTitle>
+              <DialogDescription className="text-zinc-500">{t('createDialogDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="title" className="text-gray-900">{t('agreementTitle')}</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  placeholder={t('agreementTitlePlaceholder')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-gray-900">{t('agreementDescription')}</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                  rows={4}
-                  placeholder={t('agreementDescriptionPlaceholder')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="agreementDate" className="text-gray-900">{t('agreementDate')}</Label>
-                <Input
-                  id="agreementDate"
-                  type="date"
-                  value={formData.agreementDate}
-                  onChange={(e) => setFormData({ ...formData, agreementDate: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="participants" className="text-gray-900">{t('participants')}</Label>
-                <Input
-                  id="participants"
-                  value={formData.participants}
-                  onChange={(e) => setFormData({ ...formData, participants: e.target.value })}
-                  required
-                  placeholder={t('participantsPlaceholder')}
-                />
+              {[
+                { id: 'title', label: t('agreementTitle'), key: 'title' as const, ph: t('agreementTitlePlaceholder'), type: 'text' },
+                { id: 'agreementDate', label: t('agreementDate'), key: 'agreementDate' as const, ph: '', type: 'date' },
+                { id: 'participants', label: t('participants'), key: 'participants' as const, ph: t('participantsPlaceholder'), type: 'text' },
+              ].map(({ id, label, key, ph, type }) => (
+                <div key={id} className="space-y-1.5">
+                  <Label className="text-zinc-400 text-xs">{label}</Label>
+                  <Input id={id} type={type} placeholder={ph} required value={formData[key]}
+                    onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                    style={inputStyle} className="text-zinc-200 placeholder-zinc-600" />
+                </div>
+              ))}
+              <div className="space-y-1.5">
+                <Label className="text-zinc-400 text-xs">{t('agreementDescription')}</Label>
+                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required rows={4} placeholder={t('agreementDescriptionPlaceholder')} style={inputStyle} className="text-zinc-200 placeholder-zinc-600 resize-none" />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                {t('cancel')}
-              </Button>
-              <Button type="submit" disabled={submitting}>
+              <button type="button" onClick={() => setShowCreateDialog(false)}
+                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+                style={{ border: '1px solid #27272a' }}>{t('cancel')}</button>
+              <button type="submit" disabled={submitting}
+                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: '#6366f1' }}>
                 {submitting ? t('creating') : t('createAgreement')}
-              </Button>
+              </button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Link Work Item Dialog */}
+      {/* Link work item dialog */}
       <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
-        <DialogContent>
+        <DialogContent style={{ background: '#18181b', border: '1px solid #27272a' }}>
           <form onSubmit={handleLinkWorkItem}>
             <DialogHeader>
-              <DialogTitle>{t('linkWorkItem')}</DialogTitle>
-              <DialogDescription>
-                {t('linkWorkItemDescription')}
-              </DialogDescription>
+              <DialogTitle className="text-zinc-100">{t('linkWorkItem')}</DialogTitle>
+              <DialogDescription className="text-zinc-500">{t('linkWorkItemDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="workItemId" className="text-gray-900">{t('workItem')}</Label>
-                <Select
-                  value={workItemId}
-                  onValueChange={(value) => setWorkItemId(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('selectWorkItem')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workItems.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.title}
-                      </SelectItem>
-                    ))}
+              <div className="space-y-1.5">
+                <Label className="text-zinc-400 text-xs">{t('workItem')}</Label>
+                <Select value={workItemId} onValueChange={setWorkItemId}>
+                  <SelectTrigger style={inputStyle}><SelectValue placeholder={t('selectWorkItem')} /></SelectTrigger>
+                  <SelectContent style={{ background: '#1c1c1f', border: '1px solid #27272a' }}>
+                    {workItems.map(item => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowLinkDialog(false)}>
-                {t('cancel')}
-              </Button>
-              <Button type="submit" disabled={submitting}>
+              <button type="button" onClick={() => setShowLinkDialog(false)}
+                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+                style={{ border: '1px solid #27272a' }}>{t('cancel')}</button>
+              <button type="submit" disabled={submitting}
+                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: '#6366f1' }}>
                 {submitting ? t('linking') : t('linkWorkItem')}
-              </Button>
+              </button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Add Progress Note Dialog */}
+      {/* Progress note dialog */}
       <Dialog open={showNoteDialog} onOpenChange={setShowNoteDialog}>
-        <DialogContent>
+        <DialogContent style={{ background: '#18181b', border: '1px solid #27272a' }}>
           <form onSubmit={handleAddProgressNote}>
             <DialogHeader>
-              <DialogTitle>{t('addProgressNote')}</DialogTitle>
-              <DialogDescription>
-                {t('addProgressNoteDescription')}
-              </DialogDescription>
+              <DialogTitle className="text-zinc-100">{t('addProgressNote')}</DialogTitle>
+              <DialogDescription className="text-zinc-500">{t('addProgressNoteDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="progressNote" className="text-gray-900">{t('noteFields.note')}</Label>
-                <Textarea
-                  id="progressNote"
-                  value={progressNote}
-                  onChange={(e) => setProgressNote(e.target.value)}
-                  required
-                  rows={4}
-                  placeholder={t('noteFields.notePlaceholder')}
-                />
+              <div className="space-y-1.5">
+                <Label className="text-zinc-400 text-xs">{t('noteFields.note')}</Label>
+                <Textarea value={progressNote} onChange={(e) => setProgressNote(e.target.value)} required rows={4} placeholder={t('noteFields.notePlaceholder')} style={inputStyle} className="text-zinc-200 placeholder-zinc-600 resize-none" />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowNoteDialog(false)}>
-                {t('cancel')}
-              </Button>
-              <Button type="submit" disabled={submitting}>
+              <button type="button" onClick={() => setShowNoteDialog(false)}
+                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+                style={{ border: '1px solid #27272a' }}>{t('cancel')}</button>
+              <button type="submit" disabled={submitting}
+                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: '#6366f1' }}>
                 {submitting ? t('adding') : t('addProgressNote')}
-              </Button>
+              </button>
             </DialogFooter>
           </form>
         </DialogContent>
