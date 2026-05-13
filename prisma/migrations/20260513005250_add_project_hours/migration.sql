@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `projects` ADD COLUMN `actual_hours` INTEGER NULL,
+    ADD COLUMN `planned_hours` INTEGER NULL;
