@@ -86,8 +86,8 @@ export function DeleteTemplateDialog({
       <DialogContent className="sm:max-w-[500px]" aria-describedby="delete-template-description">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <AlertTriangle className="h-5 w-5 text-red-400" />
             </div>
             <DialogTitle className="text-lg font-semibold">
               {t('deleteTemplate')}
@@ -95,22 +95,22 @@ export function DeleteTemplateDialog({
           </div>
         </DialogHeader>
 
-        <div id="delete-template-description" className="pt-4 space-y-3 text-sm text-gray-800">
-          <div className="text-gray-700">
+        <div id="delete-template-description" className="pt-4 space-y-3 text-sm text-[#a1a1aa]">
+          <div className="text-[#a1a1aa]">
             {t('confirmations.deleteTemplate')}
           </div>
           {templateName && (
-            <div className="font-semibold text-gray-900">
+            <div className="font-semibold text-[#e4e4e7]">
               {templateName}
             </div>
           )}
-          <div className="text-sm text-red-600">
+          <div className="text-sm text-red-400">
             {t('confirmations.deleteTemplateWarning')}
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
             {error}
           </div>
         )}

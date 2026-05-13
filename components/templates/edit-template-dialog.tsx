@@ -294,19 +294,19 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
 
         {loadingTemplate ? (
           <div className="flex items-center justify-center py-8">
-            <p className="text-sm text-gray-700">{t('loading')}</p>
+            <p className="text-sm text-[#71717a]">{t('loading')}</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-800">
+              <div className="rounded-md p-3 text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 {errors.general}
               </div>
             )}
 
             {/* Template Name */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-900">{t('templateName')}</Label>
+              <Label htmlFor="name" className="text-[#e4e4e7]">{t('templateName')}</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -316,13 +316,13 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
                 className={errors.name ? 'border-red-500' : ''}
               />
               {errors.name && (
-                <p className="text-sm text-red-600">{errors.name}</p>
+                <p className="text-sm text-red-400">{errors.name}</p>
               )}
             </div>
 
             {/* Template Description */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-gray-900">{t('templateDescription')}</Label>
+              <Label htmlFor="description" className="text-[#e4e4e7]">{t('templateDescription')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -333,13 +333,13 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
                 className={errors.description ? 'border-red-500' : ''}
               />
               {errors.description && (
-                <p className="text-sm text-red-600">{errors.description}</p>
+                <p className="text-sm text-red-400">{errors.description}</p>
               )}
             </div>
 
             {/* Category Selection */}
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-gray-900">{t('category')}</Label>
+              <Label htmlFor="category" className="text-[#e4e4e7]">{t('category')}</Label>
               <Select
                 value={formData.categoryId}
                 onValueChange={(value) => handleFieldChange('categoryId', value)}
@@ -357,7 +357,7 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
                 </SelectContent>
               </Select>
               {errors.categoryId && (
-                <p className="text-sm text-red-600">{errors.categoryId}</p>
+                <p className="text-sm text-red-400">{errors.categoryId}</p>
               )}
             </div>
 
@@ -369,7 +369,7 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
                 disabled={submitting}
               />
               {errors.phases && (
-                <p className="text-sm text-red-600">{errors.phases}</p>
+                <p className="text-sm text-red-400">{errors.phases}</p>
               )}
             </div>
 

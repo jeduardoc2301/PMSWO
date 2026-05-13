@@ -192,13 +192,13 @@ export function EditWorkItemDialog({
 
           <div className="space-y-4 py-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-gray-900">{t('createDialog.titleLabel')}</Label>
+              <Label htmlFor="title" className="text-[#e4e4e7]">{t('createDialog.titleLabel')}</Label>
               <Input
                 id="title"
                 value={formData.title}
@@ -209,7 +209,7 @@ export function EditWorkItemDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-gray-900">{t('createDialog.descriptionLabel')}</Label>
+              <Label htmlFor="description" className="text-[#e4e4e7]">{t('createDialog.descriptionLabel')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -220,7 +220,7 @@ export function EditWorkItemDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phase" className="text-gray-900">
+              <Label htmlFor="phase" className="text-[#e4e4e7]">
                 {t('createDialog.phaseLabel', { defaultValue: 'Fase (opcional)' })}
               </Label>
               <Combobox
@@ -232,7 +232,7 @@ export function EditWorkItemDialog({
                 emptyText={t('createDialog.phaseEmptyText', { defaultValue: 'Presiona Enter para crear' })}
                 disabled={submitting}
               />
-              <p className="text-xs text-orange-600 font-medium flex items-center gap-1.5">
+              <p className="text-xs text-orange-400 font-medium flex items-center gap-1.5">
                 <Info className="h-3.5 w-3.5 flex-shrink-0" />
                 {t('createDialog.phaseHint', { defaultValue: 'Selecciona una fase existente o escribe una nueva' })}
               </p>
@@ -240,7 +240,7 @@ export function EditWorkItemDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startDate" className="text-gray-900">{t('createDialog.startDateLabel')}</Label>
+                <Label htmlFor="startDate" className="text-[#e4e4e7]">{t('createDialog.startDateLabel')}</Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -251,7 +251,7 @@ export function EditWorkItemDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="estimatedEndDate" className="text-gray-900">{t('createDialog.endDateLabel')}</Label>
+                <Label htmlFor="estimatedEndDate" className="text-[#e4e4e7]">{t('createDialog.endDateLabel')}</Label>
                 <Input
                   id="estimatedEndDate"
                   type="date"
@@ -263,7 +263,7 @@ export function EditWorkItemDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="estimatedHours" className="text-gray-900">
+              <Label htmlFor="estimatedHours" className="text-[#e4e4e7]">
                 {t('createDialog.estimatedHoursLabel', { defaultValue: 'Horas estimadas (opcional)' })}
               </Label>
               <Input
@@ -279,7 +279,7 @@ export function EditWorkItemDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="owner" className="text-gray-900">{t('createDialog.ownerLabel')}</Label>
+                <Label htmlFor="owner" className="text-[#e4e4e7]">{t('createDialog.ownerLabel')}</Label>
                 <Select
                   value={formData.ownerId}
                   onValueChange={(value) => setFormData({ ...formData, ownerId: value })}
@@ -299,7 +299,7 @@ export function EditWorkItemDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priority" className="text-gray-900">{t('createDialog.priorityLabel')}</Label>
+                <Label htmlFor="priority" className="text-[#e4e4e7]">{t('createDialog.priorityLabel')}</Label>
                 <Select
                   value={formData.priority}
                   onValueChange={(value) => setFormData({ ...formData, priority: value as WorkItemPriority })}

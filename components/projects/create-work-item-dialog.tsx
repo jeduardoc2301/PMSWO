@@ -368,7 +368,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {errors.general && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-800">
+            <div className="rounded-md p-3 text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
               {errors.general}
             </div>
           )}
@@ -384,7 +384,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
               className={errors.title ? 'border-red-500' : ''}
             />
             {errors.title && (
-              <p className="text-sm text-red-600">{errors.title}</p>
+              <p className="text-sm text-red-400">{errors.title}</p>
             )}
           </div>
 
@@ -424,7 +424,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
               className={errors.description ? 'border-red-500' : ''}
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
+              <p className="text-sm text-red-400">{errors.description}</p>
             )}
           </div>
 
@@ -441,7 +441,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
               emptyText={t('createDialog.phaseEmptyText', { defaultValue: 'Presiona Enter para crear' })}
               disabled={submitting}
             />
-            <p className="text-xs text-orange-600 font-medium flex items-center gap-1.5">
+            <p className="text-xs text-orange-400 font-medium flex items-center gap-1.5">
               <Info className="h-3.5 w-3.5 flex-shrink-0" />
               {t('createDialog.phaseHint', { defaultValue: 'Selecciona una fase existente o escribe una nueva' })}
             </p>
@@ -459,7 +459,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
                 className={errors.startDate ? 'border-red-500' : ''}
               />
               {errors.startDate && (
-                <p className="text-sm text-red-600">{errors.startDate}</p>
+                <p className="text-sm text-red-400">{errors.startDate}</p>
               )}
             </div>
 
@@ -474,7 +474,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
                 className={errors.estimatedEndDate ? 'border-red-500' : ''}
               />
               {errors.estimatedEndDate && (
-                <p className="text-sm text-red-600">{errors.estimatedEndDate}</p>
+                <p className="text-sm text-red-400">{errors.estimatedEndDate}</p>
               )}
             </div>
           </div>
@@ -514,7 +514,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
                 </SelectContent>
               </Select>
               {errors.ownerId && (
-                <p className="text-sm text-red-600">{errors.ownerId}</p>
+                <p className="text-sm text-red-400">{errors.ownerId}</p>
               )}
             </div>
 
@@ -536,7 +536,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
                 </SelectContent>
               </Select>
               {errors.priority && (
-                <p className="text-sm text-red-600">{errors.priority}</p>
+                <p className="text-sm text-red-400">{errors.priority}</p>
               )}
             </div>
           </div>

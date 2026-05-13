@@ -47,16 +47,19 @@ export function ErrorMessage({
     (error ? getErrorMessage(error) : null) ||
     t('errors.generic')
 
-  const bgColor = variant === 'error' ? 'bg-red-50' : 'bg-yellow-50'
-  const textColor = variant === 'error' ? 'text-red-800' : 'text-yellow-800'
-  const borderColor = variant === 'error' ? 'border-red-200' : 'border-yellow-200'
-  const iconColor = variant === 'error' ? 'text-red-600' : 'text-yellow-600'
+  const isError = variant === 'error'
+  const textColor = isError ? 'text-red-400' : 'text-amber-300'
+  const iconColor = isError ? 'text-red-400' : 'text-amber-400'
+  const bgStyle = isError
+    ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }
+    : { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }
 
   const Icon = variant === 'error' ? XCircle : AlertCircle
 
   return (
     <div
-      className={`rounded-lg border ${borderColor} ${bgColor} p-4`}
+      className="rounded-lg p-4"
+      style={bgStyle}
       role="alert"
       aria-live="polite"
     >
@@ -64,7 +67,7 @@ export function ErrorMessage({
         {showIcon && (
           <Icon className={`h-5 w-5 flex-shrink-0 ${iconColor}`} aria-hidden="true" />
         )}
-        
+
         <div className="flex-1">
           <p className={`text-sm font-medium ${textColor}`}>
             {errorMessage}
@@ -91,7 +94,7 @@ export function ErrorMessage({
           <button
             type="button"
             onClick={onDismiss}
-            className={`flex-shrink-0 rounded-md ${bgColor} ${textColor} hover:${bgColor} focus:outline-none focus:ring-2 focus:ring-offset-2`}
+            className={`flex-shrink-0 rounded-md ${textColor} focus:outline-none`}
             aria-label={t('common.close')}
           >
             <XCircle className="h-5 w-5" aria-hidden="true" />

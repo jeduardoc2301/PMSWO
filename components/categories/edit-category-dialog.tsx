@@ -129,7 +129,7 @@ export function EditCategoryDialog({
                 autoFocus
               />
               {error && (
-                <p className="text-sm text-red-600">{error}</p>
+                <p className="text-sm text-red-400">{error}</p>
               )}
             </div>
           </div>

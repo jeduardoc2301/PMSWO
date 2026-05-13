@@ -72,7 +72,7 @@ export function DeleteCategoryDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <AlertTriangle className="h-5 w-5 text-red-400" />
             {t('deleteCategoryDialog.title')}
           </DialogTitle>
           <DialogDescription>
@@ -81,11 +81,11 @@ export function DeleteCategoryDialog({
         </DialogHeader>
 
         <div className="py-4">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
+          <div className="rounded-lg p-4" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+            <p className="text-sm text-amber-300">
               <strong>{category.name}</strong>
             </p>
-            <p className="text-sm text-yellow-700 mt-2">
+            <p className="text-sm text-amber-400 mt-2">
               {t('deleteCategoryDialog.warning')}
             </p>
           </div>

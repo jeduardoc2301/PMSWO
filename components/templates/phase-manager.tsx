@@ -141,7 +141,7 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
                       size="sm"
                       onClick={() => removePhase(index)}
                       disabled={disabled}
-                      className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                      className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20 flex-shrink-0"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

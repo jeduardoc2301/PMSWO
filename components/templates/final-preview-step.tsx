@@ -190,7 +190,7 @@ export function FinalPreviewStep({
 
   if (error || !templateData) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+      <div className="px-4 py-3 rounded-lg text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
         {error || t('errors.loadFailed')}
       </div>
     )
@@ -316,8 +316,8 @@ export function FinalPreviewStep({
         )}
       </div>
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-sm text-yellow-900">
+      <div className="rounded-lg p-4" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+        <p className="text-sm text-amber-300">
           {t('confirmations.applyTemplateWarning', { count: calculatedActivities.length })}
         </p>
       </div>

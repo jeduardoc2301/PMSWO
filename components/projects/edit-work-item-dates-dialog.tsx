@@ -97,13 +97,13 @@ export function EditWorkItemDatesDialog({
 
           <div className="space-y-4 py-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="startDate" className="text-gray-900">
+              <Label htmlFor="startDate" className="text-[#e4e4e7]">
                 {t('createDialog.startDateLabel')}
               </Label>
               <Input
@@ -116,7 +116,7 @@ export function EditWorkItemDatesDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="estimatedEndDate" className="text-gray-900">
+              <Label htmlFor="estimatedEndDate" className="text-[#e4e4e7]">
                 {t('createDialog.endDateLabel')}
               </Label>
               <Input
