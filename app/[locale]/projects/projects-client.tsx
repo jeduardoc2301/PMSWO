@@ -23,6 +23,8 @@ interface Project {
   estimatedEndDate: string
   status: ProjectStatus
   archived: boolean
+  plannedHours: number | null
+  actualHours: number | null
   createdAt: string
   updatedAt: string
   _count?: { workItems: number; blockers: number; risks: number }
@@ -40,6 +42,76 @@ function statusLabel(s: string) {
 
 function healthHex(pct: number) {
   return pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444'
+}
+
+// ─── Project Progress Bars ────────────────────────────────────────────────────
+
+function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours }: {
+  startDate: string
+  endDate: string
+  plannedHours: number | null
+  actualHours: number | null
+}) {
+  const today = new Date()
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+
+  const isOverdue = end < today
+  const hasHours = plannedHours != null && actualHours != null && plannedHours > 0
+
+  const totalMs = end.getTime() - start.getTime()
+  const elapsedMs = today.getTime() - start.getTime()
+  const timePct = totalMs > 0 ? Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 100))) : 0
+  const execPct = hasHours ? Math.min(100, Math.round((actualHours! / plannedHours!) * 100)) : 0
+
+  let dotColor = '#71717a'
+  let overdueBadge = false
+  if (isOverdue) {
+    dotColor = '#ef4444'
+    overdueBadge = true
+  } else if (!hasHours) {
+    dotColor = '#71717a'
+  } else if (execPct >= timePct - 10) {
+    dotColor = '#10b981'
+  } else if (execPct >= timePct - 25) {
+    dotColor = '#f59e0b'
+  } else {
+    dotColor = '#ef4444'
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 180 }}>
+      {/* Semáforo */}
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 2 }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, boxShadow: `0 0 4px ${dotColor}` }} />
+        {overdueBadge && (
+          <span style={{ fontSize: 8, fontWeight: 700, color: '#ef4444', letterSpacing: '0.05em', marginTop: 2 }}>
+            VENCIDO
+          </span>
+        )}
+      </div>
+      {/* Barras */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Etiqueta */}
+        <div style={{ fontSize: 10, color: '#71717a', marginBottom: 5, whiteSpace: 'nowrap' }}>
+          {hasHours
+            ? `⏱ ${timePct}% tiempo  |  ✅ ${execPct}% ejec.`
+            : isOverdue
+            ? `⏱ ${timePct}% tiempo  |  ✅ Sin datos`
+            : 'Sin datos'
+          }
+        </div>
+        {/* Barra tiempo transcurrido */}
+        <div style={{ height: 5, background: '#27272a', borderRadius: 999, marginBottom: 4, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${timePct}%`, background: '#B0BEC5', borderRadius: 999, transition: 'width 0.3s' }} />
+        </div>
+        {/* Barra avance ejecutado */}
+        <div style={{ height: 5, background: '#27272a', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${execPct}%`, background: '#1565C0', borderRadius: 999, transition: 'width 0.3s' }} />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Status dropdown pill ─────────────────────────────────────────────────────
@@ -397,7 +469,7 @@ export function ProjectsPageClient() {
                         else setSelected(new Set())
                       }} />
                   </th>
-                  {['Proyecto', 'Cliente', 'Estado', 'Tareas', 'Fecha fin', ''].map((h) => (
+                  {['Proyecto', 'Cliente', 'Estado', 'Salud del proyecto', 'Tareas', 'Fecha fin', ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
                       {h}
                     </th>
@@ -427,6 +499,14 @@ export function ProjectsPageClient() {
                     </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <StatusPill projectId={p.id} status={p.status} onUpdate={handleStatusUpdate} />
+                    </td>
+                    <td className="px-4 py-3" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                      <ProjectProgressBars
+                        startDate={p.startDate}
+                        endDate={p.estimatedEndDate}
+                        plannedHours={p.plannedHours}
+                        actualHours={p.actualHours}
+                      />
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-400" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
                       {p._count?.workItems ?? 0}

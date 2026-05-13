@@ -63,6 +63,8 @@ model Project {
   estimatedEndDate DateTime @map("estimated_end_date") @db.Date
   status           String   @default("PLANNING")
   archived         Boolean  @default(false)
+  plannedHours     Int?     @map("planned_hours")
+  actualHours      Int?     @map("actual_hours")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
