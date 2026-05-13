@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { ProjectStatus } from '@/types'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Button } from '@/components/ui/button'
 
 interface DashboardFiltersProps {
@@ -42,22 +42,19 @@ export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <Label htmlFor="startDate">{t('filtersSection.startDate', { defaultValue: 'Fecha de Inicio' })}</Label>
-          <Input
-            id="startDate"
-            type="date"
+          <Label>{t('filtersSection.startDate', { defaultValue: 'Fecha de Inicio' })}</Label>
+          <DatePicker
             value={filters.startDate || ''}
-            onChange={(e) => handleFilterChange('startDate', e.target.value)}
+            onChange={(v) => handleFilterChange('startDate', v)}
           />
         </div>
 
         <div>
-          <Label htmlFor="endDate">{t('filtersSection.endDate', { defaultValue: 'Fecha de Fin' })}</Label>
-          <Input
-            id="endDate"
-            type="date"
+          <Label>{t('filtersSection.endDate', { defaultValue: 'Fecha de Fin' })}</Label>
+          <DatePicker
             value={filters.endDate || ''}
-            onChange={(e) => handleFilterChange('endDate', e.target.value)}
+            onChange={(v) => handleFilterChange('endDate', v)}
+            min={filters.startDate || undefined}
           />
         </div>
 

@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WorkItemPriority, type WorkItemSummary } from '@/types'
 import { Combobox } from '@/components/ui/combobox'
 import { Info } from 'lucide-react'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface User {
   id: string
@@ -240,24 +241,19 @@ export function EditWorkItemDialog({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startDate" className="text-[#e4e4e7]">{t('createDialog.startDateLabel')}</Label>
-                <Input
-                  id="startDate"
-                  type="date"
+                <Label className="text-[#e4e4e7]">{t('createDialog.startDateLabel')}</Label>
+                <DatePicker
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  required
+                  onChange={(v) => setFormData({ ...formData, startDate: v })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="estimatedEndDate" className="text-[#e4e4e7]">{t('createDialog.endDateLabel')}</Label>
-                <Input
-                  id="estimatedEndDate"
-                  type="date"
+                <Label className="text-[#e4e4e7]">{t('createDialog.endDateLabel')}</Label>
+                <DatePicker
                   value={formData.estimatedEndDate}
-                  onChange={(e) => setFormData({ ...formData, estimatedEndDate: e.target.value })}
-                  required
+                  onChange={(v) => setFormData({ ...formData, estimatedEndDate: v })}
+                  min={formData.startDate || undefined}
                 />
               </div>
             </div>

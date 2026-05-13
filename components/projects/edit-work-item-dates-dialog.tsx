@@ -11,8 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface EditWorkItemDatesDialogProps {
   open: boolean
@@ -103,28 +103,23 @@ export function EditWorkItemDatesDialog({
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="startDate" className="text-[#e4e4e7]">
+              <Label className="text-[#e4e4e7]">
                 {t('createDialog.startDateLabel')}
               </Label>
-              <Input
-                id="startDate"
-                type="date"
+              <DatePicker
                 value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                required
+                onChange={(v) => setFormData({ ...formData, startDate: v })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="estimatedEndDate" className="text-[#e4e4e7]">
+              <Label className="text-[#e4e4e7]">
                 {t('createDialog.endDateLabel')}
               </Label>
-              <Input
-                id="estimatedEndDate"
-                type="date"
+              <DatePicker
                 value={formData.estimatedEndDate}
-                onChange={(e) => setFormData({ ...formData, estimatedEndDate: e.target.value })}
-                required
+                onChange={(v) => setFormData({ ...formData, estimatedEndDate: v })}
+                min={formData.startDate || undefined}
               />
             </div>
           </div>

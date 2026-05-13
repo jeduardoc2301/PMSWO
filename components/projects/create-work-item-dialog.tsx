@@ -14,6 +14,7 @@ import { TextPurpose } from '@/types/ai'
 import { hasPermission } from '@/lib/rbac'
 import { Sparkles, Loader2, Info } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface CreateWorkItemDialogProps {
   open: boolean
@@ -449,14 +450,11 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startDate">{t('createDialog.startDateLabel')}</Label>
-              <Input
-                id="startDate"
-                type="date"
+              <Label>{t('createDialog.startDateLabel')}</Label>
+              <DatePicker
                 value={formData.startDate}
-                onChange={(e) => handleFieldChange('startDate', e.target.value)}
+                onChange={(v) => handleFieldChange('startDate', v)}
                 disabled={submitting}
-                className={errors.startDate ? 'border-red-500' : ''}
               />
               {errors.startDate && (
                 <p className="text-sm text-red-400">{errors.startDate}</p>
@@ -464,14 +462,12 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="estimatedEndDate">{t('createDialog.endDateLabel')}</Label>
-              <Input
-                id="estimatedEndDate"
-                type="date"
+              <Label>{t('createDialog.endDateLabel')}</Label>
+              <DatePicker
                 value={formData.estimatedEndDate}
-                onChange={(e) => handleFieldChange('estimatedEndDate', e.target.value)}
+                onChange={(v) => handleFieldChange('estimatedEndDate', v)}
+                min={formData.startDate || undefined}
                 disabled={submitting}
-                className={errors.estimatedEndDate ? 'border-red-500' : ''}
               />
               {errors.estimatedEndDate && (
                 <p className="text-sm text-red-400">{errors.estimatedEndDate}</p>

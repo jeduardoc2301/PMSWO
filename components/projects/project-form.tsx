@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 
 /**
  * Create validation schema for project form with translations
@@ -286,34 +287,27 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Start Date */}
         <div>
-          <Label htmlFor="startDate" className="block text-zinc-300 mb-2">
+          <Label className="block text-zinc-300 mb-2">
             {t('startDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
-          <Input
-            id="startDate"
-            name="startDate"
-            type="date"
+          <DatePicker
             value={formData.startDate}
-            onChange={handleChange}
+            onChange={(v) => { setFormData(prev => ({ ...prev, startDate: v })); if (errors.startDate) setErrors(prev => { const e = { ...prev }; delete e.startDate; return e }) }}
             disabled={isSubmitting}
-            className={errors.startDate ? 'border-red-500' : ''}
           />
           {errors.startDate && <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>}
         </div>
 
         {/* Estimated End Date */}
         <div>
-          <Label htmlFor="estimatedEndDate" className="block text-zinc-300 mb-2">
+          <Label className="block text-zinc-300 mb-2">
             {t('estimatedEndDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
-          <Input
-            id="estimatedEndDate"
-            name="estimatedEndDate"
-            type="date"
+          <DatePicker
             value={formData.estimatedEndDate}
-            onChange={handleChange}
+            onChange={(v) => { setFormData(prev => ({ ...prev, estimatedEndDate: v })); if (errors.estimatedEndDate) setErrors(prev => { const e = { ...prev }; delete e.estimatedEndDate; return e }) }}
+            min={formData.startDate || undefined}
             disabled={isSubmitting}
-            className={errors.estimatedEndDate ? 'border-red-500' : ''}
           />
           {errors.estimatedEndDate && (
             <p className="mt-1 text-sm text-red-400">{errors.estimatedEndDate}</p>

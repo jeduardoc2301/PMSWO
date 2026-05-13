@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface TemplateActivity {
   id: string
@@ -145,15 +145,20 @@ export function DateAssignmentStep({
     setCalculatedActivities(calculated)
   }, [templateData, selectedActivityIds, startDate])
 
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = new Date(e.target.value)
+  const handleStartDateChange = (value: string) => {
+    if (!value) return
+    const [y, m, d] = value.split('-').map(Number)
+    const newDate = new Date(y, m - 1, d)
     if (!isNaN(newDate.getTime())) {
       onStartDateChange(newDate)
     }
   }
 
   const formatDateForInput = (date: Date): string => {
-    return date.toISOString().split('T')[0]
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   if (isLoading) {
@@ -180,12 +185,9 @@ export function DateAssignmentStep({
           <Label htmlFor="startDate" className="text-zinc-100 font-medium">
             {t('startDate')}
           </Label>
-          <Input
-            id="startDate"
-            type="date"
+          <DatePicker
             value={formatDateForInput(startDate)}
             onChange={handleStartDateChange}
-            required
             className="max-w-xs"
           />
           <p className="text-xs text-zinc-400">

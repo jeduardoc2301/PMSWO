@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle2, Clock, Plus } from 'lucide-react'
@@ -257,7 +258,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
               </div>
               <div className="space-y-1.5">
                 <Label className="text-zinc-400 text-xs">{t('startDate')}</Label>
-                <Input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} required style={inputStyle} className="text-zinc-200" />
+                <DatePicker value={formData.startDate} onChange={(v) => setFormData({ ...formData, startDate: v })} />
               </div>
             </div>
             <DialogFooter>
