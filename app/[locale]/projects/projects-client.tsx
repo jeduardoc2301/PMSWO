@@ -40,9 +40,6 @@ function statusLabel(s: string) {
   return ({ ACTIVE: 'Activo', PLANNING: 'Planeación', ON_HOLD: 'En pausa', COMPLETED: 'Completado', ARCHIVED: 'Archivado' } as Record<string, string>)[s] ?? s
 }
 
-function healthHex(pct: number) {
-  return pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444'
-}
 
 // ─── Project Progress Bars ────────────────────────────────────────────────────
 
@@ -166,7 +163,6 @@ function StatusPill({ projectId, status, onUpdate }: {
 function ProjectCard({ project, locale, onStatusUpdate }: {
   project: Project; locale: string; onStatusUpdate: (id: string, s: string) => void
 }) {
-  const progress = 0 // no completion rate in list view
   const initials = project.name.slice(0, 2).toUpperCase()
 
   return (
@@ -197,16 +193,14 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-zinc-500">
-            {project._count?.workItems ?? 0} tareas
-          </span>
-          <span className="text-zinc-500">{progress}%</span>
-        </div>
-        <div className="pms-progress">
-          <div style={{ width: `${progress}%`, background: healthHex(progress) }} />
-        </div>
+      <div style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
+        <div className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">Salud del proyecto</div>
+        <ProjectProgressBars
+          startDate={project.startDate}
+          endDate={project.estimatedEndDate}
+          plannedHours={project.plannedHours}
+          actualHours={project.actualHours}
+        />
       </div>
 
       <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid #27272a' }}>
