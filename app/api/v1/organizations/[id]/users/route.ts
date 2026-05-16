@@ -183,7 +183,6 @@ async function getUsersHandler(
           name: user.name,
           roles: user.roles,
           locale: user.locale,
-          avatar: user.avatar ?? null,
           active: user.active,
           createdAt: user.createdAt,
         })),

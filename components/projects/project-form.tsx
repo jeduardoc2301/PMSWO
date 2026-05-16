@@ -34,7 +34,6 @@ interface OrgUser {
   name: string
   email: string
   roles: string[]
-  avatar: string | null
 }
 
 interface ProjectFormProps {
@@ -52,15 +51,6 @@ interface ProjectFormProps {
 
 function UserAvatar({ user, size = 24 }: { user: OrgUser; size?: number }) {
   const initials = user.name.split(' ').map((w) => w[0]).join('').substring(0, 2).toUpperCase()
-  if (user.avatar) {
-    return (
-      <img
-        src={user.avatar}
-        alt={user.name}
-        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-      />
-    )
-  }
   return (
     <div
       style={{

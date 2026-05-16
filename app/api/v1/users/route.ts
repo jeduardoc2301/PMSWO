@@ -24,7 +24,6 @@ async function getUsersHandler(
           name: u.name,
           email: u.email,
           roles: u.roles,
-          avatar: u.avatar ?? null,
         })),
     })
   } catch (error) {
