@@ -20,6 +20,8 @@ export interface UpdateUserDTO {
   name?: string
   roles?: UserRole[]
   locale?: Locale
+  avatar?: string | null
+  password?: string
 }
 
 // Validation schemas
@@ -264,6 +266,18 @@ export class UserService {
       }
     }
 
+    // Hash password if provided
+    let passwordHash: string | undefined
+    if (data.password) {
+      try {
+        passwordSchema.parse(data.password)
+      } catch (error) {
+        if (error instanceof z.ZodError) throw new ValidationError(error.issues[0].message)
+        throw error
+      }
+      passwordHash = await hashPassword(data.password)
+    }
+
     // Update user
     const user = await prisma.user.update({
       where: { id },
@@ -272,6 +286,8 @@ export class UserService {
         ...(data.name && { name: data.name.trim() }),
         ...(data.roles && { roles: data.roles as any }),
         ...(data.locale && { locale: data.locale }),
+        ...(data.avatar !== undefined && { avatar: data.avatar }),
+        ...(passwordHash && { passwordHash }),
       },
       select: {
         id: true,
@@ -280,6 +296,7 @@ export class UserService {
         name: true,
         roles: true,
         locale: true,
+        avatar: true,
         active: true,
         createdAt: true,
         updatedAt: true,

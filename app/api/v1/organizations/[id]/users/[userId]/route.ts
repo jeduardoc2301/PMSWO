@@ -4,6 +4,7 @@ import { userService } from '@/services/user.service'
 import { Permission, UserRole } from '@/types'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { z } from 'zod'
+import { hasPermission } from '@/lib/rbac'
 
 /**
  * PATCH /api/v1/organizations/:id/users/:userId
@@ -20,6 +21,8 @@ const updateUserSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   roles: z.array(z.nativeEnum(UserRole)).min(1).optional(),
   active: z.boolean().optional(),
+  avatar: z.string().nullable().optional(),
+  password: z.string().min(8).optional(),
 })
 
 async function patchUserHandler(
@@ -67,12 +70,21 @@ async function patchUserHandler(
     // Validate that the user belongs to the same organization
     if (userToUpdate.organizationId !== organizationId) {
       return NextResponse.json(
-        {
-          error: 'FORBIDDEN',
-          message: 'User does not belong to this organization',
-        },
+        { error: 'FORBIDDEN', message: 'User does not belong to this organization' },
         { status: 403 }
       )
+    }
+
+    // Password change is only allowed for: the user themselves, or an admin
+    if (updateData.password) {
+      const isSelf = authContext.userId === userId
+      const isAdmin = hasPermission(authContext.roles as UserRole[], Permission.USER_CREATE)
+      if (!isSelf && !isAdmin) {
+        return NextResponse.json(
+          { error: 'FORBIDDEN', message: 'Only admins or the user themselves can change the password' },
+          { status: 403 }
+        )
+      }
     }
 
     // Update the user

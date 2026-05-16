@@ -38,7 +38,10 @@ export function UsersManagementClient() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const [formData, setFormData] = useState({ name: '', roles: [] as UserRole[], active: true })
+  const [formData, setFormData] = useState({
+    name: '', roles: [] as UserRole[], active: true, avatar: '', password: '', confirmPassword: '',
+  })
+  const editAvatarInputRef = useRef<HTMLInputElement>(null)
   const [createFormData, setCreateFormData] = useState({
     email: '', name: '', password: '', roles: [] as UserRole[], locale: Locale.ES, avatar: '',
   })
@@ -67,19 +70,38 @@ export function UsersManagementClient() {
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user)
-    setFormData({ name: user.name, roles: user.roles, active: user.active })
+    setFormData({ name: user.name, roles: user.roles, active: user.active, avatar: user.avatar || '', password: '', confirmPassword: '' })
     setEditDialogOpen(true)
+  }
+
+  const handleEditAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setFormData((p) => ({ ...p, avatar: ev.target?.result as string }))
+    reader.readAsDataURL(file)
   }
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedUser) return
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      alert('Las contraseñas no coinciden')
+      return
+    }
     try {
       setSubmitting(true)
       const orgId = session?.user?.organizationId
       if (!orgId) throw new Error('Organization ID not found')
+      const payload: Record<string, any> = {
+        name: formData.name,
+        roles: formData.roles,
+        active: formData.active,
+        avatar: formData.avatar || null,
+      }
+      if (formData.password) payload.password = formData.password
       const res = await fetch(`/api/v1/organizations/${orgId}/users/${selectedUser.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to update user') }
       await fetchUsers(); setEditDialogOpen(false); setSelectedUser(null)
@@ -261,11 +283,69 @@ export function UsersManagementClient() {
               <DialogDescription className="text-zinc-500">{t('editUser')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Avatar picker */}
+              <div className="flex flex-col items-center gap-2 pb-2">
+                <button
+                  type="button"
+                  onClick={() => editAvatarInputRef.current?.click()}
+                  className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
+                  style={{ background: '#1c1c1f', border: '2px dashed #3f3f46' }}
+                >
+                  {formData.avatar ? (
+                    <>
+                      <img src={formData.avatar} alt="avatar" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ background: 'rgba(0,0,0,0.55)' }}>
+                        <Camera size={18} className="text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Camera size={22} className="text-zinc-600" />
+                      <span className="text-[9px] text-zinc-600 font-medium">FOTO</span>
+                    </div>
+                  )}
+                </button>
+                <span className="text-[10px] text-zinc-600">Foto del consultor (opcional)</span>
+                <input ref={editAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleEditAvatarChange} />
+              </div>
+
               <div className="space-y-1.5">
                 <Label className="text-zinc-400 text-xs">{t('name')}</Label>
                 <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required className="text-zinc-200 placeholder-zinc-600 focus-visible:ring-indigo-500/40" style={inputStyle} />
               </div>
+
+              {/* Password change */}
+              <div className="rounded-lg p-3 space-y-3" style={{ background: '#111113', border: '1px solid #27272a' }}>
+                <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-wider">Cambiar contraseña</p>
+                <div className="space-y-1.5">
+                  <Label className="text-zinc-400 text-xs">Nueva contraseña</Label>
+                  <Input
+                    type="password"
+                    placeholder="Mínimo 8 caracteres"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="text-zinc-200 placeholder-zinc-600 focus-visible:ring-indigo-500/40"
+                    style={inputStyle}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-zinc-400 text-xs">Confirmar contraseña</Label>
+                  <Input
+                    type="password"
+                    placeholder="Repetir contraseña"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className="text-zinc-200 placeholder-zinc-600 focus-visible:ring-indigo-500/40"
+                    style={{ ...inputStyle, borderColor: formData.confirmPassword && formData.password !== formData.confirmPassword ? '#ef4444' : '#27272a' }}
+                  />
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-[11px] text-rose-400">Las contraseñas no coinciden</p>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label className="text-zinc-400 text-xs">{t('rolesLabel')}</Label>
                 <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
