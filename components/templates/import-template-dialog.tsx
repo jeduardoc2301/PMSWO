@@ -164,7 +164,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
         body: JSON.stringify({
           name: parsed.name,
           description: parsed.description,
-          categoryId: categoryId || null,
+          categoryId: categoryId,
           phases: parsed.phases,
         }),
       })
@@ -195,7 +195,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
           {/* Category selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-              Categoría <span className="text-zinc-600 normal-case tracking-normal font-normal">(opcional)</span>
+              Categoría <span className="text-rose-500">*</span>
             </label>
             <select
               value={categoryId}
@@ -203,7 +203,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
               className="w-full h-9 px-3 rounded-lg text-sm text-zinc-200 appearance-none cursor-pointer outline-none transition-all"
               style={{ background: '#111113', border: '1px solid #27272a', color: categoryId ? '#e4e4e7' : '#71717a' }}
             >
-              <option value="">Sin categoría</option>
+              <option value="" disabled>Seleccionar categoría...</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -293,7 +293,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
           <button
             type="button"
             onClick={handleImport}
-            disabled={!parsed || submitting}
+            disabled={!parsed || !categoryId || submitting}
             className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: '#6366f1' }}>
             {submitting ? 'Importando...' : 'Importar plantilla'}
