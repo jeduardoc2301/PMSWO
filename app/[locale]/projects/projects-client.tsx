@@ -170,13 +170,7 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
       className="rounded-xl p-5 flex flex-col gap-4 transition-all hover:border-zinc-600 cursor-pointer"
       style={{ background: '#18181b', border: '1px solid #27272a', textDecoration: 'none' }}>
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-indigo-900/30 text-indigo-300 border border-indigo-800/40">
-            {project.status === ProjectStatus.ACTIVE ? 'Activo' :
-             project.status === ProjectStatus.PLANNING ? 'Planeación' :
-             project.status === ProjectStatus.ON_HOLD ? 'En pausa' : 'Otro'}
-          </span>
-        </div>
+        <div />
         <div onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
           <StatusPill projectId={project.id} status={project.status} onUpdate={onStatusUpdate} />
         </div>
@@ -204,17 +198,32 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
       </div>
 
       <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid #27272a' }}>
-        <div className="flex items-center gap-1 text-[11px] text-zinc-500">
-          <Calendar size={11} />
-          {new Date(project.estimatedEndDate).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
+        <div className="flex items-center gap-3">
+          {/* Fecha inicio */}
+          <div className="flex items-center gap-1 text-[11px] text-zinc-500">
+            <Calendar size={10} className="flex-shrink-0" />
+            <span className="text-zinc-600 mr-0.5">Inicio</span>
+            {new Date(project.startDate).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </div>
+          {/* Fecha fin — roja si vencida, verde si en tiempo */}
+          {(() => {
+            const today = new Date(); today.setHours(0, 0, 0, 0)
+            const end = new Date(project.estimatedEndDate); end.setHours(0, 0, 0, 0)
+            const overdue = end < today
+            return (
+              <div className="flex items-center gap-1 text-[11px]" style={{ color: overdue ? '#ef4444' : '#10b981' }}>
+                <Calendar size={10} className="flex-shrink-0" />
+                <span className="mr-0.5" style={{ color: overdue ? '#f87171' : '#6ee7b7', opacity: 0.7 }}>Fin</span>
+                {end.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            )
+          })()}
         </div>
-        <div className="flex items-center gap-1.5">
-          {(project._count?.blockers ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-rose-900/30 text-rose-300 border border-rose-800/40">
-              <ShieldAlert size={9} />{project._count!.blockers}
-            </span>
-          )}
-        </div>
+        {(project._count?.blockers ?? 0) > 0 && (
+          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-rose-900/30 text-rose-300 border border-rose-800/40">
+            <ShieldAlert size={9} />{project._count!.blockers}
+          </span>
+        )}
       </div>
     </a>
   )
