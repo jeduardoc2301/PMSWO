@@ -54,6 +54,14 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
   const locale = (pathname.startsWith('/pt') ? 'pt' : 'es') as Locale
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
+  const [avatar, setAvatar] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/v1/users/me')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.user?.avatar) setAvatar(d.user.avatar) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -205,9 +213,11 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-900 transition-all"
           >
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-              {initials}
+            <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white"
+              style={{ background: avatar ? 'transparent' : 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+              {avatar
+                ? <img src={avatar} alt={user.name} className="w-full h-full object-cover" />
+                : initials}
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium text-zinc-200 truncate leading-none">{user.name}</p>

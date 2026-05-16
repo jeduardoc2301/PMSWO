@@ -7,7 +7,7 @@ import { ProjectHealthStatus } from '@/types'
 import { ArrowLeft, CheckCircle, AlertTriangle, Clock, TrendingUp, Shield, FileText } from 'lucide-react'
 
 interface ConsultantDetail {
-  consultant: { id: string; name: string; email: string }
+  consultant: { id: string; name: string; email: string; avatar?: string | null }
   summary: {
     totalProjects: number; activeProjects: number; completedProjects: number
     totalWorkItems: number; completedWorkItems: number; completionRate: number
@@ -121,9 +121,11 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
         {/* Profile hero */}
         <div className="rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
           <div className="flex items-start gap-5">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
-              {getInitials(consultant.name)}
+            <div className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center text-white font-bold text-xl"
+              style={{ background: consultant.avatar ? 'transparent' : 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
+              {consultant.avatar
+                ? <img src={consultant.avatar} alt={consultant.name} className="w-full h-full object-cover" />
+                : getInitials(consultant.name)}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-bold text-white tracking-tight">{consultant.name}</h2>

@@ -17,7 +17,7 @@ async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthCon
       active: true,
       // roles is JSON array - filter in JS
     },
-    select: { id: true, name: true, email: true, roles: true },
+    select: { id: true, name: true, email: true, roles: true, avatar: true },
   })
 
   const now = new Date()
@@ -54,6 +54,7 @@ async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthCon
         id: c.id,
         name: c.name,
         email: c.email,
+        avatar: c.avatar ?? null,
         activeProjects,
         totalWorkItems,
         completedWorkItems,

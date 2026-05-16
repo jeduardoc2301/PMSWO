@@ -18,7 +18,7 @@ async function getConsultantDetailHandler(
 
   const consultant = await prisma.user.findFirst({
     where: { id, organizationId: auth.organizationId, active: true },
-    select: { id: true, name: true, email: true, roles: true },
+    select: { id: true, name: true, email: true, roles: true, avatar: true },
   })
 
   if (!consultant) return NextResponse.json({ message: 'Consultant not found' }, { status: 404 })
@@ -138,7 +138,7 @@ async function getConsultantDetailHandler(
   ).length
 
   return NextResponse.json({
-    consultant: { id: consultant.id, name: consultant.name, email: consultant.email },
+    consultant: { id: consultant.id, name: consultant.name, email: consultant.email, avatar: consultant.avatar ?? null },
     summary: {
       totalProjects: projects.length,
       activeProjects,

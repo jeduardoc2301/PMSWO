@@ -12,6 +12,7 @@ interface ConsultantSummary {
   id: string
   name: string
   email: string
+  avatar?: string | null
   activeProjects: number
   totalWorkItems: number
   completedWorkItems: number
@@ -139,9 +140,11 @@ export function ConsultantPerformanceClient() {
                 >
                   {/* Avatar + name */}
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                      style={{ background: avatarBg }}>
-                      {getInitials(c.name)}
+                    <div className="w-12 h-12 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center text-white font-bold text-sm"
+                      style={{ background: c.avatar ? 'transparent' : avatarBg }}>
+                      {c.avatar
+                        ? <img src={c.avatar} alt={c.name} className="w-full h-full object-cover" />
+                        : getInitials(c.name)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-zinc-100 truncate">{c.name}</div>

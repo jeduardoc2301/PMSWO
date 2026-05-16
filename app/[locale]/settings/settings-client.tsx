@@ -18,6 +18,7 @@ export function SettingsClient({ locale }: SettingsClientProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [avatar, setAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/v1/users/locale')
@@ -25,6 +26,13 @@ export function SettingsClient({ locale }: SettingsClientProps) {
       .then((d) => { if (d?.locale) setSelectedLocale(d.locale) })
       .catch(() => {})
       .finally(() => setIsFetching(false))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/v1/users/me')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.user?.avatar) setAvatar(d.user.avatar) })
+      .catch(() => {})
   }, [])
 
   const handleSave = async () => {
@@ -63,9 +71,11 @@ export function SettingsClient({ locale }: SettingsClientProps) {
       <div className="rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
         <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-5">{t('settings.profile')}</h2>
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
-            {initials}
+          <div className="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center text-white font-bold text-lg"
+            style={{ background: avatar ? 'transparent' : 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
+            {avatar
+              ? <img src={avatar} alt={session?.user?.name ?? ''} className="w-full h-full object-cover" />
+              : initials}
           </div>
           <div>
             <div className="text-base font-semibold text-white">{session?.user?.name}</div>
