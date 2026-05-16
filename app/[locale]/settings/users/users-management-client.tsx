@@ -54,6 +54,7 @@ export function UsersManagementClient() {
 
   const userRoles = (session?.user?.roles as UserRole[]) || []
   const canCreateUsers = hasPermission(userRoles, Permission.USER_CREATE)
+  const getRoleLabel = (role: UserRole) => t(`roles.${role}`)
 
   useEffect(() => { fetchUsers() }, [])
 
@@ -188,8 +189,6 @@ export function UsersManagementClient() {
 
   const toggleCreateRole = (role: UserRole) =>
     setCreateFormData((p) => ({ ...p, roles: p.roles.includes(role) ? p.roles.filter((r) => r !== role) : [...p.roles, role] }))
-
-  const getRoleLabel = (role: UserRole) => t(`roles.${role}`)
 
   const inputStyle = {
     background: '#111113', border: '1px solid #27272a', color: '#e4e4e7',
