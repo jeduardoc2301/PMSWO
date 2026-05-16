@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
 import { ExecutiveDashboard, Permission, ProjectStatus } from '@/types'
 import { hasPermission } from '@/lib/rbac'
 import {
@@ -197,14 +197,26 @@ function ProjectQuickRow({ project, onStatusUpdate, locale }: {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+interface HealthSnapshot {
+  date: string
+  healthScore: number
+  onTrack: number
+  atRisk: number
+  criticalBlockers: number
+  completionRate: number
+  inProgress: number
+  completed: number
+}
+
 export function DashboardClient() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const locale = useLocale()
-  const t = useTranslations('dashboard')
   const [dashboard, setDashboard] = useState<ExecutiveDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [period, setPeriod] = useState<7 | 30 | 90>(7)
+  const [snapshots, setSnapshots] = useState<HealthSnapshot[]>([])
 
   useEffect(() => {
     if (status === 'loading') return
@@ -214,6 +226,34 @@ export function DashboardClient() {
     }
   }, [session, status, router, locale])
 
+  const fetchSnapshots = async (days: number) => {
+    try {
+      const res = await fetch(`/api/v1/dashboard/snapshots?days=${days}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSnapshots(data.snapshots ?? [])
+      }
+    } catch {}
+  }
+
+  const saveSnapshot = async (d: ExecutiveDashboard, health: number, inProg: number, onTr: number, comp: number) => {
+    try {
+      await fetch('/api/v1/dashboard/snapshots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          healthScore: health,
+          onTrack: onTr,
+          atRisk: d.projectsAtRisk ?? 0,
+          criticalBlockers: d.criticalBlockers ?? 0,
+          completionRate: d.completionRate ?? 0,
+          inProgress: inProg,
+          completed: comp,
+        }),
+      })
+    } catch {}
+  }
+
   const fetchDashboard = async () => {
     try {
       setLoading(true)
@@ -221,7 +261,20 @@ export function DashboardClient() {
       const res = await fetch('/api/v1/dashboard/executive')
       if (!res.ok) throw new Error('Error al cargar el dashboard')
       const data = await res.json()
-      setDashboard(data.dashboard)
+      const dash: ExecutiveDashboard = data.dashboard
+      setDashboard(dash)
+
+      const projects = (dash.projects ?? []) as DashboardProject[]
+      const inProg = projects.filter((p) => p.status !== ProjectStatus.COMPLETED && p.status !== ProjectStatus.ARCHIVED)
+      const inProgCount = inProg.length
+      const onTr = inProg.filter((p) => (p.completionRate ?? 0) >= 70).length
+      const comp = projects.filter((p) => p.status === ProjectStatus.COMPLETED).length
+      const health = inProgCount > 0
+        ? Math.round(inProg.reduce((s, p) => s + (p.completionRate ?? 0), 0) / inProgCount)
+        : 0
+
+      await saveSnapshot(dash, health, inProgCount, onTr, comp)
+      await fetchSnapshots(7)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -230,6 +283,11 @@ export function DashboardClient() {
   }
 
   useEffect(() => { fetchDashboard() }, [])
+
+  const handlePeriodChange = async (days: 7 | 30 | 90) => {
+    setPeriod(days)
+    await fetchSnapshots(days)
+  }
 
   const handleStatusUpdate = async (projectId: string, newStatus: string) => {
     try {
@@ -269,14 +327,15 @@ export function DashboardClient() {
   if (!dashboard) return null
 
   const projects = (dashboard.projects ?? []) as DashboardProject[]
+  const inProgressProjects = projects.filter((p) => p.status !== ProjectStatus.COMPLETED && p.status !== ProjectStatus.ARCHIVED)
+  const inProgressCount = inProgressProjects.length
   const activeCount = projects.filter((p) => p.status === ProjectStatus.ACTIVE).length
   const atRisk = dashboard.projectsAtRisk ?? 0
-  const onTrack = projects.filter((p) => (p.completionRate ?? 0) >= 70 && p.status === ProjectStatus.ACTIVE).length
+  const onTrack = inProgressProjects.filter((p) => (p.completionRate ?? 0) >= 70).length
   const completed = projects.filter((p) => p.status === ProjectStatus.COMPLETED).length
 
-  const portfolioHealth = activeCount > 0
-    ? Math.round(projects.filter((p) => p.status === ProjectStatus.ACTIVE)
-        .reduce((s, p) => s + (p.completionRate ?? 0), 0) / activeCount)
+  const portfolioHealth = inProgressCount > 0
+    ? Math.round(inProgressProjects.reduce((s, p) => s + (p.completionRate ?? 0), 0) / inProgressCount)
     : 0
 
   return (
@@ -297,12 +356,12 @@ export function DashboardClient() {
       <div className="p-8 max-w-[1400px] mx-auto">
         {/* KPI strip */}
         <div className="grid grid-cols-4 gap-4">
-          <KpiCard icon={<FolderKanban size={16} />} label="Proyectos activos"
-            value={activeCount} delta="+2 vs sem. pasada" trend="up" tone="indigo" />
+          <KpiCard icon={<FolderKanban size={16} />} label="Proyectos en curso"
+            value={inProgressCount} delta="+2 vs sem. pasada" trend="up" tone="indigo" />
           <KpiCard icon={<ShieldAlert size={16} />} label="En riesgo"
             value={atRisk} delta={`${dashboard.criticalBlockers ?? 0} críticos`} trend="down" tone="rose" />
           <KpiCard icon={<TrendingUp size={16} />} label="On track"
-            value={onTrack} delta={`${activeCount > 0 ? Math.round((onTrack / activeCount) * 100) : 0}% del total`}
+            value={onTrack} delta={`${inProgressCount > 0 ? Math.round((onTrack / inProgressCount) * 100) : 0}% del total`}
             trend="up" tone="emerald" />
           <KpiCard icon={<CheckCircle2 size={16} />} label="Completados (30d)"
             value={completed} delta={`${completed} este mes`} trend="up" tone="indigo" />
@@ -316,13 +375,14 @@ export function DashboardClient() {
               <div>
                 <div className="text-xs text-zinc-500 uppercase tracking-wider">Salud del portafolio</div>
                 <div className="text-lg font-semibold text-white mt-1">
-                  Vista general · {activeCount} proyectos activos
+                  Vista general · {inProgressCount} proyectos en curso
                 </div>
               </div>
               <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
-                {['7 días', '30 días', '90 días'].map((l, i) => (
-                  <button key={l} className={`px-3 py-1.5 text-xs font-medium transition-all ${i === 0 ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                    {l}
+                {([7, 30, 90] as const).map((d) => (
+                  <button key={d} onClick={() => handlePeriodChange(d)}
+                    className={`px-3 py-1.5 text-xs font-medium transition-all ${period === d ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                    {d} días
                   </button>
                 ))}
               </div>
@@ -330,41 +390,59 @@ export function DashboardClient() {
 
             <div className="flex items-center gap-8">
               <HealthGauge value={portfolioHealth} />
-              <div className="flex-1 grid grid-cols-2 gap-x-8 gap-y-3">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 {[
                   { label: 'On track',   color: '#10b981', n: onTrack },
                   { label: 'En riesgo',  color: '#f59e0b', n: atRisk },
                   { label: 'Crítico',    color: '#ef4444', n: dashboard.criticalBlockers ?? 0 },
                   { label: 'Completado', color: '#6366f1', n: completed },
                 ].map((s) => (
-                  <div key={s.label} className="flex items-center gap-2.5">
+                  <div key={s.label} className="flex items-center gap-2">
                     <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-                    <span className="text-sm text-zinc-300 flex-1">{s.label}</span>
-                    <span className="text-base font-semibold text-white">{s.n}</span>
+                    <span className="text-sm text-zinc-300">{s.label}</span>
+                    <span className="text-base font-semibold text-white ml-1">{s.n}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Mini bar chart */}
+            {/* Bar chart — real snapshots */}
             <div className="mt-6 pt-5" style={{ borderTop: '1px solid #27272a' }}>
-              <div className="grid grid-cols-7 gap-1 items-end h-16">
-                {[42, 55, 38, 62, 71, 68, portfolioHealth].map((v, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1 group">
-                    <div className="text-[10px] text-zinc-600 group-hover:text-zinc-400">{v}%</div>
-                    <div className="w-full rounded-sm" style={{
-                      height: `${Math.max(8, (v / 100) * 52)}px`,
-                      background: 'linear-gradient(180deg,#6366f1,#3730a3)',
-                    }} />
-                    <div className="text-[10px] text-zinc-600">{['L', 'M', 'M', 'J', 'V', 'S', 'H'][i]}</div>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-zinc-400">
+                  Tendencia de salud · últimos {period} días
+                </span>
+                <span className="text-[10px] text-zinc-600">Índice promedio de avance diario del portafolio</span>
               </div>
+              {snapshots.length === 0 ? (
+                <div className="h-16 flex items-center justify-center text-xs text-zinc-600">
+                  Sin datos históricos aún — se irán acumulando con el uso diario
+                </div>
+              ) : (
+                <div className="flex items-end gap-1 h-16 overflow-x-auto">
+                  {snapshots.map((s, i) => {
+                    const isLast = i === snapshots.length - 1
+                    const label = new Date(s.date + 'T00:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+                    return (
+                      <div key={s.date} className="flex flex-col items-center gap-1 group flex-1 min-w-[24px]">
+                        <div className="text-[10px] text-zinc-600 group-hover:text-zinc-400 whitespace-nowrap">{s.healthScore}%</div>
+                        <div className="w-full rounded-sm" style={{
+                          height: `${Math.max(6, (s.healthScore / 100) * 44)}px`,
+                          background: isLast
+                            ? 'linear-gradient(180deg,#10b981,#065f46)'
+                            : 'linear-gradient(180deg,#6366f1,#3730a3)',
+                        }} />
+                        <div className="text-[10px] text-zinc-600 whitespace-nowrap">{label}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
           {/* AI insights card */}
-          <div className="rounded-xl p-6" style={{
+          <div className="rounded-xl p-6 flex flex-col" style={{
             background: 'linear-gradient(135deg,#13101f,#0f0e1a)',
             border: '1px solid rgba(99,102,241,0.2)',
             boxShadow: '0 0 40px rgba(99,102,241,0.06) inset',
@@ -380,26 +458,23 @@ export function DashboardClient() {
               </div>
             </div>
 
-            <div className="mt-5 space-y-3">
-              {[
-                { icon: <ShieldAlert size={13} />, color: 'text-rose-300',
-                  text: `${dashboard.criticalBlockers ?? 0} bloqueadores críticos sin atender` },
-                { icon: <TrendingUp size={13} />, color: 'text-emerald-300',
-                  text: `${onTrack} proyectos avanzando on track` },
-                { icon: <CheckCircle2 size={13} />, color: 'text-indigo-300',
-                  text: `${(dashboard.completionRate ?? 0).toFixed(0)}% tasa de completitud global` },
-              ].map((ins) => (
-                <div key={ins.text} className="flex items-start gap-2.5 text-sm">
-                  <span className={`flex-shrink-0 mt-0.5 ${ins.color}`}>{ins.icon}</span>
-                  <span className="text-zinc-300 leading-snug">{ins.text}</span>
-                </div>
-              ))}
+            <div className="flex-1 flex flex-col items-center justify-center mt-6 mb-4 text-center px-2">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)' }}>
+                <Sparkles size={20} className="text-violet-400 opacity-60" />
+              </div>
+              <p className="text-sm text-zinc-400 leading-snug">
+                Aún no hay análisis generado para este portafolio.
+              </p>
+              <p className="text-xs text-zinc-600 mt-2 leading-relaxed">
+                Explora tus proyectos, revisa los riesgos y bloqueadores para que el asistente pueda generar recomendaciones.
+              </p>
             </div>
 
             <a href={`/${locale}/projects`}
-              className="mt-5 flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium transition-all"
+              className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium transition-all"
               style={{ border: '1px solid rgba(167,139,250,0.3)', color: '#c4b5fd', background: 'rgba(167,139,250,0.06)' }}>
-              Ver todos los proyectos
+              Explorar proyectos
               <ArrowRight size={12} />
             </a>
           </div>
@@ -411,9 +486,9 @@ export function DashboardClient() {
           <div className="col-span-2 rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #27272a' }}>
               <div className="flex items-center gap-3">
-                <h3 className="text-base font-semibold text-white">Proyectos activos</h3>
+                <h3 className="text-base font-semibold text-white">Proyectos en curso</h3>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300">
-                  {activeCount}
+                  {inProgressCount}
                 </span>
               </div>
               <a href={`/${locale}/projects`}
@@ -422,12 +497,12 @@ export function DashboardClient() {
               </a>
             </div>
             <div>
-              {projects.filter((p) => p.status === ProjectStatus.ACTIVE).slice(0, 6).map((p) => (
+              {inProgressProjects.slice(0, 6).map((p) => (
                 <ProjectQuickRow key={p.id} project={p} onStatusUpdate={handleStatusUpdate} locale={locale} />
               ))}
-              {projects.filter((p) => p.status === ProjectStatus.ACTIVE).length === 0 && (
+              {inProgressProjects.length === 0 && (
                 <div className="px-5 py-8 text-center text-sm text-zinc-500">
-                  Sin proyectos activos por el momento.
+                  Sin proyectos en curso por el momento.
                 </div>
               )}
             </div>

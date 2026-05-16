@@ -14,14 +14,15 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users              User[]
-  projects           Project[]
-  workItems          WorkItem[]
-  blockers           Blocker[]
-  risks              Risk[]
-  agreements         Agreement[]
-  templates          Template[]
-  templateCategories TemplateCategory[]
+  users                    User[]
+  projects                 Project[]
+  workItems                WorkItem[]
+  blockers                 Blocker[]
+  risks                    Risk[]
+  agreements               Agreement[]
+  templates                Template[]
+  templateCategories       TemplateCategory[]
+  portfolioHealthSnapshots PortfolioHealthSnapshot[]
 
   @@map("organizations")
 }
@@ -356,6 +357,25 @@ model TemplateActivity {
   @@unique([phaseId, order])
   @@index([phaseId])
   @@map("template_activities")
+}
+
+model PortfolioHealthSnapshot {
+  id               String   @id @default(uuid()) @db.Char(36)
+  organizationId   String   @map("organization_id") @db.Char(36)
+  date             DateTime @db.Date
+  healthScore      Int      @map("health_score")
+  onTrack          Int      @map("on_track")
+  atRisk           Int      @map("at_risk")
+  criticalBlockers Int      @map("critical_blockers")
+  completionRate   Float    @map("completion_rate")
+  inProgress       Int      @map("in_progress")
+  completed        Int
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date])
+  @@index([organizationId, date])
+  @@map("portfolio_health_snapshots")
 }
 
 model TemplateUsage {

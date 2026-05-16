@@ -175,11 +175,15 @@ export class DashboardService {
       // - High/critical risks, OR
       // - Overdue work items, OR
       // - Completion rate < 50% and past 75% of timeline
-      const isAtRisk = 
-        projectCriticalBlockers > 0 ||
-        projectHighRisks > 0 ||
-        projectOverdueWorkItems > 0 ||
-        (projectCompletionRate < 50 && this.isProjectPastThreeQuartersTimeline(project))
+      const isAtRisk =
+        project.status !== ProjectStatus.COMPLETED &&
+        project.status !== ProjectStatus.ARCHIVED &&
+        (
+          projectCriticalBlockers > 0 ||
+          projectHighRisks > 0 ||
+          projectOverdueWorkItems > 0 ||
+          (projectCompletionRate < 50 && this.isProjectPastThreeQuartersTimeline(project))
+        )
 
       if (isAtRisk) {
         totalProjectsAtRisk++
@@ -707,6 +711,80 @@ export class DashboardService {
       activeRisks,
       highRisks,
     }
+  }
+
+  /**
+   * Save a portfolio health snapshot for today (upsert — one per org per day)
+   */
+  async saveHealthSnapshot(orgId: string, data: {
+    healthScore: number
+    onTrack: number
+    atRisk: number
+    criticalBlockers: number
+    completionRate: number
+    inProgress: number
+    completed: number
+  }): Promise<void> {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    await (prisma as any).portfolioHealthSnapshot.upsert({
+      where: { organizationId_date: { organizationId: orgId, date: today } },
+      update: {
+        healthScore: data.healthScore,
+        onTrack: data.onTrack,
+        atRisk: data.atRisk,
+        criticalBlockers: data.criticalBlockers,
+        completionRate: data.completionRate,
+        inProgress: data.inProgress,
+        completed: data.completed,
+      },
+      create: {
+        organizationId: orgId,
+        date: today,
+        healthScore: data.healthScore,
+        onTrack: data.onTrack,
+        atRisk: data.atRisk,
+        criticalBlockers: data.criticalBlockers,
+        completionRate: data.completionRate,
+        inProgress: data.inProgress,
+        completed: data.completed,
+      },
+    })
+  }
+
+  /**
+   * Get portfolio health snapshots for the last N days
+   */
+  async getHealthSnapshots(orgId: string, days: number): Promise<Array<{
+    date: string
+    healthScore: number
+    onTrack: number
+    atRisk: number
+    criticalBlockers: number
+    completionRate: number
+    inProgress: number
+    completed: number
+  }>> {
+    const since = new Date()
+    since.setDate(since.getDate() - days)
+    since.setHours(0, 0, 0, 0)
+
+    const rows = await (prisma as any).portfolioHealthSnapshot.findMany({
+      where: { organizationId: orgId, date: { gte: since } },
+      orderBy: { date: 'asc' },
+    })
+
+    return rows.map((r: any) => ({
+      date: r.date.toISOString().split('T')[0],
+      healthScore: r.healthScore,
+      onTrack: r.onTrack,
+      atRisk: r.atRisk,
+      criticalBlockers: r.criticalBlockers,
+      completionRate: r.completionRate,
+      inProgress: r.inProgress,
+      completed: r.completed,
+    }))
   }
 }
 
