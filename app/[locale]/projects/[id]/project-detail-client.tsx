@@ -15,7 +15,7 @@ import { AIAnalysisDialog } from '@/components/ai/ai-analysis-dialog'
 import { ExportProjectDialog } from '@/components/projects/export-project-dialog'
 import { ApplyTemplateDialog } from '@/components/templates/apply-template-dialog'
 import { ProjectBurndownChart } from '@/components/projects/project-burndown-chart'
-import { ProjectGanttChart } from '@/components/projects/project-gantt-chart'
+import { TimelineTab } from '@/components/projects/timeline/timeline-tab'
 import { ProjectStatus, WorkItemStatus, Permission, UserRole, type KanbanBoard as KanbanBoardType } from '@/types'
 import { hasPermission } from '@/lib/rbac'
 
@@ -52,7 +52,7 @@ const TABS = [
   { value: 'blockers',    label: 'Bloqueadores'      },
   { value: 'risks',       label: 'Riesgos'           },
   { value: 'agreements',  label: 'Acuerdos'          },
-  { value: 'gantt',       label: 'Gantt'             },
+  { value: 'gantt',       label: 'Timeline'          },
 ]
 
 // Reusable dark metric card
@@ -583,11 +583,11 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {/* ── AGREEMENTS ── */}
             {activeTab === 'agreements' && <AgreementsTab projectId={projectId} />}
 
-            {/* ── GANTT ── */}
+            {/* ── TIMELINE (Gantt) ── */}
             {activeTab === 'gantt' && (
-              kanbanBoard
-                ? <ProjectGanttChart workItems={kanbanBoard.workItems} />
-                : <div className="text-center py-12 text-zinc-500">Cargando diagrama...</div>
+              kanbanBoard && project
+                ? <TimelineTab project={project} workItems={kanbanBoard.workItems} />
+                : <div className="text-center py-12 text-zinc-500">Cargando timeline...</div>
             )}
 
           </div>
