@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { UserRole, Locale } from '@/types'
-import { Pencil, UserX, UserPlus, Loader2, Camera } from 'lucide-react'
+import { Pencil, UserX, UserPlus, Loader2, Camera, Search, ChevronDown, Check } from 'lucide-react'
 import { hasPermission } from '@/lib/rbac'
 import { Permission } from '@/types'
 
@@ -47,10 +47,29 @@ export function UsersManagementClient() {
   })
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState<UserRole | ''>('')
+  const [roleFilterOpen, setRoleFilterOpen] = useState(false)
+  const roleFilterRef = useRef<HTMLDivElement>(null)
+
   const userRoles = (session?.user?.roles as UserRole[]) || []
   const canCreateUsers = hasPermission(userRoles, Permission.USER_CREATE)
 
   useEffect(() => { fetchUsers() }, [])
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (!roleFilterRef.current?.contains(e.target as Node)) setRoleFilterOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  const filteredUsers = users.filter((u) => {
+    const q = search.toLowerCase()
+    const matchesSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) ||
+      u.roles.some((r) => getRoleLabel(r as UserRole).toLowerCase().includes(q))
+    const matchesRole = !roleFilter || u.roles.includes(roleFilter)
+    return matchesSearch && matchesRole
+  })
 
   const fetchUsers = async () => {
     try {
@@ -193,14 +212,62 @@ export function UsersManagementClient() {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
       {/* Header */}
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #27272a' }}>
-        <div>
+      <div className="px-6 py-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderBottom: '1px solid #27272a' }}>
+        <div className="flex-shrink-0">
           <h2 className="text-sm font-semibold text-zinc-200">{t('title')}</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">{users.length} usuario{users.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            {filteredUsers.length === users.length
+              ? `${users.length} usuario${users.length !== 1 ? 's' : ''}`
+              : `${filteredUsers.length} de ${users.length} usuarios`}
+          </p>
         </div>
+
+        {/* Search bar */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, correo o rol..."
+              className="w-full h-8 pl-8 pr-3 rounded-lg text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              style={{ background: '#111113', border: '1px solid #27272a' }}
+            />
+          </div>
+
+          {/* Role filter */}
+          <div ref={roleFilterRef} className="relative flex-shrink-0">
+            <button
+              onClick={() => setRoleFilterOpen((o) => !o)}
+              className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs transition-all hover:border-zinc-600"
+              style={{ background: '#111113', border: '1px solid #27272a', color: '#a1a1aa' }}
+            >
+              <span className="text-zinc-600">Rol:</span>
+              <span className="text-zinc-300">
+                {roleFilter ? getRoleLabel(roleFilter) : 'Todos'}
+              </span>
+              <ChevronDown size={11} />
+            </button>
+            {roleFilterOpen && (
+              <div className="pms-menu absolute z-50" style={{ top: '100%', left: 0, marginTop: 4, minWidth: 180 }}>
+                <button onClick={() => { setRoleFilter(''); setRoleFilterOpen(false) }}>
+                  Todos los roles
+                  {!roleFilter && <Check size={12} className="ml-auto text-indigo-400" />}
+                </button>
+                {Object.values(UserRole).map((role) => (
+                  <button key={role} onClick={() => { setRoleFilter(role); setRoleFilterOpen(false) }}>
+                    {getRoleLabel(role)}
+                    {roleFilter === role && <Check size={12} className="ml-auto text-indigo-400" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {canCreateUsers && (
           <button onClick={() => setCreateDialogOpen(true)}
-            className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
+            className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90 flex-shrink-0"
             style={{ background: '#6366f1' }}>
             <UserPlus size={13} /> {t('createUser')}
           </button>
@@ -217,7 +284,14 @@ export function UsersManagementClient() {
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
+          {filteredUsers.length === 0 && (
+            <tr>
+              <td colSpan={4} className="px-5 py-10 text-center text-sm text-zinc-500">
+                No se encontraron usuarios con ese criterio de búsqueda.
+              </td>
+            </tr>
+          )}
+          {filteredUsers.map((user) => (
             <tr key={user.id} className="border-b hover:bg-zinc-900/30 transition-all" style={{ borderColor: '#27272a' }}>
               <td className="px-5 py-3.5">
                 <div className="flex items-center gap-3">
