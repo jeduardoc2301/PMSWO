@@ -174,6 +174,9 @@ const createProjectSchema = z.object({
     message: 'Invalid estimated end date format',
   }),
   status: z.nativeEnum(ProjectStatus).optional(),
+  ownerId: z.string().uuid().optional(),
+  projectManagerId: z.string().uuid().optional().nullable(),
+  collaboratorIds: z.array(z.string().uuid()).optional(),
 })
 
 /**
@@ -239,11 +242,12 @@ async function createProjectHandler(
       )
     }
 
-    // Create project with automatic organization_id assignment
-    // ProjectService.createProject handles automatic Kanban board creation
+    // Create project — ownerId from body if provided, else fall back to logged-in user
     const project = await projectService.createProject({
       organizationId: authContext.organizationId,
-      ownerId: authContext.userId,  // ⭐ ADDED: Set creator as owner
+      ownerId: data.ownerId ?? authContext.userId,
+      projectManagerId: data.projectManagerId ?? undefined,
+      collaboratorIds: data.collaboratorIds ?? [],
       name: data.name,
       description: data.description,
       client: data.client,

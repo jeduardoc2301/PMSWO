@@ -56,7 +56,7 @@ export function UsersManagementClient() {
   const canCreateUsers = hasPermission(userRoles, Permission.USER_CREATE)
   const getRoleLabel = (role: UserRole) => t(`roles.${role}`)
 
-  useEffect(() => { fetchUsers() }, [])
+  useEffect(() => { if (session) fetchUsers() }, [session])
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (!roleFilterRef.current?.contains(e.target as Node)) setRoleFilterOpen(false) }
@@ -78,7 +78,7 @@ export function UsersManagementClient() {
       const organizationId = session?.user?.organizationId
       if (!organizationId) throw new Error('Organization ID not found')
       const res = await fetch(`/api/v1/organizations/${organizationId}/users`)
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to fetch users') }
+      if (!res.ok) { let msg = 'Failed to fetch users'; try { const d = await res.json(); msg = d.message || msg } catch {} throw new Error(msg) }
       const data = await res.json()
       setUsers(data.users || [])
     } catch (err) {
@@ -123,7 +123,7 @@ export function UsersManagementClient() {
       const res = await fetch(`/api/v1/organizations/${orgId}/users/${selectedUser.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to update user') }
+      if (!res.ok) { let msg = 'Failed to update user'; try { const d = await res.json(); msg = d.message || msg } catch {} throw new Error(msg) }
       await fetchUsers(); setEditDialogOpen(false); setSelectedUser(null)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to update user')
@@ -138,7 +138,7 @@ export function UsersManagementClient() {
       const orgId = session?.user?.organizationId
       if (!orgId) throw new Error('Organization ID not found')
       const res = await fetch(`/api/v1/organizations/${orgId}/users/${user.id}`, { method: 'DELETE' })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to deactivate user') }
+      if (!res.ok) { let msg = 'Failed to deactivate user'; try { const d = await res.json(); msg = d.message || msg } catch {} throw new Error(msg) }
       await fetchUsers()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to deactivate user')
@@ -157,11 +157,16 @@ export function UsersManagementClient() {
         body: JSON.stringify({ ...createFormData, avatar: createFormData.avatar || undefined }),
       })
       if (!res.ok) {
-        const d = await res.json()
-        if (d.details && Array.isArray(d.details)) {
-          throw new Error(`${t('validationErrors')}:\n${d.details.map((x: { field: string; message: string }) => `${x.field}: ${x.message}`).join('\n')}`)
-        }
-        throw new Error(d.message || 'Failed to create user')
+        let msg = 'Failed to create user'
+        try {
+          const d = await res.json()
+          if (d.details && Array.isArray(d.details)) {
+            msg = `${t('validationErrors')}:\n${d.details.map((x: { field: string; message: string }) => `${x.field}: ${x.message}`).join('\n')}`
+          } else {
+            msg = d.message || msg
+          }
+        } catch {}
+        throw new Error(msg)
       }
       await fetchUsers(); setCreateDialogOpen(false); resetCreateForm()
     } catch (err) {

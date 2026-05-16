@@ -16,7 +16,9 @@ import { z } from 'zod'
 // DTOs
 export interface CreateProjectDTO {
   organizationId: string
-  ownerId: string  // ⭐ ADDED: Owner of the project (usually the creator)
+  ownerId: string
+  projectManagerId?: string
+  collaboratorIds?: string[]
   name: string
   description: string
   client: string
@@ -119,11 +121,12 @@ export class ProjectService {
       throw new NotFoundError('Organization')
     }
 
-    // Create project with automatic organization_id assignment and owner
+    // Create project with owner and optional project manager
     const project = await prisma.project.create({
       data: {
         organizationId: data.organizationId,
-        ownerId: data.ownerId,  // ⭐ ADDED: Assign owner
+        ownerId: data.ownerId,
+        projectManagerId: data.projectManagerId ?? null,
         name: data.name.trim(),
         description: data.description.trim(),
         client: data.client.trim(),
@@ -133,6 +136,18 @@ export class ProjectService {
         archived: false,
       },
     })
+
+    // Create collaborators (Backs) if provided
+    if (data.collaboratorIds && data.collaboratorIds.length > 0) {
+      await prisma.projectCollaborator.createMany({
+        data: data.collaboratorIds.map((userId) => ({
+          projectId: project.id,
+          userId,
+          role: 'COLLABORATOR',
+        })),
+        skipDuplicates: true,
+      })
+    }
 
     // Create 5 default Kanban columns
     // Requirements: 3.2
