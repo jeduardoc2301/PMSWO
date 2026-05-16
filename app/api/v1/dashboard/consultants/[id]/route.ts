@@ -9,6 +9,8 @@ function getHealthStatus(overdueRate: number, criticalBlockers: number, critical
   return ProjectHealthStatus.HEALTHY
 }
 
+const SEV_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+
 async function getConsultantDetailHandler(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> },
@@ -66,16 +68,18 @@ async function getConsultantDetailHandler(
     ? durations.reduce((a, b) => a + b, 0) / durations.length
     : 0
 
-  // Projects
+  // Projects — include full fields for dual progress bar + detail lists
   const projectIds = [...new Set(workItems.map((w) => w.projectId))]
   const projects = await prisma.project.findMany({
     where: { id: { in: projectIds } },
     include: {
       workItems: { where: { ownerId: id }, select: { status: true, estimatedEndDate: true } },
-      blockers: { where: { resolvedAt: null }, select: { severity: true } },
-      risks: { where: { status: { not: 'CLOSED' } }, select: { riskLevel: true } },
+      blockers: { where: { resolvedAt: null }, select: { id: true, description: true, severity: true } },
+      risks: { where: { status: { not: 'CLOSED' } }, select: { id: true, description: true, riskLevel: true, status: true } },
     },
   })
+
+  const projectNameById = Object.fromEntries(projects.map((p) => [p.id, p.name]))
 
   const projectSummaries = projects.map((p) => {
     const total = p.workItems.length
@@ -92,6 +96,10 @@ async function getConsultantDetailHandler(
       name: p.name,
       client: p.client,
       status: p.status,
+      startDate: p.startDate,
+      estimatedEndDate: p.estimatedEndDate,
+      plannedHours: p.plannedHours,
+      actualHours: p.actualHours,
       completionRate: total > 0 ? done / total : 0,
       activeBlockers: p.blockers.length,
       criticalBlockers,
@@ -102,21 +110,21 @@ async function getConsultantDetailHandler(
     }
   })
 
-  // Agreements
+  // Agreements — expanded for detail list
   const agreements = await prisma.agreement.findMany({
     where: { projectId: { in: projectIds }, organizationId: auth.organizationId },
-    select: { status: true },
+    select: { id: true, title: true, status: true, agreementDate: true, projectId: true },
   })
   const completedAgreements = agreements.filter((a) => a.status === 'COMPLETED').length
   const agreementCompletionRate = agreements.length > 0 ? completedAgreements / agreements.length : 1
 
-  // Blockers summary
+  // Blockers summary (global, used only for summary counts)
   const allBlockers = await prisma.blocker.findMany({
     where: { projectId: { in: projectIds }, resolvedAt: null },
     select: { severity: true },
   })
 
-  // Risks summary
+  // Risks summary (global)
   const allRisks = await prisma.risk.findMany({
     where: { projectId: { in: projectIds }, status: { not: 'CLOSED' } },
     select: { riskLevel: true },
@@ -136,6 +144,36 @@ async function getConsultantDetailHandler(
   const activeProjects = projects.filter((p) =>
     ['PLANNING', 'ACTIVE', 'ON_HOLD'].includes(p.status)
   ).length
+
+  // Detail lists
+  const overdueWorkItemsList = workItems
+    .filter((w) => w.status !== 'DONE' && new Date(w.estimatedEndDate) < now)
+    .map((w) => ({
+      id: w.id,
+      title: w.title,
+      estimatedEndDate: w.estimatedEndDate,
+      projectName: projectNameById[w.projectId] ?? '',
+    }))
+    .sort((a, b) => new Date(a.estimatedEndDate).getTime() - new Date(b.estimatedEndDate).getTime())
+
+  const activeBlockersList = projects
+    .flatMap((p) => p.blockers.map((b) => ({ id: b.id, description: b.description, severity: b.severity, projectName: p.name })))
+    .sort((a, b) => (SEV_ORDER[a.severity] ?? 4) - (SEV_ORDER[b.severity] ?? 4))
+
+  const activeRisksList = projects
+    .flatMap((p) => p.risks.map((r) => ({ id: r.id, description: r.description, riskLevel: r.riskLevel, status: r.status, projectName: p.name })))
+    .sort((a, b) => (SEV_ORDER[a.riskLevel] ?? 4) - (SEV_ORDER[b.riskLevel] ?? 4))
+
+  const pendingAgreementsList = agreements
+    .filter((a) => a.status !== 'COMPLETED' && a.status !== 'CANCELLED')
+    .map((a) => ({
+      id: a.id,
+      title: a.title,
+      status: a.status,
+      agreementDate: a.agreementDate,
+      projectName: projectNameById[a.projectId] ?? '',
+    }))
+    .sort((a, b) => new Date(a.agreementDate).getTime() - new Date(b.agreementDate).getTime())
 
   return NextResponse.json({
     consultant: { id: consultant.id, name: consultant.name, email: consultant.email, avatar: consultant.avatar ?? null },
@@ -165,6 +203,10 @@ async function getConsultantDetailHandler(
       newValue: a.newValue,
       changedAt: a.changedAt,
     })),
+    overdueWorkItemsList,
+    activeBlockersList,
+    activeRisksList,
+    pendingAgreementsList,
   })
 }
 
