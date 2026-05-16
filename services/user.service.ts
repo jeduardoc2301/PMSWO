@@ -12,6 +12,7 @@ export interface CreateUserDTO {
   name: string
   roles: UserRole[]
   locale?: Locale
+  avatar?: string
 }
 
 export interface UpdateUserDTO {
@@ -107,6 +108,7 @@ export class UserService {
         name: data.name.trim(),
         roles: JSON.parse(JSON.stringify(data.roles)), // Ensure proper JSON serialization
         locale: data.locale || Locale.ES,
+        avatar: data.avatar ?? null,
         active: true,
       },
       select: {
@@ -116,6 +118,7 @@ export class UserService {
         name: true,
         roles: true,
         locale: true,
+        avatar: true,
         active: true,
         createdAt: true,
         updatedAt: true,

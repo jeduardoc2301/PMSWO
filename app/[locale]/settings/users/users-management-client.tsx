@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import {
@@ -10,12 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { UserRole, Locale } from '@/types'
-import { Pencil, UserX, UserPlus, Loader2 } from 'lucide-react'
+import { Pencil, UserX, UserPlus, Loader2, Camera } from 'lucide-react'
 import { hasPermission } from '@/lib/rbac'
 import { Permission } from '@/types'
 
 interface User {
-  id: string; email: string; name: string; roles: UserRole[]; active: boolean; createdAt: string
+  id: string; email: string; name: string; roles: UserRole[]; active: boolean; createdAt: string; avatar?: string
 }
 
 const ROLE_COLOR: Record<string, { bg: string; color: string; border: string }> = {
@@ -40,8 +40,9 @@ export function UsersManagementClient() {
 
   const [formData, setFormData] = useState({ name: '', roles: [] as UserRole[], active: true })
   const [createFormData, setCreateFormData] = useState({
-    email: '', name: '', password: '', roles: [] as UserRole[], locale: Locale.ES,
+    email: '', name: '', password: '', roles: [] as UserRole[], locale: Locale.ES, avatar: '',
   })
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const userRoles = (session?.user?.roles as UserRole[]) || []
   const canCreateUsers = hasPermission(userRoles, Permission.USER_CREATE)
@@ -109,7 +110,9 @@ export function UsersManagementClient() {
       const orgId = session?.user?.organizationId
       if (!orgId) throw new Error('Organization ID not found')
       const res = await fetch(`/api/v1/organizations/${orgId}/users`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createFormData),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...createFormData, avatar: createFormData.avatar || undefined }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -126,7 +129,18 @@ export function UsersManagementClient() {
     }
   }
 
-  const resetCreateForm = () => setCreateFormData({ email: '', name: '', password: '', roles: [], locale: Locale.ES })
+  const resetCreateForm = () => setCreateFormData({ email: '', name: '', password: '', roles: [], locale: Locale.ES, avatar: '' })
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string
+      setCreateFormData((p) => ({ ...p, avatar: result }))
+    }
+    reader.readAsDataURL(file)
+  }
 
   const toggleRole = (role: UserRole) =>
     setFormData((p) => ({ ...p, roles: p.roles.includes(role) ? p.roles.filter((r) => r !== role) : [...p.roles, role] }))
@@ -184,8 +198,19 @@ export function UsersManagementClient() {
           {users.map((user) => (
             <tr key={user.id} className="border-b hover:bg-zinc-900/30 transition-all" style={{ borderColor: '#27272a' }}>
               <td className="px-5 py-3.5">
-                <div className="font-medium text-zinc-100">{user.name}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">{user.email}</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: user.avatar ? 'transparent' : 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
+                    {user.avatar
+                      ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                      : user.name.slice(0, 2).toUpperCase()
+                    }
+                  </div>
+                  <div>
+                    <div className="font-medium text-zinc-100">{user.name}</div>
+                    <div className="text-xs text-zinc-500 mt-0.5">{user.email}</div>
+                  </div>
+                </div>
               </td>
               <td className="px-5 py-3.5">
                 <div className="flex flex-wrap gap-1">
@@ -282,6 +307,39 @@ export function UsersManagementClient() {
               <DialogDescription className="text-zinc-500">{t('createUser')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Avatar picker */}
+              <div className="flex flex-col items-center gap-2 pb-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
+                  style={{ background: '#1c1c1f', border: '2px dashed #3f3f46' }}
+                >
+                  {createFormData.avatar ? (
+                    <>
+                      <img src={createFormData.avatar} alt="avatar" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ background: 'rgba(0,0,0,0.55)' }}>
+                        <Camera size={18} className="text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Camera size={22} className="text-zinc-600" />
+                      <span className="text-[9px] text-zinc-600 font-medium">FOTO</span>
+                    </div>
+                  )}
+                </button>
+                <span className="text-[10px] text-zinc-600">Foto del consultor (opcional)</span>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+
               {[
                 { id: 'create-email', label: t('email'), key: 'email' as const, type: 'email', placeholder: t('emailPlaceholder') },
                 { id: 'create-name',  label: t('name'),  key: 'name'  as const, type: 'text', placeholder: t('namePlaceholder') },

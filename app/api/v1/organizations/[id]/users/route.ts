@@ -25,6 +25,7 @@ const createUserSchema = z.object({
     .regex(/[0-9]/, 'Password must contain at least one number'),
   roles: z.array(z.nativeEnum(UserRole)).min(1, 'At least one role is required'),
   locale: z.nativeEnum(Locale).optional(),
+  avatar: z.string().optional(),
 })
 
 async function createUserHandler(
@@ -70,7 +71,7 @@ async function createUserHandler(
       )
     }
 
-    const { email, name, password, roles, locale } = validationResult.data
+    const { email, name, password, roles, locale, avatar } = validationResult.data
     console.log('[CREATE USER] Validated data:', { email, name, roles, locale })
 
     // Create user
@@ -82,6 +83,7 @@ async function createUserHandler(
       password,
       roles,
       locale: locale || Locale.ES,
+      avatar,
     })
     console.log('[CREATE USER] User created successfully:', newUser.id)
 
@@ -181,6 +183,7 @@ async function getUsersHandler(
           name: user.name,
           roles: user.roles,
           locale: user.locale,
+          avatar: (user as any).avatar ?? null,
           active: user.active,
           createdAt: user.createdAt,
         })),
