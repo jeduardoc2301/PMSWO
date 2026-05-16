@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react'
 
@@ -8,6 +8,11 @@ interface ImportTemplateDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+}
+
+interface TemplateCategory {
+  id: string
+  name: string
 }
 
 interface ParsedTemplate {
@@ -112,9 +117,20 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
   const [fileName, setFileName] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<TemplateCategory[]>([])
+  const [categoryId, setCategoryId] = useState<string>('')
+
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/v1/template-categories')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.categories) setCategories(d.categories) })
+      .catch(() => {})
+  }, [open])
 
   const reset = () => {
     setParsed(null); setParseError(null); setFileName(null); setSubmitError(null)
+    setCategoryId('')
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -145,7 +161,12 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
       const res = await fetch('/api/v1/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: parsed.name, description: parsed.description, phases: parsed.phases }),
+        body: JSON.stringify({
+          name: parsed.name,
+          description: parsed.description,
+          categoryId: categoryId || null,
+          phases: parsed.phases,
+        }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -171,6 +192,24 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Category selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+              Categoría <span className="text-zinc-600 normal-case tracking-normal font-normal">(opcional)</span>
+            </label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full h-9 px-3 rounded-lg text-sm text-zinc-200 appearance-none cursor-pointer outline-none transition-all"
+              style={{ background: '#111113', border: '1px solid #27272a', color: categoryId ? '#e4e4e7' : '#71717a' }}
+            >
+              <option value="">Sin categoría</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Drop zone */}
           <button
             type="button"
