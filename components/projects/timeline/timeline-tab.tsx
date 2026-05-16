@@ -28,8 +28,11 @@ function fmtShort(d: Date) {
   return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
 }
 
-function parseDate(s: string) {
-  const [y, m, day] = s.split('-').map(Number)
+function parseDate(s: string): Date {
+  // API returns ISO strings like "2025-01-15T00:00:00.000Z" — take only YYYY-MM-DD
+  const clean = (s ?? '').substring(0, 10)
+  const [y, m, day] = clean.split('-').map(Number)
+  if (!y || !m || !day) return new Date(NaN)
   return new Date(y, m - 1, day)
 }
 
