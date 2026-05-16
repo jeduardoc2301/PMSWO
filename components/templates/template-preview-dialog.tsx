@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Download } from 'lucide-react'
 import { TemplatePreview } from '@/lib/types/template.types'
 import { useToast } from '@/hooks/use-toast'
 
@@ -93,15 +93,43 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
     return t(`priorityEnum.${priorityKey}`)
   }
 
+  const exportCSV = () => {
+    if (!preview) return
+    const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`
+    const rows: string[] = [
+      ['Plantilla', 'Descripción plantilla', 'Fase', 'Orden fase', 'Actividad', 'Descripción actividad', 'Prioridad', 'Duración (h)', 'Orden actividad'].join(','),
+    ]
+    preview.template.phases
+      .sort((a, b) => a.order - b.order)
+      .forEach((phase) => {
+        [...phase.activities]
+          .sort((a, b) => a.order - b.order)
+          .forEach((act) => {
+            rows.push([
+              escape(preview.template.name),
+              escape(preview.template.description),
+              escape(phase.name),
+              phase.order,
+              escape(act.title),
+              escape(act.description),
+              escape(getPriorityLabel(act.priority)),
+              act.estimatedDuration,
+              act.order,
+            ].join(','))
+          })
+      })
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${preview.template.name.replace(/[^a-z0-9]/gi, '_')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('templatePreview')}</DialogTitle>
-          <DialogDescription>
-            {t('descriptions.selectTemplateStep')}
-          </DialogDescription>
-        </DialogHeader>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
@@ -287,6 +315,17 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
         )}
 
         <DialogFooter>
+          {preview && (
+            <button
+              type="button"
+              onClick={exportCSV}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all"
+              style={{ border: '1px solid #27272a' }}
+            >
+              <Download size={14} />
+              Exportar CSV
+            </button>
+          )}
           <Button
             type="button"
             variant="outline"

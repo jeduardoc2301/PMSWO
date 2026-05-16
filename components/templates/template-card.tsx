@@ -128,7 +128,7 @@ export function TemplateCard({ template, onView, onEdit, onDelete, onSelect, isS
               onClick={(e) => { e.stopPropagation(); onView(template.id) }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
               style={{ background: '#6366f1' }}>
-              Usar plantilla
+              Ver plantilla
             </button>
           )}
         </div>
