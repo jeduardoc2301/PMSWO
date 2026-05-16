@@ -1,17 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Sparkles } from 'lucide-react'
+import { Plus, Sparkles, Upload } from 'lucide-react'
 import { TemplateList } from '@/components/templates/template-list'
 import { TemplateFilters, FilterValues } from '@/components/templates/template-filters'
 import { CreateTemplateDialog } from '@/components/templates/create-template-dialog'
 import { EditTemplateDialog } from '@/components/templates/edit-template-dialog'
 import { DeleteTemplateDialog } from '@/components/templates/delete-template-dialog'
 import { TemplatePreviewDialog } from '@/components/templates/template-preview-dialog'
+import { ImportTemplateDialog } from '@/components/templates/import-template-dialog'
 
 export function TemplatesClient() {
   const [filters, setFilters] = useState<FilterValues>({})
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false)
@@ -36,6 +38,12 @@ export function TemplatesClient() {
             className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-indigo-300 transition-all hover:border-indigo-500/50 hover:text-indigo-200"
             style={{ border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.06)' }}>
             <Sparkles size={14} /> Generar con IA
+          </button>
+          <button
+            onClick={() => setImportDialogOpen(true)}
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-zinc-300 transition-all hover:text-white hover:border-zinc-600"
+            style={{ border: '1px solid #27272a', background: '#18181b' }}>
+            <Upload size={14} /> Importar plantilla
           </button>
           <button
             onClick={() => setCreateDialogOpen(true)}
@@ -97,6 +105,7 @@ export function TemplatesClient() {
 
       {/* Dialogs */}
       <CreateTemplateDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} onSuccess={refresh} />
+      <ImportTemplateDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} onSuccess={refresh} />
 
       {selectedTemplateId && (
         <>
