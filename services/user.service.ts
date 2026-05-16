@@ -380,6 +380,7 @@ export class UserService {
         name: true,
         roles: true,
         locale: true,
+        avatar: true,
         active: true,
         createdAt: true,
         updatedAt: true,
