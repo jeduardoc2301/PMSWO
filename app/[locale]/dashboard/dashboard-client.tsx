@@ -38,8 +38,10 @@ interface DashboardProject {
   completionRate?: number
   workItemsCount?: number
   completedWorkItemsCount?: number
-  activeBlockersCount?: number
-  highRisksCount?: number
+  activeBlockers?: number
+  criticalBlockers?: number
+  highRisks?: number
+  overdueWorkItems?: number
 }
 
 // ─── KPI Card ────────────────────────────────────────────────────────────────
@@ -329,10 +331,15 @@ export function DashboardClient() {
   const projects = (dashboard.projects ?? []) as DashboardProject[]
   const inProgressProjects = projects.filter((p) => p.status !== ProjectStatus.COMPLETED && p.status !== ProjectStatus.ARCHIVED)
   const inProgressCount = inProgressProjects.length
-  const activeCount = projects.filter((p) => p.status === ProjectStatus.ACTIVE).length
-  const atRisk = dashboard.projectsAtRisk ?? 0
-  const onTrack = inProgressProjects.filter((p) => (p.completionRate ?? 0) >= 70).length
-  const completed = projects.filter((p) => p.status === ProjectStatus.COMPLETED).length
+
+  // Categorías mutuamente exclusivas por prioridad — siempre suman inProgressCount
+  const hasRisk = (p: DashboardProject) =>
+    (p.criticalBlockers ?? 0) > 0 || (p.highRisks ?? 0) > 0 || (p.overdueWorkItems ?? 0) > 0
+
+  const critico   = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) > 0).length
+  const enRiesgo  = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) === 0 && hasRisk(p)).length
+  const aTiempo   = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) >= 70).length
+  const sinAlerta = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) < 70).length
 
   const portfolioHealth = inProgressCount > 0
     ? Math.round(inProgressProjects.reduce((s, p) => s + (p.completionRate ?? 0), 0) / inProgressCount)
@@ -359,12 +366,12 @@ export function DashboardClient() {
           <KpiCard icon={<FolderKanban size={16} />} label="Proyectos en curso"
             value={inProgressCount} delta="+2 vs sem. pasada" trend="up" tone="indigo" />
           <KpiCard icon={<ShieldAlert size={16} />} label="En riesgo"
-            value={atRisk} delta={`${dashboard.criticalBlockers ?? 0} críticos`} trend="down" tone="rose" />
-          <KpiCard icon={<TrendingUp size={16} />} label="On track"
-            value={onTrack} delta={`${inProgressCount > 0 ? Math.round((onTrack / inProgressCount) * 100) : 0}% del total`}
+            value={enRiesgo + critico} delta={`${critico} críticos`} trend="down" tone="rose" />
+          <KpiCard icon={<TrendingUp size={16} />} label="A tiempo"
+            value={aTiempo} delta={`${inProgressCount > 0 ? Math.round((aTiempo / inProgressCount) * 100) : 0}% del total`}
             trend="up" tone="emerald" />
-          <KpiCard icon={<CheckCircle2 size={16} />} label="Completados (30d)"
-            value={completed} delta={`${completed} este mes`} trend="up" tone="indigo" />
+          <KpiCard icon={<CheckCircle2 size={16} />} label="Sin alertas"
+            value={sinAlerta} delta={`${inProgressCount > 0 ? Math.round((sinAlerta / inProgressCount) * 100) : 0}% del total`} trend="neutral" tone="amber" />
         </div>
 
         {/* Portfolio health + AI card */}
@@ -392,10 +399,10 @@ export function DashboardClient() {
               <HealthGauge value={portfolioHealth} />
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                  { label: 'On track',   color: '#10b981', n: onTrack },
-                  { label: 'En riesgo',  color: '#f59e0b', n: atRisk },
-                  { label: 'Crítico',    color: '#ef4444', n: dashboard.criticalBlockers ?? 0 },
-                  { label: 'Completado', color: '#6366f1', n: completed },
+                  { label: 'A tiempo',    color: '#10b981', n: aTiempo },
+                  { label: 'En riesgo',   color: '#f59e0b', n: enRiesgo },
+                  { label: 'Crítico',     color: '#ef4444', n: critico },
+                  { label: 'Sin alertas', color: '#6366f1', n: sinAlerta },
                 ].map((s) => (
                   <div key={s.label} className="flex items-center gap-2">
                     <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
@@ -515,7 +522,7 @@ export function DashboardClient() {
               <div className="space-y-2">
                 {[
                   { icon: <FolderKanban size={14} />, label: 'Nuevo proyecto', sub: 'Desde plantilla o vacío', href: `/${locale}/projects/new` },
-                  { icon: <Filter size={14} />, label: 'Ver en riesgo', sub: `${atRisk} proyectos`, href: `/${locale}/projects` },
+                  { icon: <Filter size={14} />, label: 'Ver en riesgo', sub: `${enRiesgo + critico} proyectos`, href: `/${locale}/projects` },
                   { icon: <ShieldAlert size={14} />, label: 'Bloqueadores', sub: `${dashboard.criticalBlockers ?? 0} críticos`, href: `/${locale}/projects` },
                 ].map((a) => (
                   <a key={a.label} href={a.href}
