@@ -85,6 +85,41 @@ function KpiCard({ icon, label, value, delta, trend, tone = 'indigo' }: KpiCardP
   )
 }
 
+// ─── Donut Chart ─────────────────────────────────────────────────────────────
+
+function DonutChart({ segments, size = 110 }: {
+  segments: { value: number; color: string; label: string }[]
+  size?: number
+}) {
+  const total = segments.reduce((s, d) => s + d.value, 0)
+  if (total === 0) return null
+  const cx = size / 2, cy = size / 2, r = size * 0.40, ir = size * 0.25
+  let angle = -90
+  const paths = segments.map(d => {
+    const sweep = (d.value / total) * 360
+    const a1 = (angle * Math.PI) / 180
+    const a2 = ((angle + sweep) * Math.PI) / 180
+    angle += sweep
+    const large = sweep > 180 ? 1 : 0
+    const path = sweep < 0.5 ? '' : [
+      `M ${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)}`,
+      `A ${r} ${r} 0 ${large} 1 ${cx + r * Math.cos(a2)} ${cy + r * Math.sin(a2)}`,
+      `L ${cx + ir * Math.cos(a2)} ${cy + ir * Math.sin(a2)}`,
+      `A ${ir} ${ir} 0 ${large} 0 ${cx + ir * Math.cos(a1)} ${cy + ir * Math.sin(a1)}`,
+      'Z',
+    ].join(' ')
+    return { ...d, path, sweep }
+  })
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">
+      {paths.map((s, i) => s.path && (
+        <path key={i} d={s.path} fill={s.color} opacity={0.85}
+          style={{ transition: 'opacity .15s' }} />
+      ))}
+    </svg>
+  )
+}
+
 // ─── Health Gauge ─────────────────────────────────────────────────────────────
 
 function HealthGauge({ value }: { value: number }) {
@@ -395,21 +430,33 @@ export function DashboardClient() {
               </div>
             </div>
 
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6 flex-1">
               <HealthGauge value={portfolioHealth} />
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
                 {[
                   { label: 'A tiempo',    color: '#10b981', n: aTiempo },
                   { label: 'En riesgo',   color: '#f59e0b', n: enRiesgo },
                   { label: 'Crítico',     color: '#ef4444', n: critico },
                   { label: 'Sin alertas', color: '#6366f1', n: sinAlerta },
                 ].map((s) => (
-                  <div key={s.label} className="flex items-center gap-2">
-                    <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-                    <span className="text-sm text-zinc-300">{s.label}</span>
-                    <span className="text-base font-semibold text-white ml-1">{s.n}</span>
+                  <div key={s.label} className="flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                    <span className="text-xs text-zinc-400">{s.label}</span>
+                    <span className="text-sm font-semibold text-white ml-1">{s.n}</span>
                   </div>
                 ))}
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <DonutChart
+                  size={110}
+                  segments={[
+                    { label: 'A tiempo',    color: '#10b981', value: aTiempo },
+                    { label: 'En riesgo',   color: '#f59e0b', value: enRiesgo },
+                    { label: 'Crítico',     color: '#ef4444', value: critico },
+                    { label: 'Sin alertas', color: '#6366f1', value: sinAlerta },
+                  ]}
+                />
+                <span className="text-[10px] text-zinc-600 mt-1">Distribución de estatus</span>
               </div>
             </div>
 
