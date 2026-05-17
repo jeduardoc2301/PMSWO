@@ -5,6 +5,7 @@ import { Permission, UserRole } from '@/types'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { z } from 'zod'
 import { hasPermission } from '@/lib/rbac'
+import { getPresignedAvatarUrl } from '@/lib/s3/avatar'
 
 /**
  * PATCH /api/v1/organizations/:id/users/:userId
@@ -278,8 +279,9 @@ async function getUserHandler(
     if (user.organizationId !== organizationId) {
       return NextResponse.json({ error: 'FORBIDDEN', message: 'User does not belong to this organization' }, { status: 403 })
     }
+    const avatar = await getPresignedAvatarUrl((user as any).avatar)
     return NextResponse.json({
-      user: { id: user.id, email: user.email, name: user.name, roles: user.roles, active: user.active, avatar: (user as any).avatar ?? null },
+      user: { id: user.id, email: user.email, name: user.name, roles: user.roles, active: user.active, avatar },
     })
   } catch (error) {
     if (error instanceof NotFoundError) {

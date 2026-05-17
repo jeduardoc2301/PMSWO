@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { userService } from '@/services/user.service'
+import { getPresignedAvatarUrl } from '@/lib/s3/avatar'
 
 /**
  * GET /api/v1/users
@@ -15,18 +16,18 @@ async function getUsersHandler(
 ) {
   try {
     const users = await userService.getUsersByOrganization(authContext.organizationId)
+    const activeUsers = users.filter((u) => u.active)
+    const mappedUsers = await Promise.all(
+      activeUsers.map(async (u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        roles: u.roles,
+        avatar: await getPresignedAvatarUrl(u.avatar),
+      }))
+    )
 
-    return NextResponse.json({
-      users: users
-        .filter((u) => u.active)
-        .map((u) => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          roles: u.roles,
-          avatar: u.avatar ?? null,
-        })),
-    })
+    return NextResponse.json({ users: mappedUsers })
   } catch (error) {
     console.error('[GET /api/v1/users] Error:', error)
     return NextResponse.json(

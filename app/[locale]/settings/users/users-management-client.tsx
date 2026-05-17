@@ -41,10 +41,12 @@ export function UsersManagementClient() {
   const [formData, setFormData] = useState({
     name: '', roles: [] as UserRole[], active: true, avatar: '', password: '', confirmPassword: '',
   })
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null)
   const editAvatarInputRef = useRef<HTMLInputElement>(null)
   const [createFormData, setCreateFormData] = useState({
     email: '', name: '', password: '', roles: [] as UserRole[], locale: Locale.ES, avatar: '',
   })
+  const [createAvatarPreview, setCreateAvatarPreview] = useState<string | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const [search, setSearch] = useState('')
@@ -91,8 +93,9 @@ export function UsersManagementClient() {
   const handleEditUser = async (user: User) => {
     setSelectedUser(user)
     setFormData({ name: user.name, roles: user.roles, active: user.active, avatar: '', password: '', confirmPassword: '' })
+    setEditAvatarPreview(null)
     setEditDialogOpen(true)
-    // Fetch avatar separately (excluded from list to avoid 413)
+    // Fetch individual user — returns presigned avatar URL
     const orgId = session?.user?.organizationId
     if (orgId) {
       try {
@@ -105,24 +108,27 @@ export function UsersManagementClient() {
     }
   }
 
-  const uploadToS3 = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+  const readFileAsDataURL = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = async (ev) => {
-        try {
-          const base64 = ev.target?.result as string
-          const res = await fetch('/api/v1/upload/avatar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: base64 }),
-          })
-          if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Upload failed') }
-          const { url } = await res.json()
-          resolve(url)
-        } catch (err) { reject(err) }
-      }
+      reader.onload = (ev) => resolve(ev.target?.result as string)
+      reader.onerror = reject
       reader.readAsDataURL(file)
     })
+
+  const uploadToS3 = async (dataUrl: string): Promise<string> => {
+    const res = await fetch('/api/v1/upload/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: dataUrl }),
+    })
+    if (!res.ok) {
+      let msg = 'Upload failed'
+      try { const d = await res.json(); msg = d.message || msg } catch {}
+      throw new Error(msg)
+    }
+    const { url } = await res.json()
+    return url
   }
 
   const handleEditAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,9 +136,12 @@ export function UsersManagementClient() {
     if (!file) return
     setSubmitting(true)
     try {
-      const url = await uploadToS3(file)
-      setFormData((p) => ({ ...p, avatar: url }))
+      const dataUrl = await readFileAsDataURL(file)
+      setEditAvatarPreview(dataUrl)
+      const s3Url = await uploadToS3(dataUrl)
+      setFormData((p) => ({ ...p, avatar: s3Url }))
     } catch (err) {
+      setEditAvatarPreview(null)
       alert(err instanceof Error ? err.message : 'Error al subir imagen')
     } finally {
       setSubmitting(false)
@@ -214,16 +223,22 @@ export function UsersManagementClient() {
     }
   }
 
-  const resetCreateForm = () => setCreateFormData({ email: '', name: '', password: '', roles: [], locale: Locale.ES, avatar: '' })
+  const resetCreateForm = () => {
+    setCreateFormData({ email: '', name: '', password: '', roles: [], locale: Locale.ES, avatar: '' })
+    setCreateAvatarPreview(null)
+  }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setSubmitting(true)
     try {
-      const url = await uploadToS3(file)
-      setCreateFormData((p) => ({ ...p, avatar: url }))
+      const dataUrl = await readFileAsDataURL(file)
+      setCreateAvatarPreview(dataUrl)
+      const s3Url = await uploadToS3(dataUrl)
+      setCreateFormData((p) => ({ ...p, avatar: s3Url }))
     } catch (err) {
+      setCreateAvatarPreview(null)
       alert(err instanceof Error ? err.message : 'Error al subir imagen')
     } finally {
       setSubmitting(false)
@@ -410,9 +425,9 @@ export function UsersManagementClient() {
                   className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
                   style={{ background: '#1c1c1f', border: '2px dashed #3f3f46' }}
                 >
-                  {formData.avatar ? (
+                  {(editAvatarPreview || formData.avatar) ? (
                     <>
-                      <img src={formData.avatar} alt="avatar" className="w-full h-full object-cover" />
+                      <img src={editAvatarPreview || formData.avatar} alt="avatar" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         style={{ background: 'rgba(0,0,0,0.55)' }}>
                         <Camera size={18} className="text-white" />
@@ -514,9 +529,9 @@ export function UsersManagementClient() {
                   className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
                   style={{ background: '#1c1c1f', border: '2px dashed #3f3f46' }}
                 >
-                  {createFormData.avatar ? (
+                  {(createAvatarPreview || createFormData.avatar) ? (
                     <>
-                      <img src={createFormData.avatar} alt="avatar" className="w-full h-full object-cover" />
+                      <img src={createAvatarPreview || createFormData.avatar} alt="avatar" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         style={{ background: 'rgba(0,0,0,0.55)' }}>
                         <Camera size={18} className="text-white" />
@@ -567,7 +582,7 @@ export function UsersManagementClient() {
               </div>
             </div>
             <DialogFooter>
-              <button type="button" onClick={() => { setCreateDialogOpen(false); resetCreateForm() }}
+              <button type="button" onClick={() => { setCreateDialogOpen(false); resetCreateForm(); setCreateAvatarPreview(null) }}
                 className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
                 style={{ border: '1px solid #27272a' }}>{tCommon('cancel')}</button>
               <button type="submit" disabled={submitting || createFormData.roles.length === 0}

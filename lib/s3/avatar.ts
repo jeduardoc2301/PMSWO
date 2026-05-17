@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'crypto'
 
 const BUCKET = process.env.S3_AVATAR_BUCKET!
@@ -51,4 +52,24 @@ export async function deleteAvatar(url: string): Promise<void> {
   const key = url.split('.amazonaws.com/')[1]
   if (!key) return
   await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
+}
+
+function isS3Avatar(avatar: string): boolean {
+  return !!avatar && avatar.startsWith(`https://${BUCKET}.s3`)
+}
+
+function extractKey(s3Url: string): string {
+  return s3Url.split('.amazonaws.com/')[1]
+}
+
+/**
+ * Return a presigned GET URL for an S3 avatar (valid for ttlSeconds).
+ * Passes through base64 data URIs and empty strings unchanged.
+ */
+export async function getPresignedAvatarUrl(avatar: string | null | undefined, ttlSeconds = 86400): Promise<string | null> {
+  if (!avatar) return null
+  if (!isS3Avatar(avatar)) return avatar
+  const key = extractKey(avatar)
+  if (!key) return null
+  return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn: ttlSeconds })
 }

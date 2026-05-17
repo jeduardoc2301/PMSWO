@@ -3,6 +3,7 @@ import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { userService } from '@/services/user.service'
 import { Permission, UserRole, Locale } from '@/types'
 import { z } from 'zod'
+import { getPresignedAvatarUrl } from '@/lib/s3/avatar'
 
 /**
  * POST /api/v1/organizations/:id/users
@@ -174,22 +175,21 @@ async function getUsersHandler(
     // Fetch users from database for the organization
     const users = await userService.getUsersByOrganization(id)
 
-    // Return users with roles (passwordHash is already excluded by the service)
-    return NextResponse.json(
-      {
-        users: users.map((user) => ({
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          roles: user.roles,
-          locale: user.locale,
-          avatar: user.avatar ?? null,
-          active: user.active,
-          createdAt: user.createdAt,
-        })),
-      },
-      { status: 200 }
+    // Generate presigned URLs for avatars (getSignedUrl is local — no network call per user)
+    const mappedUsers = await Promise.all(
+      users.map(async (user) => ({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roles: user.roles,
+        locale: user.locale,
+        avatar: await getPresignedAvatarUrl(user.avatar),
+        active: user.active,
+        createdAt: user.createdAt,
+      }))
     )
+
+    return NextResponse.json({ users: mappedUsers }, { status: 200 })
   } catch (error) {
     console.error('Get organization users error:', error)
 
