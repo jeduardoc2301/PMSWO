@@ -123,6 +123,7 @@ async function getProjectsHandler(
           archived: project.archived,
           plannedHours: (project as any).plannedHours ?? null,
           actualHours: (project as any).actualHours ?? null,
+          completedWorkItems: (project as any).completedWorkItems ?? 0,
           createdAt: project.createdAt,
           updatedAt: project.updatedAt,
           _count: project._count,

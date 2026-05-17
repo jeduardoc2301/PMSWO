@@ -25,6 +25,7 @@ interface Project {
   archived: boolean
   plannedHours: number | null
   actualHours: number | null
+  completedWorkItems: number
   createdAt: string
   updatedAt: string
   _count?: { workItems: number; blockers: number; risks: number }
@@ -43,11 +44,13 @@ function statusLabel(s: string) {
 
 // ─── Project Progress Bars ────────────────────────────────────────────────────
 
-function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours }: {
+function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, completedWorkItems, totalWorkItems }: {
   startDate: string
   endDate: string
   plannedHours: number | null
   actualHours: number | null
+  completedWorkItems: number
+  totalWorkItems: number
 }) {
   const today = new Date()
   const start = new Date(startDate)
@@ -55,18 +58,27 @@ function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours }: 
 
   const isOverdue = end < today
   const hasHours = plannedHours != null && actualHours != null && plannedHours > 0
+  const hasTasks = totalWorkItems > 0
 
   const totalMs = end.getTime() - start.getTime()
   const elapsedMs = today.getTime() - start.getTime()
   const timePct = totalMs > 0 ? Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 100))) : 0
-  const execPct = hasHours ? Math.min(100, Math.round((actualHours! / plannedHours!) * 100)) : 0
+
+  // Preferir horas si están cargadas, sino usar tareas completadas
+  const execPct = hasHours
+    ? Math.min(100, Math.round((actualHours! / plannedHours!) * 100))
+    : hasTasks
+    ? Math.min(100, Math.round((completedWorkItems / totalWorkItems) * 100))
+    : 0
+
+  const hasData = hasHours || hasTasks
 
   let dotColor = '#71717a'
   let overdueBadge = false
   if (isOverdue) {
     dotColor = '#ef4444'
     overdueBadge = true
-  } else if (!hasHours) {
+  } else if (!hasData) {
     dotColor = '#71717a'
   } else if (execPct >= timePct - 10) {
     dotColor = '#10b981'
@@ -75,6 +87,12 @@ function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours }: 
   } else {
     dotColor = '#ef4444'
   }
+
+  const execLabel = hasHours
+    ? `✅ ${execPct}% ejec.`
+    : hasTasks
+    ? `✅ ${completedWorkItems}/${totalWorkItems} tareas`
+    : '✅ Sin tareas'
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 180 }}>
@@ -91,12 +109,7 @@ function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours }: 
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Etiqueta */}
         <div style={{ fontSize: 10, color: '#71717a', marginBottom: 5, whiteSpace: 'nowrap' }}>
-          {hasHours
-            ? `⏱ ${timePct}% tiempo  |  ✅ ${execPct}% ejec.`
-            : isOverdue
-            ? `⏱ ${timePct}% tiempo  |  ✅ Sin datos`
-            : 'Sin datos'
-          }
+          {`⏱ ${timePct}% tiempo  |  ${execLabel}`}
         </div>
         {/* Barra tiempo transcurrido */}
         <div style={{ height: 5, background: '#27272a', borderRadius: 999, marginBottom: 4, overflow: 'hidden' }}>
@@ -194,6 +207,8 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
           endDate={project.estimatedEndDate}
           plannedHours={project.plannedHours}
           actualHours={project.actualHours}
+          completedWorkItems={project.completedWorkItems}
+          totalWorkItems={project._count?.workItems ?? 0}
         />
       </div>
 
@@ -509,6 +524,8 @@ export function ProjectsPageClient() {
                         endDate={p.estimatedEndDate}
                         plannedHours={p.plannedHours}
                         actualHours={p.actualHours}
+                        completedWorkItems={p.completedWorkItems}
+                        totalWorkItems={p._count?.workItems ?? 0}
                       />
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-400" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>

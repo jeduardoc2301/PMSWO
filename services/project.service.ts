@@ -329,13 +329,29 @@ export class ProjectService {
       console.log('[ProjectService.queryProjects] Found projects:', projects.length)
       console.log('[ProjectService.queryProjects] Total count:', total)
 
+      // Single extra query to get completed work item counts per project
+      const completedCounts = projects.length > 0
+        ? await prisma.workItem.groupBy({
+            by: ['projectId'],
+            where: { projectId: { in: projects.map(p => p.id) }, status: 'DONE' },
+            _count: { id: true },
+          })
+        : []
+      const completedByProject: Record<string, number> = {}
+      for (const c of completedCounts) completedByProject[c.projectId] = c._count.id
+
+      const projectsWithCompletion = projects.map(p => ({
+        ...p,
+        completedWorkItems: completedByProject[p.id] ?? 0,
+      }))
+
       // Calculate pagination metadata
       const totalPages = Math.ceil(total / limit)
       const hasNextPage = page < totalPages
       const hasPreviousPage = page > 1
 
       return {
-        projects,
+        projects: projectsWithCompletion,
         pagination: {
           page,
           limit,
