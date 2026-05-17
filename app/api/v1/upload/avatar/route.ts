@@ -13,8 +13,8 @@ async function uploadAvatarHandler(
   _context: { params: Promise<Record<string, never>> },
   authContext: AuthContext
 ) {
-  console.log('[UPLOAD-AVATAR] Start — userId:', authContext.userId)
-  console.log('[UPLOAD-AVATAR] Env check:', {
+  console.error('[UPLOAD-AVATAR] Start — userId:', authContext.userId)
+  console.error('[UPLOAD-AVATAR] Env check:', {
     S3_AVATAR_BUCKET: process.env.S3_AVATAR_BUCKET ?? 'MISSING',
     S3_AVATAR_REGION: process.env.S3_AVATAR_REGION ?? 'MISSING',
     APP_AWS_ACCESS_KEY_ID: process.env.APP_AWS_ACCESS_KEY_ID ? 'SET' : 'MISSING',
@@ -43,12 +43,21 @@ async function uploadAvatarHandler(
     console.log('[UPLOAD-AVATAR] Success — url:', url)
     return NextResponse.json({ url })
   } catch (error) {
-    console.error('[UPLOAD-AVATAR] ERROR:', error instanceof Error ? error.message : error)
-    console.error('[UPLOAD-AVATAR] Stack:', error instanceof Error ? error.stack : 'no stack')
-    return NextResponse.json({
-      error: 'INTERNAL_ERROR',
-      message: error instanceof Error ? error.message : 'Failed to upload avatar',
-    }, { status: 500 })
+    let message = 'Unknown error'
+    let code = ''
+    try {
+      if (error instanceof Error) {
+        message = error.message
+        code = (error as any).Code || (error as any).code || ''
+      } else if (error && typeof error === 'object') {
+        message = (error as any).message || (error as any).Message || JSON.stringify(error).slice(0, 300)
+        code = (error as any).Code || (error as any).code || ''
+      } else {
+        message = String(error)
+      }
+    } catch {}
+    console.error('[UPLOAD-AVATAR] ERROR code:', code, '| message:', message)
+    return NextResponse.json({ error: 'INTERNAL_ERROR', message: `[${code || 'no-code'}] ${message}` }, { status: 500 })
   }
 }
 
