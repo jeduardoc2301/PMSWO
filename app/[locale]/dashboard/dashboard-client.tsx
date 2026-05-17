@@ -9,7 +9,7 @@ import { hasPermission } from '@/lib/rbac'
 import {
   FolderKanban, ShieldAlert, TrendingUp, CheckCircle2,
   TrendingDown, Sparkles, ArrowRight, ArrowUpRight,
-  ChevronDown, Check, Filter,
+  ChevronDown, Check, Filter, X,
 } from 'lucide-react'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -44,6 +44,81 @@ interface DashboardProject {
   overdueWorkItems?: number
 }
 
+// ─── KPI Panel (slide-over) ───────────────────────────────────────────────────
+
+interface KpiPanelData {
+  label: string
+  value: number
+  rule: string
+  tone: 'indigo' | 'rose' | 'emerald' | 'amber'
+  projects: DashboardProject[]
+}
+
+function KpiPanel({ data, locale, onClose }: { data: KpiPanelData; locale: string; onClose: () => void }) {
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const toneColor = {
+    indigo: '#6366f1', rose: '#f43f5e', emerald: '#10b981', amber: '#f59e0b',
+  }[data.tone]
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [onClose])
+
+  return (
+    <div ref={overlayRef} className="fixed inset-0 z-50 flex justify-end"
+      style={{ background: 'rgba(0,0,0,0.55)' }}
+      onClick={(e) => { if (e.target === overlayRef.current) onClose() }}>
+      <div className="h-full w-full max-w-sm flex flex-col"
+        style={{ background: '#18181b', borderLeft: '1px solid #27272a' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #27272a' }}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl font-bold tabular-nums" style={{ color: toneColor }}>{data.value}</span>
+            <span className="text-base font-semibold text-white">{data.label}</span>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Rule explanation */}
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid #27272a' }}>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Criterio de clasificación</div>
+          <p className="text-sm text-zinc-300 leading-relaxed">{data.rule}</p>
+        </div>
+
+        {/* Project list */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-5 pt-4 pb-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              Proyectos ({data.projects.length})
+            </div>
+          </div>
+          {data.projects.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-zinc-600">Sin proyectos en esta categoría</div>
+          ) : (
+            <div className="px-3 pb-4 space-y-1">
+              {data.projects.map((p) => (
+                <a key={p.id} href={`/${locale}/projects/${p.id}`}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 transition-all group">
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: toneColor }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-zinc-100 truncate group-hover:text-white">{p.name}</div>
+                    <div className="text-xs text-zinc-500 truncate">{p.client}</div>
+                  </div>
+                  <ArrowRight size={12} className="text-zinc-700 group-hover:text-zinc-400 flex-shrink-0 transition-colors" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 
 interface KpiCardProps {
@@ -53,9 +128,10 @@ interface KpiCardProps {
   delta: string
   trend: 'up' | 'down' | 'neutral'
   tone?: 'indigo' | 'rose' | 'emerald' | 'amber'
+  onClick?: () => void
 }
 
-function KpiCard({ icon, label, value, delta, trend, tone = 'indigo' }: KpiCardProps) {
+function KpiCard({ icon, label, value, delta, trend, tone = 'indigo', onClick }: KpiCardProps) {
   const colors = {
     indigo:  { bg: 'rgba(99,102,241,0.10)',  bd: 'rgba(99,102,241,0.25)', tx: 'text-indigo-400' },
     emerald: { bg: 'rgba(16,185,129,0.10)',  bd: 'rgba(16,185,129,0.25)', tx: 'text-emerald-400' },
@@ -67,7 +143,10 @@ function KpiCard({ icon, label, value, delta, trend, tone = 'indigo' }: KpiCardP
     trend === 'down' ? 'bg-rose-900/40 text-rose-300' : 'bg-zinc-800 text-zinc-400'
 
   return (
-    <div className="rounded-xl p-5" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+    <div
+      className={`rounded-xl p-5 transition-all ${onClick ? 'cursor-pointer hover:ring-1' : ''}`}
+      style={{ background: '#18181b', border: '1px solid #27272a', ...(onClick ? { ['--tw-ring-color' as any]: colors.bd } : {}) }}
+      onClick={onClick}>
       <div className="flex items-start justify-between">
         <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ background: colors.bg, border: `1px solid ${colors.bd}` }}>
@@ -81,6 +160,7 @@ function KpiCard({ icon, label, value, delta, trend, tone = 'indigo' }: KpiCardP
       </div>
       <div className="mt-4 text-3xl font-bold text-white tabular-nums tracking-tight">{value}</div>
       <div className="text-xs text-zinc-500 mt-1">{label}</div>
+      {onClick && <div className="text-[10px] text-zinc-600 mt-2">Clic para ver proyectos →</div>}
     </div>
   )
 }
@@ -254,6 +334,7 @@ export function DashboardClient() {
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<7 | 30 | 90>(7)
   const [snapshots, setSnapshots] = useState<HealthSnapshot[]>([])
+  const [selectedKpi, setSelectedKpi] = useState<KpiPanelData | null>(null)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -371,17 +452,57 @@ export function DashboardClient() {
   const hasRisk = (p: DashboardProject) =>
     (p.criticalBlockers ?? 0) > 0 || (p.highRisks ?? 0) > 0 || (p.overdueWorkItems ?? 0) > 0
 
-  const critico   = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) > 0).length
-  const enRiesgo  = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) === 0 && hasRisk(p)).length
-  const aTiempo   = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) >= 70).length
-  const sinAlerta = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) < 70).length
+  const criticoProjects   = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) > 0)
+  const enRiesgoProjects  = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) === 0 && hasRisk(p))
+  const aTiempoProjects   = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) >= 70)
+  const sinAlertaProjects = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) < 70)
+
+  const critico   = criticoProjects.length
+  const enRiesgo  = enRiesgoProjects.length
+  const aTiempo   = aTiempoProjects.length
+  const sinAlerta = sinAlertaProjects.length
 
   const portfolioHealth = inProgressCount > 0
     ? Math.round(inProgressProjects.reduce((s, p) => s + (p.completionRate ?? 0), 0) / inProgressCount)
     : 0
 
+  const kpiCards: KpiPanelData[] = [
+    {
+      label: 'Proyectos en curso',
+      value: inProgressCount,
+      rule: 'Todos los proyectos con estado Activo o En planeación (excluye Completados y Archivados).',
+      tone: 'indigo',
+      projects: inProgressProjects,
+    },
+    {
+      label: 'En riesgo',
+      value: enRiesgo + critico,
+      rule: 'Proyectos con al menos un bloqueador crítico activo, tareas vencidas, o riesgos marcados como altos.',
+      tone: 'rose',
+      projects: [...criticoProjects, ...enRiesgoProjects],
+    },
+    {
+      label: 'A tiempo',
+      value: aTiempo,
+      rule: 'Proyectos sin ningún riesgo ni bloqueador, y con una tasa de completitud ≥ 70%.',
+      tone: 'emerald',
+      projects: aTiempoProjects,
+    },
+    {
+      label: 'Sin alertas',
+      value: sinAlerta,
+      rule: 'Proyectos sin riesgos ni bloqueadores, pero con completitud < 70%. Aún no están en riesgo pero no han alcanzado el umbral de avance esperado.',
+      tone: 'amber',
+      projects: sinAlertaProjects,
+    },
+  ]
+
   return (
     <div className="min-h-screen" style={{ background: '#09090b' }}>
+      {selectedKpi && (
+        <KpiPanel data={selectedKpi} locale={locale} onClose={() => setSelectedKpi(null)} />
+      )}
+
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div className="flex items-baseline gap-3">
@@ -398,15 +519,20 @@ export function DashboardClient() {
       <div className="p-8 max-w-[1400px] mx-auto">
         {/* KPI strip */}
         <div className="grid grid-cols-4 gap-4">
-          <KpiCard icon={<FolderKanban size={16} />} label="Proyectos en curso"
-            value={inProgressCount} delta="+2 vs sem. pasada" trend="up" tone="indigo" />
-          <KpiCard icon={<ShieldAlert size={16} />} label="En riesgo"
-            value={enRiesgo + critico} delta={`${critico} críticos`} trend="down" tone="rose" />
-          <KpiCard icon={<TrendingUp size={16} />} label="A tiempo"
+          <KpiCard icon={<FolderKanban size={16} />} label={kpiCards[0].label}
+            value={inProgressCount} delta="+2 vs sem. pasada" trend="up" tone="indigo"
+            onClick={() => setSelectedKpi(kpiCards[0])} />
+          <KpiCard icon={<ShieldAlert size={16} />} label={kpiCards[1].label}
+            value={enRiesgo + critico} delta={`${critico} críticos`} trend="down" tone="rose"
+            onClick={() => setSelectedKpi(kpiCards[1])} />
+          <KpiCard icon={<TrendingUp size={16} />} label={kpiCards[2].label}
             value={aTiempo} delta={`${inProgressCount > 0 ? Math.round((aTiempo / inProgressCount) * 100) : 0}% del total`}
-            trend="up" tone="emerald" />
-          <KpiCard icon={<CheckCircle2 size={16} />} label="Sin alertas"
-            value={sinAlerta} delta={`${inProgressCount > 0 ? Math.round((sinAlerta / inProgressCount) * 100) : 0}% del total`} trend="neutral" tone="amber" />
+            trend="up" tone="emerald"
+            onClick={() => setSelectedKpi(kpiCards[2])} />
+          <KpiCard icon={<CheckCircle2 size={16} />} label={kpiCards[3].label}
+            value={sinAlerta} delta={`${inProgressCount > 0 ? Math.round((sinAlerta / inProgressCount) * 100) : 0}% del total`}
+            trend="neutral" tone="amber"
+            onClick={() => setSelectedKpi(kpiCards[3])} />
         </div>
 
         {/* Portfolio health + AI card */}
