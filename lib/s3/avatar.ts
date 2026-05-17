@@ -2,23 +2,33 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'crypto'
 
-const BUCKET = process.env.S3_AVATAR_BUCKET!
-const REGION = process.env.S3_AVATAR_REGION ?? 'us-east-1'
+function getS3Config() {
+  const BUCKET = process.env.S3_AVATAR_BUCKET
+  const REGION = process.env.S3_AVATAR_REGION ?? 'us-east-1'
+  const accessKeyId = process.env.APP_AWS_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.APP_AWS_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY
 
-const s3 = new S3Client({
-  region: REGION,
-  credentials: {
-    accessKeyId: (process.env.APP_AWS_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID)!,
-    secretAccessKey: (process.env.APP_AWS_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY)!,
-  },
-})
+  console.error('[S3-CONFIG] env check — BUCKET:', BUCKET ?? 'MISSING', '| REGION:', REGION,
+    '| KEY:', accessKeyId ? 'SET' : 'MISSING', '| SECRET:', secretAccessKey ? 'SET' : 'MISSING')
+
+  if (!BUCKET) throw new Error('S3_AVATAR_BUCKET env var is not set')
+  if (!accessKeyId) throw new Error('AWS access key (APP_AWS_ACCESS_KEY_ID or AWS_ACCESS_KEY_ID) is not set')
+  if (!secretAccessKey) throw new Error('AWS secret key (APP_AWS_SECRET_ACCESS_KEY or AWS_SECRET_ACCESS_KEY) is not set')
+
+  const client = new S3Client({
+    region: REGION,
+    credentials: { accessKeyId, secretAccessKey },
+  })
+  return { BUCKET, REGION, client }
+}
 
 /**
  * Upload a base64-encoded avatar to S3 and return the public URL.
  * Accepts data URIs ("data:image/...;base64,...") or raw base64.
  */
 export async function uploadAvatar(base64Input: string, userId: string): Promise<string> {
-  console.log('[S3-AVATAR] uploadAvatar — bucket:', BUCKET, '| region:', REGION)
+  const { BUCKET, REGION, client } = getS3Config()
+  console.error('[S3-AVATAR] uploadAvatar — bucket:', BUCKET, '| region:', REGION)
 
   let mimeType = 'image/jpeg'
   let base64Data = base64Input
@@ -34,10 +44,10 @@ export async function uploadAvatar(base64Input: string, userId: string): Promise
   const key = `avatars/${userId}/${randomUUID()}.${ext}`
   const buffer = Buffer.from(base64Data, 'base64')
 
-  console.log('[S3-AVATAR] PutObject — key:', key, '| mimeType:', mimeType, '| bufferSize:', buffer.length)
+  console.error('[S3-AVATAR] PutObject — key:', key, '| mimeType:', mimeType, '| bufferSize:', buffer.length)
 
   try {
-    await s3.send(new PutObjectCommand({
+    await client.send(new PutObjectCommand({
       Bucket: BUCKET,
       Key: key,
       Body: buffer,
@@ -50,7 +60,7 @@ export async function uploadAvatar(base64Input: string, userId: string): Promise
   }
 
   const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`
-  console.log('[S3-AVATAR] Upload OK — url:', url)
+  console.error('[S3-AVATAR] Upload OK — url:', url)
   return url
 }
 
@@ -59,18 +69,12 @@ export async function uploadAvatar(base64Input: string, userId: string): Promise
  * Accepts the full URL; silently ignores non-S3 strings (e.g. old base64).
  */
 export async function deleteAvatar(url: string): Promise<void> {
-  if (!url || !url.includes(BUCKET)) return
+  if (!url) return
+  const { BUCKET, client } = getS3Config()
+  if (!url.includes(BUCKET)) return
   const key = url.split('.amazonaws.com/')[1]
   if (!key) return
-  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
-}
-
-function isS3Avatar(avatar: string): boolean {
-  return !!avatar && avatar.startsWith(`https://${BUCKET}.s3`)
-}
-
-function extractKey(s3Url: string): string {
-  return s3Url.split('.amazonaws.com/')[1]
+  await client.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
 }
 
 /**
@@ -79,8 +83,9 @@ function extractKey(s3Url: string): string {
  */
 export async function getPresignedAvatarUrl(avatar: string | null | undefined, ttlSeconds = 86400): Promise<string | null> {
   if (!avatar) return null
-  if (!isS3Avatar(avatar)) return avatar
-  const key = extractKey(avatar)
+  const { BUCKET, client } = getS3Config()
+  if (!avatar.startsWith(`https://${BUCKET}.s3`)) return avatar
+  const key = avatar.split('.amazonaws.com/')[1]
   if (!key) return null
-  return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn: ttlSeconds })
+  return getSignedUrl(client, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn: ttlSeconds })
 }
