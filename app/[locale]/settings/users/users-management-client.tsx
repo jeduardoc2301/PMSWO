@@ -88,10 +88,21 @@ export function UsersManagementClient() {
     }
   }
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = async (user: User) => {
     setSelectedUser(user)
-    setFormData({ name: user.name, roles: user.roles, active: user.active, avatar: user.avatar || '', password: '', confirmPassword: '' })
+    setFormData({ name: user.name, roles: user.roles, active: user.active, avatar: '', password: '', confirmPassword: '' })
     setEditDialogOpen(true)
+    // Fetch avatar separately (excluded from list to avoid 413)
+    const orgId = session?.user?.organizationId
+    if (orgId) {
+      try {
+        const r = await fetch(`/api/v1/organizations/${orgId}/users/${user.id}`)
+        if (r.ok) {
+          const d = await r.json()
+          if (d.user?.avatar) setFormData((p) => ({ ...p, avatar: d.user.avatar }))
+        }
+      } catch {}
+    }
   }
 
   const handleEditAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,8 +128,9 @@ export function UsersManagementClient() {
         name: formData.name,
         roles: formData.roles,
         active: formData.active,
-        avatar: formData.avatar || null,
       }
+      // Only send avatar if the user explicitly uploaded one (non-empty); avoids clearing existing avatar
+      if (formData.avatar) payload.avatar = formData.avatar
       if (formData.password) payload.password = formData.password
       const res = await fetch(`/api/v1/organizations/${orgId}/users/${selectedUser.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),

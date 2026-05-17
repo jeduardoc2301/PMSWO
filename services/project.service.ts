@@ -17,8 +17,8 @@ import { z } from 'zod'
 export interface CreateProjectDTO {
   organizationId: string
   ownerId: string
-  projectManagerId?: string
-  collaboratorIds?: string[]
+  projectManagerId?: string   // stored as ProjectCollaborator role="PROJECT_MANAGER"
+  collaboratorIds?: string[]  // stored as ProjectCollaborator role="COLLABORATOR"
   name: string
   description: string
   client: string
@@ -121,12 +121,11 @@ export class ProjectService {
       throw new NotFoundError('Organization')
     }
 
-    // Create project with owner and optional project manager
+    // Create project with owner
     const project = await prisma.project.create({
       data: {
         organizationId: data.organizationId,
         ownerId: data.ownerId,
-        projectManagerId: data.projectManagerId ?? null,
         name: data.name.trim(),
         description: data.description.trim(),
         client: data.client.trim(),
@@ -137,16 +136,18 @@ export class ProjectService {
       },
     })
 
-    // Create collaborators (Backs) if provided
-    if (data.collaboratorIds && data.collaboratorIds.length > 0) {
-      await prisma.projectCollaborator.createMany({
-        data: data.collaboratorIds.map((userId) => ({
-          projectId: project.id,
-          userId,
-          role: 'COLLABORATOR',
-        })),
-        skipDuplicates: true,
-      })
+    // Build collaborator rows: PM + Backs (uses existing project_collaborators table, no migration needed)
+    const collaboratorRows: { projectId: string; userId: string; role: string }[] = []
+    if (data.projectManagerId) {
+      collaboratorRows.push({ projectId: project.id, userId: data.projectManagerId, role: 'PROJECT_MANAGER' })
+    }
+    for (const userId of data.collaboratorIds ?? []) {
+      if (userId !== data.projectManagerId) {
+        collaboratorRows.push({ projectId: project.id, userId, role: 'COLLABORATOR' })
+      }
+    }
+    if (collaboratorRows.length > 0) {
+      await prisma.projectCollaborator.createMany({ data: collaboratorRows, skipDuplicates: true })
     }
 
     // Create 5 default Kanban columns

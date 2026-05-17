@@ -144,6 +144,7 @@ export class UserService {
         name: true,
         roles: true,
         locale: true,
+        avatar: true,
         active: true,
         createdAt: true,
         updatedAt: true,
@@ -397,7 +398,7 @@ export class UserService {
         name: true,
         roles: true,
         locale: true,
-        // avatar intentionally excluded — base64 LongText blows the 6 MB Lambda response limit
+        // avatar excluded from list — fetched individually when needed to stay under Lambda 6MB limit
         active: true,
         createdAt: true,
         updatedAt: true,

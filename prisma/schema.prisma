@@ -42,7 +42,6 @@ model User {
 
   organization          Organization          @relation(fields: [organizationId], references: [id])
   ownedProjects         Project[]             @relation("ProjectOwner")
-  managedProjects       Project[]             @relation("ProjectManager")
   projectCollaborations ProjectCollaborator[]
   ownedWorkItems        WorkItem[]            @relation("WorkItemOwner")
   ownedRisks            Risk[]                @relation("RiskOwner")
@@ -59,7 +58,6 @@ model Project {
   id               String   @id @default(uuid()) @db.Char(36)
   organizationId   String   @map("organization_id") @db.Char(36)
   ownerId          String   @map("owner_id") @db.Char(36)
-  projectManagerId String?  @map("project_manager_id") @db.Char(36)
   name             String
   description      String   @db.Text
   client           String
@@ -74,7 +72,6 @@ model Project {
 
   organization    Organization          @relation(fields: [organizationId], references: [id])
   owner           User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
-  projectManager  User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
   collaborators   ProjectCollaborator[]
   workItems       WorkItem[]
   blockers        Blocker[]
@@ -87,7 +84,6 @@ model Project {
   @@index([organizationId])
   @@index([organizationId, archived])
   @@index([ownerId])
-  @@index([projectManagerId])
   @@map("projects")
 }
 

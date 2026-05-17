@@ -260,6 +260,35 @@ async function deleteUserHandler(
   }
 }
 
+/**
+ * GET /api/v1/organizations/:id/users/:userId
+ * Returns a single user including avatar (used by edit dialog).
+ */
+async function getUserHandler(
+  request: NextRequest,
+  context: { params: Promise<{ id: string; userId: string }> },
+  authContext: AuthContext
+) {
+  try {
+    const { id: organizationId, userId } = await context.params
+    if (authContext.organizationId !== organizationId) {
+      return NextResponse.json({ error: 'FORBIDDEN', message: 'You do not have access to this organization' }, { status: 403 })
+    }
+    const user = await userService.getUser(userId)
+    if (user.organizationId !== organizationId) {
+      return NextResponse.json({ error: 'FORBIDDEN', message: 'User does not belong to this organization' }, { status: 403 })
+    }
+    return NextResponse.json({
+      user: { id: user.id, email: user.email, name: user.name, roles: user.roles, active: user.active, avatar: (user as any).avatar ?? null },
+    })
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return NextResponse.json({ error: 'NOT_FOUND', message: 'User not found' }, { status: 404 })
+    }
+    return NextResponse.json({ error: 'INTERNAL_ERROR', message: 'Failed to fetch user' }, { status: 500 })
+  }
+}
+
 // Export PATCH handler with authentication middleware and USER_UPDATE permission
 export const PATCH = withAuth(patchUserHandler, {
   requiredPermissions: [Permission.USER_UPDATE],
@@ -268,4 +297,9 @@ export const PATCH = withAuth(patchUserHandler, {
 // Export DELETE handler with authentication middleware and USER_DELETE permission
 export const DELETE = withAuth(deleteUserHandler, {
   requiredPermissions: [Permission.USER_DELETE],
+})
+
+// Export GET handler — any authenticated user can fetch a user in their org
+export const GET = withAuth(getUserHandler, {
+  requiredPermissions: [Permission.USER_VIEW],
 })
