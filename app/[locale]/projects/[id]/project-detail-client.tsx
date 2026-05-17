@@ -28,6 +28,7 @@ interface Project {
 interface ProjectMetrics {
   totalWorkItems: number; completedWorkItems: number; completionRate: number
   activeBlockers: number; averageBlockerResolutionTimeHours: number; highPriorityRisks: number
+  weeklyCompletions?: number[]
 }
 
 interface TacticalMetrics {
@@ -526,6 +527,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     projectEndDate={project.estimatedEndDate}
                     totalWorkItems={metrics.totalWorkItems}
                     completedWorkItems={metrics.completedWorkItems}
+                    weeklyCompletions={metrics.weeklyCompletions}
                   />
                 )}
 

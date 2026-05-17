@@ -166,6 +166,7 @@ export interface ProjectMetrics {
   activeBlockers: number
   averageBlockerResolutionTimeHours: number | null
   highPriorityRisks: number
+  weeklyCompletions: number[]  // completed tasks per week, index = week number from project start
 }
 
 // Dashboard types

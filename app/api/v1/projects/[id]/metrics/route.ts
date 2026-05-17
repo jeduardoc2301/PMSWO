@@ -49,6 +49,7 @@ async function getProjectMetricsHandler(
           activeBlockers: metrics.activeBlockers,
           averageBlockerResolutionTimeHours: metrics.averageBlockerResolutionTimeHours,
           highPriorityRisks: metrics.highPriorityRisks,
+          weeklyCompletions: metrics.weeklyCompletions,
         },
       },
       { status: 200 }

@@ -19,6 +19,7 @@ interface ProjectBurndownChartProps {
   projectEndDate: string
   totalWorkItems: number
   completedWorkItems: number
+  weeklyCompletions?: number[]
 }
 
 interface ChartDataPoint {
@@ -39,6 +40,7 @@ export function ProjectBurndownChart({
   projectEndDate,
   totalWorkItems,
   completedWorkItems,
+  weeklyCompletions,
 }: ProjectBurndownChartProps) {
   const t = useTranslations('projects.projectChart')
 
@@ -80,10 +82,9 @@ export function ProjectBurndownChart({
         actualRemaining = totalWorkItems - (completedWorkItems * progress)
       }
       
-      // Velocity: completed tasks in this week (simplified - showing average)
-      const avgVelocity = elapsedWeeks > 0 ? completedWorkItems / elapsedWeeks : 0
-      const weeklyCompleted = week > 0 ? Math.round(avgVelocity) : 0
-      
+      // Velocity: use real per-week data if available, otherwise 0
+      const weeklyCompleted = weeklyCompletions ? (weeklyCompletions[week] ?? 0) : 0
+
       data.push({
         week: `S${week}`,
         weekNumber: week,
@@ -111,7 +112,7 @@ export function ProjectBurndownChart({
           weekNumber: week,
           ideal: Math.round(idealRemaining),
           actual: Math.round(projectedRemaining),
-          completed: Math.round(currentVelocity),
+          completed: weeklyCompletions ? (weeklyCompletions[week] ?? 0) : Math.round(currentVelocity),
         })
       }
     }

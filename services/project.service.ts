@@ -618,19 +618,24 @@ export class ProjectService {
 
     // Get all work items for the project
     const workItems = await prisma.workItem.findMany({
-      where: {
-        projectId,
-      },
-      select: {
-        id: true,
-        status: true,
-      },
+      where: { projectId },
+      select: { id: true, status: true, completedAt: true, updatedAt: true },
     })
 
     const totalWorkItems = workItems.length
-    const completedWorkItems = workItems.filter(
-      (item) => item.status === WorkItemStatus.DONE
-    ).length
+    const doneItems = workItems.filter((item) => item.status === WorkItemStatus.DONE)
+    const completedWorkItems = doneItems.length
+
+    // Build weekly completions array indexed by week from project start
+    const projectStartMs = project.startDate.getTime()
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000
+    const totalWeeks = Math.ceil((project.estimatedEndDate.getTime() - projectStartMs) / msPerWeek)
+    const weeklyCompletions: number[] = new Array(totalWeeks + 1).fill(0)
+    for (const item of doneItems) {
+      const completedMs = (item.completedAt ?? item.updatedAt).getTime()
+      const weekIdx = Math.max(0, Math.min(totalWeeks, Math.floor((completedMs - projectStartMs) / msPerWeek)))
+      weeklyCompletions[weekIdx] = (weeklyCompletions[weekIdx] || 0) + 1
+    }
 
     // Calculate completion rate
     const completionRate = totalWorkItems > 0 
@@ -686,14 +691,15 @@ export class ProjectService {
     })
 
     return {
-      completionRate: Math.round(completionRate * 100) / 100, // Round to 2 decimal places
+      completionRate: Math.round(completionRate * 100) / 100,
       totalWorkItems,
       completedWorkItems,
       activeBlockers,
-      averageBlockerResolutionTimeHours: averageBlockerResolutionTimeHours 
-        ? Math.round(averageBlockerResolutionTimeHours * 100) / 100 
+      averageBlockerResolutionTimeHours: averageBlockerResolutionTimeHours
+        ? Math.round(averageBlockerResolutionTimeHours * 100) / 100
         : null,
       highPriorityRisks,
+      weeklyCompletions,
     }
   }
 }
