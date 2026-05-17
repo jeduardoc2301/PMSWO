@@ -17,8 +17,8 @@ import { z } from 'zod'
 export interface CreateProjectDTO {
   organizationId: string
   ownerId: string
-  projectManagerId?: string   // stored as ProjectCollaborator role="PROJECT_MANAGER"
-  collaboratorIds?: string[]  // stored as ProjectCollaborator role="COLLABORATOR"
+  projectManagerId?: string
+  collaboratorIds?: string[]
   name: string
   description: string
   client: string
@@ -121,11 +121,12 @@ export class ProjectService {
       throw new NotFoundError('Organization')
     }
 
-    // Create project with owner
+    // Create project with owner and optional project manager
     const project = await prisma.project.create({
       data: {
         organizationId: data.organizationId,
         ownerId: data.ownerId,
+        projectManagerId: data.projectManagerId ?? null,
         name: data.name.trim(),
         description: data.description.trim(),
         client: data.client.trim(),
@@ -136,18 +137,12 @@ export class ProjectService {
       },
     })
 
-    // Build collaborator rows: PM + Backs (uses existing project_collaborators table, no migration needed)
-    const collaboratorRows: { projectId: string; userId: string; role: string }[] = []
-    if (data.projectManagerId) {
-      collaboratorRows.push({ projectId: project.id, userId: data.projectManagerId, role: 'PROJECT_MANAGER' })
-    }
-    for (const userId of data.collaboratorIds ?? []) {
-      if (userId !== data.projectManagerId) {
-        collaboratorRows.push({ projectId: project.id, userId, role: 'COLLABORATOR' })
-      }
-    }
-    if (collaboratorRows.length > 0) {
-      await prisma.projectCollaborator.createMany({ data: collaboratorRows, skipDuplicates: true })
+    // Create Backs (collaborators)
+    if (data.collaboratorIds && data.collaboratorIds.length > 0) {
+      await prisma.projectCollaborator.createMany({
+        data: data.collaboratorIds.map((userId) => ({ projectId: project.id, userId, role: 'COLLABORATOR' })),
+        skipDuplicates: true,
+      })
     }
 
     // Create 5 default Kanban columns

@@ -5,6 +5,9 @@
  *   npx tsx scripts/migrate-avatars-to-s3.ts
  */
 import 'dotenv/config'
+// Support both APP_AWS_* (Amplify convention) and plain AWS_* env var names
+if (process.env.APP_AWS_ACCESS_KEY_ID) process.env.AWS_ACCESS_KEY_ID = process.env.APP_AWS_ACCESS_KEY_ID
+if (process.env.APP_AWS_SECRET_ACCESS_KEY) process.env.AWS_SECRET_ACCESS_KEY = process.env.APP_AWS_SECRET_ACCESS_KEY
 import prisma from '../lib/prisma'
 import { uploadAvatar } from '../lib/s3/avatar'
 
