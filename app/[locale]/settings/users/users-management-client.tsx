@@ -105,12 +105,38 @@ export function UsersManagementClient() {
     }
   }
 
-  const handleEditAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadToS3 = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = async (ev) => {
+        try {
+          const base64 = ev.target?.result as string
+          const res = await fetch('/api/v1/upload/avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: base64 }),
+          })
+          if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Upload failed') }
+          const { url } = await res.json()
+          resolve(url)
+        } catch (err) { reject(err) }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleEditAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => setFormData((p) => ({ ...p, avatar: ev.target?.result as string }))
-    reader.readAsDataURL(file)
+    setSubmitting(true)
+    try {
+      const url = await uploadToS3(file)
+      setFormData((p) => ({ ...p, avatar: url }))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al subir imagen')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleUpdateUser = async (e: React.FormEvent) => {
@@ -190,15 +216,18 @@ export function UsersManagementClient() {
 
   const resetCreateForm = () => setCreateFormData({ email: '', name: '', password: '', roles: [], locale: Locale.ES, avatar: '' })
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string
-      setCreateFormData((p) => ({ ...p, avatar: result }))
+    setSubmitting(true)
+    try {
+      const url = await uploadToS3(file)
+      setCreateFormData((p) => ({ ...p, avatar: url }))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al subir imagen')
+    } finally {
+      setSubmitting(false)
     }
-    reader.readAsDataURL(file)
   }
 
   const toggleRole = (role: UserRole) =>

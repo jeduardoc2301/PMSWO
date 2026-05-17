@@ -398,7 +398,7 @@ export class UserService {
         name: true,
         roles: true,
         locale: true,
-        // avatar excluded from list — fetched individually when needed to stay under Lambda 6MB limit
+        avatar: true,
         active: true,
         createdAt: true,
         updatedAt: true,
