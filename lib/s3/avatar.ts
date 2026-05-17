@@ -18,6 +18,8 @@ const s3 = new S3Client({
  * Accepts data URIs ("data:image/...;base64,...") or raw base64.
  */
 export async function uploadAvatar(base64Input: string, userId: string): Promise<string> {
+  console.log('[S3-AVATAR] uploadAvatar — bucket:', BUCKET, '| region:', REGION)
+
   let mimeType = 'image/jpeg'
   let base64Data = base64Input
 
@@ -32,15 +34,24 @@ export async function uploadAvatar(base64Input: string, userId: string): Promise
   const key = `avatars/${userId}/${randomUUID()}.${ext}`
   const buffer = Buffer.from(base64Data, 'base64')
 
-  await s3.send(new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: key,
-    Body: buffer,
-    ContentType: mimeType,
-    CacheControl: 'max-age=31536000',
-  }))
+  console.log('[S3-AVATAR] PutObject — key:', key, '| mimeType:', mimeType, '| bufferSize:', buffer.length)
 
-  return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType,
+      CacheControl: 'max-age=31536000',
+    }))
+  } catch (s3Err) {
+    console.error('[S3-AVATAR] PutObject failed:', s3Err instanceof Error ? s3Err.message : s3Err)
+    throw s3Err
+  }
+
+  const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`
+  console.log('[S3-AVATAR] Upload OK — url:', url)
+  return url
 }
 
 /**
