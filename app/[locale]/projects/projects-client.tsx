@@ -14,6 +14,8 @@ import {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
+type HealthCategory = 'CRITICO' | 'EN_RIESGO' | 'A_TIEMPO' | 'SIN_ALERTAS'
+
 interface Project {
   id: string
   name: string
@@ -26,6 +28,13 @@ interface Project {
   plannedHours: number | null
   actualHours: number | null
   completedWorkItems: number
+  overdueWorkItems?: number
+  criticalBlockers?: number
+  highRisks?: number
+  healthCategory?: HealthCategory
+  spi?: number | null
+  timeElapsedPct?: number
+  scheduleVariance?: number | null
   createdAt: string
   updatedAt: string
   _count?: { workItems: number; blockers: number; risks: number }
@@ -44,49 +53,49 @@ function statusLabel(s: string) {
 
 // ─── Project Progress Bars ────────────────────────────────────────────────────
 
-function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, completedWorkItems, totalWorkItems }: {
+// Semáforo colors driven by healthCategory from the backend (DB config)
+const healthColors: Record<HealthCategory, string> = {
+  CRITICO:    '#ef4444',
+  EN_RIESGO:  '#f59e0b',
+  A_TIEMPO:   '#10b981',
+  SIN_ALERTAS: '#6366f1',
+}
+
+function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, completedWorkItems, totalWorkItems, healthCategory }: {
   startDate: string
   endDate: string
   plannedHours: number | null
   actualHours: number | null
   completedWorkItems: number
   totalWorkItems: number
+  healthCategory?: HealthCategory
 }) {
   const today = new Date()
-  const start = new Date(startDate)
   const end = new Date(endDate)
 
   const isOverdue = end < today
   const hasHours = plannedHours != null && actualHours != null && plannedHours > 0
   const hasTasks = totalWorkItems > 0
 
+  const start = new Date(startDate)
   const totalMs = end.getTime() - start.getTime()
   const elapsedMs = today.getTime() - start.getTime()
   const timePct = totalMs > 0 ? Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 100))) : 0
 
-  // Preferir horas si están cargadas, sino usar tareas completadas
   const execPct = hasHours
     ? Math.min(100, Math.round((actualHours! / plannedHours!) * 100))
     : hasTasks
     ? Math.min(100, Math.round((completedWorkItems / totalWorkItems) * 100))
     : 0
 
-  const hasData = hasHours || hasTasks
-
-  let dotColor = '#71717a'
-  let overdueBadge = false
-  if (isOverdue) {
-    dotColor = '#ef4444'
-    overdueBadge = true
-  } else if (!hasData) {
-    dotColor = '#71717a'
-  } else if (execPct >= timePct - 10) {
-    dotColor = '#10b981'
-  } else if (execPct >= timePct - 25) {
-    dotColor = '#f59e0b'
-  } else {
-    dotColor = '#ef4444'
-  }
+  // Dot color: use healthCategory from DB if available, else fallback to local logic
+  const dotColor = healthCategory
+    ? healthColors[healthCategory]
+    : isOverdue ? '#ef4444'
+    : !hasTasks && !hasHours ? '#71717a'
+    : execPct >= timePct - 10 ? '#10b981'
+    : execPct >= timePct - 25 ? '#f59e0b'
+    : '#ef4444'
 
   const execLabel = hasHours
     ? `✅ ${execPct}% ejec.`
@@ -99,7 +108,7 @@ function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, co
       {/* Semáforo */}
       <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 2 }}>
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, boxShadow: `0 0 4px ${dotColor}` }} />
-        {overdueBadge && (
+        {isOverdue && healthCategory === 'CRITICO' && (
           <span style={{ fontSize: 8, fontWeight: 700, color: '#ef4444', letterSpacing: '0.05em', marginTop: 2 }}>
             VENCIDO
           </span>
@@ -107,15 +116,12 @@ function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, co
       </div>
       {/* Barras */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Etiqueta */}
         <div style={{ fontSize: 10, color: '#71717a', marginBottom: 5, whiteSpace: 'nowrap' }}>
           {`⏱ ${timePct}% tiempo  |  ${execLabel}`}
         </div>
-        {/* Barra tiempo transcurrido */}
         <div style={{ height: 5, background: '#27272a', borderRadius: 999, marginBottom: 4, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${timePct}%`, background: '#B0BEC5', borderRadius: 999, transition: 'width 0.3s' }} />
         </div>
-        {/* Barra avance ejecutado */}
         <div style={{ height: 5, background: '#27272a', borderRadius: 999, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${execPct}%`, background: '#1565C0', borderRadius: 999, transition: 'width 0.3s' }} />
         </div>
@@ -209,6 +215,7 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
           actualHours={project.actualHours}
           completedWorkItems={project.completedWorkItems}
           totalWorkItems={project._count?.workItems ?? 0}
+          healthCategory={project.healthCategory}
         />
       </div>
 
@@ -526,6 +533,7 @@ export function ProjectsPageClient() {
                         actualHours={p.actualHours}
                         completedWorkItems={p.completedWorkItems}
                         totalWorkItems={p._count?.workItems ?? 0}
+                        healthCategory={p.healthCategory}
                       />
                     </td>
                     <td className="px-4 py-3 text-sm text-zinc-400" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>

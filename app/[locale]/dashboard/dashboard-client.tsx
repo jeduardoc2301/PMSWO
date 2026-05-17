@@ -30,6 +30,8 @@ function statusLabel(s: ProjectStatus | string) {
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
+type HealthCategory = 'CRITICO' | 'EN_RIESGO' | 'A_TIEMPO' | 'SIN_ALERTAS'
+
 interface DashboardProject {
   id: string
   name: string
@@ -42,6 +44,10 @@ interface DashboardProject {
   criticalBlockers?: number
   highRisks?: number
   overdueWorkItems?: number
+  healthCategory?: HealthCategory
+  spi?: number | null
+  timeElapsedPct?: number
+  scheduleVariance?: number | null
 }
 
 // ─── KPI Panel (slide-over) ───────────────────────────────────────────────────
@@ -448,14 +454,11 @@ export function DashboardClient() {
   const inProgressProjects = projects.filter((p) => p.status !== ProjectStatus.COMPLETED && p.status !== ProjectStatus.ARCHIVED)
   const inProgressCount = inProgressProjects.length
 
-  // Categorías mutuamente exclusivas por prioridad — siempre suman inProgressCount
-  const hasRisk = (p: DashboardProject) =>
-    (p.criticalBlockers ?? 0) > 0 || (p.highRisks ?? 0) > 0 || (p.overdueWorkItems ?? 0) > 0
-
-  const criticoProjects   = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) > 0)
-  const enRiesgoProjects  = inProgressProjects.filter(p => (p.criticalBlockers ?? 0) === 0 && hasRisk(p))
-  const aTiempoProjects   = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) >= 70)
-  const sinAlertaProjects = inProgressProjects.filter(p => !hasRisk(p) && (p.completionRate ?? 0) < 70)
+  // Categorías vienen del backend (clasificación SPI desde BD)
+  const criticoProjects   = inProgressProjects.filter(p => p.healthCategory === 'CRITICO')
+  const enRiesgoProjects  = inProgressProjects.filter(p => p.healthCategory === 'EN_RIESGO')
+  const aTiempoProjects   = inProgressProjects.filter(p => p.healthCategory === 'A_TIEMPO')
+  const sinAlertaProjects = inProgressProjects.filter(p => p.healthCategory === 'SIN_ALERTAS')
 
   const critico   = criticoProjects.length
   const enRiesgo  = enRiesgoProjects.length
@@ -477,21 +480,21 @@ export function DashboardClient() {
     {
       label: 'En riesgo',
       value: enRiesgo + critico,
-      rule: 'Proyectos con al menos un bloqueador crítico activo, tareas vencidas, o riesgos marcados como altos.',
+      rule: 'CRÍTICO: tiene bloqueadores críticos sin resolver, o el SPI (avance real / avance esperado por tiempo) es < 0.50. EN RIESGO: tiene riesgos altos/críticos abiertos, SPI < 0.80, o más del 25% de las tareas están vencidas.',
       tone: 'rose',
       projects: [...criticoProjects, ...enRiesgoProjects],
     },
     {
       label: 'A tiempo',
       value: aTiempo,
-      rule: 'Proyectos sin ningún riesgo ni bloqueador, y con una tasa de completitud ≥ 70%.',
+      rule: 'Sin bloqueadores críticos ni riesgos altos, y SPI ≥ 0.90 (el avance real está dentro del 10% de lo esperado según el tiempo transcurrido). Si no hay datos de cronograma, se usa completitud ≥ 70%.',
       tone: 'emerald',
       projects: aTiempoProjects,
     },
     {
       label: 'Sin alertas',
       value: sinAlerta,
-      rule: 'Proyectos sin riesgos ni bloqueadores, pero con completitud < 70%. Aún no están en riesgo pero no han alcanzado el umbral de avance esperado.',
+      rule: 'Sin bloqueadores críticos ni riesgos altos, pero SPI entre 0.80 y 0.90 (ligeramente por debajo del ritmo esperado, sin ser una alerta formal). Proyectos a observar.',
       tone: 'amber',
       projects: sinAlertaProjects,
     },

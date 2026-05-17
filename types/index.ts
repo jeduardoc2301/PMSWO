@@ -180,6 +180,8 @@ export interface ExecutiveDashboard {
   projects: ProjectSummary[]
 }
 
+export type HealthCategory = 'CRITICO' | 'EN_RIESGO' | 'A_TIEMPO' | 'SIN_ALERTAS'
+
 export interface ProjectSummary {
   id: string
   name: string
@@ -190,6 +192,10 @@ export interface ProjectSummary {
   criticalBlockers: number
   highRisks: number
   overdueWorkItems: number
+  healthCategory: HealthCategory
+  spi: number | null
+  timeElapsedPct: number
+  scheduleVariance: number | null
 }
 
 export interface DashboardFilters {

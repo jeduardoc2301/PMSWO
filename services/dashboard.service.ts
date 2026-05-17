@@ -1,8 +1,8 @@
 import prisma from '@/lib/prisma'
 import { NotFoundError } from '@/lib/errors'
-import { 
-  ExecutiveDashboard, 
-  ProjectSummary, 
+import {
+  ExecutiveDashboard,
+  ProjectSummary,
   DashboardFilters,
   ProjectStatus,
   WorkItemStatus,
@@ -15,6 +15,7 @@ import {
   OrganizationMetrics,
   MetricsTrends
 } from '@/types'
+import { healthConfigService } from './health-config.service'
 
 export class DashboardService {
   /**
@@ -112,6 +113,9 @@ export class DashboardService {
       },
     })
 
+    // Load org health config (creates with defaults if not found)
+    const healthConfig = await healthConfigService.getConfig(orgId)
+
     // Calculate aggregate metrics
     let totalActiveProjects = 0
     let totalProjectsAtRisk = 0
@@ -122,6 +126,7 @@ export class DashboardService {
     let totalBlockerResolutionTimeMs = 0
     let totalResolvedBlockers = 0
 
+    const now = new Date()
     const projectSummaries: ProjectSummary[] = []
 
     for (const project of projects) {
@@ -140,10 +145,6 @@ export class DashboardService {
       totalWorkItems += projectTotalWorkItems
       totalCompletedWorkItems += projectCompletedWorkItems
 
-      const projectCompletionRate = projectTotalWorkItems > 0
-        ? (projectCompletedWorkItems / projectTotalWorkItems) * 100
-        : 0
-
       // Count active blockers
       const projectActiveBlockers = project.blockers.length
 
@@ -154,7 +155,7 @@ export class DashboardService {
 
       totalCriticalBlockers += projectCriticalBlockers
 
-      // Count high risks (HIGH and CRITICAL)
+      // Count high risks (HIGH and CRITICAL riskLevel, open)
       const projectHighRisks = project.risks.filter(
         (risk) => risk.riskLevel === RiskLevel.HIGH || risk.riskLevel === RiskLevel.CRITICAL
       ).length
@@ -162,44 +163,52 @@ export class DashboardService {
       totalHighRisks += projectHighRisks
 
       // Count overdue work items
-      const now = new Date()
       const projectOverdueWorkItems = projectWorkItems.filter(
-        (item) => 
-          item.status !== WorkItemStatus.DONE && 
+        (item) =>
+          item.status !== WorkItemStatus.DONE &&
           item.estimatedEndDate < now
       ).length
 
-      // Determine if project is at risk
-      // A project is at risk if it has:
-      // - Critical blockers, OR
-      // - High/critical risks, OR
-      // - Overdue work items, OR
-      // - Completion rate < 50% and past 75% of timeline
+      // Classify using DB-driven rules (SPI-aware)
+      const healthResult = healthConfigService.classifyProject(
+        {
+          startDate: project.startDate,
+          estimatedEndDate: project.estimatedEndDate,
+          totalWorkItems: projectTotalWorkItems,
+          completedWorkItems: projectCompletedWorkItems,
+          overdueWorkItems: projectOverdueWorkItems,
+          criticalBlockers: projectCriticalBlockers,
+          highRisks: projectHighRisks,
+        },
+        healthConfig
+      )
+
       const isAtRisk =
         project.status !== ProjectStatus.COMPLETED &&
         project.status !== ProjectStatus.ARCHIVED &&
-        (
-          projectCriticalBlockers > 0 ||
-          projectHighRisks > 0 ||
-          projectOverdueWorkItems > 0 ||
-          (projectCompletionRate < 50 && this.isProjectPastThreeQuartersTimeline(project))
-        )
+        (healthResult.category === 'CRITICO' || healthResult.category === 'EN_RIESGO')
 
       if (isAtRisk) {
         totalProjectsAtRisk++
       }
 
-      // Add project summary
+      // Add project summary with health data
       projectSummaries.push({
         id: project.id,
         name: project.name,
         client: project.client,
         status: project.status as ProjectStatus,
-        completionRate: Math.round(projectCompletionRate * 100) / 100,
+        completionRate: Math.round(healthResult.completionRate * 100) / 100,
         activeBlockers: projectActiveBlockers,
         criticalBlockers: projectCriticalBlockers,
         highRisks: projectHighRisks,
         overdueWorkItems: projectOverdueWorkItems,
+        healthCategory: healthResult.category,
+        spi: healthResult.spi !== null ? Math.round(healthResult.spi * 100) / 100 : null,
+        timeElapsedPct: Math.round(healthResult.timeElapsedPct * 100) / 100,
+        scheduleVariance: healthResult.scheduleVariance !== null
+          ? Math.round(healthResult.scheduleVariance * 100) / 100
+          : null,
       })
     }
 
@@ -239,15 +248,11 @@ export class DashboardService {
       averageBlockerResolutionTimeHours = averageResolutionTimeMs / (1000 * 60 * 60)
     }
 
-    // Sort projects by risk (projects at risk first, then by completion rate)
+    // Sort by health category priority, then by completion rate ascending
+    const categoryOrder: Record<string, number> = { CRITICO: 0, EN_RIESGO: 1, SIN_ALERTAS: 2, A_TIEMPO: 3 }
     projectSummaries.sort((a, b) => {
-      const aIsAtRisk = a.criticalBlockers > 0 || a.highRisks > 0 || a.overdueWorkItems > 0
-      const bIsAtRisk = b.criticalBlockers > 0 || b.highRisks > 0 || b.overdueWorkItems > 0
-
-      if (aIsAtRisk && !bIsAtRisk) return -1
-      if (!aIsAtRisk && bIsAtRisk) return 1
-
-      // If both at risk or both not at risk, sort by completion rate (ascending)
+      const diff = (categoryOrder[a.healthCategory] ?? 2) - (categoryOrder[b.healthCategory] ?? 2)
+      if (diff !== 0) return diff
       return a.completionRate - b.completionRate
     })
 

@@ -23,6 +23,7 @@ model Organization {
   templates                Template[]
   templateCategories       TemplateCategory[]
   portfolioHealthSnapshots PortfolioHealthSnapshot[]
+  projectHealthConfig      ProjectHealthConfig?
 
   @@map("organizations")
 }
@@ -398,4 +399,47 @@ model TemplateUsage {
   @@index([projectId])
   @@index([userId])
   @@map("template_usage")
+}
+
+// ─── Project Health Configuration ────────────────────────────────────────────
+// Stores per-organization rules for classifying project health.
+// Changing a value here propagates instantly to all dashboards and views.
+model ProjectHealthConfig {
+  id             String @id @default(uuid()) @db.Char(36)
+  organizationId String @unique @map("organization_id") @db.Char(36)
+
+  // ── BLOCKER rules ─────────────────────────────────────────────────────────
+  // How many unresolved CRITICAL blockers trigger CRÍTICO category
+  criticalBlockerMin    Int @default(1) @map("critical_blocker_min")
+
+  // ── RISK rules ────────────────────────────────────────────────────────────
+  // How many open HIGH/CRITICAL risks trigger EN RIESGO category
+  highRiskMin           Int @default(1) @map("high_risk_min")
+
+  // ── SCHEDULE PERFORMANCE INDEX (SPI) rules ────────────────────────────────
+  // SPI = completionRate / timeElapsedPct
+  // Only applied once >= spiMinElapsedPct of the project timeline has passed
+  // (avoids penalizing brand-new projects with no tasks done yet)
+  spiMinElapsedPct      Float @default(15.0) @map("spi_min_elapsed_pct")
+  // SPI below this → CRÍTICO (project completion is critically behind schedule)
+  criticalSpiThreshold  Float @default(0.50) @map("critical_spi_threshold")
+  // SPI below this → EN RIESGO
+  atRiskSpiThreshold    Float @default(0.80) @map("at_risk_spi_threshold")
+
+  // ── OVERDUE TASK rules ────────────────────────────────────────────────────
+  // If (overdueTaskCount / totalTasks * 100) >= this → EN RIESGO
+  // Using a percentage avoids penalizing large projects for 1–2 stale tasks
+  overdueTaskPctThreshold Float @default(25.0) @map("overdue_task_pct_threshold")
+
+  // ── A TIEMPO threshold ────────────────────────────────────────────────────
+  // If not critical/at-risk: SPI >= this → A TIEMPO, else → SIN ALERTAS
+  // (projects with no timeline data fall back to completionRate >= 70%)
+  onTrackSpiMin         Float @default(0.90) @map("on_track_spi_min")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("project_health_configs")
 }

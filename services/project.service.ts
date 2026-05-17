@@ -1,17 +1,18 @@
 import prisma from '@/lib/prisma'
 import { NotFoundError, ValidationError } from '@/lib/errors'
-import { 
-  ProjectStatus, 
-  KanbanColumnType, 
-  KanbanBoard, 
-  KanbanColumnWithItems, 
+import {
+  ProjectStatus,
+  KanbanColumnType,
+  KanbanBoard,
+  KanbanColumnWithItems,
   WorkItemSummary,
   ProjectMetrics,
   WorkItemStatus,
   RiskLevel,
-  UserRole
+  UserRole,
 } from '@/types'
 import { z } from 'zod'
+import { healthConfigService } from './health-config.service'
 
 // DTOs
 export interface CreateProjectDTO {
@@ -329,21 +330,96 @@ export class ProjectService {
       console.log('[ProjectService.queryProjects] Found projects:', projects.length)
       console.log('[ProjectService.queryProjects] Total count:', total)
 
-      // Single extra query to get completed work item counts per project
-      const completedCounts = projects.length > 0
-        ? await prisma.workItem.groupBy({
-            by: ['projectId'],
-            where: { projectId: { in: projects.map(p => p.id) }, status: 'DONE' },
-            _count: { id: true },
-          })
-        : []
+      const now = new Date()
+
+      // Batch aggregation queries for health classification
+      const projectIds = projects.map(p => p.id)
+
+      const [completedCounts, overdueCounts, criticalBlockerCounts, highRiskCounts, healthConfig] =
+        projects.length > 0
+          ? await Promise.all([
+              // Completed work items per project
+              prisma.workItem.groupBy({
+                by: ['projectId'],
+                where: { projectId: { in: projectIds }, status: 'DONE' },
+                _count: { id: true },
+              }),
+              // Overdue work items per project (not DONE, past estimatedEndDate)
+              prisma.workItem.groupBy({
+                by: ['projectId'],
+                where: {
+                  projectId: { in: projectIds },
+                  status: { not: 'DONE' },
+                  estimatedEndDate: { lt: now },
+                },
+                _count: { id: true },
+              }),
+              // Critical blockers per project (unresolved)
+              prisma.blocker.groupBy({
+                by: ['projectId'],
+                where: { projectId: { in: projectIds }, resolvedAt: null, severity: 'CRITICAL' },
+                _count: { id: true },
+              }),
+              // High/Critical risks per project (not CLOSED)
+              prisma.risk.groupBy({
+                by: ['projectId'],
+                where: {
+                  projectId: { in: projectIds },
+                  status: { not: 'CLOSED' },
+                  riskLevel: { in: ['HIGH', 'CRITICAL'] },
+                },
+                _count: { id: true },
+              }),
+              // Org health config (creates with defaults if missing)
+              healthConfigService.getConfig(organizationId),
+            ])
+          : [[], [], [], [], await healthConfigService.getConfig(organizationId)]
+
+      // Build lookup maps
       const completedByProject: Record<string, number> = {}
       for (const c of completedCounts) completedByProject[c.projectId] = c._count.id
 
-      const projectsWithCompletion = projects.map(p => ({
-        ...p,
-        completedWorkItems: completedByProject[p.id] ?? 0,
-      }))
+      const overdueByProject: Record<string, number> = {}
+      for (const c of overdueCounts) overdueByProject[c.projectId] = c._count.id
+
+      const criticalBlockersByProject: Record<string, number> = {}
+      for (const c of criticalBlockerCounts) criticalBlockersByProject[c.projectId] = c._count.id
+
+      const highRisksByProject: Record<string, number> = {}
+      for (const c of highRiskCounts) highRisksByProject[c.projectId] = c._count.id
+
+      const projectsWithCompletion = projects.map(p => {
+        const totalWorkItems = p._count.workItems
+        const completedWorkItems = completedByProject[p.id] ?? 0
+        const overdueWorkItems = overdueByProject[p.id] ?? 0
+        const criticalBlockers = criticalBlockersByProject[p.id] ?? 0
+        const highRisks = highRisksByProject[p.id] ?? 0
+
+        const healthResult = healthConfigService.classifyProject(
+          {
+            startDate: p.startDate,
+            estimatedEndDate: p.estimatedEndDate,
+            totalWorkItems,
+            completedWorkItems,
+            overdueWorkItems,
+            criticalBlockers,
+            highRisks,
+          },
+          healthConfig
+        )
+
+        return {
+          ...p,
+          completedWorkItems,
+          overdueWorkItems,
+          criticalBlockers,
+          highRisks,
+          healthCategory: healthResult.category,
+          spi: healthResult.spi,
+          timeElapsedPct: healthResult.timeElapsedPct,
+          scheduleVariance: healthResult.scheduleVariance,
+        }
+      })
 
       // Calculate pagination metadata
       const totalPages = Math.ceil(total / limit)
