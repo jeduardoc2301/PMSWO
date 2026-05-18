@@ -362,7 +362,13 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => {
+          const target = e.target as Element
+          if (target?.closest?.('[data-datepicker-popup="true"]')) e.preventDefault()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t('createDialog.title')}</DialogTitle>
         </DialogHeader>
@@ -466,7 +472,6 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
               <DatePicker
                 value={formData.estimatedEndDate}
                 onChange={(v) => handleFieldChange('estimatedEndDate', v)}
-                min={formData.startDate || undefined}
                 disabled={submitting}
               />
               {errors.estimatedEndDate && (

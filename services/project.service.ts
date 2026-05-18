@@ -634,6 +634,10 @@ export class ProjectService {
                 name: true,
               },
             },
+            blockers: {
+              where: { resolvedAt: null },
+              select: { id: true },
+            },
           },
           orderBy: [
             { templateOrder: 'asc' },
@@ -676,6 +680,8 @@ export class ProjectService {
         estimatedEndDate: item.estimatedEndDate.toISOString().split('T')[0],
         phase: item.phase,
         templateOrder: item.templateOrder,
+        activeBlockers: item.blockers.length,
+        lastUpdatedAt: item.updatedAt.toISOString(),
       }
     })
 

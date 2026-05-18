@@ -75,14 +75,25 @@ export function DatePicker({
     const onDoc = (e: MouseEvent) => {
       if (containerRef.current?.contains(e.target as Node)) return
       if (popRef.current?.contains(e.target as Node)) return
+      if ((e.target as Element)?.closest?.('[data-datepicker-popup="true"]')) return
       setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+
+    // Capture popup element now (popRef.current will be null during cleanup)
+    const popEl = popRef.current
+    // Stop mousedown from reaching the document listener so onDoc never fires
+    // for clicks inside the popup. Uses native DOM (not React synthetic) so it
+    // runs in the bubble phase before document receives the event.
+    const stopMousedown = (e: MouseEvent) => e.stopPropagation()
+    popEl?.addEventListener('mousedown', stopMousedown)
+
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
     document.addEventListener('mousedown', onDoc)
     window.addEventListener('keydown', onKey)
     return () => {
+      popEl?.removeEventListener('mousedown', stopMousedown)
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
       document.removeEventListener('mousedown', onDoc)
@@ -146,6 +157,7 @@ export function DatePicker({
     <div
       ref={popRef}
       className="dp-pop"
+      data-datepicker-popup="true"
       style={{ top: popPos.top, left: popPos.left, transformOrigin: popPos.openUp ? 'bottom left' : 'top left' }}
     >
       <div className="dp-header">
