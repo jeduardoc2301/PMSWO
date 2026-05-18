@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { KanbanBoard } from '@/components/projects/kanban-board'
 import { WorkItemsList } from '@/components/projects/work-items-list'
 import { BlockersTab } from '@/components/projects/blockers-tab'
@@ -115,6 +115,28 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const canCreateWorkItems = session?.user?.roles
     ? hasPermission(session.user.roles as UserRole[], Permission.WORK_ITEM_CREATE)
     : false
+  const canArchive = session?.user?.roles
+    ? hasPermission(session.user.roles as UserRole[], Permission.PROJECT_ARCHIVE)
+    : false
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.message || 'Error al eliminar el proyecto')
+      }
+      router.push(`/${locale}/projects`)
+    } catch (err) {
+      console.error(err)
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
 
   const handleCreateBlockerFromAI = (data: { workItemId: string; description: string; severity: string }) => {
     setBlockerDataFromAI(data); setActiveTab('blockers')
@@ -277,8 +299,62 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             style={{ background: '#6366f1' }}>
             <Pencil size={14} /> {t('editProject')}
           </button>
+          {canArchive && !project.archived && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+            >
+              <Trash2 size={14} /> Eliminar
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(3,3,5,0.72)', backdropFilter: 'blur(10px) saturate(140%)' }}>
+          <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+            style={{ background: '#0c0c0f', border: '1px solid #232327', boxShadow: '0 30px 80px -10px rgba(0,0,0,0.6)' }}>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                <AlertTriangle size={18} style={{ color: '#f87171' }} />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-white">Eliminar proyecto</h2>
+                <p className="text-sm text-zinc-400 mt-1">
+                  ¿Estás seguro que deseas eliminar <span className="text-white font-medium">{project.name}</span>?
+                  El proyecto quedará inactivo y no aparecerá en la lista. Esta acción se puede revertir.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-1">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="h-9 px-4 rounded-lg text-sm font-medium text-zinc-400 hover:text-white transition-all"
+                style={{ border: '1px solid #27272a' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 flex items-center gap-2"
+                style={{ background: '#ef4444' }}
+              >
+                {deleting ? (
+                  <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Eliminando...</>
+                ) : (
+                  <><Trash2 size={14} /> Confirmar eliminación</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="p-8 space-y-5">
         {/* Project info strip */}
