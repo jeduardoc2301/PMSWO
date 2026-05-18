@@ -83,9 +83,14 @@ export async function deleteAvatar(url: string): Promise<void> {
  */
 export async function getPresignedAvatarUrl(avatar: string | null | undefined, ttlSeconds = 86400): Promise<string | null> {
   if (!avatar) return null
-  const { BUCKET, client } = getS3Config()
-  if (!avatar.startsWith(`https://${BUCKET}.s3`)) return avatar
-  const key = avatar.split('.amazonaws.com/')[1]
-  if (!key) return null
-  return getSignedUrl(client, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn: ttlSeconds })
+  try {
+    const { BUCKET, client } = getS3Config()
+    if (!avatar.startsWith(`https://${BUCKET}.s3`)) return avatar
+    const key = avatar.split('.amazonaws.com/')[1]
+    if (!key) return null
+    return getSignedUrl(client, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn: ttlSeconds })
+  } catch {
+    // S3 not configured or presign failed — return avatar as-is so the rest of the response works
+    return avatar
+  }
 }
