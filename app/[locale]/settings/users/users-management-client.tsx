@@ -37,6 +37,8 @@ export function UsersManagementClient() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     name: '', roles: [] as UserRole[], active: true, avatar: '', password: '', confirmPassword: '',
@@ -94,6 +96,7 @@ export function UsersManagementClient() {
     setSelectedUser(user)
     setFormData({ name: user.name, roles: user.roles, active: user.active, avatar: '', password: '', confirmPassword: '' })
     setEditAvatarPreview(null)
+    setEditError(null)
     setEditDialogOpen(true)
     // Fetch individual user — returns presigned avatar URL
     const orgId = session?.user?.organizationId
@@ -142,7 +145,7 @@ export function UsersManagementClient() {
       setFormData((p) => ({ ...p, avatar: s3Url }))
     } catch (err) {
       setEditAvatarPreview(null)
-      alert(err instanceof Error ? err.message : 'Error al subir imagen')
+      setEditError(err instanceof Error ? err.message : 'Error al subir imagen')
     } finally {
       setSubmitting(false)
     }
@@ -152,11 +155,12 @@ export function UsersManagementClient() {
     e.preventDefault()
     if (!selectedUser) return
     if (formData.password && formData.password !== formData.confirmPassword) {
-      alert('Las contraseñas no coinciden')
+      setEditError('Las contraseñas no coinciden')
       return
     }
     try {
       setSubmitting(true)
+      setEditError(null)
       const orgId = session?.user?.organizationId
       if (!orgId) throw new Error('Organization ID not found')
       const payload: Record<string, any> = {
@@ -173,7 +177,7 @@ export function UsersManagementClient() {
       if (!res.ok) { let msg = 'Failed to update user'; try { const d = await res.json(); msg = d.message || msg } catch {} throw new Error(msg) }
       await fetchUsers(); setEditDialogOpen(false); setSelectedUser(null)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update user')
+      setEditError(err instanceof Error ? err.message : 'Failed to update user')
     } finally {
       setSubmitting(false)
     }
@@ -188,7 +192,7 @@ export function UsersManagementClient() {
       if (!res.ok) { let msg = 'Failed to deactivate user'; try { const d = await res.json(); msg = d.message || msg } catch {} throw new Error(msg) }
       await fetchUsers()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to deactivate user')
+      setError(err instanceof Error ? err.message : 'Failed to deactivate user')
     }
   }
 
@@ -196,6 +200,7 @@ export function UsersManagementClient() {
     e.preventDefault()
     try {
       setSubmitting(true)
+      setCreateError(null)
       const orgId = session?.user?.organizationId
       if (!orgId) throw new Error('Organization ID not found')
       const res = await fetch(`/api/v1/organizations/${orgId}/users`, {
@@ -217,7 +222,7 @@ export function UsersManagementClient() {
       }
       await fetchUsers(); setCreateDialogOpen(false); resetCreateForm()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create user')
+      setCreateError(err instanceof Error ? err.message : 'Failed to create user')
     } finally {
       setSubmitting(false)
     }
@@ -226,6 +231,7 @@ export function UsersManagementClient() {
   const resetCreateForm = () => {
     setCreateFormData({ email: '', name: '', password: '', roles: [], locale: Locale.ES, avatar: '' })
     setCreateAvatarPreview(null)
+    setCreateError(null)
   }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,7 +245,7 @@ export function UsersManagementClient() {
       setCreateFormData((p) => ({ ...p, avatar: s3Url }))
     } catch (err) {
       setCreateAvatarPreview(null)
-      alert(err instanceof Error ? err.message : 'Error al subir imagen')
+      setCreateError(err instanceof Error ? err.message : 'Error al subir imagen')
     } finally {
       setSubmitting(false)
     }
@@ -417,6 +423,11 @@ export function UsersManagementClient() {
               <DialogDescription className="text-zinc-500">{t('editUser')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {editError && (
+                <div className="rounded-lg px-3 py-2 text-sm text-rose-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  {editError}
+                </div>
+              )}
               {/* Avatar picker */}
               <div className="flex flex-col items-center gap-2 pb-2">
                 <button
@@ -521,6 +532,11 @@ export function UsersManagementClient() {
               <DialogDescription className="text-zinc-500">{t('createUser')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {createError && (
+                <div className="rounded-lg px-3 py-2 text-sm text-rose-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                  {createError}
+                </div>
+              )}
               {/* Avatar picker */}
               <div className="flex flex-col items-center gap-2 pb-2">
                 <button
