@@ -256,7 +256,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
       const startDate = new Date(formData.startDate)
       const endDate = new Date(formData.estimatedEndDate)
       
-      if (endDate <= startDate) {
+      if (endDate < startDate) {
         newErrors.estimatedEndDate = t('validation.endDateMustBeAfterStartDate', {
           defaultValue: 'La fecha de fin debe ser posterior a la fecha de inicio'
         })
@@ -333,7 +333,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
         const startDate = new Date(updatedFormData.startDate)
         const endDate = new Date(updatedFormData.estimatedEndDate)
         
-        if (endDate <= startDate) {
+        if (endDate < startDate) {
           setErrors(prev => ({
             ...prev,
             estimatedEndDate: t('validation.endDateMustBeAfterStartDate', {
@@ -363,17 +363,17 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+        className="sm:max-w-[600px] max-h-[90vh] overflow-hidden"
         onInteractOutside={(e) => {
           const target = e.target as Element
           if (target?.closest?.('[data-datepicker-popup="true"]')) e.preventDefault()
         }}
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{t('createDialog.title')}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto min-h-0 flex-1 pr-1">
           {errors.general && (
             <div className="rounded-md p-3 text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
               {errors.general}

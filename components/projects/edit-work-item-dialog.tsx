@@ -137,7 +137,7 @@ export function EditWorkItemDialog({
       const startDate = new Date(formData.startDate)
       const endDate = new Date(formData.estimatedEndDate)
       
-      if (endDate <= startDate) {
+      if (endDate < startDate) {
         setError(t('validation.endDateMustBeAfterStartDate', {
           defaultValue: 'La fecha de fin debe ser posterior a la fecha de inicio'
         }))

@@ -290,7 +290,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       projectFormSchema.parse(formData)
       const startDate = new Date(formData.startDate)
       const endDate = new Date(formData.estimatedEndDate)
-      if (endDate <= startDate) {
+      if (endDate < startDate) {
         setErrors({ estimatedEndDate: t('validation.endDateAfterStart') })
         return false
       }
@@ -433,11 +433,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* People section — only on creation */}
       {!isEditMode && (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
-          <div className="px-4 py-2.5" style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
+        <div className="rounded-xl" style={{ border: '1px solid #27272a' }}>
+          <div className="px-4 py-2.5 rounded-t-xl" style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Personas del proyecto</p>
           </div>
-          <div className="p-4 space-y-4" style={{ background: '#18181b' }}>
+          <div className="p-4 space-y-4 rounded-b-xl" style={{ background: '#18181b' }}>
             {/* Owner */}
             <SingleUserSelect
               label="Owner (responsable)"

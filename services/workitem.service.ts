@@ -82,7 +82,7 @@ export class WorkItemService {
     }
 
     // Validate date range
-    if (data.estimatedEndDate <= data.startDate) {
+    if (data.estimatedEndDate < data.startDate) {
       throw new ValidationError('Estimated end date must be after start date')
     }
 
@@ -401,7 +401,7 @@ export class WorkItemService {
     const startDate = data.startDate || existing.startDate
     const endDate = data.estimatedEndDate || existing.estimatedEndDate
 
-    if (endDate <= startDate) {
+    if (endDate < startDate) {
       throw new ValidationError('Estimated end date must be after start date')
     }
 
