@@ -11,13 +11,17 @@ function getHealthStatus(overdueRate: number, criticalBlockers: number, critical
 
 async function getConsultantsHandler(_req: NextRequest, _ctx: any, auth: AuthContext) {
   try {
-    const consultants = await prisma.user.findMany({
+    const allUsers = await prisma.user.findMany({
     where: {
       organizationId: auth.organizationId,
       active: true,
-      // roles is JSON array - filter in JS
     },
     select: { id: true, name: true, email: true, roles: true, avatar: true },
+  })
+
+  const consultants = allUsers.filter((u) => {
+    const roles = Array.isArray(u.roles) ? u.roles : []
+    return roles.includes(UserRole.INTERNAL_CONSULTANT)
   })
 
   const now = new Date()
