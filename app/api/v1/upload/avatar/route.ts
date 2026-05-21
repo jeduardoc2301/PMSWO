@@ -58,7 +58,14 @@ async function uploadAvatarHandler(
     } catch {}
     console.error('[UPLOAD-AVATAR] ERROR code:', code, '| message:', message)
 
-    return NextResponse.json({ error: 'UPLOAD_ERROR', message: `[${code || 'no-code'}] ${message}` }, { status: 500 })
+    if (message.includes('env var is not set') || message.includes('access key') || message.includes('secret key')) {
+      return NextResponse.json(
+        { error: 'SERVICE_UNAVAILABLE', message: 'La subida de avatares no está disponible en este entorno. Contacta al administrador.' },
+        { status: 503 }
+      )
+    }
+
+    return NextResponse.json({ error: 'INTERNAL_ERROR', message: `[${code || 'no-code'}] ${message}` }, { status: 500 })
   }
 }
 

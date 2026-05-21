@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
     AWS_REGION: process.env.APP_AWS_REGION ?? process.env.AWS_REGION ?? 'us-east-1',
     AWS_ACCESS_KEY_ID: process.env.APP_AWS_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID ?? '',
     AWS_SECRET_ACCESS_KEY: process.env.APP_AWS_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY ?? '',
+    APP_AWS_ACCESS_KEY_ID: process.env.APP_AWS_ACCESS_KEY_ID ?? '',
+    APP_AWS_SECRET_ACCESS_KEY: process.env.APP_AWS_SECRET_ACCESS_KEY ?? '',
+    APP_AWS_REGION: process.env.APP_AWS_REGION ?? 'us-east-1',
+    S3_AVATAR_BUCKET: process.env.S3_AVATAR_BUCKET ?? '',
+    S3_AVATAR_REGION: process.env.S3_AVATAR_REGION ?? 'us-east-1',
+    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME ?? '',
   },
   // Optimización de imágenes
   images: {
