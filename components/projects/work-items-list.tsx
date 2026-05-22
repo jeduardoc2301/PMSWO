@@ -41,6 +41,12 @@ const PRIORITY_STYLE: Record<WorkItemPriority, React.CSSProperties> = {
   [WorkItemPriority.LOW]: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' },
 }
 
+const formatDate = (date?: string) => {
+  if (!date) return '—'
+  const d = new Date(date)
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
 const inputStyle: React.CSSProperties = {
   background: '#111113',
   border: '1px solid #27272a',
@@ -93,6 +99,8 @@ function SortableRow({
         </span>
       </td>
       <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{item.ownerName}</td>
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{formatDate(item.startDate)}</td>
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{formatDate(item.estimatedEndDate)}</td>
       <td className="px-4 py-3.5 whitespace-nowrap text-right">
         <div className="flex items-center justify-end gap-1">
           <button onClick={() => onEdit(item)} className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all">
@@ -513,6 +521,8 @@ export function WorkItemsList({
                             <th style={thStyle}>{t('workItemStatus')}</th>
                             <th style={thStyle}>{t('workItemPriority')}</th>
                             <th style={thStyle}>{t('owner')}</th>
+                            <th style={thStyle}>Fecha Inicio</th>
+                            <th style={thStyle}>Fecha Final</th>
                             <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
                           </tr>
                         </thead>
@@ -551,13 +561,15 @@ export function WorkItemsList({
                   <th style={thStyle}>{t('workItemStatus')}</th>
                   <th style={thStyle}>{t('workItemPriority')}</th>
                   <th style={thStyle}>{t('owner')}</th>
+                  <th style={thStyle}>Fecha Inicio</th>
+                  <th style={thStyle}>Fecha Final</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredWorkItems.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '48px 24px', textAlign: 'center', color: '#71717a', fontSize: 14 }}>
+                    <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: '#71717a', fontSize: 14 }}>
                       {searchQuery || statusFilters.length > 0 || priorityFilters.length > 0
                         ? t('noResultsFound', { defaultValue: 'No se encontraron resultados' })
                         : t('noWorkItems')
@@ -588,6 +600,12 @@ export function WorkItemsList({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
                           {item.ownerName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          {formatDate(item.startDate)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          {formatDate(item.estimatedEndDate)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
