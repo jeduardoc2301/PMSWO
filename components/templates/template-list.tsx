@@ -50,7 +50,7 @@ export function TemplateList({
 
       const params = new URLSearchParams({
         page: '1',
-        limit: '200',
+        limit: '100',
         sortBy: sortByMap[sortBy] || 'NAME',
         sortOrder,
       })
