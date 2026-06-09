@@ -71,7 +71,7 @@ async function getConsultantDetailHandler(
   // Projects — include full fields for dual progress bar + detail lists
   const projectIds = [...new Set(workItems.map((w) => w.projectId))]
   const projects = await prisma.project.findMany({
-    where: { id: { in: projectIds } },
+    where: { id: { in: projectIds }, status: { in: ['ACTIVE', 'ON_HOLD'] } },
     include: {
       workItems: { where: { ownerId: id }, select: { status: true, estimatedEndDate: true } },
       blockers: { where: { resolvedAt: null }, select: { id: true, description: true, severity: true } },
