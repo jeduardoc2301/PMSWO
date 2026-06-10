@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { Permission, UserRole, ProjectHealthStatus } from '@/types'
 import prisma from '@/lib/prisma'
+import { getPresignedAvatarUrl } from '@/lib/s3/avatar'
 
 function getHealthStatus(overdueRate: number, criticalBlockers: number, criticalRisks: number): ProjectHealthStatus {
   if (overdueRate > 0.5 || criticalBlockers > 0 || criticalRisks > 0) return ProjectHealthStatus.CRITICAL
@@ -176,7 +177,7 @@ async function getConsultantDetailHandler(
     .sort((a, b) => new Date(a.agreementDate).getTime() - new Date(b.agreementDate).getTime())
 
   return NextResponse.json({
-    consultant: { id: consultant.id, name: consultant.name, email: consultant.email, avatar: consultant.avatar ?? null },
+    consultant: { id: consultant.id, name: consultant.name, email: consultant.email, avatar: await getPresignedAvatarUrl(consultant.avatar) },
     summary: {
       totalProjects: projects.length,
       activeProjects,
