@@ -37,8 +37,11 @@ const AWS_ACCESS_KEY_ID =
   process.env.APP_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID
 const AWS_SECRET_ACCESS_KEY =
   process.env.APP_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
-const BEDROCK_MODEL_ID =
-  process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-sonnet-20240229-v1:0'
+// Los modelos vigentes en Bedrock solo se invocan por perfil de inferencia
+// (prefijo `us.`); los IDs directos `anthropic.*` de la generación 3 están
+// retirados y responden ResourceNotFoundException.
+const DEFAULT_BEDROCK_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+const BEDROCK_MODEL_ID = process.env.BEDROCK_MODEL_ID || DEFAULT_BEDROCK_MODEL_ID
 const BEDROCK_GUARDRAIL_ID = process.env.BEDROCK_GUARDRAIL_ID
 const BEDROCK_GUARDRAIL_VERSION = process.env.BEDROCK_GUARDRAIL_VERSION || '1'
 
@@ -148,12 +151,18 @@ export class AIService {
       try {
         const client = this.getBedrockClient()
 
-        // Prepare the request payload for Claude 3
+        // Los modelos Claude 4+ rechazan `temperature` y `top_p` juntos con un
+        // ValidationException; Claude 3 los toleraba. Se manda uno solo:
+        // top_p si el llamador lo pidió explícitamente, temperature si no.
+        const sampling =
+          options.topP !== undefined
+            ? { top_p: options.topP }
+            : { temperature: options.temperature ?? 0.7 }
+
         const payload = {
           anthropic_version: 'bedrock-2023-05-31',
           max_tokens: options.maxTokens || 4096,
-          temperature: options.temperature || 0.7,
-          top_p: options.topP || 0.9,
+          ...sampling,
           messages: [
             {
               role: 'user',
@@ -162,7 +171,7 @@ export class AIService {
           ],
         }
 
-        const modelId = process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0'
+        const modelId = process.env.BEDROCK_MODEL_ID || DEFAULT_BEDROCK_MODEL_ID
         const input: InvokeModelCommandInput = {
           modelId,
           contentType: 'application/json',
