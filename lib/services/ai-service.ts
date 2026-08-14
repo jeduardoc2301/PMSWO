@@ -16,6 +16,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime'
 import prisma from '@/lib/prisma'
 import { AIServiceError, AIGuardrailsError } from '@/lib/errors'
+import type { ExecutiveBrief } from '@/lib/reports/project-report-docx'
 import { ReportDetailLevel } from '@/types'
 import {
   AIAnalysis,
@@ -466,6 +467,77 @@ Usa un tono profesional y sé conciso pero completo.`
       throw new AIServiceError(
         `Failed to analyze project: ${(error as Error).message}`
       )
+    }
+  }
+
+  /**
+   * Narrativa estructurada para el reporte ejecutivo en Word.
+   *
+   * A diferencia del reporte de texto, aquí se pide JSON: el documento tiene una
+   * retícula fija (rótulo de sección, titular, párrafos) y necesita las piezas
+   * separadas para maquetarlas, no un bloque de prosa. Las cifras se le entregan
+   * calculadas para que el modelo argumente sobre ellas en vez de inventarlas.
+   */
+  static async generateExecutiveBrief(facts: Record<string, unknown>): Promise<ExecutiveBrief> {
+    const prompt = `Eres el director de entrega de SoftwareOne y escribes el reporte que se presenta al comité directivo del cliente.
+
+DATOS DEL PROYECTO (ya calculados — úsalos, no inventes cifras):
+${JSON.stringify(facts, null, 2)}
+
+Escribe un reporte ejecutivo argumentado, no descriptivo. Reglas:
+- Cada sección abre con una afirmación, no con un rótulo genérico. "El diseño está cerrado; la ejecución no ha arrancado" sirve; "Estado del proyecto" no.
+- Prosa corrida en español neutro. Nada de viñetas ni markdown.
+- Cita las cifras que te di cuando sostengan el argumento. No uses ninguna que no esté en los datos.
+- Di lo que está mal con claridad y sin adornos. El comité necesita decidir, no tranquilizarse.
+- Cierra con peticiones concretas: qué decisión se necesita, de quién y para cuándo.
+
+Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
+{
+  "verdict": "En riesgo | Atención | En curso",
+  "deck": "una línea que sitúe el programa, máximo 20 palabras",
+  "lead": "párrafo de entrada de 2 a 3 frases con la lectura general",
+  "sections": [
+    {
+      "eyebrow": "RESUMEN EJECUTIVO",
+      "headline": "afirmación de 6 a 10 palabras",
+      "paragraphs": ["párrafo", "párrafo"]
+    }
+  ],
+  "asks": [
+    { "text": "decisión concreta que se pide", "owner": "a quién se le pide", "due": "plazo" }
+  ],
+  "note": "nota metodológica breve sobre el origen y las limitaciones de las cifras"
+}
+
+Entre 3 y 5 secciones, y entre 3 y 5 peticiones.`
+
+    const raw = await this.executeBedrockRequest<string>(prompt, {
+      maxTokens: 4096,
+      temperature: 0.4,
+    })
+
+    try {
+      let json = raw.trim()
+      if (json.startsWith('```')) {
+        json = json.replace(/```json?\n?/g, '').replace(/```\n?$/g, '')
+      }
+      // Algunos modelos anteponen una frase antes del objeto.
+      const first = json.indexOf('{')
+      const last = json.lastIndexOf('}')
+      if (first > 0 || last < json.length - 1) json = json.slice(first, last + 1)
+      const parsed = JSON.parse(json) as ExecutiveBrief
+      return {
+        verdict: parsed.verdict,
+        deck: parsed.deck,
+        lead: parsed.lead,
+        sections: Array.isArray(parsed.sections) ? parsed.sections.filter((s) => s?.headline) : [],
+        asks: Array.isArray(parsed.asks) ? parsed.asks.filter((a) => a?.text) : [],
+        note: parsed.note,
+      }
+    } catch (error) {
+      // El documento se sostiene solo con las cifras; la narrativa es un plus.
+      console.error('[AIService] Failed to parse executive brief:', error)
+      return {}
     }
   }
 

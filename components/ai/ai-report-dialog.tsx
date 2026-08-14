@@ -90,10 +90,9 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
       const response = await fetch('/api/v1/ai/generate-report/docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Se manda la narrativa ya generada: el documento lleva exactamente el
-        // mismo texto que el usuario tiene en pantalla, sin una segunda llamada
-        // al modelo.
-        body: JSON.stringify({ projectId, detailLevel, narrative: report ?? undefined }),
+        // El Word lleva su propia narrativa estructurada (secciones, titulares
+        // y peticiones al comité), que el servidor genera con las cifras reales.
+        body: JSON.stringify({ projectId, detailLevel }),
       })
 
       if (!response.ok) {

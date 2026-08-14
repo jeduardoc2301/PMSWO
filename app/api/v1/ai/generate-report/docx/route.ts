@@ -13,13 +13,13 @@ import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { Permission } from '@/types'
 import prisma from '@/lib/prisma'
 import { buildProjectReportDocx } from '@/lib/reports/project-report-docx'
+import { AIService } from '@/lib/services/ai-service'
 
 export const maxDuration = 60
 
 const schema = z.object({
   projectId: z.string().uuid('Invalid project ID format'),
   detailLevel: z.enum(['EXECUTIVE', 'DETAILED', 'COMPLETE']).default('DETAILED'),
-  narrative: z.string().max(120_000).optional(),
 })
 
 function fileName(projectName: string, now: Date) {
@@ -53,7 +53,7 @@ async function handler(
       )
     }
 
-    const { projectId, detailLevel, narrative } = parsed.data
+    const { projectId, detailLevel } = parsed.data
 
     const project = await prisma.project.findFirst({
       where: { id: projectId, organizationId: authContext.organizationId },
@@ -72,6 +72,55 @@ async function handler(
     }
 
     const now = new Date()
+
+    // Cifras calculadas aquí y entregadas al modelo: así argumenta sobre ellas
+    // en lugar de inventarlas, y el documento y la narrativa no se contradicen.
+    const items = project.workItems
+    const total = items.length
+    const done = items.filter((w) => w.status === 'DONE' || w.completedAt).length
+    const overdue = items
+      .filter((w) => w.status !== 'DONE' && !w.completedAt && w.estimatedEndDate < now)
+      .sort((a, b) => +a.estimatedEndDate - +b.estimatedEndDate)
+    const days = (a: Date, b: Date) => Math.round((+a - +b) / 86400000)
+    const totalDays = Math.max(1, days(project.estimatedEndDate, project.startDate))
+    const elapsed = Math.max(0, Math.min(totalDays, days(now, project.startDate)))
+    const scopePct = total ? (done / total) * 100 : 0
+    const timePct = (elapsed / totalDays) * 100
+
+    const brief = await AIService.generateExecutiveBrief({
+      proyecto: project.name,
+      cliente: project.client,
+      ventana: `${project.startDate.toISOString().slice(0, 10)} → ${project.estimatedEndDate.toISOString().slice(0, 10)}`,
+      diasTotales: totalDays,
+      diasTranscurridos: elapsed,
+      diasRestantes: Math.max(0, days(project.estimatedEndDate, now)),
+      tareasTotales: total,
+      tareasCerradas: done,
+      pctAlcance: Number(scopePct.toFixed(1)),
+      pctCalendario: Number(timePct.toFixed(1)),
+      indiceAvance: Number((timePct > 0 ? scopePct / timePct : 1).toFixed(2)),
+      tareasVencidas: overdue.length,
+      vencidasTop: overdue.slice(0, 10).map((w) => ({
+        tarea: w.title,
+        fase: w.phase,
+        diasAtraso: days(now, w.estimatedEndDate),
+      })),
+      porEstado: items.reduce<Record<string, number>>((acc, w) => {
+        acc[w.status] = (acc[w.status] ?? 0) + 1
+        return acc
+      }, {}),
+      bloqueosAbiertos: project.blockers
+        .filter((b) => !b.resolvedAt)
+        .map((b) => ({ descripcion: b.description, severidad: b.severity })),
+      riesgosAbiertos: project.risks
+        .filter((r) => r.status !== 'CLOSED')
+        .map((r) => ({ descripcion: r.description, nivel: r.riskLevel })),
+    }).catch((e) => {
+      // El documento se sostiene con las cifras aunque la narrativa falle.
+      console.error('[AI Report DOCX] brief failed, continuing without narrative:', e)
+      return {}
+    })
+
     const buffer = await buildProjectReportDocx({
       project: {
         name: project.name,
@@ -100,7 +149,7 @@ async function handler(
         riskLevel: r.riskLevel,
         status: r.status,
       })),
-      aiNarrative: narrative,
+      brief,
       detailLevel,
       generatedAt: now,
     })

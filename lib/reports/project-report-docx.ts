@@ -1,24 +1,23 @@
 /**
  * Reporte ejecutivo de proyecto en Word (.docx).
  *
- * Dirigido a PM y C-level: una plana de KPIs y gráficas al frente, el detalle
- * después. Se inspira en Template.dotx (paleta, tipografía y logo) sin heredar
- * su estructura, que está pensada para documentos largos.
+ * Replica la retícula editorial de "Reporte profesional para directivos.pdf"
+ * (templateProject): serif de transición, versalitas espaciadas en teal para los
+ * rótulos de sección, cifras grandes con acento magenta, filetes finos y mucho
+ * aire. Está pensado para PM y C-level: el argumento primero, el detalle después.
  *
- * Las gráficas se dibujan con tablas sombreadas de Word en lugar de imágenes:
- * no requieren binarios nativos (importa en Lambda), quedan nítidas a
- * cualquier zoom y el destinatario puede editarlas.
+ * Las gráficas se dibujan con tablas sombreadas de Word en vez de imágenes: no
+ * requieren binarios nativos (importa en Lambda), quedan nítidas a cualquier
+ * zoom y el destinatario puede editarlas.
  */
 import {
   AlignmentType,
   BorderStyle,
   Document,
   Footer,
-  Header,
   HeightRule,
   ImageRun,
   Packer,
-  PageNumber,
   Paragraph,
   ShadingType,
   Table,
@@ -32,11 +31,10 @@ import { SOFTWAREONE_LOGO_PNG } from './assets/logo'
 
 export type ReportDepth = 'EXECUTIVE' | 'DETAILED' | 'COMPLETE'
 
-/** Cuánto detalle acompaña a los KPIs, según el nivel elegido en la app. */
-const DEPTH: Record<ReportDepth, { phases: number; overdue: number; showRisks: boolean }> = {
-  EXECUTIVE: { phases: 5, overdue: 5, showRisks: true },
-  DETAILED: { phases: 8, overdue: 15, showRisks: true },
-  COMPLETE: { phases: 20, overdue: 60, showRisks: true },
+const DEPTH: Record<ReportDepth, { phases: number; overdue: number }> = {
+  EXECUTIVE: { phases: 6, overdue: 6 },
+  DETAILED: { phases: 12, overdue: 10 },
+  COMPLETE: { phases: 30, overdue: 40 },
 }
 
 export interface ReportWorkItem {
@@ -50,6 +48,16 @@ export interface ReportWorkItem {
   ownerName?: string
 }
 
+/** Narrativa estructurada que produce el modelo para este documento. */
+export interface ExecutiveBrief {
+  verdict?: string
+  deck?: string
+  lead?: string
+  sections?: { eyebrow: string; headline: string; paragraphs: string[] }[]
+  asks?: { text: string; owner?: string; due?: string }[]
+  note?: string
+}
+
 export interface ReportInput {
   project: {
     name: string
@@ -61,582 +69,892 @@ export interface ReportInput {
   workItems: ReportWorkItem[]
   blockers: { description: string; severity: string; resolvedAt?: Date | null }[]
   risks: { description: string; riskLevel: string; status: string }[]
-  /** Narrativa que produce el generador de reportes de la app. */
-  aiNarrative?: string
-  /** Nivel elegido en el diálogo; gobierna cuánto detalle acompaña a los KPIs. */
+  brief?: ExecutiveBrief
   detailLevel?: ReportDepth
   logo?: Buffer
   generatedAt?: Date
 }
 
-const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } as const
+// ── Primitivas ──────────────────────────────────────────────────────────────
+
+const NONE = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } as const
 const NO_BORDERS = {
-  top: NO_BORDER,
-  bottom: NO_BORDER,
-  left: NO_BORDER,
-  right: NO_BORDER,
-  insideHorizontal: NO_BORDER,
-  insideVertical: NO_BORDER,
+  top: NONE,
+  bottom: NONE,
+  left: NONE,
+  right: NONE,
+  insideHorizontal: NONE,
+  insideVertical: NONE,
+}
+const hair = (color: string = BRAND.rule, size = 4) => ({
+  style: BorderStyle.SINGLE,
+  size,
+  color,
+})
+
+/** pt → medios-puntos, que es lo que espera OOXML. */
+const pt = (n: number) => Math.round(n * 2)
+
+/**
+ * Ancho útil de la caja de texto en twips (carta menos los márgenes laterales).
+ * `columnWidths` de docx se expresa en DXA, no en porcentaje: pasarle 70 y 30
+ * produce columnas de 70 y 30 twips, y el texto se parte en cada palabra.
+ */
+const CONTENT_DXA = 9840
+const cols = (...pcts: number[]) => pcts.map((x) => Math.round((CONTENT_DXA * x) / 100))
+
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const fmtDate = (d: Date) => {
+  const x = new Date(d)
+  return `${String(x.getDate()).padStart(2, '0')} ${MONTHS[x.getMonth()]}`
+}
+const fmtLong = (d: Date) => {
+  const x = new Date(d)
+  return `${String(x.getDate()).padStart(2, '0')} ${MONTHS[x.getMonth()]} ${x.getFullYear()}`
+}
+/** Decimales con coma, como en el documento de referencia. */
+const num = (n: number, dec = 0) =>
+  n.toLocaleString('es-MX', { minimumFractionDigits: dec, maximumFractionDigits: dec })
+
+interface RunOpts {
+  size?: number
+  bold?: boolean
+  italics?: boolean
+  color?: string
+  font?: string
+  smallCaps?: boolean
+  spacing?: number
 }
 
-const fmtDate = (d: Date) =>
-  new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+const run = (text: string, o: RunOpts = {}) =>
+  new TextRun({
+    text,
+    size: pt(o.size ?? 10.9),
+    bold: o.bold,
+    italics: o.italics,
+    color: o.color ?? BRAND.ink,
+    font: o.font ?? BRAND.serif,
+    smallCaps: o.smallCaps,
+    characterSpacing: o.spacing,
+  })
 
-function text(
-  content: string,
+const para = (
+  children: TextRun[],
   o: {
-    size?: number
-    bold?: boolean
-    color?: string
+    after?: number
+    before?: number
     align?: (typeof AlignmentType)[keyof typeof AlignmentType]
-    spacing?: { before?: number; after?: number }
-    caps?: boolean
+    line?: number
   } = {}
-) {
-  return new Paragraph({
+) =>
+  new Paragraph({
     alignment: o.align,
-    spacing: o.spacing ?? { after: 80 },
-    children: [
-      new TextRun({
-        text: content,
-        size: (o.size ?? 10) * 2, // docx usa medios-puntos
-        bold: o.bold,
-        color: o.color ?? BRAND.body,
-        font: BRAND.font,
-        allCaps: o.caps,
+    spacing: { after: o.after ?? 140, before: o.before, line: o.line ?? 300 },
+    children,
+  })
+
+/** Rótulo de sección: «01 · RESUMEN EJECUTIVO» en versalitas espaciadas. */
+const eyebrow = (label: string, n?: number) =>
+  para(
+    [
+      run(n !== undefined ? `${String(n).padStart(2, '0')} · ${label}` : label, {
+        size: 8.2,
+        color: BRAND.teal,
+        smallCaps: true,
+        bold: true,
+        spacing: 24,
       }),
     ],
-  })
-}
+    { before: 420, after: 60 }
+  )
 
-function sectionTitle(label: string) {
-  return [
-    new Paragraph({
-      spacing: { before: 320, after: 0 },
-      children: [
-        new TextRun({ text: label, size: 26, bold: true, color: BRAND.ink, font: BRAND.font }),
-      ],
-    }),
-    // Regla de acento bajo el título
-    new Table({
-      width: { size: 12, type: WidthType.PERCENTAGE },
-      borders: NO_BORDERS,
-      rows: [
-        new TableRow({
-          height: { value: 40, rule: HeightRule.EXACT },
-          children: [
-            new TableCell({
-              shading: { type: ShadingType.CLEAR, fill: BRAND.primary, color: 'auto' },
-              borders: NO_BORDERS,
-              children: [new Paragraph({ children: [] })],
-            }),
-          ],
-        }),
-      ],
-    }),
-    new Paragraph({ spacing: { after: 120 }, children: [] }),
-  ]
-}
+const headline = (t: string, size = 20) =>
+  para([run(t, { size, color: BRAND.ink })], { after: 180, line: 264 })
 
-/** Barra proporcional compuesta por celdas sombreadas. */
-function bar(segments: { pct: number; color: string }[], heightTwips = 220) {
-  const clean = segments.filter((s) => s.pct > 0.01)
-  if (clean.length === 0) clean.push({ pct: 100, color: BRAND.hairline })
-  return new Table({
+const body = (t: string) =>
+  para([run(t, { size: 10.9, color: BRAND.ink })], { after: 150, line: 320 })
+
+const caption = (t: string) =>
+  para([run(t, { size: 8.6, color: BRAND.grayLight })], { before: 100, after: 220 })
+
+/** Filete horizontal a todo el ancho. */
+const rule = (color: string = BRAND.black, size = 12) =>
+  new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: NO_BORDERS,
-    columnWidths: clean.map((s) => Math.max(1, Math.round(s.pct * 100))),
+    columnWidths: [CONTENT_DXA],
+    borders: { ...NO_BORDERS, bottom: hair(color, size) },
     rows: [
       new TableRow({
-        height: { value: heightTwips, rule: HeightRule.EXACT },
-        children: clean.map(
-          (s) =>
-            new TableCell({
-              width: { size: Math.max(0.5, s.pct), type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.CLEAR, fill: s.color, color: 'auto' },
-              borders: NO_BORDERS,
-              children: [new Paragraph({ children: [] })],
-            })
-        ),
-      }),
-    ],
-  })
-}
-
-/** Tarjeta de KPI: número grande sobre etiqueta. */
-function kpiCell(value: string, label: string, accent: string) {
-  return new TableCell({
-    width: { size: 25, type: WidthType.PERCENTAGE },
-    margins: { top: 140, bottom: 140, left: 160, right: 160 },
-    shading: { type: ShadingType.CLEAR, fill: BRAND.surface, color: 'auto' },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 18, color: accent },
-      bottom: NO_BORDER,
-      left: NO_BORDER,
-      right: { style: BorderStyle.SINGLE, size: 6, color: BRAND.white },
-    },
-    children: [
-      new Paragraph({
-        spacing: { after: 20 },
+        height: { value: 1, rule: HeightRule.EXACT },
         children: [
-          new TextRun({ text: value, size: 40, bold: true, color: BRAND.ink, font: BRAND.font }),
-        ],
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: label,
-            size: 15,
-            color: BRAND.muted,
-            font: BRAND.font,
-            allCaps: true,
+          new TableCell({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { ...NO_BORDERS, bottom: hair(color, size) },
+            children: [new Paragraph({ spacing: { after: 0, line: 1 }, children: [] })],
           }),
         ],
       }),
     ],
   })
+
+/** Barra de progreso fina: relleno + canal. */
+function meter(pct: number, color: string, height = 90) {
+  const p = Math.max(0, Math.min(100, pct))
+  const cells: TableCell[] = []
+  const widths: number[] = []
+  const cell = (w: number, fill: string) =>
+    new TableCell({
+      width: { size: Math.max(0.4, w), type: WidthType.PERCENTAGE },
+      shading: { type: ShadingType.CLEAR, fill, color: 'auto' },
+      borders: NO_BORDERS,
+      children: [new Paragraph({ spacing: { after: 0, line: 1 }, children: [] })],
+    })
+  if (p > 0.4) {
+    cells.push(cell(p, color))
+    widths.push(Math.max(20, Math.round((CONTENT_DXA * p) / 100)))
+  }
+  if (p < 99.6) {
+    cells.push(cell(100 - p, BRAND.track))
+    widths.push(Math.max(20, Math.round((CONTENT_DXA * (100 - p)) / 100)))
+  }
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: NO_BORDERS,
+    columnWidths: widths,
+    rows: [new TableRow({ height: { value: height, rule: HeightRule.EXACT }, children: cells })],
+  })
 }
 
-function dataRow(cells: string[], o: { header?: boolean; zebra?: boolean } = {}) {
-  return new TableRow({
-    children: cells.map(
-      (c, i) =>
-        new TableCell({
-          margins: { top: 90, bottom: 90, left: 120, right: 120 },
-          shading: {
-            type: ShadingType.CLEAR,
-            fill: o.header ? BRAND.primary : o.zebra ? BRAND.surface : BRAND.white,
-            color: 'auto',
-          },
-          borders: {
-            ...NO_BORDERS,
-            bottom: { style: BorderStyle.SINGLE, size: 2, color: BRAND.hairline },
-          },
+/** Fila «etiqueta … valor» sobre una barra, como la Figura 1 del referente. */
+function meterRow(label: string, value: string, pctVal: number, color: string) {
+  return [
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: NO_BORDERS,
+      columnWidths: cols(72, 28),
+      rows: [
+        new TableRow({
           children: [
-            new Paragraph({
+            new TableCell({
+              borders: NO_BORDERS,
+              margins: { bottom: 40 },
+              children: [para([run(label, { size: 10.4 })], { after: 0 })],
+            }),
+            new TableCell({
+              borders: NO_BORDERS,
+              margins: { bottom: 40 },
               children: [
-                new TextRun({
-                  text: c,
-                  size: o.header ? 15 : 17,
-                  bold: o.header,
-                  color: o.header ? BRAND.white : BRAND.body,
-                  font: BRAND.font,
-                  allCaps: o.header,
+                para([run(value, { size: 10.4, bold: true })], {
+                  after: 0,
+                  align: AlignmentType.RIGHT,
                 }),
               ],
             }),
           ],
-        })
-    ),
-  })
+        }),
+      ],
+    }),
+    meter(pctVal, color, 100),
+    new Paragraph({ spacing: { after: 160 }, children: [] }),
+  ]
 }
+
+// ── Documento ───────────────────────────────────────────────────────────────
 
 export async function buildProjectReportDocx(input: ReportInput): Promise<Buffer> {
   const { project, workItems, blockers, risks } = input
   const now = input.generatedAt ?? new Date()
   const depth = DEPTH[input.detailLevel ?? 'DETAILED']
   const logo = input.logo ?? SOFTWAREONE_LOGO_PNG
+  const brief = input.brief ?? {}
 
   // ── Métricas ──────────────────────────────────────────────────────────────
   const total = workItems.length
   const isOpen = (w: ReportWorkItem) => w.status !== 'DONE' && !w.completedAt
   const done = workItems.filter((w) => w.status === 'DONE' || w.completedAt).length
-  const overdue = workItems.filter((w) => isOpen(w) && new Date(w.estimatedEndDate) < now)
-  const inProgress = workItems.filter((w) => w.status === 'IN_PROGRESS')
+  const overdue = workItems
+    .filter((w) => isOpen(w) && new Date(w.estimatedEndDate) < now)
+    .sort((a, b) => +new Date(a.estimatedEndDate) - +new Date(b.estimatedEndDate))
   const openBlockers = blockers.filter((b) => !b.resolvedAt)
   const openRisks = risks.filter((r) => r.status !== 'CLOSED')
-  const pct = total ? Math.round((done / total) * 100) : 0
 
+  const scopePct = total ? (done / total) * 100 : 0
   const start = new Date(project.startDate)
   const end = new Date(project.estimatedEndDate)
-  const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000))
-  const elapsed = Math.min(
-    totalDays,
-    Math.max(0, Math.round((now.getTime() - start.getTime()) / 86400000))
-  )
-  const remaining = Math.max(0, Math.round((end.getTime() - now.getTime()) / 86400000))
-  const timePct = Math.round((elapsed / totalDays) * 100)
-  // SPI simplificado: avance real contra avance esperado por calendario.
-  const spi = timePct > 0 ? pct / timePct : 1
+  const totalDays = Math.max(1, Math.round((+end - +start) / 86400000))
+  const elapsed = Math.max(0, Math.min(totalDays, Math.round((+now - +start) / 86400000)))
+  const remaining = Math.max(0, Math.round((+end - +now) / 86400000))
+  const timePct = (elapsed / totalDays) * 100
+  const spi = timePct > 0 ? scopePct / timePct : 1
+  const gapPP = Math.round(timePct - scopePct)
+  const worstOverdue = overdue.length
+    ? Math.floor((+now - +new Date(overdue[0].estimatedEndDate)) / 86400000)
+    : 0
 
-  const health =
-    openBlockers.length > 0 || spi < 0.8
-      ? { label: 'EN RIESGO', color: BRAND.danger }
-      : spi < 0.95
-        ? { label: 'ATENCIÓN', color: BRAND.warn }
-        : { label: 'EN CURSO', color: BRAND.ok }
+  const verdict =
+    brief.verdict ??
+    (openBlockers.length || spi < 0.8 ? 'En riesgo' : spi < 0.95 ? 'Atención' : 'En curso')
+  const verdictColor = verdict === 'En curso' ? BRAND.teal : BRAND.crimson
 
   const byStatus = STATUS_ORDER.map((s) => ({
-    key: s,
     ...STATUS_STYLE[s],
     n: workItems.filter((w) => w.status === s).length,
   })).filter((s) => s.n > 0)
 
-  // Fases con más pendientes, para no listar las 68 completas
   const phases = Array.from(
     workItems.reduce((m, w) => {
       const k = w.phase?.trim() || 'Sin fase'
-      const cur = m.get(k) ?? { total: 0, done: 0 }
-      cur.total++
-      if (w.status === 'DONE' || w.completedAt) cur.done++
-      m.set(k, cur)
+      const c = m.get(k) ?? { total: 0, done: 0 }
+      c.total++
+      if (w.status === 'DONE' || w.completedAt) c.done++
+      m.set(k, c)
       return m
     }, new Map<string, { total: number; done: number }>())
   )
-    .map(([name, v]) => ({ name, ...v, pct: Math.round((v.done / v.total) * 100) }))
+    .map(([name, v]) => ({ name, ...v, pct: (v.done / v.total) * 100 }))
     .sort((a, b) => a.pct - b.pct || b.total - a.total)
     .slice(0, depth.phases)
 
-  // ── Portada ───────────────────────────────────────────────────────────────
-  const cover: (Paragraph | Table)[] = []
-  if (logo) {
-    cover.push(
-      new Paragraph({
-        spacing: { after: 600 },
-        children: [
-          new ImageRun({
-            data: logo,
-            transformation: { width: 150, height: 53 },
-            type: 'png',
-          }),
-        ],
-      })
+  const children: (Paragraph | Table)[] = []
+
+  // ── Masthead ──────────────────────────────────────────────────────────────
+  children.push(
+    rule(BRAND.black, 18),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: { ...NO_BORDERS, bottom: hair(BRAND.black, 4) },
+      columnWidths: cols(40, 60),
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              borders: { ...NO_BORDERS, bottom: hair(BRAND.black, 4) },
+              margins: { top: 120, bottom: 120 },
+              children: [
+                new Paragraph({
+                  spacing: { after: 0, line: 240 },
+                  children: [
+                    new ImageRun({
+                      data: logo,
+                      transformation: { width: 104, height: 37 },
+                      type: 'png',
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            new TableCell({
+              borders: { ...NO_BORDERS, bottom: hair(BRAND.black, 4) },
+              margins: { top: 120, bottom: 120 },
+              children: [
+                para(
+                  [
+                    run('Reporte ejecutivo de proyecto', {
+                      size: 8.6,
+                      smallCaps: true,
+                      spacing: 22,
+                      color: BRAND.gray,
+                    }),
+                  ],
+                  { after: 20, align: AlignmentType.RIGHT }
+                ),
+                para(
+                  [
+                    run(`Corte al ${fmtLong(now)}`, {
+                      size: 8.6,
+                      smallCaps: true,
+                      spacing: 22,
+                      color: BRAND.gray,
+                    }),
+                  ],
+                  { after: 0, align: AlignmentType.RIGHT }
+                ),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 420 }, children: [] })
+  )
+
+  // ── Titular ───────────────────────────────────────────────────────────────
+  children.push(
+    para([run(project.name, { size: 27 })], { after: 0, line: 250 }),
+    para([run(`— ${project.client}`, { size: 27 })], { after: 260, line: 250 }),
+    para(
+      [
+        run(brief.deck ?? `Ventana ${fmtDate(start)} → ${fmtLong(end)}`, {
+          size: 13,
+          italics: true,
+          color: BRAND.teal,
+        }),
+      ],
+      { after: 340, line: 276 }
     )
+  )
+
+  // ── Veredicto + entrada ───────────────────────────────────────────────────
+  const lead =
+    brief.lead ??
+    `El proyecto ha consumido ${num(timePct)}% de su calendario y entregado ${num(scopePct)}% de su alcance. ` +
+      `Quedan ${remaining} días para la fecha comprometida.`
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: NO_BORDERS,
+      columnWidths: cols(30, 70),
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              borders: NO_BORDERS,
+              width: { size: 30, type: WidthType.PERCENTAGE },
+              margins: { right: 200 },
+              children: [
+                para([run(verdict, { size: 13, bold: true, color: verdictColor })], { after: 0 }),
+              ],
+            }),
+            new TableCell({
+              borders: NO_BORDERS,
+              children: [para([run(lead, { size: 11.2 })], { after: 0, line: 330 })],
+            }),
+          ],
+        }),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 400 }, children: [] })
+  )
+
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const kpis = [
+    {
+      value: `${num(scopePct)}%`,
+      label: 'Completitud',
+      note: `${done} de ${total} tareas cerradas`,
+      accent: BRAND.ink as string,
+    },
+    {
+      value: `${num(timePct)}%`,
+      label: 'Calendario',
+      note: `${elapsed} de ${totalDays} días consumidos`,
+      accent: BRAND.ink as string,
+    },
+    {
+      value: String(overdue.length),
+      label: 'Vencidas',
+      note: overdue.length ? `hasta ${worstOverdue} días de atraso` : 'sin atrasos',
+      accent: (overdue.length ? BRAND.crimson : BRAND.ink) as string,
+    },
+    {
+      value: num(spi, 2),
+      label: 'Índice de avance',
+      note: `meta ≥ 0,95 · ${remaining} días restantes`,
+      accent: (spi < 0.95 ? BRAND.crimson : BRAND.ink) as string,
+    },
+  ]
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: NO_BORDERS,
+      columnWidths: cols(25, 25, 25, 25),
+      rows: [
+        new TableRow({
+          children: kpis.map(
+            (k) =>
+              new TableCell({
+                width: { size: 25, type: WidthType.PERCENTAGE },
+                borders: NO_BORDERS,
+                margins: { right: 200 },
+                children: [
+                  para([run(k.value, { size: 23, color: k.accent })], { after: 40, line: 250 }),
+                  para(
+                    [
+                      run(k.label, {
+                        size: 8.2,
+                        smallCaps: true,
+                        bold: true,
+                        spacing: 22,
+                        color: BRAND.teal,
+                      }),
+                    ],
+                    { after: 40 }
+                  ),
+                  para([run(k.note, { size: 9.4, color: BRAND.gray })], { after: 0, line: 250 }),
+                ],
+              })
+          ),
+        }),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 300 }, children: [] })
+  )
+
+  // ── Secciones narrativas ──────────────────────────────────────────────────
+  let n = 1
+  const briefSections = brief.sections ?? []
+  const firstSections = briefSections.slice(0, 1)
+  const restSections = briefSections.slice(1)
+
+  for (const s of firstSections) {
+    children.push(eyebrow(s.eyebrow, n++), headline(s.headline))
+    s.paragraphs.forEach((p) => children.push(body(p)))
   }
-  cover.push(
+
+  // ── La brecha ─────────────────────────────────────────────────────────────
+  children.push(eyebrow('La brecha', n++), headline('Avance contra calendario'))
+  children.push(...meterRow('Alcance ejecutado', `${num(scopePct)}%`, scopePct, BRAND.crimson))
+  children.push(...meterRow('Calendario consumido', `${num(timePct)}%`, timePct, BRAND.ink))
+  children.push(
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: NO_BORDERS,
+      columnWidths: cols(64, 36),
       rows: [
         new TableRow({
           children: [
             new TableCell({
-              margins: { top: 420, bottom: 420, left: 360, right: 360 },
-              shading: { type: ShadingType.CLEAR, fill: BRAND.primary, color: 'auto' },
+              width: { size: 64, type: WidthType.PERCENTAGE },
+              borders: NO_BORDERS,
+              margins: { right: 260 },
+              children: [
+                para(
+                  [
+                    run(
+                      `Cada punto porcentual de brecha equivale a unos ${num(total / 100, 1)} work items no ejecutados: ` +
+                        `la brecha acumulada representa cerca de ${Math.round((gapPP * total) / 100)} tareas de retraso frente al plan.`,
+                      { size: 10.4 }
+                    ),
+                  ],
+                  { after: 0, line: 320 }
+                ),
+              ],
+            }),
+            new TableCell({
+              width: { size: 36, type: WidthType.PERCENTAGE },
               borders: NO_BORDERS,
               children: [
-                new Paragraph({
-                  spacing: { after: 120 },
-                  children: [
-                    new TextRun({
-                      text: 'Reporte ejecutivo de proyecto',
-                      size: 20,
-                      color: BRAND.white,
-                      font: BRAND.font,
-                      allCaps: true,
-                    }),
-                  ],
+                para([run(`${gapPP} pp`, { size: 23, color: BRAND.crimson })], {
+                  after: 20,
+                  align: AlignmentType.RIGHT,
+                  line: 250,
                 }),
-                new Paragraph({
-                  spacing: { after: 100 },
-                  children: [
-                    new TextRun({
-                      text: project.name,
-                      size: 48,
-                      bold: true,
-                      color: BRAND.white,
-                      font: BRAND.font,
-                    }),
-                  ],
-                }),
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: `${project.client}  ·  Corte al ${fmtDate(now)}`,
-                      size: 20,
-                      color: BRAND.white,
-                      font: BRAND.font,
-                    }),
-                  ],
-                }),
+                para(
+                  [run('de brecha', { size: 8.2, smallCaps: true, spacing: 22, color: BRAND.gray })],
+                  { after: 0, align: AlignmentType.RIGHT }
+                ),
               ],
             }),
           ],
         }),
       ],
     }),
-    new Paragraph({ spacing: { after: 300 }, children: [] }),
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: NO_BORDERS,
-      rows: [
-        new TableRow({
-          children: [
-            kpiCell(`${pct}%`, 'Completitud', BRAND.primary),
-            kpiCell(String(total), 'Tareas totales', BRAND.cyan),
-            kpiCell(String(overdue.length), 'Vencidas', overdue.length ? BRAND.danger : BRAND.ok),
-            kpiCell(String(openBlockers.length), 'Bloqueadores', openBlockers.length ? BRAND.danger : BRAND.ok),
-          ],
-        }),
-        new TableRow({ children: [new TableCell({ columnSpan: 4, borders: NO_BORDERS, children: [new Paragraph({ spacing: { after: 100 }, children: [] })] })] }),
-        new TableRow({
-          children: [
-            kpiCell(String(inProgress.length), 'En curso', BRAND.primary),
-            kpiCell(String(openRisks.length), 'Riesgos abiertos', openRisks.length ? BRAND.warn : BRAND.ok),
-            kpiCell(String(remaining), 'Días restantes', BRAND.teal),
-            kpiCell(spi.toFixed(2), 'Índice de avance', spi < 0.8 ? BRAND.danger : spi < 0.95 ? BRAND.warn : BRAND.ok),
-          ],
-        }),
-      ],
-    }),
-    new Paragraph({ spacing: { after: 320 }, children: [] }),
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: NO_BORDERS,
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 100, type: WidthType.PERCENTAGE },
-              margins: { top: 160, bottom: 160, left: 200, right: 200 },
-              shading: { type: ShadingType.CLEAR, fill: health.color, color: 'auto' },
-              borders: NO_BORDERS,
-              children: [
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: `ESTADO GENERAL: ${health.label}`,
-                      size: 22,
-                      bold: true,
-                      color: BRAND.white,
-                      font: BRAND.font,
-                    }),
-                  ],
-                }),
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: `Avance real ${pct}% contra ${timePct}% de calendario transcurrido · ${fmtDate(start)} → ${fmtDate(end)}`,
-                      size: 17,
-                      color: BRAND.white,
-                      font: BRAND.font,
-                    }),
-                  ],
-                }),
-              ],
-            }),
-          ],
-        }),
-      ],
-    })
+    caption(`Figura 1 · Avance de alcance contra consumo de calendario al ${fmtLong(now)}.`)
   )
 
-  // ── Cuerpo ────────────────────────────────────────────────────────────────
-  const body: (Paragraph | Table)[] = []
-
-  body.push(...sectionTitle('Avance general'))
-  body.push(
-    text(`${done} de ${total} tareas completadas`, { size: 10, color: BRAND.muted }),
-    bar(
-      [
-        { pct, color: BRAND.primary },
-        { pct: 100 - pct, color: BRAND.hairline },
-      ],
-      260
-    ),
-    new Paragraph({ spacing: { after: 60 }, children: [] }),
-    text(`Calendario transcurrido: ${timePct}% (${elapsed} de ${totalDays} días)`, {
-      size: 9,
-      color: BRAND.muted,
-    }),
-    bar(
-      [
-        { pct: timePct, color: BRAND.blueSoft },
-        { pct: 100 - timePct, color: BRAND.hairline },
-      ],
-      140
-    )
-  )
-
-  body.push(...sectionTitle('Distribución por estado'))
-  body.push(bar(byStatus.map((s) => ({ pct: (s.n / total) * 100, color: s.color })), 300))
-  body.push(new Paragraph({ spacing: { after: 100 }, children: [] }))
-  body.push(
+  // ── Portafolio por estado ─────────────────────────────────────────────────
+  children.push(eyebrow('El portafolio', n++), headline(`${num(total)} work items por estado`))
+  children.push(
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: NO_BORDERS,
+      columnWidths: cols(...byStatus.map(() => 100 / byStatus.length)),
       rows: [
         new TableRow({
           children: byStatus.map(
             (s) =>
               new TableCell({
-                borders: {
-                  ...NO_BORDERS,
-                  top: { style: BorderStyle.SINGLE, size: 18, color: s.color },
-                },
-                margins: { top: 100, bottom: 60, right: 120 },
+                borders: { ...NO_BORDERS, top: hair(s.color, 22) },
+                margins: { top: 90, right: 140 },
                 children: [
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: `${s.n}`,
-                        size: 22,
+                  para(
+                    [
+                      run(num(s.n), {
+                        size: 13,
                         bold: true,
-                        color: BRAND.ink,
-                        font: BRAND.font,
+                        color: s.color === 'D6D3D1' ? BRAND.ink : s.color,
                       }),
                     ],
+                    { after: 20, align: AlignmentType.CENTER }
+                  ),
+                  para([run(s.label, { size: 9.4, color: BRAND.ink })], {
+                    after: 10,
+                    align: AlignmentType.CENTER,
                   }),
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: s.label,
-                        size: 14,
-                        color: BRAND.muted,
-                        font: BRAND.font,
-                      }),
-                    ],
+                  para([run(`${num((s.n / total) * 100, 1)}%`, { size: 8.6, color: BRAND.grayLight })], {
+                    after: 0,
+                    align: AlignmentType.CENTER,
                   }),
                 ],
               })
           ),
         }),
       ],
-    })
+    }),
+    caption('Figura 2 · Distribución de los work items del portafolio.')
   )
 
-  if (phases.length) {
-    body.push(...sectionTitle('Fases con menor avance'))
-    for (const ph of phases) {
-      body.push(
-        new Paragraph({
-          spacing: { before: 100, after: 40 },
-          children: [
-            new TextRun({ text: ph.name, size: 17, color: BRAND.body, font: BRAND.font }),
-            new TextRun({
-              text: `   ${ph.pct}%  (${ph.done}/${ph.total})`,
-              size: 15,
-              bold: true,
-              color: BRAND.muted,
-              font: BRAND.font,
-            }),
-          ],
-        }),
-        bar(
-          [
-            { pct: ph.pct, color: ph.pct < 25 ? BRAND.danger : ph.pct < 60 ? BRAND.warn : BRAND.primary },
-            { pct: 100 - ph.pct, color: BRAND.hairline },
-          ],
-          130
-        )
-      )
-    }
-  }
-
+  // ── Atrasos ───────────────────────────────────────────────────────────────
   if (overdue.length) {
-    body.push(...sectionTitle('Tareas vencidas'))
-    const rows = [dataRow(['Tarea', 'Fase', 'Vencimiento', 'Días', 'Responsable'], { header: true })]
-    overdue
-      .sort((a, b) => +new Date(a.estimatedEndDate) - +new Date(b.estimatedEndDate))
-      .slice(0, depth.overdue)
-      .forEach((w, i) =>
-        rows.push(
-          dataRow(
-            [
-              w.title,
-              w.phase ?? '—',
-              fmtDate(w.estimatedEndDate),
-              String(Math.floor((now.getTime() - +new Date(w.estimatedEndDate)) / 86400000)),
-              w.ownerName ?? '—',
-            ],
-            { zebra: i % 2 === 1 }
-          )
-        )
-      )
-    body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows }))
-    if (overdue.length > depth.overdue) {
-      body.push(text(`… y ${overdue.length - depth.overdue} más.`, { size: 9, color: BRAND.muted }))
-    }
-  }
-
-  if (openBlockers.length || openRisks.length) {
-    body.push(...sectionTitle('Bloqueadores y riesgos'))
-    const rows = [dataRow(['Tipo', 'Descripción', 'Severidad / Nivel'], { header: true })]
-    openBlockers.forEach((b, i) =>
-      rows.push(dataRow(['Bloqueador', b.description, b.severity], { zebra: i % 2 === 1 }))
+    const shown = overdue.slice(0, depth.overdue)
+    const maxLate = Math.max(
+      1,
+      ...shown.map((w) => Math.floor((+now - +new Date(w.estimatedEndDate)) / 86400000))
     )
-    openRisks.forEach((r, i) =>
-      rows.push(dataRow(['Riesgo', r.description, r.riskLevel], { zebra: (openBlockers.length + i) % 2 === 1 }))
+    children.push(
+      eyebrow('Atrasos', n++),
+      headline(overdue.length === 1 ? 'Una tarea vencida' : `${num(overdue.length)} tareas vencidas`)
     )
-    body.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows }))
-  }
-
-  if (input.aiNarrative?.trim()) {
-    body.push(...sectionTitle('Análisis'))
-    for (const line of input.aiNarrative.trim().split('\n')) {
-      const t = line.trim()
-      if (!t) {
-        body.push(new Paragraph({ spacing: { after: 60 }, children: [] }))
-        continue
-      }
-      const isHeading = /^#{1,6}\s/.test(t)
-      const isBullet = /^[-*•]\s/.test(t)
-      body.push(
-        new Paragraph({
-          spacing: { after: 60 },
-          bullet: isBullet ? { level: 0 } : undefined,
+    const rows: TableRow[] = [
+      new TableRow({
+        children: ['Tarea', 'Fase', 'Vence', 'Atraso'].map(
+          (h, i) =>
+            new TableCell({
+              borders: { ...NO_BORDERS, bottom: hair(BRAND.ink, 8) },
+              margins: { bottom: 90, right: 140 },
+              children: [
+                para([run(h, { size: 8.2, smallCaps: true, spacing: 22, color: BRAND.gray })], {
+                  after: 0,
+                  align: i >= 2 ? AlignmentType.RIGHT : AlignmentType.LEFT,
+                }),
+              ],
+            })
+        ),
+      }),
+    ]
+    shown.forEach((w) => {
+      const late = Math.floor((+now - +new Date(w.estimatedEndDate)) / 86400000)
+      const strong = late >= Math.max(14, maxLate * 0.4)
+      rows.push(
+        new TableRow({
           children: [
-            new TextRun({
-              text: t.replace(/^#{1,6}\s*/, '').replace(/^[-*•]\s*/, '').replace(/\*\*/g, ''),
-              size: isHeading ? 20 : 17,
-              bold: isHeading,
-              color: isHeading ? BRAND.ink : BRAND.body,
-              font: BRAND.font,
+            new TableCell({
+              width: { size: 42, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 100, bottom: 100, right: 140 },
+              children: [para([run(w.title, { size: 10.4 })], { after: 0, line: 270 })],
+            }),
+            new TableCell({
+              width: { size: 26, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 100, bottom: 100, right: 140 },
+              children: [
+                para([run(w.phase ?? '—', { size: 10, color: BRAND.gray })], { after: 0, line: 270 }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 14, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 100, bottom: 100, right: 140 },
+              children: [
+                para([run(fmtDate(w.estimatedEndDate), { size: 10, color: BRAND.gray })], {
+                  after: 0,
+                  align: AlignmentType.RIGHT,
+                }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 18, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 100, bottom: 100 },
+              children: [
+                // Barra y cifra en la misma línea, como la Tabla 1 del referente.
+                new Table({
+                  width: { size: 100, type: WidthType.PERCENTAGE },
+                  borders: NO_BORDERS,
+                  columnWidths: cols(13, 5),
+                  rows: [
+                    new TableRow({
+                      children: [
+                        new TableCell({
+                          borders: NO_BORDERS,
+                          margins: { top: 40, right: 100 },
+                          children: [
+                            meter((late / maxLate) * 100, strong ? BRAND.crimson : BRAND.ink, 70),
+                          ],
+                        }),
+                        new TableCell({
+                          borders: NO_BORDERS,
+                          children: [
+                            para(
+                              [
+                                run(String(late), {
+                                  size: 10,
+                                  bold: strong,
+                                  color: strong ? BRAND.crimson : BRAND.ink,
+                                }),
+                              ],
+                              { after: 0, align: AlignmentType.RIGHT }
+                            ),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
             }),
           ],
         })
       )
-    }
+    })
+    children.push(
+      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows })
+    )
+    children.push(
+      caption(
+        `Tabla 1 · Días de atraso al ${fmtLong(now)}.` +
+          (overdue.length > depth.overdue
+            ? ` Se listan las ${depth.overdue} más antiguas de ${overdue.length}.`
+            : '')
+      )
+    )
   }
 
-  // ── Documento ─────────────────────────────────────────────────────────────
-  const footer = new Footer({
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.RIGHT,
-        children: [
-          new TextRun({
-            text: `${project.client} · Confidencial · Página `,
-            size: 14,
-            color: BRAND.muted,
-            font: BRAND.font,
-          }),
-          new TextRun({ children: [PageNumber.CURRENT], size: 14, color: BRAND.muted, font: BRAND.font }),
-        ],
-      }),
-    ],
-  })
+  // ── Frentes de trabajo ────────────────────────────────────────────────────
+  if (phases.length) {
+    children.push(eyebrow('Frentes de trabajo', n++), headline('Preparación por frente'))
+    const rows = phases.map(
+      (ph) =>
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 42, type: WidthType.PERCENTAGE },
+              borders: NO_BORDERS,
+              margins: { top: 70, bottom: 70, right: 160 },
+              children: [para([run(ph.name, { size: 10 })], { after: 0, line: 260 })],
+            }),
+            new TableCell({
+              width: { size: 40, type: WidthType.PERCENTAGE },
+              borders: NO_BORDERS,
+              margins: { top: 130, bottom: 70, right: 160 },
+              children: [meter(ph.pct, ph.pct === 0 ? BRAND.track : BRAND.teal, 70)],
+            }),
+            new TableCell({
+              width: { size: 18, type: WidthType.PERCENTAGE },
+              borders: NO_BORDERS,
+              margins: { top: 70, bottom: 70 },
+              children: [
+                para([run(`${ph.done}/${ph.total}`, { size: 9.4, color: BRAND.grayLight })], {
+                  after: 0,
+                  align: AlignmentType.RIGHT,
+                }),
+              ],
+            }),
+          ],
+        })
+    )
+    children.push(
+      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows })
+    )
+    children.push(caption('Figura 3 · Preparación por frente de trabajo.'))
+  }
 
+  // ── Riesgos y gobernanza ──────────────────────────────────────────────────
+  children.push(
+    eyebrow('Riesgos y gobernanza', n++),
+    headline(
+      openBlockers.length || openRisks.length
+        ? `${openBlockers.length} bloqueos y ${openRisks.length} riesgos abiertos`
+        : 'Cero riesgos y cero bloqueos registrados'
+    )
+  )
+  if (openBlockers.length || openRisks.length) {
+    const rows: TableRow[] = [
+      new TableRow({
+        children: ['Tipo', 'Descripción', 'Nivel'].map(
+          (h) =>
+            new TableCell({
+              borders: { ...NO_BORDERS, bottom: hair(BRAND.ink, 8) },
+              margins: { bottom: 90, right: 140 },
+              children: [
+                para([run(h, { size: 8.2, smallCaps: true, spacing: 22, color: BRAND.gray })], {
+                  after: 0,
+                }),
+              ],
+            })
+        ),
+      }),
+    ]
+    const add = (tipo: string, desc: string, nivel: string) =>
+      rows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 18, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 100, bottom: 100, right: 140 },
+              children: [para([run(tipo, { size: 10 })], { after: 0, line: 270 })],
+            }),
+            new TableCell({
+              width: { size: 62, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 100, bottom: 100, right: 140 },
+              children: [para([run(desc, { size: 10, color: BRAND.gray })], { after: 0, line: 270 })],
+            }),
+            new TableCell({
+              width: { size: 20, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 100, bottom: 100 },
+              children: [
+                para(
+                  [
+                    run(nivel, {
+                      size: 10,
+                      color: /alta|high|critical|crítica/i.test(nivel) ? BRAND.crimson : BRAND.gray,
+                    }),
+                  ],
+                  { after: 0 }
+                ),
+              ],
+            }),
+          ],
+        })
+      )
+    openBlockers.slice(0, 10).forEach((b) => add('Bloqueo', b.description, b.severity))
+    openRisks.slice(0, 10).forEach((r) => add('Riesgo', r.description, r.riskLevel))
+    children.push(
+      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows })
+    )
+  } else {
+    children.push(
+      body(
+        'No hay riesgos ni bloqueos registrados en el tablero. En un programa de esta escala, ' +
+          'la ausencia de registro es en sí misma un hallazgo de gobernanza que conviene atender.'
+      )
+    )
+  }
+
+  // ── Resto de la narrativa ─────────────────────────────────────────────────
+  for (const s of restSections) {
+    children.push(eyebrow(s.eyebrow, n++), headline(s.headline))
+    s.paragraphs.forEach((p) => children.push(body(p)))
+  }
+
+  // ── Decisiones solicitadas ────────────────────────────────────────────────
+  if (brief.asks?.length) {
+    children.push(eyebrow('Decisiones solicitadas', n++), headline('Lo que pedimos al comité'))
+    const rows = brief.asks.map(
+      (a, i) =>
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 8, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 140, bottom: 140 },
+              children: [
+                para([run(String(i + 1), { size: 15, bold: true, color: BRAND.teal })], { after: 0 }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 62, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 140, bottom: 140, right: 200 },
+              children: [para([run(a.text, { size: 10.9 })], { after: 0, line: 300 })],
+            }),
+            new TableCell({
+              width: { size: 30, type: WidthType.PERCENTAGE },
+              borders: { ...NO_BORDERS, bottom: hair() },
+              margins: { top: 140, bottom: 140 },
+              children: [
+                para([run(a.owner ?? '—', { size: 9.4, color: BRAND.gray })], {
+                  after: 10,
+                  align: AlignmentType.RIGHT,
+                }),
+                para([run(a.due ?? '', { size: 9.4, color: BRAND.gray })], {
+                  after: 0,
+                  align: AlignmentType.RIGHT,
+                }),
+              ],
+            }),
+          ],
+        })
+    )
+    children.push(
+      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows })
+    )
+    children.push(rule(BRAND.ink, 12))
+  }
+
+  // ── Nota metodológica ─────────────────────────────────────────────────────
+  children.push(
+    eyebrow('Nota metodológica'),
+    para(
+      [
+        run(
+          brief.note ??
+            `Cifras del tablero del proyecto con corte al ${fmtLong(now)}. El índice de avance compara alcance ` +
+              `ejecutado contra calendario consumido; una lectura por debajo de 0,95 indica que la entrega va detrás del plan.`,
+          { size: 9.4, color: BRAND.gray }
+        ),
+      ],
+      { after: 0, line: 280 }
+    )
+  )
+
+  // ── Ensamble ──────────────────────────────────────────────────────────────
   const doc = new Document({
     creator: 'SoftwareOne',
     title: `Reporte ejecutivo — ${project.name}`,
-    styles: { default: { document: { run: { font: BRAND.font, color: BRAND.body } } } },
+    styles: {
+      default: { document: { run: { font: BRAND.serif, color: BRAND.ink, size: pt(10.9) } } },
+    },
     sections: [
       {
-        properties: { page: { margin: { top: 900, bottom: 900, left: 900, right: 900 } } },
-        children: cover,
-      },
-      {
-        properties: { page: { margin: { top: 900, bottom: 900, left: 900, right: 900 } } },
-        headers: {
-          default: new Header({
+        properties: { page: { margin: { top: 1100, bottom: 900, left: 1200, right: 1200 } } },
+        footers: {
+          default: new Footer({
             children: [
-              new Paragraph({
-                alignment: AlignmentType.RIGHT,
-                children: [
-                  new TextRun({
-                    text: project.name,
-                    size: 14,
-                    color: BRAND.muted,
-                    font: BRAND.font,
+              rule(BRAND.rule, 4),
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: NO_BORDERS,
+                columnWidths: cols(55, 45),
+                rows: [
+                  new TableRow({
+                    children: [
+                      new TableCell({
+                        borders: NO_BORDERS,
+                        margins: { top: 90 },
+                        children: [
+                          para(
+                            [
+                              run(`SoftwareOne · Reporte ejecutivo para ${project.client}`, {
+                                size: 8.2,
+                                smallCaps: true,
+                                spacing: 20,
+                                color: BRAND.grayLight,
+                              }),
+                            ],
+                            { after: 0 }
+                          ),
+                        ],
+                      }),
+                      new TableCell({
+                        borders: NO_BORDERS,
+                        margins: { top: 90 },
+                        children: [
+                          para(
+                            [
+                              run(`${project.name} · ${fmtLong(now)}`, {
+                                size: 8.2,
+                                smallCaps: true,
+                                spacing: 20,
+                                color: BRAND.grayLight,
+                              }),
+                            ],
+                            { after: 0, align: AlignmentType.RIGHT }
+                          ),
+                        ],
+                      }),
+                    ],
                   }),
                 ],
               }),
             ],
           }),
         },
-        footers: { default: footer },
-        children: body,
+        children,
       },
     ],
   })
