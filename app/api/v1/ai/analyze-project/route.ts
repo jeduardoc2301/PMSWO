@@ -124,6 +124,12 @@ async function analyzeProjectHandler(
   }
 }
 
+// Red de seguridad: la llamada a Bedrock puede pasarse del límite por defecto
+// de la función. Si se agota, la plataforma corta la ejecución y responde 500
+// sin que ningún catch alcance a correr. No sustituye a mantener el prompt
+// acotado, que es lo que de verdad evita llegar aquí.
+export const maxDuration = 60
+
 // Export POST handler with authentication middleware and AI_USE permission
 export const POST = withAuth(analyzeProjectHandler, {
   requiredPermissions: [Permission.AI_USE],

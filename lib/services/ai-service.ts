@@ -25,10 +25,18 @@ import {
   OverdueItemSuggestion,
 } from '@/types/ai'
 
-// Bedrock configuration from environment variables
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1'
-const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID
-const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY
+// Bedrock configuration from environment variables.
+//
+// Amplify reserva los nombres que empiezan con AWS_, así que no se pueden
+// definir como variables propias: en runtime traen las credenciales temporales
+// del rol de ejecución de la Lambda, que no sirven para Bedrock (y exigen
+// session token). Por eso se prefieren las APP_AWS_*, igual que en lib/s3.
+const AWS_REGION =
+  process.env.APP_AWS_REGION || process.env.AWS_REGION || 'us-east-1'
+const AWS_ACCESS_KEY_ID =
+  process.env.APP_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID
+const AWS_SECRET_ACCESS_KEY =
+  process.env.APP_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
 const BEDROCK_MODEL_ID =
   process.env.BEDROCK_MODEL_ID || 'anthropic.claude-3-sonnet-20240229-v1:0'
 const BEDROCK_GUARDRAIL_ID = process.env.BEDROCK_GUARDRAIL_ID
@@ -98,19 +106,27 @@ export class AIService {
    * Get or create Bedrock client instance
    */
   private static getBedrockClient(): BedrockRuntimeClient {
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
-    const region = process.env.AWS_REGION || 'us-east-1'
+    const accessKeyId = AWS_ACCESS_KEY_ID
+    const secretAccessKey = AWS_SECRET_ACCESS_KEY
+    const region = AWS_REGION
 
     if (!accessKeyId || !secretAccessKey) {
       throw new AIServiceError(
-        'AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.'
+        'AWS credentials not configured. Set APP_AWS_ACCESS_KEY_ID and APP_AWS_SECRET_ACCESS_KEY environment variables.'
       )
     }
 
+    // El session token solo aplica a credenciales temporales; con claves de
+    // usuario IAM no existe y debe quedar fuera.
+    const sessionToken =
+      process.env.APP_AWS_SESSION_TOKEN ||
+      (accessKeyId === process.env.AWS_ACCESS_KEY_ID
+        ? process.env.AWS_SESSION_TOKEN
+        : undefined)
+
     return new BedrockRuntimeClient({
       region,
-      credentials: { accessKeyId, secretAccessKey },
+      credentials: { accessKeyId, secretAccessKey, sessionToken },
     })
   }
 
@@ -449,12 +465,72 @@ Usa un tono profesional y sé conciso pero completo.`
    */
   private static buildAnalysisPrompt(project: ProjectData): string {
     const now = new Date()
-    const overdueWorkItems = project.workItems.filter(
-      (wi) =>
-        wi.status !== 'DONE' &&
-        new Date(wi.estimatedEndDate) < now &&
-        !wi.completedAt
+    const day = (d: Date) => new Date(d).toISOString().split('T')[0]
+    const open = (wi: ProjectData['workItems'][number]) =>
+      wi.status !== 'DONE' && !wi.completedAt
+
+    const overdue = project.workItems.filter(
+      (wi) => open(wi) && new Date(wi.estimatedEndDate) < now
     )
+    const blocked = project.workItems.filter((wi) => wi.status === 'BLOCKED')
+    const inProgress = project.workItems.filter((wi) => wi.status === 'IN_PROGRESS')
+
+    const soonLimit = new Date(now.getTime() + 14 * 86400000)
+    const dueSoon = project.workItems.filter(
+      (wi) =>
+        open(wi) &&
+        new Date(wi.estimatedEndDate) >= now &&
+        new Date(wi.estimatedEndDate) <= soonLimit
+    )
+
+    // Un plan de cientos de tareas no cabe en el prompt sin agotar el tiempo de
+    // la función. El análisis solo necesita lo que requiere acción; el resto va
+    // agregado para dar contexto de tamaño y calendario.
+    const RELEVANT_LIMIT = 60
+    const relevant: typeof project.workItems = []
+    const vistos = new Set<string>()
+    for (const grupo of [overdue, blocked, inProgress, dueSoon]) {
+      for (const wi of grupo) {
+        if (vistos.has(wi.id) || relevant.length >= RELEVANT_LIMIT) continue
+        vistos.add(wi.id)
+        relevant.push(wi)
+      }
+    }
+
+    const porEstado = project.workItems.reduce<Record<string, number>>((acc, wi) => {
+      acc[wi.status] = (acc[wi.status] || 0) + 1
+      return acc
+    }, {})
+
+    const etiqueta = (wi: ProjectData['workItems'][number]) => {
+      if (new Date(wi.estimatedEndDate) < now && open(wi)) {
+        const dias = Math.floor((now.getTime() - new Date(wi.estimatedEndDate).getTime()) / 86400000)
+        return ` [VENCIDA hace ${dias} d]`
+      }
+      if (wi.status === 'BLOCKED') return ' [BLOQUEADA]'
+      if (wi.status === 'IN_PROGRESS') return ' [EN CURSO]'
+      return ' [VENCE PRONTO]'
+    }
+
+    const detalle = relevant.length
+      ? relevant
+          .map(
+            (wi) =>
+              `- ID: ${wi.id}, Título: ${wi.title}, Estado: ${wi.status}, Prioridad: ${wi.priority}, Fecha estimada: ${day(wi.estimatedEndDate)}, Responsable: ${wi.owner.name}${etiqueta(wi)}`
+          )
+          .join('\n')
+      : 'Ninguna tarea vencida, bloqueada, en curso ni por vencer en los próximos 14 días.'
+
+    const resumen = [
+      `- Total de tareas: ${project.workItems.length}`,
+      `- Por estado: ${Object.entries(porEstado).map(([k, v]) => `${k}=${v}`).join(', ')}`,
+      `- Vencidas: ${overdue.length} · Bloqueadas: ${blocked.length} · En curso: ${inProgress.length} · Vencen en 14 días: ${dueSoon.length}`,
+      relevant.length < overdue.length + blocked.length + inProgress.length + dueSoon.length
+        ? `- Nota: se listan las ${relevant.length} más urgentes de ${overdue.length + blocked.length + inProgress.length + dueSoon.length} que requieren atención.`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n')
 
     return `
 Analiza el siguiente proyecto y proporciona sugerencias proactivas en formato JSON.
@@ -465,8 +541,11 @@ Analiza el siguiente proyecto y proporciona sugerencias proactivas en formato JS
 **Fecha de inicio:** ${project.startDate.toISOString().split('T')[0]}
 **Fecha estimada de finalización:** ${project.estimatedEndDate.toISOString().split('T')[0]}
 
-**Work Items:**
-${project.workItems.map((wi) => `- ID: ${wi.id}, Título: ${wi.title}, Estado: ${wi.status}, Prioridad: ${wi.priority}, Fecha estimada: ${wi.estimatedEndDate.toISOString().split('T')[0]}, Responsable: ${wi.owner.name}`).join('\n')}
+**Resumen del plan:**
+${resumen}
+
+**Work items que requieren atención** (vencidos, bloqueados, en curso o por vencer):
+${detalle}
 
 **Blockers activos:**
 ${project.blockers.filter((b) => !b.resolvedAt).map((b) => `- ID: ${b.id}, Descripción: ${b.description}, Severidad: ${b.severity}, Work Item: ${b.workItem.title}`).join('\n') || 'Ninguno'}
@@ -509,7 +588,7 @@ IMPORTANTE:
 - El campo "title" en overdueItems es donde va el título del work item.
 
 Analiza:
-1. Work items atrasados (${overdueWorkItems.length} encontrados)
+1. Work items atrasados (${overdue.length} encontrados)
 2. Blockers que requieren atención
 3. Riesgos potenciales no identificados
 4. Sugerencias de reasignación o ajuste de fechas
