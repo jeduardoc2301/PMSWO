@@ -24,6 +24,7 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  VerticalAlign,
   WidthType,
 } from 'docx'
 import { BRAND, STATUS_ORDER, STATUS_STYLE } from './brand'
@@ -46,6 +47,8 @@ export interface ReportWorkItem {
   estimatedEndDate: Date
   completedAt?: Date | null
   ownerName?: string
+  /** Posición en el plan; ordena las fases igual que en el tablero. */
+  templateOrder?: number | null
 }
 
 /** Narrativa estructurada que produce el modelo para este documento. */
@@ -225,6 +228,88 @@ function meter(pct: number, color: string, height = 90) {
   })
 }
 
+/**
+ * Gráfico de columnas. Cada barra es una tabla anidada de altura exacta dentro
+ * de una celda alineada al fondo, así la columna crece hacia arriba desde la
+ * línea base como en un gráfico de barras normal.
+ */
+function columnChart(
+  data: { label: string; value: number; pct: number; color: string }[],
+  height = 1500
+) {
+  const max = Math.max(1, ...data.map((d) => d.value))
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: NO_BORDERS,
+    columnWidths: cols(...data.map(() => 100 / data.length)),
+    rows: [
+      new TableRow({
+        height: { value: height, rule: HeightRule.EXACT },
+        children: data.map(
+          (d) =>
+            new TableCell({
+              borders: { ...NO_BORDERS, bottom: hair(BRAND.ink, 6) },
+              verticalAlign: VerticalAlign.BOTTOM,
+              margins: { left: 120, right: 120 },
+              children: [
+                new Table({
+                  width: { size: 100, type: WidthType.PERCENTAGE },
+                  borders: NO_BORDERS,
+                  rows: [
+                    new TableRow({
+                      height: {
+                        value: Math.max(14, Math.round((height - 60) * (d.value / max))),
+                        rule: HeightRule.EXACT,
+                      },
+                      children: [
+                        new TableCell({
+                          width: { size: 100, type: WidthType.PERCENTAGE },
+                          shading: { type: ShadingType.CLEAR, fill: d.color, color: 'auto' },
+                          borders: NO_BORDERS,
+                          children: [
+                            new Paragraph({ spacing: { after: 0, line: 1 }, children: [] }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            })
+        ),
+      }),
+      new TableRow({
+        children: data.map(
+          (d) =>
+            new TableCell({
+              borders: NO_BORDERS,
+              margins: { top: 100 },
+              children: [
+                para(
+                  [
+                    run(num(d.value), {
+                      size: 13,
+                      bold: true,
+                      // Los neutros claros no se leen como texto: la cifra va en
+                      // negro y el color queda solo en la columna.
+                      color: /^[D-F]/i.test(d.color) ? BRAND.ink : d.color,
+                    }),
+                  ],
+                  { after: 20, align: AlignmentType.CENTER }
+                ),
+                para([run(d.label, { size: 9.4 })], { after: 10, align: AlignmentType.CENTER }),
+                para([run(`${num(d.pct, 1)}%`, { size: 8.6, color: BRAND.grayLight })], {
+                  after: 0,
+                  align: AlignmentType.CENTER,
+                }),
+              ],
+            })
+        ),
+      }),
+    ],
+  })
+}
+
 /** Fila «etiqueta … valor» sobre una barra, como la Figura 1 del referente. */
 function meterRow(label: string, value: string, pctVal: number, color: string) {
   return [
@@ -304,15 +389,18 @@ export async function buildProjectReportDocx(input: ReportInput): Promise<Buffer
   const phases = Array.from(
     workItems.reduce((m, w) => {
       const k = w.phase?.trim() || 'Sin fase'
-      const c = m.get(k) ?? { total: 0, done: 0 }
+      const c = m.get(k) ?? { total: 0, done: 0, seq: Number.MAX_SAFE_INTEGER }
       c.total++
       if (w.status === 'DONE' || w.completedAt) c.done++
+      c.seq = Math.min(c.seq, w.templateOrder ?? Number.MAX_SAFE_INTEGER)
       m.set(k, c)
       return m
-    }, new Map<string, { total: number; done: number }>())
+    }, new Map<string, { total: number; done: number; seq: number }>())
   )
     .map(([name, v]) => ({ name, ...v, pct: (v.done / v.total) * 100 }))
-    .sort((a, b) => a.pct - b.pct || b.total - a.total)
+    // En el orden del plan: el `templateOrder` más bajo de sus tareas. Ordenar
+    // por avance dejaba el desempate al azar cuando todas están en 0%.
+    .sort((a, b) => a.seq - b.seq || a.name.localeCompare(b.name, 'es', { numeric: true }))
     .slice(0, depth.phases)
 
   const children: (Paragraph | Table)[] = []
@@ -555,43 +643,16 @@ export async function buildProjectReportDocx(input: ReportInput): Promise<Buffer
   // ── Portafolio por estado ─────────────────────────────────────────────────
   children.push(eyebrow('El portafolio', n++), headline(`${num(total)} work items por estado`))
   children.push(
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: NO_BORDERS,
-      columnWidths: cols(...byStatus.map(() => 100 / byStatus.length)),
-      rows: [
-        new TableRow({
-          children: byStatus.map(
-            (s) =>
-              new TableCell({
-                borders: { ...NO_BORDERS, top: hair(s.color, 22) },
-                margins: { top: 90, right: 140 },
-                children: [
-                  para(
-                    [
-                      run(num(s.n), {
-                        size: 13,
-                        bold: true,
-                        color: s.color === 'D6D3D1' ? BRAND.ink : s.color,
-                      }),
-                    ],
-                    { after: 20, align: AlignmentType.CENTER }
-                  ),
-                  para([run(s.label, { size: 9.4, color: BRAND.ink })], {
-                    after: 10,
-                    align: AlignmentType.CENTER,
-                  }),
-                  para([run(`${num((s.n / total) * 100, 1)}%`, { size: 8.6, color: BRAND.grayLight })], {
-                    after: 0,
-                    align: AlignmentType.CENTER,
-                  }),
-                ],
-              })
-          ),
-        }),
-      ],
-    }),
+    columnChart(
+      byStatus.map((st) => ({
+        label: st.label,
+        value: st.n,
+        pct: (st.n / total) * 100,
+        color: st.color,
+      }))
+    ),
     caption('Figura 2 · Distribución de los work items del portafolio.')
+
   )
 
   // ── Atrasos ───────────────────────────────────────────────────────────────

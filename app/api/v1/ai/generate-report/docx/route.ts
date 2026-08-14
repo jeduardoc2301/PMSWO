@@ -138,6 +138,7 @@ async function handler(
         estimatedEndDate: w.estimatedEndDate,
         completedAt: w.completedAt,
         ownerName: w.owner?.name,
+        templateOrder: w.templateOrder,
       })),
       blockers: project.blockers.map((b) => ({
         description: b.description,
