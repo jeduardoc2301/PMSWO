@@ -172,11 +172,19 @@ export function withAuth<T = any>(
         }
       }
 
-      // Generic server error
+      // Generic server error. Se incluye nombre y mensaje para poder
+      // distinguir un fallo del middleware de uno del handler o de la
+      // plataforma; nunca el stack.
+      const err = error as Error
       return NextResponse.json(
         {
           error: 'Internal Server Error',
           message: 'An error occurred while processing your request.',
+          source: 'withAuth',
+          detail: {
+            name: err?.name ?? null,
+            message: err?.message ?? String(error),
+          },
         },
         { status: 500 }
       )

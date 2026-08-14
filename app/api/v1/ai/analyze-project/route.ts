@@ -108,16 +108,30 @@ async function analyzeProjectHandler(
         {
           error: 'AI Service Error',
           message: error.message,
+          source: 'analyze-project:ai-service',
         },
         { status: 503 }
       )
     }
 
-    // Generic error
+    // Detalle del error en la respuesta: es una herramienta interna detrás de
+    // autenticación, y sin esto un 500 es indistinguible desde el navegador de
+    // uno emitido por la plataforma. Solo nombre y mensaje, nunca el stack.
+    const err = error as Error & {
+      $metadata?: { httpStatusCode?: number }
+      code?: string
+    }
     return NextResponse.json(
       {
         error: 'Internal Server Error',
         message: 'Failed to analyze project',
+        source: 'analyze-project:handler',
+        detail: {
+          name: err?.name ?? null,
+          message: err?.message ?? String(error),
+          code: err?.code ?? null,
+          awsStatus: err?.$metadata?.httpStatusCode ?? null,
+        },
       },
       { status: 500 }
     )
