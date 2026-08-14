@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Loader2, Copy, Check, Sparkles } from 'lucide-react'
+import { Loader2, Copy, Check, Sparkles, FileDown } from 'lucide-react'
 
 type ReportDetailLevel = 'EXECUTIVE' | 'DETAILED' | 'COMPLETE'
 
@@ -37,6 +37,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
   const [report, setReport] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null)
+  const [downloading, setDownloading] = useState(false)
 
   const handleGenerateReport = async () => {
     try {
@@ -80,6 +81,41 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       alert('Failed to copy to clipboard')
+    }
+  }
+
+  const handleDownloadWord = async () => {
+    try {
+      setDownloading(true)
+      const response = await fetch('/api/v1/ai/generate-report/docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Se manda la narrativa ya generada: el documento lleva exactamente el
+        // mismo texto que el usuario tiene en pantalla, sin una segunda llamada
+        // al modelo.
+        body: JSON.stringify({ projectId, detailLevel, narrative: report ?? undefined }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || t('errors.generateReportFailed'))
+      }
+
+      const blob = await response.blob()
+      const disposition = response.headers.get('Content-Disposition') ?? ''
+      const suggested = /filename="([^"]+)"/.exec(disposition)?.[1]
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = suggested || `reporte-${projectId}.docx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('errors.generateReportFailed'))
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -163,24 +199,44 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                 <p className="text-sm text-[#71717a]">
                   {t('report.generatedAt')}: {generatedAt?.toLocaleString()}
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyToClipboard}
-                  className="gap-2"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      {t('copied')}
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      {t('copyToClipboard')}
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyToClipboard}
+                    className="gap-2"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        {t('copied')}
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        {t('copyToClipboard')}
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleDownloadWord}
+                    disabled={downloading}
+                    className="gap-2"
+                  >
+                    {downloading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {t('generating')}
+                      </>
+                    ) : (
+                      <>
+                        <FileDown className="h-4 w-4" />
+                        {t('downloadWord')}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
