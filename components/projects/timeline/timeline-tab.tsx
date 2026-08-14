@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   GanttChart, Layers, Flag, ShieldAlert, CircleDot,
   ZoomIn, ZoomOut, CheckCircle2, PlayCircle, AlertTriangle,
+  ChevronRight, ChevronDown, ChevronsDownUp, ChevronsUpDown,
 } from 'lucide-react'
 import { WorkItemSummary, WorkItemStatus, WorkItemPriority } from '@/types'
 
@@ -40,16 +41,21 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
   const [granularity, setGranularity] = useState<Granularity>('month')
   const [zoom, setZoom] = useState(1)
 
+  // Fases plegadas por defecto: un plan de cientos de tareas es ilegible
+  // desplegado. El conjunto guarda solo las que el usuario abrió.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const toggle = useCallback((name: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(name)) next.add(name)
+      return next
+    })
+  }, [])
+
   const projStart = useMemo(() => parseDate(project.startDate), [project.startDate])
   const projEnd   = useMemo(() => parseDate(project.estimatedEndDate), [project.estimatedEndDate])
   const projDays  = Math.max(1, (projEnd.getTime() - projStart.getTime()) / 86400000)
   const today     = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d }, [])
-
-  // pos() — % of total project window
-  const pos = (date: Date) =>
-    ((date.getTime() - projStart.getTime()) / (projEnd.getTime() - projStart.getTime())) * 100
-
-  const todayPct = pos(today)
 
   // Group work items by phase
   const phases = useMemo(() => {
@@ -87,22 +93,54 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
     })
   }, [workItems, phases, projStart, projEnd, projDays])
 
+  // Rango que debe cubrir el eje: la ventana del proyecto más cualquier tarea
+  // que se salga de ella, para que ninguna barra quede recortada en los bordes.
+  const [rangeStart, rangeEnd] = useMemo(() => {
+    let s = projStart, e = projEnd
+    for (const w of enriched) {
+      if (w._start < s) s = w._start
+      if (w._end > e) e = w._end
+    }
+    return [s, e]
+  }, [enriched, projStart, projEnd])
+
   // Timeline columns
   const cols = useMemo(() => {
     const out: Date[] = []
     if (granularity === 'week') {
-      const cur = new Date(projStart)
+      const cur = new Date(rangeStart)
       cur.setDate(cur.getDate() - ((cur.getDay() + 6) % 7)) // monday
-      while (cur <= projEnd) { out.push(new Date(cur)); cur.setDate(cur.getDate() + 7) }
+      while (cur <= rangeEnd) { out.push(new Date(cur)); cur.setDate(cur.getDate() + 7) }
     } else if (granularity === 'quarter') {
-      const cur = new Date(projStart.getFullYear(), Math.floor(projStart.getMonth() / 3) * 3, 1)
-      while (cur <= projEnd) { out.push(new Date(cur)); cur.setMonth(cur.getMonth() + 3) }
+      const cur = new Date(rangeStart.getFullYear(), Math.floor(rangeStart.getMonth() / 3) * 3, 1)
+      while (cur <= rangeEnd) { out.push(new Date(cur)); cur.setMonth(cur.getMonth() + 3) }
     } else {
-      const cur = new Date(projStart.getFullYear(), projStart.getMonth(), 1)
-      while (cur <= projEnd) { out.push(new Date(cur)); cur.setMonth(cur.getMonth() + 1) }
+      const cur = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1)
+      while (cur <= rangeEnd) { out.push(new Date(cur)); cur.setMonth(cur.getMonth() + 1) }
     }
     return out
-  }, [granularity, projStart, projEnd])
+  }, [granularity, rangeStart, rangeEnd])
+
+  // El eje debe cubrir columnas COMPLETAS y no la ventana del proyecto: las
+  // columnas empiezan el día 1 del primer mes y terminan al cerrar el último.
+  // Si pos() se anclara a projStart/projEnd, un 8-dic caería en el 100% del
+  // ancho — es decir, dibujado sobre el 31-dic.
+  const axisStart = cols[0] ?? rangeStart
+  const axisEnd = useMemo(() => {
+    const last = cols[cols.length - 1]
+    if (!last) return rangeEnd
+    const e = new Date(last)
+    if (granularity === 'week') e.setDate(e.getDate() + 7)
+    else if (granularity === 'quarter') e.setMonth(e.getMonth() + 3)
+    else e.setMonth(e.getMonth() + 1)
+    return e
+  }, [cols, granularity, rangeEnd])
+
+  // pos() — % del eje del calendario
+  const pos = (date: Date) =>
+    ((date.getTime() - axisStart.getTime()) / (axisEnd.getTime() - axisStart.getTime())) * 100
+
+  const todayPct = pos(today)
 
   const colLabel = (d: Date) => {
     if (granularity === 'week') return `${d.getDate()} ${d.toLocaleDateString('es-CO', { month: 'short' })}`
@@ -110,15 +148,37 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
     return d.toLocaleDateString('es-CO', { month: 'short', year: '2-digit' })
   }
 
-  const colWidth = Math.max(90, 110 * zoom)
-  const totalWidth = colWidth * cols.length
   const LABEL_W = 280
 
-  // Milestones — one per phase boundary
-  const milestones = phases.map((p, i) => {
-    const t = projStart.getTime() + ((i + 1) / phases.length) * (projEnd.getTime() - projStart.getTime())
-    return { name: `Fin ${p.name}`, date: new Date(t) }
-  })
+  // Ancho real del contenedor, para estirar las columnas hasta llenarlo cuando
+  // el calendario es más corto que la pantalla (si no, queda hueco a la derecha).
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [viewportW, setViewportW] = useState(0)
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([entry]) => setViewportW(entry.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const minColWidth = Math.max(90, 110 * zoom)
+  const fitColWidth = viewportW > 0 ? Math.floor((viewportW - LABEL_W) / Math.max(1, cols.length)) : 0
+  const colWidth = Math.max(minColWidth, fitColWidth)
+  const totalWidth = colWidth * cols.length
+
+  // Hitos — fin real de cada fase (la fecha máxima de sus tareas), no un
+  // reparto uniforme del calendario.
+  const milestones = useMemo(() => {
+    const out: { name: string; date: Date }[] = []
+    for (const p of phases) {
+      const items = enriched.filter((w) => (w.phase ?? 'Sin fase') === p.name)
+      if (!items.length) continue
+      const end = items.reduce((mx, w) => (w._end > mx ? w._end : mx), items[0]._end)
+      out.push({ name: `Fin ${p.name}`, date: end })
+    }
+    return out
+  }, [phases, enriched])
 
   // Summary stats
   const done    = enriched.filter((w) => w._done).length
@@ -180,6 +240,16 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
               ))}
             </div>
 
+            {/* Plegar / desplegar fases */}
+            <div className="flex items-center gap-1">
+              <button onClick={() => setExpanded(new Set(phases.map((p) => p.name)))}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+                title="Desplegar todas las fases"><ChevronsUpDown size={14} /></button>
+              <button onClick={() => setExpanded(new Set())}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+                title="Plegar todas las fases"><ChevronsDownUp size={14} /></button>
+            </div>
+
             {/* Zoom */}
             <div className="flex items-center gap-1">
               <button onClick={() => setZoom((z) => Math.max(0.7, +(z - 0.2).toFixed(1)))}
@@ -217,7 +287,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
 
       {/* ── Gantt grid ── */}
       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #232327' }}>
-        <div className="overflow-auto" style={{ maxHeight: 620 }}>
+        <div ref={scrollRef} className="overflow-auto" style={{ maxHeight: 620 }}>
           <div style={{ minWidth: LABEL_W + totalWidth }}>
 
             {/* Sticky header */}
@@ -268,18 +338,27 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                 const phLeft  = pos(phStart)
                 const phWidth = Math.max(0, pos(phEnd) - phLeft)
                 const doneCount = phItems.filter((w) => w._done).length
+                const isOpen = expanded.has(g.name)
 
                 return (
                   <div key={g.name}>
                     {/* Swimlane header */}
                     <div className="grid" style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, borderBottom: '1px solid rgba(39,39,42,0.6)' }}>
-                      <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: '#0d0d11', borderRight: '1px solid #27272a' }}>
+                      <button type="button" onClick={() => toggle(g.name)}
+                        aria-expanded={isOpen}
+                        className="px-4 py-2.5 flex items-center gap-2.5 text-left w-full hover:bg-zinc-900/60 transition-colors"
+                        style={{ background: '#0d0d11', borderRight: '1px solid #27272a' }}>
+                        {isOpen
+                          ? <ChevronDown size={14} className="text-zinc-500 flex-shrink-0" />
+                          : <ChevronRight size={14} className="text-zinc-500 flex-shrink-0" />}
                         <div className="w-1 rounded-sm flex-shrink-0" style={{ height: 28, background: phColor, boxShadow: `0 0 12px ${phColor}` }} />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-white truncate">{g.name}</div>
-                          <div className="text-[10px] text-zinc-500">{phItems.length} tareas · {doneCount} completadas</div>
+                          <div className="text-[10px] text-zinc-500 truncate">
+                            {phItems.length} tareas · {doneCount} completadas · {fmtShort(phStart)} → {fmtShort(phEnd)}
+                          </div>
                         </div>
-                      </div>
+                      </button>
                       <div className="relative" style={{ background: '#0d0d11', height: 44 }}>
                         {cols.map((_, i) => (
                           <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: i * colWidth, width: 1, background: 'rgba(39,39,42,0.4)' }} />
@@ -295,7 +374,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                     </div>
 
                     {/* Task rows */}
-                    {phItems.map((w) => {
+                    {isOpen && phItems.map((w) => {
                       const left  = pos(w._start)
                       const width = Math.max(1, pos(w._end) - left)
                       const isOverdue  = !w._done && w._end < today
