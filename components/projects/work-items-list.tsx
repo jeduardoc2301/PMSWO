@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2, GripVertical } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
+import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
@@ -293,6 +294,10 @@ export function WorkItemsList({
   const workItemsByPhase = groupWorkItemsByPhase()
   const hasPhases = Object.keys(workItemsByPhase).some(key => key !== '__NO_PHASE__')
 
+  // Sobre la lista completa: filtrar no debe reacomodar las fases.
+  const phaseRank = useMemo(() => buildPhaseRank(workItems), [workItems])
+  const comparePhases = useMemo(() => makePhaseComparator(phaseRank), [phaseRank])
+
   const togglePhase = (phaseName: string) => {
     setExpandedPhases(prev => {
       const newSet = new Set(prev)
@@ -453,11 +458,7 @@ export function WorkItemsList({
       {hasPhases ? (
         <div className="space-y-4">
           {Object.entries(workItemsByPhase)
-            .sort(([phaseA], [phaseB]) => {
-              if (phaseA === '__NO_PHASE__') return 1
-              if (phaseB === '__NO_PHASE__') return -1
-              return phaseA.localeCompare(phaseB, undefined, { numeric: true, sensitivity: 'base' })
-            })
+            .sort(([phaseA], [phaseB]) => comparePhases(phaseA, phaseB))
             .map(([phaseName, items]) => {
               const isNoPhase = phaseName === '__NO_PHASE__'
               const displayName = isNoPhase ? t('noPhase', { defaultValue: 'Sin Fase' }) : phaseName

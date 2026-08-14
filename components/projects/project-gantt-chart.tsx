@@ -12,6 +12,7 @@ import {
   Cell,
 } from 'recharts'
 import { WorkItemSummary } from '@/types'
+import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 
 interface ProjectGanttChartProps {
   workItems: WorkItemSummary[]
@@ -67,15 +68,8 @@ export function ProjectGanttChart({ workItems }: ProjectGanttChartProps) {
 
     if (phaseMap.size === 0) return { chartData: null, globalMin: new Date() }
 
-    const sorted = Array.from(phaseMap.entries()).sort(([a], [b]) => {
-      const na = parseInt(a), nb = parseInt(b)
-      if (!isNaN(na) && !isNaN(nb)) return na - nb
-      if (!isNaN(na)) return -1
-      if (!isNaN(nb)) return 1
-      if (a === 'Sin Fase') return 1
-      if (b === 'Sin Fase') return -1
-      return a.localeCompare(b)
-    })
+    const comparePhases = makePhaseComparator(buildPhaseRank(workItems, 'Sin Fase'), 'Sin Fase')
+    const sorted = Array.from(phaseMap.entries()).sort(([a], [b]) => comparePhases(a, b))
 
     const globalMin = sorted.reduce(
       (min, [, { start }]) => (start < min ? start : min),

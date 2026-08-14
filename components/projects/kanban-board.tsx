@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Plus, ChevronDown, ChevronRight, Layers, AlertOctagon, Clock4, Hourglass, ShieldAlert, Calendar, Info, X, Search, Check } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary, type KanbanColumnWithItems } from '@/types'
 import { computeUrgency, urgencyDueLabel, type Urgency } from '@/lib/urgency'
+import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { KanbanInfoModal } from './kanban-info-modal'
 
@@ -357,6 +358,11 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   const workItemsByPhase = groupWorkItemsByPhase(filteredWorkItems)
   const hasPhases = Object.keys(groupWorkItemsByPhase(localWorkItems)).some(k => k !== '__NO_PHASE__')
 
+  // Se calcula sobre la lista completa, no la filtrada: filtrar no debe
+  // reacomodar las fases.
+  const phaseRank = useMemo(() => buildPhaseRank(localWorkItems), [localWorkItems])
+  const comparePhases = useMemo(() => makePhaseComparator(phaseRank), [phaseRank])
+
   useEffect(() => {
     setExpandedPhases(new Set(Object.keys(groupWorkItemsByPhase(workItems))))
   }, [workItems])
@@ -519,11 +525,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
       {hasPhases ? (
         <div className="space-y-4">
           {Object.entries(workItemsByPhase)
-            .sort(([a], [b]) => {
-              if (a === '__NO_PHASE__') return 1
-              if (b === '__NO_PHASE__') return -1
-              return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-            })
+            .sort(([a], [b]) => comparePhases(a, b))
             .map(([phaseName, phaseItems]) => {
               const isNoPhase = phaseName === '__NO_PHASE__'
               const displayName = isNoPhase ? t('noPhase', { defaultValue: 'Sin Fase' }) : phaseName
