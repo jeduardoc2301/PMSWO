@@ -24,6 +24,7 @@ model Organization {
   templateCategories       TemplateCategory[]
   portfolioHealthSnapshots PortfolioHealthSnapshot[]
   projectHealthConfig      ProjectHealthConfig?
+  taskDependencies         TaskDependency[]
 
   @@map("organizations")
 }
@@ -73,17 +74,18 @@ model Project {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  organization    Organization          @relation(fields: [organizationId], references: [id])
-  owner           User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
-  projectManager  User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
-  collaborators   ProjectCollaborator[]
-  workItems       WorkItem[]
-  blockers        Blocker[]
-  risks           Risk[]
-  agreements      Agreement[]
-  kanbanColumns   KanbanColumn[]
-  aiAnalysisCache AIAnalysisCache?
-  templateUsage   TemplateUsage[]
+  organization     Organization          @relation(fields: [organizationId], references: [id])
+  owner            User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
+  projectManager   User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  collaborators    ProjectCollaborator[]
+  workItems        WorkItem[]
+  blockers         Blocker[]
+  risks            Risk[]
+  agreements       Agreement[]
+  kanbanColumns    KanbanColumn[]
+  aiAnalysisCache  AIAnalysisCache?
+  templateUsage    TemplateUsage[]
+  taskDependencies TaskDependency[]
 
   @@index([organizationId])
   @@index([organizationId, archived])
@@ -142,13 +144,17 @@ model WorkItem {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  organization Organization        @relation(fields: [organizationId], references: [id])
-  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  owner        User                @relation("WorkItemOwner", fields: [ownerId], references: [id])
-  kanbanColumn KanbanColumn        @relation(fields: [kanbanColumnId], references: [id])
-  blockers     Blocker[]
-  changes      WorkItemChange[]
-  agreements   AgreementWorkItem[]
+  organization  Organization        @relation(fields: [organizationId], references: [id])
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner         User                @relation("WorkItemOwner", fields: [ownerId], references: [id])
+  kanbanColumn  KanbanColumn        @relation(fields: [kanbanColumnId], references: [id])
+  blockers      Blocker[]
+  changes       WorkItemChange[]
+  agreements    AgreementWorkItem[]
+  // Vínculos en los que esta tarea es la sucesora, es decir, los que la pueden retrasar.
+  incomingLinks TaskDependency[]    @relation("DependencySuccessor")
+  // Vínculos en los que esta tarea es la predecesora.
+  outgoingLinks TaskDependency[]    @relation("DependencyPredecessor")
 
   @@index([organizationId, projectId])
   @@index([ownerId])
@@ -410,21 +416,21 @@ model ProjectHealthConfig {
 
   // ── BLOCKER rules ─────────────────────────────────────────────────────────
   // How many unresolved CRITICAL blockers trigger CRÍTICO category
-  criticalBlockerMin    Int @default(1) @map("critical_blocker_min")
+  criticalBlockerMin Int @default(1) @map("critical_blocker_min")
 
   // ── RISK rules ────────────────────────────────────────────────────────────
   // How many open HIGH/CRITICAL risks trigger EN RIESGO category
-  highRiskMin           Int @default(1) @map("high_risk_min")
+  highRiskMin Int @default(1) @map("high_risk_min")
 
   // ── SCHEDULE PERFORMANCE INDEX (SPI) rules ────────────────────────────────
   // SPI = completionRate / timeElapsedPct
   // Only applied once >= spiMinElapsedPct of the project timeline has passed
   // (avoids penalizing brand-new projects with no tasks done yet)
-  spiMinElapsedPct      Float @default(15.0) @map("spi_min_elapsed_pct")
+  spiMinElapsedPct     Float @default(15.0) @map("spi_min_elapsed_pct")
   // SPI below this → CRÍTICO (project completion is critically behind schedule)
-  criticalSpiThreshold  Float @default(0.50) @map("critical_spi_threshold")
+  criticalSpiThreshold Float @default(0.50) @map("critical_spi_threshold")
   // SPI below this → EN RIESGO
-  atRiskSpiThreshold    Float @default(0.80) @map("at_risk_spi_threshold")
+  atRiskSpiThreshold   Float @default(0.80) @map("at_risk_spi_threshold")
 
   // ── OVERDUE TASK rules ────────────────────────────────────────────────────
   // If (overdueTaskCount / totalTasks * 100) >= this → EN RIESGO
@@ -434,7 +440,7 @@ model ProjectHealthConfig {
   // ── A TIEMPO threshold ────────────────────────────────────────────────────
   // If not critical/at-risk: SPI >= this → A TIEMPO, else → SIN ALERTAS
   // (projects with no timeline data fall back to completionRate >= 70%)
-  onTrackSpiMin         Float @default(0.90) @map("on_track_spi_min")
+  onTrackSpiMin Float @default(0.90) @map("on_track_spi_min")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -442,4 +448,43 @@ model ProjectHealthConfig {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("project_health_configs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PLANEACIÓN · Vínculos entre tareas (C1)
+//
+// Una dependencia no es «A antes que B». Tiene un tipo, que dice qué extremo de la predecesora
+// amarra qué extremo de la sucesora, y un desfase en días hábiles que puede ser negativo.
+//
+// El cálculo vive en lib/scheduling/, sobre estructuras en memoria. Esta tabla solo guarda el
+// dato; el motor no consulta la base.
+// ─────────────────────────────────────────────────────────────────────────────
+model TaskDependency {
+  id             String @id @default(uuid()) @db.Char(36)
+  organizationId String @map("organization_id") @db.Char(36)
+  projectId      String @map("project_id") @db.Char(36)
+  predecessorId  String @map("predecessor_id") @db.Char(36)
+  successorId    String @map("successor_id") @db.Char(36)
+
+  // "FS" fin-comienzo · "SS" comienzo-comienzo · "FF" fin-fin · "SF" comienzo-fin
+  linkType String @default("FS") @map("link_type") @db.VarChar(2)
+
+  // Desfase en días hábiles, con signo. Positivo es una espera; negativo es un solapamiento
+  // declarado a propósito y NO se recorta a cero.
+  lagDays Int @default(0) @map("lag_days")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  predecessor  WorkItem     @relation("DependencyPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successor    WorkItem     @relation("DependencySuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+
+  // Dos tareas se relacionan de una sola forma: con dos vínculos no se sabría cuál manda.
+  @@unique([predecessorId, successorId])
+  @@index([organizationId, projectId])
+  @@index([projectId])
+  @@index([successorId])
+  @@map("task_dependencies")
 }

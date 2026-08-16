@@ -188,3 +188,104 @@ caso de prueba real: la simulación tiene un corrimiento concreto que medir.
 C1 · Dependencias con tipo y desfase. El motor nace en `lib/scheduling/` como módulo puro, siguiendo
 el molde de `lib/rbac.ts` con su prueba: funciones puras, importación explícita de `vitest`, cero
 `vi.mock`, cero contacto con Prisma.
+
+---
+
+## Tramo 1 — C1 · Dependencias con tipo y desfase
+
+**Estado:** CERRADO. C1 pasa a HECHO.
+
+### Qué se tocó
+
+Nace el motor, como módulo puro en `lib/scheduling/`. Sin Prisma, sin React, sin peticiones: recibe
+tareas y vínculos en memoria y devuelve fechas. El molde es `lib/rbac.ts` con su prueba.
+
+- `lib/scheduling/date.ts` — fechas civiles. Una fecha del plan es el número de días desde el 1 de
+  enero de 1970, no un `Date`. Con `Date` el horario de verano hace que algunos días duren 23 horas
+  y sumar un día deje de dar el día siguiente.
+- `lib/scheduling/calendar.ts` — calendario laboral. Traduce entre fecha y **ordinal de día hábil**;
+  en ordinales, programar es sumar enteros y ninguna fecha puede caer en sábado ni en feriado.
+- `lib/scheduling/types.ts` — el vocabulario: `LinkType`, `Dependency`, `PlanTask`, `Constraint`.
+- `lib/scheduling/dependencies.ts` — lectura de la notación de MS Project, validación del grafo,
+  orden topológico y detección de ciclos.
+- `lib/scheduling/schedule.ts` — pase adelante con las cuatro reglas de vínculo.
+- `prisma/schema.prisma` — modelo `TaskDependency` con `link_type` y `lag_days` **entero con
+  signo**, más la migración `20260816185306_add_task_dependencies`.
+
+### Las cuatro reglas, en días hábiles
+
+Con `tramo = duración − 1` para una tarea con duración, y `0` para un hito:
+
+| Vínculo | Regla |
+|---|---|
+| `FS` | `inicio_suc = fin_pred + 1 + desfase` |
+| `SS` | `inicio_suc = inicio_pred + desfase` |
+| `FF` | `inicio_suc = fin_pred + desfase − tramo_suc` |
+| `SF` | `inicio_suc = inicio_pred − 1 + desfase − tramo_suc` |
+
+El `+1` de `FS` y el `−1` de `SF` son el mismo día de separación visto desde los dos lados: el fin
+de una tarea es su último día trabajado, no el siguiente. De ahí sale, sin regla aparte, que un hito
+atado en `FF` caiga el mismo día que termina su predecesora y atado en `FS` caiga al día siguiente.
+
+### Pruebas agregadas, y pasan
+
+106 pruebas nuevas en `lib/scheduling/__tests__/`, 5 archivos:
+
+| Archivo | Qué acredita |
+|---|---|
+| `schedule.test.ts` | **La prueba de aceptación de C1**: las cuatro combinaciones colgando de la misma predecesora, más un desfase de −5 que solapa cinco días. Fechas exactas, no aproximadas |
+| `dependencies.test.ts` | Lectura de la notación en las dos formas reales; rechazo de ciclos **nombrando las tareas**; rechazo de predecesoras inexistentes, autorreferencias y vínculos duplicados |
+| `schedule.property.test.ts` | 7 propiedades sobre 700 planes generados al azar con `fast-check` |
+| `calendar.test.ts` | Días hábiles, feriados, semanas laborales distintas, fechas anteriores a 1970 |
+| `date.test.ts` | Conversiones, años bisiestos, fechas imposibles |
+
+Línea base: **de 37 a 42 archivos en verde y de 973 a 1080 pruebas**, con los mismos 36 archivos
+rojos de siempre. Las fallidas bajan de 259 a 258 —una prueba se recuperó al regenerarse el cliente
+de Prisma—. Ninguna de las que pasaban dejó de pasar.
+
+### Lo que se encontró y no se esperaba
+
+**El desfase declarado en días corridos se rechaza en vez de convertirse.** MS Project sabe escribir
+«3 edays», que atraviesan el fin de semana. Tratarlos como días hábiles correría las fechas sin que
+nadie se enterara, así que el lector se niega y lo dice. Mismo criterio con cualquier unidad que no
+reconozca: preferimos el error a la suposición.
+
+**Las propiedades encontraron el valor de la que casi no escribo.** La séptima —barajar el orden de
+entrada no cambia ninguna fecha— parecía trivial. Es la que protege contra que el resultado dependa
+del orden en que vengan las filas del Excel, que es exactamente lo que va a pasar al importar.
+
+**Hay base de datos local.** No existía ninguna: ni Docker, ni servicio, ni binarios. Se levantó
+MySQL 8.4.9 desde la distribución en ZIP, que no necesita instalador ni privilegios de
+administrador, en `C:\Claude\mysql-local`, puerto **3307**, base `pm`, usuario `root` sin
+contraseña. Las 11 migraciones existentes más la de C1 quedaron aplicadas: 21 tablas.
+
+El esquema de producción se leyó **solo por introspección** y resultó idéntico al del repositorio,
+así que no hubo nada que reconstruir a mano. En producción no se escribió nada.
+
+`.env.local` sigue apuntando a producción y no se tocó. Los comandos contra la base local llevan la
+cadena en línea:
+
+```
+DATABASE_URL="mysql://root@127.0.0.1:3307/pm" npx prisma migrate deploy
+```
+
+Queda pendiente decidir si `.env.local` se cambia para que la aplicación arranque contra la base
+local por omisión.
+
+### Preguntas abiertas nuevas
+
+1. **`SF` no se pudo contrastar contra la referencia**: el plan tiene 704 `FS`, 802 `SS`, 159 `FF`
+   y **cero** `SF`. Se implementó la regla simétrica de MS Project —la sucesora termina el día hábil
+   anterior al inicio de la predecesora— y queda probada contra sí misma, no contra el archivo.
+2. **El desfase se aplica siempre en días hábiles.** Es lo que dice el encargo y lo que se midió en
+   el archivo. Si algún cliente lo escribe en días corridos, el lector se niega; habrá que decidir
+   si se convierte o se rechaza en la importación.
+3. **`DEBE_EMPEZAR_EL` gana sobre las predecesoras y no avisa.** MS Project marca un conflicto
+   cuando la restricción contradice al vínculo. Por ahora la restricción manda en silencio; el
+   control 9 de la auditoría (C8) es el lugar natural para reportarlo.
+
+### Siguiente
+
+C2 · Pase atrás y holgura total. El pase adelante ya publica los ordinales de inicio y fin
+tempranos, que es justo lo que el pase atrás consume. La prueba de aceptación es la cadena con el
+hito de cierre: con `FF` el plan cierra en su fecha, con `FS` se corre un día.

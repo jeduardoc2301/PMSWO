@@ -14,7 +14,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 
 | Capacidad | Cómo llegó | Cómo va | Prueba que lo acredita |
 |---|---|---|---|
-| **C1** · Dependencias con tipo y desfase | **NO EXISTE** — ningún modelo guarda enlaces entre tareas; el único campo parecido, `Blocker.blockedBy`, es texto libre | PENDIENTE | — |
+| **C1** · Dependencias con tipo y desfase | **NO EXISTE** — ningún modelo guarda enlaces entre tareas; el único campo parecido, `Blocker.blockedBy`, es texto libre | **HECHO** | [schedule.test.ts](lib/scheduling/__tests__/schedule.test.ts) · [dependencies.test.ts](lib/scheduling/__tests__/dependencies.test.ts) · [schedule.property.test.ts](lib/scheduling/__tests__/schedule.property.test.ts) · [calendar.test.ts](lib/scheduling/__tests__/calendar.test.ts) · [date.test.ts](lib/scheduling/__tests__/date.test.ts) |
 | **C2** · Pase adelante, pase atrás y holgura total | **NO EXISTE** — cero coincidencias de `earlyStart`, `lateFinish`, `totalFloat`, `criticalPath`, `topological` en todo el repositorio | PENDIENTE | — |
 | **C3** · Calendario laboral con feriados | **NO EXISTE** — toda la aritmética del sistema es de días corridos; no hay librería de fechas ni concepto de día hábil en la capa de negocio | PENDIENTE | — |
 | **C4** · Ruta crítica y Ruta Súper Crítica | **NO EXISTE** — sin grafo ni holgura no hay sobre qué calcular; lo más cercano es una heurística de salud por SPI | PENDIENTE | — |
@@ -28,7 +28,9 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C12** · Documentación que se calcula sola | **PARCIAL** — el reporte Word ya calcula sus cifras en el servidor y se las entrega a la IA como hechos; el patrón es correcto y no hay plan del cual sacar cifras | PENDIENTE | — |
 | **C13** · Vista ejecutiva | **PARCIAL** — hay tablero ejecutivo con puntaje de salud y tendencia; no responde fecha de cierre, margen, qué lo mueve ni qué depende del cliente | PENDIENTE | — |
 
-**Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE. Las 13 en PENDIENTE.
+**Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
+
+**Avance:** 1 en HECHO · 12 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA.
 
 ---
 
