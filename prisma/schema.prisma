@@ -25,6 +25,7 @@ model Organization {
   portfolioHealthSnapshots PortfolioHealthSnapshot[]
   projectHealthConfig      ProjectHealthConfig?
   taskDependencies         TaskDependency[]
+  projectCalendars         ProjectCalendar[]
 
   @@map("organizations")
 }
@@ -86,6 +87,7 @@ model Project {
   aiAnalysisCache  AIAnalysisCache?
   templateUsage    TemplateUsage[]
   taskDependencies TaskDependency[]
+  calendar         ProjectCalendar?
 
   @@index([organizationId])
   @@index([organizationId, archived])
@@ -487,4 +489,52 @@ model TaskDependency {
   @@index([projectId])
   @@index([successorId])
   @@map("task_dependencies")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PLANEACIÓN · Calendario laboral del proyecto (C3)
+//
+// Qué días se trabajan y qué días no. Los feriados del país NO se guardan aquí: se calculan a
+// partir de las reglas de lib/scheduling/holidays.ts, porque una tabla escrita a mano envejece en
+// cuanto el plan cruza a diciembre. Aquí solo va lo que no se puede deducir: qué país aplica, qué
+// días de la semana se trabajan y qué días para este proyecto en particular.
+// ─────────────────────────────────────────────────────────────────────────────
+model ProjectCalendar {
+  id             String @id @default(uuid()) @db.Char(36)
+  organizationId String @map("organization_id") @db.Char(36)
+  projectId      String @unique @map("project_id") @db.Char(36)
+
+  // Días de la semana que se trabajan, como arreglo: 0 domingo, 1 lunes, … 6 sábado.
+  workingWeekdays Json @default("[1, 2, 3, 4, 5]") @map("working_weekdays")
+
+  // País del que se toman los feriados: "CO", "MX". Nulo significa que solo se respeta el fin de
+  // semana y los días propios del proyecto.
+  holidayCountry String? @map("holiday_country") @db.VarChar(2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  holidays     ProjectHoliday[]
+
+  @@index([organizationId])
+  @@map("project_calendars")
+}
+
+// Días no laborables propios del proyecto, además de los del país: un corte pactado, un cierre de
+// oficinas, un día de inventario.
+model ProjectHoliday {
+  id         String   @id @default(uuid()) @db.Char(36)
+  calendarId String   @map("calendar_id") @db.Char(36)
+  date       DateTime @db.Date
+  // Nombre como lo lee el cliente. Nada de notas internas: esto aparece en el plan que él revisa.
+  name       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  calendar ProjectCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, date])
+  @@index([calendarId])
+  @@map("project_holidays")
 }

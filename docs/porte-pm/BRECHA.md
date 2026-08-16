@@ -16,7 +16,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 |---|---|---|---|
 | **C1** · Dependencias con tipo y desfase | **NO EXISTE** — ningún modelo guarda enlaces entre tareas; el único campo parecido, `Blocker.blockedBy`, es texto libre | **HECHO** | [schedule.test.ts](lib/scheduling/__tests__/schedule.test.ts) · [dependencies.test.ts](lib/scheduling/__tests__/dependencies.test.ts) · [schedule.property.test.ts](lib/scheduling/__tests__/schedule.property.test.ts) · [calendar.test.ts](lib/scheduling/__tests__/calendar.test.ts) · [date.test.ts](lib/scheduling/__tests__/date.test.ts) |
 | **C2** · Pase adelante, pase atrás y holgura total | **NO EXISTE** — cero coincidencias de `earlyStart`, `lateFinish`, `totalFloat`, `criticalPath`, `topological` en todo el repositorio | **HECHO** | [cpm.test.ts](lib/scheduling/__tests__/cpm.test.ts) · [cpm.property.test.ts](lib/scheduling/__tests__/cpm.property.test.ts) |
-| **C3** · Calendario laboral con feriados | **NO EXISTE** — toda la aritmética del sistema es de días corridos; no hay librería de fechas ni concepto de día hábil en la capa de negocio | PENDIENTE | — |
+| **C3** · Calendario laboral con feriados | **NO EXISTE** — toda la aritmética del sistema es de días corridos; no hay librería de fechas ni concepto de día hábil en la capa de negocio | **HECHO** | [holidays.test.ts](lib/scheduling/__tests__/holidays.test.ts) · [simulation.test.ts](lib/scheduling/__tests__/simulation.test.ts) · [calendar.test.ts](lib/scheduling/__tests__/calendar.test.ts) |
 | **C4** · Ruta crítica y Ruta Súper Crítica | **NO EXISTE** — sin grafo ni holgura no hay sobre qué calcular; lo más cercano es una heurística de salud por SPI | PENDIENTE | — |
 | **C5** · Compuertas (gates) como objeto propio | **NO EXISTE** — no hay modelo `Gate` ni `Milestone`, y `WorkItem` no tiene campo de tipo | PENDIENTE | — |
 | **C6** · La responsabilidad del cliente como tipo de primera clase | **NO EXISTE** — `WorkItem.ownerId` exige que el responsable pertenezca a la organización proveedora; `Project.client` es solo un nombre | PENDIENTE | — |
@@ -30,7 +30,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 2 en HECHO · 11 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA.
+**Avance:** 3 en HECHO · 10 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fase 1 cerrada.**
 
 ---
 

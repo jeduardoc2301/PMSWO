@@ -376,3 +376,100 @@ planes generados al azar.
 C3 · Calendario laboral con feriados. La aritmética de días hábiles y feriados ya está y está
 probada; falta el catálogo por país y año con los móviles calculados —Pascua y Ley Emiliani—, y la
 simulación que responde a qué fecha se movería el cierre sin tocar el plan.
+
+---
+
+## Tramo 3 — C3 · Calendario laboral con feriados
+
+**Estado:** CERRADO. C3 pasa a HECHO. **Con esto cierra la Fase 1: el motor de cálculo.**
+
+### Qué se tocó
+
+- `lib/scheduling/holidays.ts` — catálogo de feriados por reglas, no por tabla.
+- `lib/scheduling/simulation.ts` — la simulación, que no toca el plan.
+- `prisma/schema.prisma` — modelos `ProjectCalendar` y `ProjectHoliday`, más la migración
+  `add_project_calendar`, aplicada en local.
+
+### Los feriados no se capturan: se calculan
+
+Se capturan las reglas y las fechas salen solas. Una tabla escrita a mano envejece: alguien la llena
+para un año, el plan cruza a diciembre y las fechas del siguiente sencillamente no existen.
+
+Hay tres clases de regla —fija, colgada de la Pascua, y de lunes contado— más un modificador: la
+**Ley Emiliani**, que en Colombia traslada al lunes siguiente el feriado que no caiga en lunes. Diez
+de los dieciocho feriados colombianos son así.
+
+La Pascua se calcula con el algoritmo gregoriano de Meeus, Jones y Butcher. Está probado en dos
+sentidos: contra años conocidos, y como propiedad sobre 111 años —siempre cae en domingo y siempre
+entre el 22 de marzo y el 25 de abril—.
+
+México quedó implementado con los días de descanso obligatorio del artículo 74 de la Ley Federal del
+Trabajo, incluidos los tres lunes contados y la transmisión del Poder Ejecutivo cada seis años.
+**Jueves y Viernes Santo no están**, porque la ley no los declara obligatorios aunque medio país no
+trabaje; quien los pare los agrega como días propios del proyecto. El motor no los supone.
+
+### Lo que se encontró y no se esperaba
+
+**Dos feriados colombianos pueden caer el mismo día, y no es un caso raro.** Una prueba de
+consistencia falló: en algún año entre 2020 y 2035 las dieciocho conmemoraciones no daban dieciocho
+fechas distintas. Al buscarlo apareció el patrón completo: el **Sagrado Corazón** —Pascua más
+sesenta y ocho días, corrido al lunes— aterriza sobre el lunes de **San Pedro y San Pablo** cuando
+la Pascua es tardía. Ocurre en **20 de 111 años**, uno de cada cinco o seis, y **2025 fue uno**.
+
+Ese año hay dieciocho conmemoraciones y diecisiete días de descanso. Son dos preguntas distintas y
+ahora el código las separa: `holidaysFor` devuelve las dieciocho, `holidayDates` devuelve las fechas
+sin repetir, y `overlappingHolidays` dice cuáles se encimaron para poder explicarlo en la interfaz.
+Si se hubieran contado dieciocho días de descanso, el plan de 2025 habría perdido un día sin que
+nadie supiera de dónde.
+
+**Una prueba mal planteada enseñó algo del dominio.** Escribí «un feriado fuera de la ruta crítica
+mueve la tarea pero no el cierre» con dos ramas paralelas, y falló: la rama larga abarcaba todo el
+plan, así que cualquier feriado también la tocaba. El caso real es otro —una tarea **con holgura**
+se come el feriado de su margen mientras una fecha pactada no se mueve— y así quedó escrito. La
+prueba original no probaba lo que decía probar.
+
+### La simulación
+
+Responde «¿y si estos días no se trabajaran?» **sin tocar el plan**: arma un calendario aparte,
+vuelve a programar sobre él y compara. Devuelve el corrimiento del cierre en días hábiles, qué
+feriados quitaron trabajo de verdad y cuáles no —los que caen en fin de semana no quitan nada—, qué
+tareas se movieron y cuánto, y el margen contra la fecha de compromiso antes y después.
+
+La prueba de aceptación usa la ventana real del plan de referencia:
+
+| | |
+|---|---|
+| Ventana | 12 de junio a 30 de noviembre de 2026, **122 días hábiles** sin feriados |
+| Con los feriados de Colombia | el cierre se va al **11 de diciembre** |
+| Corrimiento | **9 días hábiles** |
+| Margen contra el compromiso | de 0 a **−9** |
+
+Nueve y no ocho: ocho feriados caen dentro de la ventana original, y el noveno —la Inmaculada
+Concepción del 8 de diciembre— cae dentro de la cola que los ocho anteriores acaban de empujar. Un
+cálculo que solo contara los feriados del rango original habría dicho ocho, y se habría quedado
+corto un día.
+
+### Pruebas y línea base
+
+176 pruebas en el motor, 9 archivos, todas en verde.
+
+### Preguntas abiertas nuevas
+
+1. **¿Contra qué país se planea el proyecto de referencia?** El plan está construido de lunes a
+   viernes **sin feriados**, y su propio libro trae una hoja de feriados de Colombia que el plan
+   ignora. Es decir: el plan auditado no aplica los feriados de su propio país. Al importarlo habrá
+   que decidir si se respeta como está —y la simulación queda como advertencia— o si se recalcula.
+2. **¿El calendario es por proyecto o también por recurso?** Quedó por proyecto, que es lo que pide
+   el encargo. Un calendario por persona o por equipo es otra cosa y no está.
+
+### Siguiente
+
+Fase 2. **C4 · Ruta crítica y Ruta Súper Crítica**, que es la capacidad que distingue al sistema.
+La ruta crítica clásica ya sale del pase atrás; falta la segunda clasificación sobre las tareas de
+holgura cero según si se recuperan metiendo más recursos, y el reparto entre cliente y proveedor.
+
+> **Nota sobre la línea base.** El total de pruebas rojas oscila entre 257 y 259 entre corridas sin
+> que cambie nada del código. El causante es `components/templates/__tests__/final-preview-step.test.tsx`,
+> que tarda unos nueve segundos y falla 8 o 10 veces según la corrida: es inestable de origen. Por eso
+> la comparación con la línea base se hace **archivo por archivo**, no contra el total. El criterio es
+> que ningún archivo verde se ponga rojo y que ninguno empeore su conteo.
