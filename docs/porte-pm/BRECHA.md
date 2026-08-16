@@ -17,7 +17,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C1** · Dependencias con tipo y desfase | **NO EXISTE** — ningún modelo guarda enlaces entre tareas; el único campo parecido, `Blocker.blockedBy`, es texto libre | **HECHO** | [schedule.test.ts](lib/scheduling/__tests__/schedule.test.ts) · [dependencies.test.ts](lib/scheduling/__tests__/dependencies.test.ts) · [schedule.property.test.ts](lib/scheduling/__tests__/schedule.property.test.ts) · [calendar.test.ts](lib/scheduling/__tests__/calendar.test.ts) · [date.test.ts](lib/scheduling/__tests__/date.test.ts) |
 | **C2** · Pase adelante, pase atrás y holgura total | **NO EXISTE** — cero coincidencias de `earlyStart`, `lateFinish`, `totalFloat`, `criticalPath`, `topological` en todo el repositorio | **HECHO** | [cpm.test.ts](lib/scheduling/__tests__/cpm.test.ts) · [cpm.property.test.ts](lib/scheduling/__tests__/cpm.property.test.ts) |
 | **C3** · Calendario laboral con feriados | **NO EXISTE** — toda la aritmética del sistema es de días corridos; no hay librería de fechas ni concepto de día hábil en la capa de negocio | **HECHO** | [holidays.test.ts](lib/scheduling/__tests__/holidays.test.ts) · [simulation.test.ts](lib/scheduling/__tests__/simulation.test.ts) · [calendar.test.ts](lib/scheduling/__tests__/calendar.test.ts) |
-| **C4** · Ruta crítica y Ruta Súper Crítica | **NO EXISTE** — sin grafo ni holgura no hay sobre qué calcular; lo más cercano es una heurística de salud por SPI | PENDIENTE | — |
+| **C4** · Ruta crítica y Ruta Súper Crítica | **NO EXISTE** — sin grafo ni holgura no hay sobre qué calcular; lo más cercano es una heurística de salud por SPI | **HECHO** | [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) · [critical-path.test.ts](lib/scheduling/__tests__/critical-path.test.ts) |
 | **C5** · Compuertas (gates) como objeto propio | **NO EXISTE** — no hay modelo `Gate` ni `Milestone`, y `WorkItem` no tiene campo de tipo | PENDIENTE | — |
 | **C6** · La responsabilidad del cliente como tipo de primera clase | **NO EXISTE** — `WorkItem.ownerId` exige que el responsable pertenezca a la organización proveedora; `Project.client` es solo un nombre | PENDIENTE | — |
 | **C7** · Avance ponderado por trabajo real | **PARCIAL** — los insumos están en la base (`estimatedHours`, `plannedHours`) pero el avance se calcula por conteo binario de tareas en cuatro lugares | PENDIENTE | — |
@@ -30,7 +30,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 3 en HECHO · 10 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fase 1 cerrada.**
+**Avance:** 4 en HECHO · 9 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fase 1 cerrada.**
 
 ---
 
@@ -239,17 +239,46 @@ Hay dos hallazgos que explican parte de la diferencia y que el motor tendrá que
    libre deliberada. La línea 182 arranca **4 días hábiles antes** de lo que exige su predecesora: eso
    no es holgura, es una violación de enlace que cualquier motor corregiría empujando la línea.
 
-**Cómo se procede, y por qué.** No se inventa el 932 ni se ajusta el motor hasta que dé esa cifra: eso
-sería exactamente lo que el encargo prohíbe. Se hace esto:
+**Cómo se procedió, y qué salió.** No se inventó el 932 ni se ajustó el motor hasta que diera esa
+cifra: eso sería exactamente lo que el encargo prohíbe. Se midió, y el resultado está acreditado en
+[plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts), 28 pruebas contra el
+archivo real.
 
-- El motor calcula la holgura con la semántica estricta de MS Project, documentada y probada.
-- La prueba de aceptación fija con tolerancia cero **la fecha de cierre (2026-11-30)** y **el reparto
-  de la ruta súper crítica (276 · 174/58/44 · 131/102/43)**, que sí son dato duro.
-- Para la holgura, la prueba fija el número que produce el motor bajo semántica declarada, y el
-  informe explica por qué difiere del 932 narrado. La cifra que el sistema publique será la calculada
-  del contenido, que es justo lo que exige C12.
-- Queda registrado como pregunta abierta en la bitácora. Si aparece el algoritmo original que produjo
-  el 932, se ajusta.
+**Las dos primeras salen exactas.**
+
+- **Fecha de cierre: 2026-11-30.** El motor la reproduce reprogramando el plan completo desde su
+  fecha de arranque, y también respetando las fechas del archivo como piso. En este segundo modo,
+  **1 363 de las 1 368 líneas caen exactamente donde el archivo dice**.
+- **Ruta súper crítica: 276 líneas**, repartidas en 174 «decide un tercero», 58 «tiempo transcurrido»
+  y 44 «fecha pactada», con **131 del cliente y 145 del proveedor**. Leídas y clasificadas sin
+  desviación.
+
+**La tercera se midió cuatro veces y ninguna da 932:**
+
+| Lectura | Tareas con holgura cero |
+|---|---|
+| Reprogramando lo más pronto posible, plazo hasta el cierre del plan | **796** |
+| Reprogramando, terminales ancladas a su propio fin | **888** |
+| Respetando las fechas del archivo, plazo hasta el cierre | **1 127** |
+| Respetando las fechas, terminales ancladas a su propio fin | **1 209** |
+
+El 932 queda entre la segunda y la tercera, y no coincide con ninguna. Se agrega la prueba de que no
+hay de dónde leerlo: **ninguna hoja del libro tiene una columna llamada holgura, slack, float ni
+margen**. Toda cifra de holgura que el sistema publique irá acompañada del criterio con que se
+calculó, que es justo lo que exige C12.
+
+**Hallazgo que cambia la lectura de la fecha de cierre.** El archivo aplica sus **6 desfases
+negativos** con una convención distinta a la de sus 388 positivos: `inicio = fin + desfase`, sin el
+día de separación de MS Project. Con la regla estándar el plan cierra el **2026-12-02**; con la del
+archivo, el **2026-11-30**. Dos días hábiles, y de ahí salen las 228 holguras negativas de −1 día que
+apareció en el diagnóstico. La convención se declara al importar y, si no se declara, la importación
+lo advierte nombrando las seis líneas: 30, 46, 64, 468, 796 y 878.
+
+**Y una corrección al enunciado del encargo.** El encargo advierte que un hito de duración cero
+enlazado en fin-comienzo donde debería ir fin-fin corre el plan. La regla es cierta y el motor la
+implementa bien, pero **el plan de referencia no tiene ese defecto**: se buscaron los hitos que el
+archivo coloca el mismo día que su predecesora enlazados en fin-comienzo, y son **cero**. Sus 159
+vínculos fin-fin ya están donde deben.
 
 ---
 

@@ -473,3 +473,110 @@ holgura cero según si se recuperan metiendo más recursos, y el reparto entre c
 > que tarda unos nueve segundos y falla 8 o 10 veces según la corrida: es inestable de origen. Por eso
 > la comparación con la línea base se hace **archivo por archivo**, no contra el total. El criterio es
 > que ningún archivo verde se ponga rojo y que ninguno empeore su conteo.
+
+---
+
+## Tramo 4 — C4 · Ruta crítica y Ruta Súper Crítica
+
+**Estado:** CERRADO. C4 pasa a HECHO.
+
+### Qué se tocó
+
+- `lib/scheduling/critical-path.ts` — la segunda clasificación y el reparto cliente/proveedor.
+- `lib/scheduling/xlsx.ts` — lector de xlsx propio, sin dependencias: ZIP con `zlib` y XML por
+  expresiones regulares.
+- `lib/scheduling/import-plan.ts` — importación de un plan desde hoja de cálculo.
+- `lib/scheduling/types.ts` — `TaskKind`, `ResponsibleParty` y `Recoverability`.
+- Tres archivos de prueba nuevos, uno de ellos contra el plan real.
+
+### Las reglas de sugerencia salen de la estructura, no del nombre
+
+Buscar palabras en el nombre de la tarea habría sido más cómodo y se habría roto en cuanto alguien
+redactara distinto. El Gantt de referencia hace justamente eso y ya está roto: clasifica los bloques
+por expresiones regulares sobre el nombre y deja el 96 % del plan de un solo color.
+
+Las reglas de aquí miran la estructura: una línea que el cliente aprueba o entrega la decide un
+tercero; un punto de control es un Go/No-Go; una tarea con fecha impuesta es una fecha pactada por
+definición. El tiempo transcurrido es la única de las tres familias que no se deduce de nada, así
+que se declara. Y la marca a mano siempre gana, porque quien conoce el proyecto sabe cosas que el
+modelo no. Hay una prueba que lo fija: una tarea llamada «Aprobación del comité y firma del acta
+Go/No-Go», sin clase declarada, **no** se clasifica sola.
+
+### El lector de Excel
+
+Un xlsx es un ZIP con XML adentro; se abre con `zlib`, que ya trae Node. No se metió una librería
+porque la parte que hace falta cabe en un archivo, y una librería de hojas de cálculo entera es peso
+y superficie de ataque a cambio de nada.
+
+Lo que hay que hacer bien es lo que casi nunca se documenta: las fechas son números —días desde el
+30 de diciembre de 1899, no el 31—; el texto puede venir de una tabla compartida **o incrustado en
+la celda**, y este archivo usa lo segundo porque lo generó una herramienta, no Excel; y las celdas
+con fórmula pueden no traer resultado guardado, en cuyo caso están vacías y no valen cero.
+
+Las columnas se buscan **por su encabezado, no por su letra**: alguien inserta una columna y todo lo
+demás se corre.
+
+### El resultado: el archivo entero, sin una advertencia
+
+La importación reprodujo a la primera todas las cifras que el diagnóstico había medido por separado:
+1 368 líneas, 1 665 vínculos, 125 resúmenes y 1 243 hojas, 704 fin-comienzo / 802
+comienzo-comienzo / 159 fin-fin / **cero** comienzo-fin, 394 desfases con 6 negativos, 178 líneas
+del cliente, 1 258 con entregable y criterio, y las 276 marcas de ruta súper crítica repartidas en
+174 / 58 / 44.
+
+### Lo que se encontró y no se esperaba
+
+**1. La fecha de cierre depende de la convención del desfase negativo, y son dos días.**
+
+Con la regla estándar de MS Project el plan cierra el **2026-12-02**. Con la que usa el archivo
+—`inicio = fin + desfase`, sin el día de separación— cierra el **2026-11-30**, que es su fecha
+declarada, exacta. Seis vínculos, dos días hábiles, y de ahí salen las 228 holguras de −1 día que el
+diagnóstico había visto sin explicación.
+
+La convención se declara al importar. Si no se declara, la importación **lo advierte y nombra las
+seis líneas** en lugar de elegir en silencio.
+
+**2. Reprogramar y respetar las fechas son dos lecturas distintas, y las dos hacen falta.**
+
+Reprogramando lo más pronto posible, 826 de 1 243 hojas caen donde el archivo dice y las otras 417
+salen **antes** —ninguna después, o sea que ningún vínculo está incumplido—. Ese plan trae holgura
+metida a mano, y reprogramar la recupera.
+
+Respetando las fechas del archivo como piso, **1 363 de 1 368 líneas** caen exactamente donde dice.
+Es la lectura correcta para un plan ya construido; la otra sirve para preguntar «¿qué pasaría si lo
+reprogramáramos?».
+
+**3. El 932 no existe, y ahora está probado que no hay de dónde sacarlo.**
+
+Cuatro lecturas razonables dan 796, 888, 1 127 y 1 209. Ninguna da 932, y el 932 queda entre la
+segunda y la tercera. Se agregó la prueba de fondo: **ninguna hoja del libro tiene una columna
+llamada holgura, slack, float ni margen**. La cifra solo vive en la prosa.
+
+**4. El encargo advierte de un defecto que este archivo no tiene.** La regla del hito fin-fin es
+correcta y el motor la implementa, pero se buscaron los hitos que el archivo coloca el mismo día que
+su predecesora enlazados en fin-comienzo y son **cero**. Sus 159 vínculos fin-fin ya están bien
+puestos. La advertencia sigue valiendo para planes futuros; para este, no aplica.
+
+**5. Una prueba mía se pasó de estricta.** Afirmé que el número 932 no aparecía en ninguna celda del
+libro. Falló: aparece, porque el plan tiene una línea con **identificador** 932. La afirmación útil
+era otra —que no hay ninguna columna de holgura— y así quedó.
+
+### Pruebas y línea base
+
+225 pruebas en el motor, 11 archivos. De ellas, **28 corren contra el plan real** y se saltan solas
+si el archivo de referencia no está, porque no se versiona.
+
+### Preguntas abiertas nuevas
+
+1. **¿Qué lectura se le muestra al cliente por omisión, la reprogramada o la anclada?** Cambia la
+   holgura cero de 796 a 1 127. Se propone anclada para ver el plan como está, y reprogramada como
+   una simulación aparte —«¿qué ganaríamos si lo reprogramáramos?»—.
+2. **Los resúmenes se programan como tareas normales.** Lo correcto es que hereden fechas de sus
+   hijas. Hoy funciona porque el archivo trae sus fechas y se respetan, pero al crear un plan desde
+   cero hará falta la jerarquía real. Entra con C7, que la necesita para ponderar.
+
+### Siguiente
+
+C5 · Compuertas como objeto propio. El plan de referencia tiene cuatro «Habilitadores» que ya se
+importan como `COMPUERTA`, y son las únicas líneas con duración cero e inicio distinto de fin: son
+ventanas, no hitos.

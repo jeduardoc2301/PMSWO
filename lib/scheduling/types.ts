@@ -61,7 +61,48 @@ export interface Constraint {
   readonly date: IsoDate
 }
 
-/** Una tarea del plan, con lo que el motor necesita para programarla. */
+/**
+ * Qué clase de línea es.
+ *
+ * No es decoración: de esto salen las sugerencias de criticidad y el filtro de lo que el cliente
+ * debe entregar o decidir. Una aprobación del cliente y una actividad del proveedor se comportan
+ * distinto aunque las dos ocupen días en el calendario.
+ */
+export type TaskKind =
+  /** Trabajo que ejecuta el proveedor. */
+  | 'ACTIVIDAD'
+  /** Duración cero: marca un momento, no consume calendario. */
+  | 'HITO'
+  /** Punto Go/No-Go: alguien decide si se sigue. */
+  | 'PUNTO_DE_CONTROL'
+  /** El cliente aprueba o firma. */
+  | 'APROBACION_CLIENTE'
+  /** El cliente entrega información, accesos o insumos. */
+  | 'ENTREGA_CLIENTE'
+  /** Ventana de compuerta: se abre cuando se cumplen sus condiciones. */
+  | 'COMPUERTA'
+  /** Línea de resumen: agrupa a otras y no se ejecuta por sí misma. */
+  | 'RESUMEN'
+
+/** Quién responde por la línea. */
+export type ResponsibleParty = 'PROVEEDOR' | 'CLIENTE' | 'AMBOS'
+
+/**
+ * Si el atraso de la tarea se recupera metiendo más gente.
+ *
+ * Es la pregunta que separa la ruta crítica de la que de verdad importa. Tres familias donde la
+ * respuesta es no:
+ *
+ * - `DECIDE_UN_TERCERO` — firmas, aprobaciones, decisiones del cliente, puntos Go/No-Go. Poner el
+ *   doble de consultores no hace que el comité sesione antes.
+ * - `TIEMPO_TRANSCURRIDO` — copiar datos, estabilizar, acompañar. Ninguna cantidad de gente
+ *   acelera una transferencia de dos terabytes.
+ * - `FECHA_PACTADA` — cortes acordados con usuarios finales, ventanas de cambio. La fecha se
+ *   negoció; moverla es otra conversación, no un problema de capacidad.
+ */
+export type Recoverability = 'RECUPERABLE' | 'DECIDE_UN_TERCERO' | 'TIEMPO_TRANSCURRIDO' | 'FECHA_PACTADA'
+
+/** Una tarea del plan, con lo que el motor necesita para programarla y para clasificarla. */
 export interface PlanTask {
   readonly id: string
   /** Nombre visible. El motor lo usa para poder nombrar las tareas en los mensajes de error. */
@@ -75,6 +116,20 @@ export interface PlanTask {
   readonly duration: number
   /** Restricción de fecha, si la tiene. */
   readonly constraint?: Constraint
+  /** Clase de línea. Por omisión, actividad del proveedor. */
+  readonly kind?: TaskKind
+  /** Quién responde. Si se omite, se deduce de la clase de línea. */
+  readonly party?: ResponsibleParty
+  /**
+   * Clasificación puesta a mano. Siempre gana sobre la que sugiere la regla, porque quien conoce el
+   * proyecto sabe cosas que el modelo no.
+   */
+  readonly recoverability?: Recoverability
+  /**
+   * La tarea consume tiempo que pasa, no esfuerzo: replicar, estabilizar, acompañar. Es la única de
+   * las tres familias que no se puede deducir de la estructura del plan, así que se declara.
+   */
+  readonly elapsedTime?: boolean
 }
 
 /** Una tarea ya programada por el pase adelante. */
