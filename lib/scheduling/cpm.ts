@@ -1,0 +1,190 @@
+/**
+ * Pase atrás y holgura total: el método del camino crítico.
+ *
+ * El pase adelante contesta «¿qué tan pronto puede pasar cada cosa?». El pase atrás contesta la
+ * pregunta contraria, que es la que le importa a quien dirige: «¿qué tan tarde puede pasar cada
+ * cosa sin mover la fecha de cierre?». La diferencia entre las dos respuestas es la **holgura
+ * total**, y es lo único que distingue una tarea que se puede posponer de una que no.
+ *
+ * Las cuatro reglas del pase atrás son las mismas del pase adelante leídas al revés. Donde el pase
+ * adelante dice «la sucesora no puede empezar antes de X», el pase atrás dice «entonces la
+ * predecesora no puede terminar después de X»:
+ *
+ * | Vínculo | Pase adelante                                  | Pase atrás                                    |
+ * |---------|------------------------------------------------|-----------------------------------------------|
+ * | `FS`    | `inicio_suc ≥ fin_pred + 1 + desfase`          | `fin_pred ≤ inicio_suc − 1 − desfase`         |
+ * | `SS`    | `inicio_suc ≥ inicio_pred + desfase`           | `inicio_pred ≤ inicio_suc − desfase`          |
+ * | `FF`    | `fin_suc ≥ fin_pred + desfase`                 | `fin_pred ≤ fin_suc − desfase`                |
+ * | `SF`    | `fin_suc ≥ inicio_pred − 1 + desfase`          | `inicio_pred ≤ fin_suc + 1 − desfase`         |
+ *
+ * No son reglas nuevas: son la misma desigualdad despejada del otro lado. Si el pase adelante y el
+ * pase atrás no fueran exactamente inversos, la holgura saldría mal y nadie lo notaría hasta que el
+ * plan se atrasara.
+ */
+
+import { type IsoDate, toDayNumber, toIsoDate } from './date'
+import { type Schedule, span } from './schedule'
+import type { Dependency, ScheduledTask } from './types'
+
+/** Qué se hace con las tareas de las que nadie depende. */
+export type TerminalPolicy =
+  /**
+   * Se les da de plazo hasta el cierre del plan. Es lo que hace MS Project, y significa que una
+   * tarea suelta que termina en junio tiene holgura hasta noviembre.
+   */
+  | 'CIERRE_DEL_PLAN'
+  /**
+   * Se les da de plazo su propio fin, con lo que quedan sin holgura. Sirve para ver la cadena que
+   * empuja a cada rama, no solo la que empuja al cierre.
+   */
+  | 'FIN_PROPIO'
+
+export interface AnalyzedTask extends ScheduledTask {
+  /** Fecha tardía de inicio: lo más tarde que puede empezar sin mover el cierre. */
+  readonly lateStart: IsoDate
+  /** Fecha tardía de fin. */
+  readonly lateFinish: IsoDate
+  /**
+   * Holgura total en días hábiles.
+   *
+   * Cero significa que cualquier atraso de esta tarea atrasa el plan. Negativa significa que la
+   * tarea ya está programada más tarde de lo que el plan aguanta: no es holgura, es una deuda.
+   */
+  readonly totalFloat: number
+  /** Verdadero cuando la holgura total es cero o negativa. */
+  readonly isCritical: boolean
+}
+
+export interface CriticalPathAnalysis {
+  readonly schedule: Schedule
+  readonly tasks: readonly AnalyzedTask[]
+  readonly byId: ReadonlyMap<string, AnalyzedTask>
+  /** Ordinales de día hábil, por si otra capa necesita seguir calculando. */
+  readonly lateStart: ReadonlyMap<string, number>
+  readonly lateFinish: ReadonlyMap<string, number>
+  readonly totalFloat: ReadonlyMap<string, number>
+  /** Fecha en que cierra el plan. */
+  readonly finish: IsoDate
+  /** Tareas con holgura exactamente cero. */
+  readonly zeroFloatCount: number
+  /** Tareas con holgura negativa: el plan ya no cabe en su fecha por ahí. */
+  readonly negativeFloatCount: number
+}
+
+export interface AnalyzeOptions {
+  /** Qué hacer con las tareas sin sucesoras. Por omisión, como MS Project. */
+  readonly terminalPolicy?: TerminalPolicy
+  /**
+   * Fecha contra la cual se mide la holgura.
+   *
+   * Por omisión es el cierre calculado del plan, y entonces la ruta crítica tiene holgura cero. Si
+   * se pasa la fecha de compromiso, la holgura pasa a medir el margen real contra ese compromiso:
+   * si el plan cierra antes, todo gana holgura; si cierra después, la ruta crítica sale negativa.
+   */
+  readonly deadline?: IsoDate
+}
+
+/**
+ * Calcula fechas tardías y holgura total sobre un plan ya programado.
+ *
+ * Recorre el orden topológico al revés, así que cada tarea se resuelve cuando todas sus sucesoras
+ * ya están resueltas. Es una sola pasada: sobre miles de tareas cuesta lo mismo que el pase
+ * adelante.
+ */
+export function analyzeCriticalPath(
+  schedule: Schedule,
+  options: AnalyzeOptions = {},
+): CriticalPathAnalysis {
+  const { graph, calendar, earlyStart, earlyFinish } = schedule
+  const terminalPolicy = options.terminalPolicy ?? 'CIERRE_DEL_PLAN'
+
+  const planFinish =
+    options.deadline === undefined
+      ? calendar.ordinalOf(toDayNumber(schedule.finish))
+      : calendar.ordinalOf(calendar.previous(toDayNumber(options.deadline)))
+
+  const lateFinish = new Map<string, number>()
+  const lateStart = new Map<string, number>()
+  const totalFloat = new Map<string, number>()
+
+  for (let i = graph.order.length - 1; i >= 0; i -= 1) {
+    const id = graph.order[i]
+    const task = graph.taskById.get(id)!
+    const tramo = span(task.duration)
+    const outgoing = graph.outgoing.get(id)!
+
+    // El techo de todos es el cierre del plan. Sin él, una tarea cuyo único vínculo saliente es
+    // laxo —un `SF`, o un `SS` hacia algo corto— saldría con holgura aunque sea ella la que fija
+    // la fecha de cierre, que es justo lo contrario de lo que la holgura significa.
+    let latest = planFinish
+
+    if (outgoing.length === 0) {
+      if (terminalPolicy === 'FIN_PROPIO') latest = earlyFinish.get(id)!
+    } else {
+      for (const dependency of outgoing) {
+        const allowed = latestFinish(dependency, lateStart, lateFinish, tramo)
+        if (allowed < latest) latest = allowed
+      }
+    }
+
+    lateFinish.set(id, latest)
+    lateStart.set(id, latest - tramo)
+    totalFloat.set(id, latest - earlyFinish.get(id)!)
+  }
+
+  let zeroFloatCount = 0
+  let negativeFloatCount = 0
+
+  const tasks: AnalyzedTask[] = schedule.tasks.map((task) => {
+    const float = totalFloat.get(task.id)!
+    if (float === 0) zeroFloatCount += 1
+    else if (float < 0) negativeFloatCount += 1
+
+    return {
+      ...task,
+      lateStart: toIsoDate(calendar.dayOfOrdinal(lateStart.get(task.id)!)),
+      lateFinish: toIsoDate(calendar.dayOfOrdinal(lateFinish.get(task.id)!)),
+      totalFloat: float,
+      isCritical: float <= 0,
+    }
+  })
+
+  return Object.freeze({
+    schedule,
+    tasks: Object.freeze(tasks),
+    byId: new Map(tasks.map((task) => [task.id, task])),
+    lateStart,
+    lateFinish,
+    totalFloat,
+    finish: schedule.finish,
+    zeroFloatCount,
+    negativeFloatCount,
+  })
+}
+
+/**
+ * Ordinal en que un vínculo obliga a terminar a lo más tardar a la predecesora.
+ *
+ * `tramo` es el de la **predecesora**, y aparece en `SS` y `SF` porque esos vínculos amarran el
+ * inicio: hay que avanzar desde el inicio tardío hasta el fin tardío.
+ */
+function latestFinish(
+  dependency: Dependency,
+  lateStart: ReadonlyMap<string, number>,
+  lateFinish: ReadonlyMap<string, number>,
+  tramo: number,
+): number {
+  const successorStart = lateStart.get(dependency.successorId)!
+  const successorFinish = lateFinish.get(dependency.successorId)!
+
+  switch (dependency.type) {
+    case 'FS':
+      return successorStart - 1 - dependency.lag
+    case 'SS':
+      return successorStart - dependency.lag + tramo
+    case 'FF':
+      return successorFinish - dependency.lag
+    case 'SF':
+      return successorFinish + 1 - dependency.lag + tramo
+  }
+}

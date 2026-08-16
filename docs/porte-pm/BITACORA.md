@@ -289,3 +289,90 @@ local por omisión.
 C2 · Pase atrás y holgura total. El pase adelante ya publica los ordinales de inicio y fin
 tempranos, que es justo lo que el pase atrás consume. La prueba de aceptación es la cadena con el
 hito de cierre: con `FF` el plan cierra en su fecha, con `FS` se corre un día.
+
+---
+
+## Tramo 2 — C2 · Pase atrás y holgura total
+
+**Estado:** CERRADO. C2 pasa a HECHO.
+
+### Qué se tocó
+
+- `lib/scheduling/cpm.ts` — pase atrás y holgura total. Una sola pasada sobre el orden topológico al
+  revés, así que cuesta lo mismo que el pase adelante.
+- `lib/scheduling/__tests__/cpm.test.ts` — 22 pruebas, incluida la de aceptación.
+- `lib/scheduling/__tests__/cpm.property.test.ts` — 7 propiedades sobre 700 planes generados.
+
+### Las cuatro reglas del pase atrás son las del pase adelante despejadas
+
+| Vínculo | Pase adelante | Pase atrás |
+|---|---|---|
+| `FS` | `inicio_suc ≥ fin_pred + 1 + desfase` | `fin_pred ≤ inicio_suc − 1 − desfase` |
+| `SS` | `inicio_suc ≥ inicio_pred + desfase` | `inicio_pred ≤ inicio_suc − desfase` |
+| `FF` | `fin_suc ≥ fin_pred + desfase` | `fin_pred ≤ fin_suc − desfase` |
+| `SF` | `fin_suc ≥ inicio_pred − 1 + desfase` | `inicio_pred ≤ fin_suc + 1 − desfase` |
+
+No son reglas nuevas: es la misma desigualdad leída del otro lado. Que lo sean está probado como
+propiedad, no supuesto: la número 3 verifica sobre planes al azar que las fechas tardías cumplen los
+mismos vínculos que las tempranas.
+
+### La prueba de aceptación
+
+La cadena del encargo, con el único cambio del tipo de vínculo del hito de cierre:
+
+|  | hito | cierre del plan |
+|---|---|---|
+| `FF` | 2026-06-09, el mismo día en que termina su predecesora | **2026-06-11** |
+| `FS` | 2026-06-10, un día hábil después | **2026-06-12** |
+
+Y contra una fecha de compromiso del 11 de junio: con `FF` las cuatro tareas quedan en holgura cero
+y el plan cumple; con `FS` las cuatro quedan en **−1**, y el sistema lo dice en vez de esconderlo.
+El día no se queda en el hito: la tarea que sigue también se corre. Eso es lo que propaga el error
+por todo un plan de mil líneas.
+
+### Lo que se encontró y no se esperaba
+
+**El pase atrás necesita un techo, y la primera versión no lo tenía.** Dos pruebas fallaron: una
+tarea con un vínculo saliente laxo —un `SF`, o un `SS` hacia algo corto— salía con holgura aunque
+fuera ella misma la que fijaba la fecha de cierre. La causa: el libro de texto pone
+`fin tardío = cierre del plan` solo para las tareas sin sucesoras, y deja que las demás tomen su
+límite únicamente de sus sucesoras. Con vínculos laxos ese límite queda **más allá** del cierre.
+
+MS Project no tiene el problema porque acota toda fecha tardía al cierre del plan. Se corrigió
+igual, y quedó como propiedad 5. Vale la pena anotarlo: no era un error de aritmética sino de
+condición inicial, y solo se vio porque una prueba preguntaba por `SF`, que es el tipo de vínculo
+que el plan de referencia **no** usa ni una vez. Si me hubiera limitado a lo que el archivo ejercita,
+el defecto habría llegado intacto hasta C4.
+
+**La política sobre las tareas sin sucesoras cambia el conteo, así que se declara.** Con el criterio
+de MS Project —plazo hasta el cierre del plan— una tarea suelta tiene holgura; con el otro
+—anclada a su propio fin— no la tiene. En el plan de referencia hay **138 líneas de las que nadie
+depende**, y esa sola decisión mueve el conteo de holgura cero de 882 a 987. Por eso `terminalPolicy`
+es un parámetro explícito y no una constante escondida: cuando se reporte una cifra de holgura habrá
+que decir bajo qué criterio se calculó.
+
+**La holgura se puede medir contra la fecha de compromiso, no solo contra el cierre calculado.** Es
+lo que convierte la holgura en margen de negocio: si el plan cierra antes del compromiso, todas las
+tareas ganan ese margen; si cierra después, la ruta crítica sale negativa y el número dice cuántos
+días se deben. Es el insumo directo de la vista ejecutiva (C13).
+
+### Pruebas y línea base
+
+135 pruebas en el motor, 7 archivos, todas en verde. 14 propiedades con `fast-check` sobre 1 400
+planes generados al azar.
+
+### Preguntas abiertas nuevas
+
+1. **¿Qué `terminalPolicy` se usa para reportar «tareas con holgura cero» al cliente?** La decisión
+   mueve la cifra en cientos de líneas. Se propone la de MS Project por interoperabilidad, y que la
+   cifra siempre se publique diciendo el criterio.
+2. **La holgura negativa hoy solo aparece con fecha de compromiso o con `DEBE_EMPEZAR_EL`.** En el
+   plan de referencia aparecería además por las 9 filas cuyas fechas no cuadran con sus enlaces. Al
+   importar habrá que decidir si esas fechas se respetan —y generan holgura negativa— o si el motor
+   las recalcula.
+
+### Siguiente
+
+C3 · Calendario laboral con feriados. La aritmética de días hábiles y feriados ya está y está
+probada; falta el catálogo por país y año con los móviles calculados —Pascua y Ley Emiliani—, y la
+simulación que responde a qué fecha se movería el cierre sin tocar el plan.
