@@ -18,7 +18,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C2** · Pase adelante, pase atrás y holgura total | **NO EXISTE** — cero coincidencias de `earlyStart`, `lateFinish`, `totalFloat`, `criticalPath`, `topological` en todo el repositorio | **HECHO** | [cpm.test.ts](lib/scheduling/__tests__/cpm.test.ts) · [cpm.property.test.ts](lib/scheduling/__tests__/cpm.property.test.ts) |
 | **C3** · Calendario laboral con feriados | **NO EXISTE** — toda la aritmética del sistema es de días corridos; no hay librería de fechas ni concepto de día hábil en la capa de negocio | **HECHO** | [holidays.test.ts](lib/scheduling/__tests__/holidays.test.ts) · [simulation.test.ts](lib/scheduling/__tests__/simulation.test.ts) · [calendar.test.ts](lib/scheduling/__tests__/calendar.test.ts) |
 | **C4** · Ruta crítica y Ruta Súper Crítica | **NO EXISTE** — sin grafo ni holgura no hay sobre qué calcular; lo más cercano es una heurística de salud por SPI | **HECHO** | [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) · [critical-path.test.ts](lib/scheduling/__tests__/critical-path.test.ts) |
-| **C5** · Compuertas (gates) como objeto propio | **NO EXISTE** — no hay modelo `Gate` ni `Milestone`, y `WorkItem` no tiene campo de tipo | PENDIENTE | — |
+| **C5** · Compuertas (gates) como objeto propio | **NO EXISTE** — no hay modelo `Gate` ni `Milestone`, y `WorkItem` no tiene campo de tipo | **HECHO** | [gates.test.ts](lib/scheduling/__tests__/gates.test.ts) |
 | **C6** · La responsabilidad del cliente como tipo de primera clase | **NO EXISTE** — `WorkItem.ownerId` exige que el responsable pertenezca a la organización proveedora; `Project.client` es solo un nombre | PENDIENTE | — |
 | **C7** · Avance ponderado por trabajo real | **PARCIAL** — los insumos están en la base (`estimatedHours`, `plannedHours`) pero el avance se calcula por conteo binario de tareas en cuatro lugares | PENDIENTE | — |
 | **C8** · Motor de auditoría permanente | **NO EXISTE** — `lib/services/audit-logger.ts` audita seguridad (accesos, roles), no consistencia del plan | PENDIENTE | — |
@@ -30,7 +30,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 4 en HECHO · 9 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fase 1 cerrada.**
+**Avance:** 5 en HECHO · 8 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fase 1 cerrada.**
 
 ---
 

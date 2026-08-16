@@ -580,3 +580,62 @@ si el archivo de referencia no está, porque no se versiona.
 C5 · Compuertas como objeto propio. El plan de referencia tiene cuatro «Habilitadores» que ya se
 importan como `COMPUERTA`, y son las únicas líneas con duración cero e inicio distinto de fin: son
 ventanas, no hitos.
+
+---
+
+## Tramo 5 — C5 · Compuertas como objeto propio
+
+**Estado:** CERRADO. C5 pasa a HECHO.
+
+### Qué se tocó
+
+- `lib/scheduling/gates.ts` — el modelo de compuerta y su evaluación.
+- `lib/scheduling/__tests__/gates.test.ts` — 16 pruebas.
+- `prisma/schema.prisma` — modelos `Gate`, `GateCondition` y `GateUnlock`, migración `add_gates`,
+  aplicada en local.
+
+### Por qué una compuerta no es un hito
+
+Un hito es una fecha: llega, y el plan la registra. Una compuerta es una condición: si no se cumple,
+no hay plan que seguir. De ahí las cuatro cosas que lleva y un hito no necesita: condiciones **con
+dueño y fecha límite**, las tareas que habilita, un hito de cierre, y un **plan alterno obligatorio**.
+
+El plan alterno se valida, no se sugiere: una compuerta sin plan alterno hace fallar la evaluación
+con un mensaje que dice por qué. Sin él, lo que sigue cuando la compuerta no cierra es una reunión
+de emergencia — y esa reunión se puede tener antes.
+
+### La prueba de aceptación
+
+Una tarea habilitada por una compuerta con una condición pendiente sale **bloqueada**. Al registrar
+el cumplimiento de esa última condición, sale **desbloqueada**, sin que nadie toque la tarea: lo
+único que cambió fue el cumplimiento. La compuerta además cierra en la fecha de la **última**
+condición cumplida, no de la primera.
+
+### Decisiones que quedaron en el código
+
+**Las fechas límite de las condiciones se cuentan en días de calendario, no hábiles.** Es lo
+contrario de todo el resto del motor, y a propósito: la fecha límite de una condición la mira una
+persona en un calendario de pared. «Vence el viernes» significa el viernes, se trabaje el sábado o
+no. La función que lo calcula se llamó primero `businessDaysBetween` y se renombró: el nombre mentía.
+
+**Una condición cumplida tarde no queda vencida.** Vencida es un estado de lo que falta, no un
+reproche sobre lo que ya pasó.
+
+**Una tarea puede colgar de varias compuertas** y sigue bloqueada mientras cualquiera no cierre.
+
+### Preguntas abiertas nuevas
+
+1. **Las compuertas todavía no participan del cálculo de fechas.** Hoy una compuerta bloquea o no
+   bloquea, pero el pase adelante no la consulta. Falta decidir si una compuerta abierta empuja las
+   fechas de lo que habilita —y con qué fecha— o si solo se marca. Depende de qué signifique la
+   fecha límite de la condición frente a la fecha planeada de la tarea.
+2. **Los cuatro Habilitadores del plan de referencia ya se importan como compuerta**, pero el
+   archivo no trae sus condiciones: están descritas en prosa. Convertirlas es trabajo de captura, no
+   de importación.
+
+### Siguiente
+
+C6 · La responsabilidad del cliente como tipo de primera clase. Buena parte ya está: el importador
+distingue las 178 líneas del cliente y `ResponsibleParty` existe. Falta la vista propia filtrable,
+ordenada por fecha y con alerta de vencimiento próximo, y resolver que hoy `WorkItem.ownerId` exige
+que el responsable pertenezca a la organización del proveedor.

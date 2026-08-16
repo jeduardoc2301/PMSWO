@@ -26,6 +26,7 @@ model Organization {
   projectHealthConfig      ProjectHealthConfig?
   taskDependencies         TaskDependency[]
   projectCalendars         ProjectCalendar[]
+  gates                    Gate[]
 
   @@map("organizations")
 }
@@ -88,6 +89,7 @@ model Project {
   templateUsage    TemplateUsage[]
   taskDependencies TaskDependency[]
   calendar         ProjectCalendar?
+  gates            Gate[]
 
   @@index([organizationId])
   @@index([organizationId, archived])
@@ -157,6 +159,10 @@ model WorkItem {
   incomingLinks TaskDependency[]    @relation("DependencySuccessor")
   // Vínculos en los que esta tarea es la predecesora.
   outgoingLinks TaskDependency[]    @relation("DependencyPredecessor")
+  // Compuertas que habilitan a esta tarea.
+  gateUnlocks   GateUnlock[]
+  // Compuertas cuyo hito de cierre es esta línea.
+  closesGates   Gate[]              @relation("GateClosingMilestone")
 
   @@index([organizationId, projectId])
   @@index([ownerId])
@@ -537,4 +543,77 @@ model ProjectHoliday {
   @@unique([calendarId, date])
   @@index([calendarId])
   @@map("project_holidays")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PLANEACIÓN · Compuertas (C5)
+//
+// Una compuerta no es una tarea ni un hito: es un conjunto de condiciones que, al cumplirse todas,
+// habilita a un grupo de tareas a empezar. El plan alterno es obligatorio a propósito — una
+// compuerta sin plan alterno no es una compuerta, es una esperanza.
+// ─────────────────────────────────────────────────────────────────────────────
+model Gate {
+  id             String @id @default(uuid()) @db.Char(36)
+  organizationId String @map("organization_id") @db.Char(36)
+  projectId      String @map("project_id") @db.Char(36)
+  name           String
+
+  // Qué se hace si la compuerta no cierra. Obligatorio y visible para el cliente.
+  fallbackPlan String @map("fallback_plan") @db.Text
+
+  // Línea que el plan registra cuando la compuerta cierra.
+  closingMilestoneId String? @map("closing_milestone_id") @db.Char(36)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization     Organization    @relation(fields: [organizationId], references: [id])
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  closingMilestone WorkItem?       @relation("GateClosingMilestone", fields: [closingMilestoneId], references: [id])
+  conditions       GateCondition[]
+  unlocks          GateUnlock[]
+
+  @@index([organizationId, projectId])
+  @@index([projectId])
+  @@map("gates")
+}
+
+// Una condición de la compuerta: qué falta, de quién es y para cuándo.
+model GateCondition {
+  id     String @id @default(uuid()) @db.Char(36)
+  gateId String @map("gate_id") @db.Char(36)
+
+  // Escrita para que un tercero pueda verificarla sin preguntarle a nadie.
+  description String @db.Text
+  // Nombre de quien responde. Sin dueño no hay a quién preguntarle.
+  owner       String
+  // "PROVEEDOR", "CLIENTE" o "AMBOS".
+  party       String @default("CLIENTE") @db.VarChar(10)
+
+  dueDate DateTime  @map("due_date") @db.Date
+  // Fecha en que se cumplió. Nulo mientras siga pendiente.
+  metOn   DateTime? @map("met_on") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  gate Gate @relation(fields: [gateId], references: [id], onDelete: Cascade)
+
+  @@index([gateId])
+  @@index([dueDate])
+  @@map("gate_conditions")
+}
+
+// Qué tareas habilita la compuerta.
+model GateUnlock {
+  id         String @id @default(uuid()) @db.Char(36)
+  gateId     String @map("gate_id") @db.Char(36)
+  workItemId String @map("work_item_id") @db.Char(36)
+
+  gate     Gate     @relation(fields: [gateId], references: [id], onDelete: Cascade)
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@unique([gateId, workItemId])
+  @@index([workItemId])
+  @@map("gate_unlocks")
 }
