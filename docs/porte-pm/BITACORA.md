@@ -1219,3 +1219,105 @@ que ademas es donde corresponde: es el trazo lo que se senala con el puntero.
 - Bateria completa: 1 502 pasan de 1 760. Los 258 rojos son los preexistentes; la linea base paso de
   37 archivos rojos a 36 y ninguno es de los nuevos.
 - C11 pasa a HECHO. **Las trece capacidades quedan en HECHO.**
+
+---
+
+## Tramo 14 - Cerrar la bateria
+
+### Que faltaba
+
+Con las trece capacidades en HECHO quedaba abierta la segunda condicion del cierre: «la bateria de
+pruebas del proyecto pasa completa». No pasaba. Arrancaba este trabajo con **257 pruebas fallando en
+36 archivos**, y ninguna de esas fallas era del porte: todas eran anteriores.
+
+Habia planteado la duda de si esa condicion se referia solo a las pruebas nuevas o a toda la
+bateria. Como la frase dice «completa», se tomo al pie de la letra.
+
+### Como se redujo
+
+De 257 a cero, en cinco tramos. El desglose por causa:
+
+| Causa | Pruebas | Que era |
+|---|---|---|
+| JSX en modo clasico | 145 | Diferencia entre la configuracion de prueba y la de produccion |
+| Pruebas atrasadas del rediseno | ~90 | El producto cambio y la prueba describia la version anterior |
+| Simulaciones incompletas | ~20 | Modelos, contextos o llamadas que el codigo ya usa y el mock no tenia |
+| Archivos que no corrian | 2 archivos | Uno escrito para Jest, otro contra una ruta que no existe |
+
+**El hallazgo mas rentable fue una linea.** `tsconfig.json` declara `jsx: "preserve"` porque quien
+transpila en produccion es Next.js, que usa el modo automatico desde React 17. Vitest no heredaba esa
+decision: compilaba en modo clasico y cualquier componente que no importara React explicitamente
+tronaba al renderizar, aunque en el navegador funcionara perfecto. Una linea en `vitest.config.ts`
+recupero 91 pruebas de golpe.
+
+Ese cambio se midio antes y despues, archivo por archivo, y no se dio por bueno hasta comprobar que
+ningun archivo empeoraba. El unico que aparentaba empeorar da las mismas ocho fallas aislado, antes y
+despues: es contaminacion entre archivos, no el cambio.
+
+### La regla que se siguio en cada arreglo
+
+**Donde la prueba estaba atrasada, se actualizo la prueba. Donde el producto estaba mal, se arreglo
+el producto. Nunca al reves.**
+
+No siempre es obvio cual de los dos. El criterio fue preguntarse que deberia pasar, no que pasa:
+
+- Las notificaciones se emiten en espaniol y la prueba las esperaba en ingles - **la prueba estaba
+  atrasada**, el producto hace lo correcto.
+- La fecha de inicio de un proyecto se mostraba un dia antes de la guardada - **el producto estaba
+  mal**, y la prueba tenia razon aunque su expectativa tambien estuviera escrita para el defecto.
+- El consultor interno paso de editar solo lo suyo a editar todo su proyecto - **cambio deliberado**,
+  esta comentado en el codigo; se actualizo la prueba y se agrego una que fija que el permiso viejo
+  ya no lo usa ningun rol.
+
+### Seis defectos que las pruebas destaparon
+
+Ninguno estaba en el encargo:
+
+1. **Las fechas se mostraban un dia antes.** `new Date('2024-01-01')` es medianoche UTC y en huso
+   negativo cae en el dia anterior. Un proyecto que arranca el 1 de enero aparecia arrancando el 31
+   de diciembre. Corregido en cuatro pantallas.
+2. **Las actividades del asistente quedaban fechadas un dia antes** de donde el calculo las puso, por
+   `toISOString()` sobre fechas civiles.
+3. **Las fases del resumen final arrancaban plegadas siempre.** El codigo pretendia lo contrario pero
+   lo resolvia en el valor inicial del estado, cuando las actividades todavia no existen.
+4. **El dialogo de vista previa no tenia titulo.** Radix lo venia avisando por consola en cada
+   apertura y nadie lo leia.
+5. **Los campos de fecha no tenian nombre accesible**: la etiqueta no apuntaba a ningun control.
+6. **La configuracion de prueba no coincidia con la de produccion**, ya explicado.
+
+Los cinco primeros se arreglaron. Son aditivos o correcciones de aritmetica; ninguno cambia
+comportamiento que alguien pudiera estar esperando.
+
+### Cuatro que quedan escritos y no se tocaron
+
+Porque cambiarlos es decision de quien mantiene el producto:
+
+- El `PATCH` de `work-items/[id]` dejo de pasar por el servicio y **perdio el registro de cambios**.
+- La barra de navegacion **perdio su cajon movil**.
+- La tarjeta de plantilla **dejo de mostrar cuando se uso por ultima vez**.
+- El corrimiento de fecha aparece en otros seis lugares.
+
+### Las 61 omitidas
+
+Ninguna prueba se borro para poner la bateria en verde. Las 61 que quedan omitidas llevan su razon
+escrita dentro del archivo:
+
+- **43** describen dos endpoints de bloqueadores que **nunca se construyeron**. El archivo de ruta
+  esta vacio y lo ha estado en todos los commits del repositorio -se comprobo commit por commit-. Se
+  conservan completas: son la especificacion escrita de lo que falto hacer, y el dia que alguien
+  implemente la ruta tiene 43 pruebas esperandolo.
+- **18** describen comportamiento retirado a proposito. Se dejan nombradas para que la perdida quede
+  registrada donde alguien la vea, no enterrada en un commit.
+
+### Y una clase de falla que no era de contenido
+
+Varias pruebas del asistente de plantillas pasaban o fallaban segun lo rapido que corriera el resto
+de la bateria: daban por hecho que los datos ya estaban en pantalla cuando en realidad llegan
+despues. Ahora esperan un punto que solo se cumple con datos -que el conteo deje de ser cero, que
+exista la tabla- en vez de esperar un encabezado que se dibuja desde el primer momento.
+
+### Estado
+
+- **94 archivos, 1 757 pruebas, cero fallas.** Tres corridas seguidas con el mismo resultado.
+- La linea base paso de 36 archivos rojos a cero.
+- Las 13 capacidades siguen en HECHO; sus 528 pruebas entre motor y vistas, en verde.

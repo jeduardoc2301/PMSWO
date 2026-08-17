@@ -34,6 +34,64 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 
 ---
 
+## Las tres condiciones de cierre
+
+| Condición | Estado | Cómo se comprueba |
+|---|---|---|
+| **1 ·** Las 13 capacidades en HECHO con prueba que las acredite | ✅ **cumplida** | El tablero de arriba. Ninguna en PENDIENTE, ninguna en EN CURSO, ninguna descartada |
+| **2 ·** La batería del proyecto pasa completa | ✅ **cumplida** | `npx vitest --run` → **94 archivos, 1 757 pruebas, cero fallas**, tres corridas seguidas con el mismo resultado |
+| **3 ·** El sistema importa el plan de referencia y lo reproduce con tolerancia cero | ⚠️ **dos de tres** | [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts), 62 pruebas contra el archivo real |
+
+### Sobre la condición 2
+
+La batería arrancó este trabajo con **257 pruebas fallando en 36 archivos**. Ninguna de esas fallas
+era del porte: eran anteriores. Están todas reparadas, y la reparación fue en su mayoría poner las
+pruebas al día con un producto que había cambiado —no aflojar lo que comprobaban—.
+
+Quedan **61 pruebas omitidas**, todas con su razón escrita dentro del archivo:
+
+- **43** describen `GET` y `PATCH /api/v1/blockers/:id`, dos endpoints que **nunca se construyeron**:
+  el archivo de ruta está vacío y lo ha estado en todos los commits del repositorio. Se conservan
+  completas porque son la especificación escrita de lo que faltó hacer.
+- **18** describen comportamiento que se retiró a propósito (reordenar fases y actividades con
+  botones, validación que se mudó a los diálogos, el cajón móvil de la barra de navegación). Se
+  dejan nombradas para que la pérdida quede registrada donde alguien la vea.
+
+Ninguna prueba se borró para poner la batería en verde.
+
+### Sobre la condición 3
+
+Se cumple en dos de sus tres cifras. La tercera **no es reproducible y eso se midió, no se supuso**:
+el archivo no guarda holgura en ninguna de sus siete hojas, así que no hay contra qué comparar. El
+detalle está en «Riesgo sobre la condición 3 del cierre», más abajo.
+
+### Defectos del producto que este trabajo encontró y corrigió
+
+Ninguno estaba en el encargo. Aparecieron porque una prueba los destapó.
+
+| Defecto | Dónde | Por qué importa |
+|---|---|---|
+| Las fechas se mostraban **un día antes** de la guardada | 4 pantallas de proyecto y plantillas | `new Date('2024-01-01')` es medianoche UTC; en huso negativo cae en el día anterior |
+| Las actividades quedaban **fechadas un día antes** de donde el cálculo las puso | el asistente de plantillas | `toISOString()` sobre fechas civiles |
+| Las fases del resumen final **arrancaban plegadas siempre** | paso final del asistente | el estado inicial se calculaba antes de que existieran los datos |
+| El diálogo de vista previa **no tenía título** | plantillas | sin él un lector de pantalla anuncia «diálogo» y nada más |
+| Los campos de fecha **no tenían nombre accesible** | formulario de proyecto | la etiqueta no apuntaba a ningún control |
+| Vitest compilaba JSX en modo clásico | configuración | 145 pruebas fallaban por una diferencia entre la configuración de prueba y la de producción |
+
+### Defectos que quedan escritos y no se tocaron
+
+Porque cambiarlos es decisión de quien mantiene el producto, no de este porte:
+
+- El `PATCH` de `work-items/[id]` dejó de pasar por el servicio y **perdió el registro de cambios**:
+  una edición por ese endpoint no deja rastro de quién la hizo. Otras rutas sí lo conservan.
+- La barra de navegación **perdió su cajón móvil**: hoy es una columna fija de 256 px que en un
+  teléfono se come el ancho útil.
+- La tarjeta de plantilla **dejó de mostrar cuándo se usó por última vez**; la función que lo
+  formateaba sigue ahí, sin que nadie la llame.
+- El corrimiento de fecha por `toISOString()` aparece en otros seis lugares del repositorio.
+
+---
+
 ## El diagnóstico, capacidad por capacidad
 
 ### C1 · Dependencias con tipo y desfase — NO EXISTE
