@@ -87,6 +87,10 @@ export function WorkItemsView({
   // Altas, ediciones y bajas desde el esquema, con los mismos diálogos que la lista y el tablero:
   // una sola forma de tocar una línea, se llegue por donde se llegue.
   const [creando, setCreando] = useState(false)
+  // De quién cuelga la línea que se está dando de alta. El «+» de un renglón preselecciona ese
+  // renglón como padre; el botón de la barra no preselecciona nada y la nueva nace en la raíz. Se
+  // limpia al cerrar: si no, el alta siguiente heredaría un padre que ya nadie pidió.
+  const [padreDeLaNueva, setPadreDeLaNueva] = useState<string | null>(null)
   const [editando, setEditando] = useState<WorkItemSummary | null>(null)
   const [borrando, setBorrando] = useState<WorkItemSummary | null>(null)
   // La carga y los PATCH sobreviven al desmontaje; sin esta bandera, sus respuestas escribirían
@@ -278,7 +282,10 @@ export function WorkItemsView({
         {canCreateWorkItems && modo === 'ESQUEMA' ? (
           <button
             type="button"
-            onClick={() => setCreando(true)}
+            onClick={() => {
+              setPadreDeLaNueva(null)
+              setCreando(true)
+            }}
             className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
             style={{ background: '#6366f1' }}
           >
@@ -347,6 +354,12 @@ export function WorkItemsView({
               const resumen = workItems.find((w) => w.id === id)
               if (resumen) setBorrando(resumen)
             }}
+            onAddChild={(parentId) => {
+              // El padre no se busca en `workItems`: se cuelga de una línea del plan, y el kanban no
+              // conoce los resúmenes, que es donde este gesto más se usa.
+              setPadreDeLaNueva(parentId)
+              setCreando(true)
+            }}
           />
 
           {/* El editor de vínculos como cajón flotante y no como columna: el aside de 400 px junto
@@ -383,9 +396,13 @@ export function WorkItemsView({
       <DialogosDeLinea
         projectId={projectId}
         creando={creando}
+        padreDeLaNueva={padreDeLaNueva}
         editando={editando}
         borrando={borrando}
-        onCerrarAlta={() => setCreando(false)}
+        onCerrarAlta={() => {
+          setCreando(false)
+          setPadreDeLaNueva(null)
+        }}
         onCerrarEdicion={() => setEditando(null)}
         onCerrarBaja={() => setBorrando(null)}
         onCambio={trasCambioDeLinea}
@@ -397,6 +414,7 @@ export function WorkItemsView({
 function DialogosDeLinea({
   projectId,
   creando,
+  padreDeLaNueva,
   editando,
   borrando,
   onCerrarAlta,
@@ -406,6 +424,7 @@ function DialogosDeLinea({
 }: {
   projectId: string
   creando: boolean
+  padreDeLaNueva: string | null
   editando: WorkItemSummary | null
   borrando: WorkItemSummary | null
   onCerrarAlta: () => void
@@ -419,6 +438,7 @@ function DialogosDeLinea({
         open={creando}
         onOpenChange={(abierto) => { if (!abierto) onCerrarAlta() }}
         projectId={projectId}
+        defaultParentId={padreDeLaNueva}
         onSuccess={() => { onCerrarAlta(); onCambio() }}
       />
       {editando && (

@@ -19,6 +19,7 @@ import { WorkItemPriority, type WorkItemSummary } from '@/types'
 import { Combobox } from '@/components/ui/combobox'
 import { Info } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
+import { ParentPicker, construirOpcionesPadre, type OpcionPadre } from './parent-picker'
 
 interface User {
   id: string
@@ -47,8 +48,22 @@ export function EditWorkItemDialog({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [existingPhases, setExistingPhases] = useState<string[]>([])
-  
-  const [formData, setFormData] = useState({
+  const [parentOptions, setParentOptions] = useState<OpcionPadre[]>([])
+  // El tropiezo al leer el tablero se dice en la pantalla: sin él no hay fases ni líneas candidatas
+  // y el formulario se ve vacío sin explicación.
+  const [boardError, setBoardError] = useState<string | null>(null)
+
+  const [formData, setFormData] = useState<{
+    title: string
+    description: string
+    ownerId: string
+    priority: WorkItemPriority
+    startDate: string
+    estimatedEndDate: string
+    phase: string
+    estimatedHours: string
+    parentId: string | null
+  }>({
     title: workItem.title,
     description: '',
     ownerId: workItem.ownerId,
@@ -57,6 +72,8 @@ export function EditWorkItemDialog({
     estimatedEndDate: workItem.estimatedEndDate || '',
     phase: workItem.phase || '',
     estimatedHours: '',
+    // El resumen de la tarjeta no trae el padre; llega con el detalle, en fetchWorkItemDetails.
+    parentId: null,
   })
 
   useEffect(() => {
@@ -65,7 +82,7 @@ export function EditWorkItemDialog({
       console.log('[EditWorkItemDialog] Fetching users and work item details for:', workItem.id)
       fetchUsers()
       fetchWorkItemDetails()
-      fetchExistingPhases()
+      fetchPhasesAndParents()
     }
   }, [open, workItem.id])
 
@@ -85,26 +102,44 @@ export function EditWorkItemDialog({
     }
   }
 
-  const fetchExistingPhases = async () => {
+  /**
+   * Un solo viaje al tablero para las dos listas: las fases existentes y las líneas que pueden ser
+   * padre. Son el mismo `workItems`, y pedirlo dos veces sería pagar dos veces la misma consulta.
+   */
+  const fetchPhasesAndParents = async () => {
     try {
       const response = await fetch(`/api/v1/projects/${projectId}/kanban`)
       if (!response.ok) {
         throw new Error('Failed to fetch phases')
       }
       const data = await response.json()
-      
+      const workItems = (data.kanbanBoard?.workItems ?? []) as Array<{
+        id: string
+        title: string
+        phase?: string | null
+        parentId?: string | null
+      }>
+
       // Extract unique phases from work items
       const phases = new Set<string>()
-      data.kanbanBoard?.workItems?.forEach((item: any) => {
+      workItems.forEach((item) => {
         if (item.phase) {
           phases.add(item.phase)
         }
       })
-      
+
       setExistingPhases(Array.from(phases).sort())
+
+      // El tablero hoy no devuelve `parentId`, así que todas las líneas salen en nivel 0 y la lista
+      // se ve plana. El helper ya lee el campo: el día que el tablero lo mande, aparece la sangría
+      // sin tocar este diálogo.
+      setParentOptions(construirOpcionesPadre(workItems))
+      setBoardError(null)
     } catch (error) {
       console.error('Error fetching phases:', error)
-      // Non-critical error, just log it
+      setExistingPhases([])
+      setParentOptions([])
+      setBoardError('No se pudieron cargar las fases ni las líneas del proyecto. Cierra y vuelve a abrir para intentarlo otra vez.')
     }
   }
 
@@ -122,6 +157,7 @@ export function EditWorkItemDialog({
           estimatedEndDate: data.workItem.estimatedEndDate ? new Date(data.workItem.estimatedEndDate).toISOString().split('T')[0] : '',
           phase: data.workItem.phase || '',
           estimatedHours: data.workItem.estimatedHours != null ? String(data.workItem.estimatedHours) : '',
+          parentId: data.workItem.parentId ?? null,
         })
       }
     } catch (err) {
@@ -163,6 +199,7 @@ export function EditWorkItemDialog({
           estimatedEndDate: formData.estimatedEndDate,
           phase: formData.phase.trim() || null,
           estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : null,
+          parentId: formData.parentId,
         }),
       })
 
@@ -237,6 +274,25 @@ export function EditWorkItemDialog({
                 <Info className="h-3.5 w-3.5 flex-shrink-0" />
                 {t('createDialog.phaseHint', { defaultValue: 'Selecciona una fase existente o escribe una nueva' })}
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <ParentPicker
+                label="Cuelga de"
+                options={parentOptions}
+                value={formData.parentId}
+                onChange={(parentId) => setFormData({ ...formData, parentId })}
+                // Solo se veta la propia línea: sus descendientes no se pueden calcular aquí porque
+                // el tablero no manda `parentId`. Colgarla de una descendiente lo rechaza el
+                // servidor, y su mensaje sale arriba, en el aviso del formulario.
+                disabledIds={[workItem.id]}
+                disabled={submitting}
+              />
+              {boardError && (
+                <p role="alert" className="text-xs text-red-400">
+                  {boardError}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

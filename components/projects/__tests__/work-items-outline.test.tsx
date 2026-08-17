@@ -283,6 +283,45 @@ describe('Las altas, bajas y modificaciones desde el esquema', () => {
 
     expect(screen.queryByRole('button', { name: /^Editar Presentar/ })).not.toBeInTheDocument()
   })
+
+  it('el «+» cuelga una línea de un resumen, que es donde más se usa', () => {
+    const onAddChild = vi.fn()
+    dibujar({ onAddChild })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar una línea dentro de Inicio del plan' }))
+    expect(onAddChild).toHaveBeenCalledWith('fase')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar una línea dentro de ETAPA MOBILIZE' }))
+    expect(onAddChild).toHaveBeenCalledWith('etapa')
+  })
+
+  it('el «+» también está en las hojas, y avisa con el id de la fila, no con el de la nueva', () => {
+    const onAddChild = vi.fn()
+    dibujar({ onAddChild })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Agregar una línea dentro de Presentar el plan de trabajo' }),
+    )
+
+    expect(onAddChild).toHaveBeenCalledTimes(1)
+    expect(onAddChild).toHaveBeenCalledWith('presenta')
+  })
+
+  it('el «+» solo aparece si quien monta ofrece dónde colgar', () => {
+    dibujar({ onEditItem: vi.fn(), onDeleteItem: vi.fn() })
+
+    expect(screen.queryByRole('button', { name: /^Agregar una línea dentro de/ })).not.toBeInTheDocument()
+  })
+
+  it('con solo el «+», el resumen ofrece esa acción y ninguna otra', () => {
+    dibujar({ onAddChild: vi.fn() })
+
+    expect(
+      screen.getByRole('button', { name: 'Agregar una línea dentro de Inicio del plan' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Editar Presentar/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Eliminar Presentar/ })).not.toBeInTheDocument()
+  })
 })
 
 describe('Las fechas van en una sola celda', () => {

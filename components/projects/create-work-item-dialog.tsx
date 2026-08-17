@@ -15,12 +15,15 @@ import { hasPermission } from '@/lib/rbac'
 import { Sparkles, Loader2, Info } from 'lucide-react'
 import { Combobox } from '@/components/ui/combobox'
 import { DatePicker } from '@/components/ui/date-picker'
+import { ParentPicker, construirOpcionesPadre, type OpcionPadre } from './parent-picker'
 
 interface CreateWorkItemDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   projectId: string
   onSuccess: () => void
+  /** La línea de la que cuelga la nueva, cuando se crea desde un lugar que ya sabe el padre. */
+  defaultParentId?: string | null
 }
 
 interface User {
@@ -38,6 +41,8 @@ interface FormData {
   estimatedEndDate: string
   phase: string
   estimatedHours: string
+  /** La línea de la que cuelga; null es raíz. */
+  parentId: string | null
 }
 
 interface FormErrors {
@@ -50,7 +55,7 @@ interface FormErrors {
   general?: string
 }
 
-export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess }: CreateWorkItemDialogProps) {
+export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess, defaultParentId = null }: CreateWorkItemDialogProps) {
   const t = useTranslations('workItems')
   const tAI = useTranslations('ai')
   const { data: session } = useSession()
@@ -60,8 +65,12 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
   const [suggestingDescription, setSuggestingDescription] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [existingPhases, setExistingPhases] = useState<string[]>([])
+  const [parentOptions, setParentOptions] = useState<OpcionPadre[]>([])
+  // El tropiezo al leer el tablero se dice en la pantalla, junto al selector: sin fases ni líneas
+  // candidatas el formulario se ve vacío sin motivo, y un console.error no lo lee nadie.
+  const [boardError, setBoardError] = useState<string | null>(null)
   const [projectInfo, setProjectInfo] = useState<{ name: string; description: string } | null>(null)
-  
+
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -71,6 +80,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
     estimatedEndDate: '',
     phase: '',
     estimatedHours: '',
+    parentId: defaultParentId,
   })
 
   // Check if user has AI_USE permission
@@ -82,8 +92,11 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
   useEffect(() => {
     if (open) {
       fetchUsers()
-      fetchExistingPhases()
+      fetchPhasesAndParents()
       fetchProjectInfo()
+      // El padre sugerido se aplica al abrir, no al montar: el mismo diálogo se reutiliza para
+      // varias capturas seguidas y quien lo abre puede traer un padre distinto cada vez.
+      setFormData(prev => ({ ...prev, parentId: defaultParentId }))
     } else {
       // Reset form when dialog closes
       resetForm()
@@ -107,35 +120,46 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
     }
   }
 
-  const fetchExistingPhases = async () => {
+  /**
+   * Un solo viaje al tablero para las dos listas: las fases existentes y las líneas que pueden ser
+   * padre. Son el mismo `workItems`, y pedirlo dos veces sería pagar dos veces la misma consulta.
+   */
+  const fetchPhasesAndParents = async () => {
     try {
       const response = await fetch(`/api/v1/projects/${projectId}/kanban`)
       if (!response.ok) {
         throw new Error('Failed to fetch phases')
       }
       const data = await response.json()
-      
-      console.log('[CreateWorkItemDialog] Kanban data:', data)
-      console.log('[CreateWorkItemDialog] Work items:', data.kanbanBoard?.workItems)
-      
+      const workItems = (data.kanbanBoard?.workItems ?? []) as Array<{
+        id: string
+        title: string
+        phase?: string | null
+        parentId?: string | null
+      }>
+
       // Extract unique phases from work items
       const phases = new Set<string>()
-      data.kanbanBoard?.workItems?.forEach((item: any) => {
-        console.log('[CreateWorkItemDialog] Item phase:', item.phase, 'for item:', item.title)
+      workItems.forEach((item) => {
         if (item.phase) {
           phases.add(item.phase)
         }
       })
-      
-      console.log('[CreateWorkItemDialog] Extracted phases:', Array.from(phases))
-      
+
       // Always include "Sin Fase" option at the beginning
       const phasesList = Array.from(phases).sort()
       setExistingPhases(phasesList)
+
+      // El tablero hoy no devuelve `parentId`, así que todas las líneas salen en nivel 0 y la lista
+      // se ve plana: se puede elegir padre igual, solo sin sangría. El helper ya lee el campo, de
+      // modo que el día que el tablero lo mande la jerarquía aparece sin tocar este diálogo.
+      setParentOptions(construirOpcionesPadre(workItems))
+      setBoardError(null)
     } catch (error) {
       console.error('Error fetching phases:', error)
-      // Non-critical error, just log it
       setExistingPhases([])
+      setParentOptions([])
+      setBoardError('No se pudieron cargar las fases ni las líneas del proyecto. Puedes capturar sin fase y sin padre, o cerrar y volver a abrir.')
     }
   }
 
@@ -165,8 +189,10 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
       estimatedEndDate: '',
       phase: '',
       estimatedHours: '',
+      parentId: defaultParentId,
     })
     setErrors({})
+    setBoardError(null)
   }
 
   const handleSuggestDescription = async () => {
@@ -292,6 +318,7 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
           estimatedEndDate: formData.estimatedEndDate,
           phase: formData.phase.trim() || null,
           estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : null,
+          parentId: formData.parentId,
         }),
       })
 
@@ -313,14 +340,23 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
     }
   }
 
+  /** El padre no es texto: viaja como id o como null, y por eso no pasa por handleFieldChange. */
+  const handleParentChange = (parentId: string | null) => {
+    setFormData(prev => ({ ...prev, parentId }))
+  }
+
   const handleFieldChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
+    // Clear error for this field when user starts typing.
+    // No todo campo del formulario tiene mensaje propio —`phase`, `estimatedHours` y `parentId` no
+    // lo tienen— así que se estrecha a las claves que sí existen en FormErrors antes de indexar.
+    // Sin esto, indexar FormErrors con `keyof FormData` es un `any` implícito y TypeScript lo marca.
+    const campoConMensaje = field as Extract<keyof FormData, keyof FormErrors>
+    if (errors[campoConMensaje]) {
       setErrors(prev => {
         const newErrors = { ...prev }
-        delete newErrors[field]
+        delete newErrors[campoConMensaje]
         return newErrors
       })
     }
@@ -452,6 +488,21 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess 
               <Info className="h-3.5 w-3.5 flex-shrink-0" />
               {t('createDialog.phaseHint', { defaultValue: 'Selecciona una fase existente o escribe una nueva' })}
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <ParentPicker
+              label="Cuelga de (opcional)"
+              options={parentOptions}
+              value={formData.parentId}
+              onChange={handleParentChange}
+              disabled={submitting}
+            />
+            {boardError && (
+              <p role="alert" className="text-xs text-red-400">
+                {boardError}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

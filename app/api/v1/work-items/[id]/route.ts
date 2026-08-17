@@ -9,7 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
+import { NotFoundError, ValidationError } from '@/lib/errors'
 import prisma from '@/lib/prisma'
+import { verificarPadre } from '@/services/workitem.service'
 import { Permission, WorkItemStatus, WorkItemPriority } from '@/types'
 
 const updateWorkItemSchema = z.object({
@@ -25,6 +27,9 @@ const updateWorkItemSchema = z.object({
   // Avance real de 0 a 1, como lo captura quien revisa el plan. Es el insumo del estado al corte y
   // del atraso en días; el resumen no se captura, se acumula ponderado desde las hojas.
   progressPct: z.number().min(0).max(1).optional(),
+  // Mover la línea en la jerarquía. null la sube a raíz; ausente la deja donde está. Las reglas de
+  // forma del árbol (padre del mismo proyecto, sin ciclos) las aplica `verificarPadre`.
+  parentId: z.string().nullable().optional(),
 })
 
 async function getWorkItemHandler(
@@ -137,6 +142,13 @@ async function updateWorkItemHandler(
       )
     }
 
+    // Mover en la jerarquía se juzga antes de escribir: un ciclo guardado rompe el prorrateo del
+    // avance y con él todas las pantallas que recorren el árbol. Truena con ValidationError o
+    // NotFoundError, que el catch traduce a 400 y 404.
+    if (updateData.parentId !== undefined) {
+      await verificarPadre(workItem.projectId, id, updateData.parentId)
+    }
+
     // Update work item
     const updatedWorkItem = await prisma.workItem.update({
       where: { id },
@@ -150,6 +162,9 @@ async function updateWorkItemHandler(
         ...(updateData.ownerId && { ownerId: updateData.ownerId }),
         ...(updateData.phase !== undefined && { phase: updateData.phase }),
         ...(updateData.estimatedHours !== undefined && { estimatedHours: updateData.estimatedHours }),
+        // Contra undefined y no por verdadero: null significa «súbela a la raíz», y por verdadero
+        // ese movimiento se perdería en silencio.
+        ...(updateData.parentId !== undefined && { parentId: updateData.parentId }),
         ...(updateData.progressPct !== undefined && {
           progressPct: updateData.progressPct,
           // El avance completo cierra la línea también para el kanban; capturar 100% y que la
@@ -178,6 +193,33 @@ async function updateWorkItemHandler(
       { status: 200 }
     )
   } catch (error) {
+    /**
+     * Los errores del servicio, a códigos HTTP. Se reconocen también por `name`, además de por
+     * `instanceof`.
+     *
+     * El respaldo por nombre nació de un diagnóstico equivocado —se creyó que el empaquetador
+     * cargaba dos copias de `lib/errors`—. La causa real era otra y ya está corregida en su raíz:
+     * `AppError` fijaba `AppError.prototype` en vez de `new.target.prototype`, así que **toda**
+     * subclase quedaba aplanada y `instanceof ValidationError` era siempre falso. Hoy `instanceof`
+     * basta; el respaldo se conserva porque no cuesta nada y protege de que alguien vuelva a
+     * aplanar la cadena de prototipos sin darse cuenta.
+     */
+    const nombre = error instanceof Error ? error.name : ''
+
+    if (error instanceof ValidationError || nombre === 'ValidationError') {
+      return NextResponse.json(
+        { error: 'Validation Error', message: (error as Error).message },
+        { status: 400 }
+      )
+    }
+
+    if (error instanceof NotFoundError || nombre === 'NotFoundError') {
+      return NextResponse.json(
+        { error: 'Not Found', message: (error as Error).message },
+        { status: 404 }
+      )
+    }
+
     console.error('[Update Work Item] Error:', error)
     return NextResponse.json(
       {

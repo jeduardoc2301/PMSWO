@@ -8,7 +8,13 @@ export class AppError extends Error {
   ) {
     super(message)
     this.name = 'AppError'
-    Object.setPrototypeOf(this, AppError.prototype)
+    // `new.target.prototype`, no `AppError.prototype`: al fijar la clase base a secas, TODA subclase
+    // quedaba aplanada a AppError y `error instanceof ValidationError` era **siempre falso** —el
+    // objeto traía bien su `name` y su `statusCode`, pero su prototipo era el de la base—. Por eso
+    // hay medio repositorio comprobando `|| error.name === 'ValidationError'`: ese respaldo es lo
+    // único que funcionaba, y donde no se puso, el 400 o el 404 salía convertido en 500 genérico.
+    // Con `new.target` cada subclase conserva su identidad y las dos formas de preguntar coinciden.
+    Object.setPrototypeOf(this, new.target.prototype)
   }
 }
 

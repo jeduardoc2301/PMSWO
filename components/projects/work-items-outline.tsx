@@ -52,6 +52,8 @@ export interface WorkItemsOutlineProps {
   readonly onEditItem?: (id: string) => void
   /** Dar de baja una línea (hoja). */
   readonly onDeleteItem?: (id: string) => void
+  /** Dar de alta una línea que cuelgue de otra. Llega el id del padre, no el de la nueva. */
+  readonly onAddChild?: (parentId: string) => void
 }
 
 /**
@@ -91,6 +93,7 @@ export function WorkItemsOutline({
   onEditLinks,
   onEditItem,
   onDeleteItem,
+  onAddChild,
 }: WorkItemsOutlineProps): React.JSX.Element {
   const jerarquia = useMemo(() => nivelesDelPlan(tasks), [tasks])
   const [plegados, setPlegados] = useState<ReadonlySet<string>>(
@@ -201,7 +204,9 @@ export function WorkItemsOutline({
               <th className="px-3 py-2 text-center font-medium">Vínculos</th>
               <th className="px-3 py-2 font-medium">Responsable</th>
               <th className="px-3 py-2 font-medium">Fechas</th>
-              {onEditItem || onDeleteItem ? <th className="px-3 py-2 font-medium sr-only">Acciones</th> : null}
+              {onEditItem || onDeleteItem || onAddChild ? (
+                <th className="px-3 py-2 font-medium sr-only">Acciones</th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -215,6 +220,7 @@ export function WorkItemsOutline({
                 onEditLinks={onEditLinks}
                 onEditItem={onEditItem}
                 onDeleteItem={onDeleteItem}
+                onAddChild={onAddChild}
                 cutoff={cutoff}
                 calendar={base.calendar}
                 onToggle={alternar}
@@ -251,6 +257,7 @@ function Linea({
   onEditLinks,
   onEditItem,
   onDeleteItem,
+  onAddChild,
 }: {
   row: GanttRow
   avance: number
@@ -263,6 +270,7 @@ function Linea({
   onEditLinks?: (id: string) => void
   onEditItem?: (id: string) => void
   onDeleteItem?: (id: string) => void
+  onAddChild?: (parentId: string) => void
 }) {
   // La fórmula del archivo, sobre las fechas del motor. En un resumen la duración es su lapso en
   // días hábiles y el avance es el acumulado ponderado — la misma pareja (G, H) que el archivo usa
@@ -348,32 +356,48 @@ function Linea({
         {/* Una sola celda: nueve columnas desbordaban la pestaña, y el rango se lee mejor junto. */}
         {row.isMilestone ? row.start : `${row.start} → ${row.finish}`}
       </td>
-      {onEditItem || onDeleteItem ? (
+      {onEditItem || onDeleteItem || onAddChild ? (
         <td className="whitespace-nowrap px-2 py-1.5">
-          {row.isSummary ? null : (
-            <span className="flex items-center gap-0.5">
-              {onEditItem ? (
-                <button
-                  type="button"
-                  aria-label={`Editar ${row.name}`}
-                  onClick={() => onEditItem(row.id)}
-                  className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
-                >
-                  ✎
-                </button>
-              ) : null}
-              {onDeleteItem ? (
-                <button
-                  type="button"
-                  aria-label={`Eliminar ${row.name}`}
-                  onClick={() => onDeleteItem(row.id)}
-                  className="rounded p-1 text-zinc-600 hover:bg-rose-900/20 hover:text-rose-300"
-                >
-                  🗑
-                </button>
-              ) : null}
-            </span>
-          )}
+          <span className="flex items-center gap-0.5">
+            {/* El «+» sí sale en los resúmenes, al revés que ✎ y 🗑: un resumen no se edita ni se
+                borra porque no es una tarea, pero es justo de donde cuelga el plan —una fase dentro
+                de una fase, una actividad dentro de un bloque—, y es ahí donde este gesto se busca.
+                En una hoja también vale: colgarle algo la vuelve el bloque que ya iba a ser. */}
+            {onAddChild ? (
+              <button
+                type="button"
+                aria-label={`Agregar una línea dentro de ${row.name}`}
+                onClick={() => onAddChild(row.id)}
+                className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
+              >
+                +
+              </button>
+            ) : null}
+            {row.isSummary ? null : (
+              <React.Fragment>
+                {onEditItem ? (
+                  <button
+                    type="button"
+                    aria-label={`Editar ${row.name}`}
+                    onClick={() => onEditItem(row.id)}
+                    className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
+                  >
+                    ✎
+                  </button>
+                ) : null}
+                {onDeleteItem ? (
+                  <button
+                    type="button"
+                    aria-label={`Eliminar ${row.name}`}
+                    onClick={() => onDeleteItem(row.id)}
+                    className="rounded p-1 text-zinc-600 hover:bg-rose-900/20 hover:text-rose-300"
+                  >
+                    🗑
+                  </button>
+                ) : null}
+              </React.Fragment>
+            )}
+          </span>
         </td>
       ) : null}
     </tr>

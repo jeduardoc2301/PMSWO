@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { NotFoundError, ValidationError } from '@/lib/errors'
+import { validarPadre } from '@/services/hierarchy'
 import { WorkItemStatus, WorkItemPriority, KanbanColumnType } from '@/types'
 import { z } from 'zod'
 
@@ -15,6 +16,8 @@ export interface CreateWorkItemDTO {
   estimatedEndDate: Date
   phase?: string | null
   estimatedHours?: number | null
+  /** Línea de la que cuelga esta. null o ausente la deja en la raíz del plan. */
+  parentId?: string | null
 }
 
 export interface UpdateWorkItemDTO {
@@ -27,6 +30,53 @@ export interface UpdateWorkItemDTO {
   ownerId?: string
   phase?: string | null
   estimatedHours?: number | null
+  /** Mover en la jerarquía. null la sube a raíz; ausente la deja donde está. */
+  parentId?: string | null
+}
+
+/**
+ * Deja pasar el movimiento en la jerarquía o truena diciendo por qué no se puede.
+ *
+ * Va fuera de la clase a propósito: la ruta PATCH de una línea escribe directo con Prisma y no pasa
+ * por `updateWorkItem` (está documentado en la prueba de esa ruta). Si la regla viviera nada más
+ * dentro del método, el árbol se podría romper justo desde el endpoint que usa la pantalla.
+ *
+ * `hijaId` en null significa «línea que todavía no existe»: al crear no hay descendientes que
+ * puedan cerrar un ciclo, así que solo se comprueba la pertenencia del padre al proyecto.
+ */
+export async function verificarPadre(
+  projectId: string,
+  hijaId: string | null,
+  parentId: string | null,
+): Promise<void> {
+  if (parentId === null) return
+
+  // El padre tiene que ser del MISMO proyecto: un árbol que cruza planes no es un árbol, son dos
+  // planes pegados por una rama.
+  const padre = await prisma.workItem.findFirst({
+    where: { id: parentId, projectId },
+    select: { id: true },
+  })
+
+  if (!padre) {
+    // ValidationError y no NotFoundError: el que no existe no es el recurso que se pidió —la línea
+    // que se mueve está ahí— sino un dato del cuerpo que llegó mal. Por eso el contrato lo pone
+    // junto a las otras reglas del árbol, en 400. Con NotFoundError salía un 404 que además decía
+    // «no encontrado» de la línea equivocada, y la pantalla lo leía como «se borró la que edito».
+    throw new ValidationError('La línea que se eligió como padre no existe en este proyecto.')
+  }
+
+  if (hijaId === null) return
+
+  const nodos = await prisma.workItem.findMany({
+    where: { projectId },
+    select: { id: true, parentId: true },
+  })
+
+  const motivo = validarPadre(nodos, hijaId, parentId)
+  if (motivo) {
+    throw new ValidationError(motivo)
+  }
 }
 
 export interface WorkItemChange {
@@ -142,6 +192,12 @@ export class WorkItemService {
       throw new ValidationError(`No Kanban column found for status: ${status}`)
     }
 
+    // Una línea recién creada no tiene descendientes, así que no hay ciclo que buscar; lo que sí se
+    // comprueba es que el padre exista y sea de este proyecto.
+    if (data.parentId != null) {
+      await verificarPadre(data.projectId, null, data.parentId)
+    }
+
     // Create work item
     const workItem = await prisma.workItem.create({
       data: {
@@ -156,6 +212,7 @@ export class WorkItemService {
         startDate: data.startDate,
         estimatedEndDate: data.estimatedEndDate,
         estimatedHours: data.estimatedHours ?? null,
+        parentId: data.parentId ?? null,
         kanbanColumnId: kanbanColumn.id,
         completedAt: null,
       },
@@ -440,6 +497,12 @@ export class WorkItemService {
       }
     }
 
+    // Mover en la jerarquía se juzga antes de escribir: el ciclo que se cuela a la base no se nota
+    // aquí, se nota después en cada pantalla que recorre el árbol.
+    if (data.parentId !== undefined) {
+      await verificarPadre(existing.projectId, id, data.parentId)
+    }
+
     // Track changes for audit log
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = []
 
@@ -471,6 +534,10 @@ export class WorkItemService {
       changes.push({ field: 'ownerId', oldValue: existing.ownerId, newValue: data.ownerId })
     }
 
+    if (data.parentId !== undefined && data.parentId !== existing.parentId) {
+      changes.push({ field: 'parentId', oldValue: existing.parentId, newValue: data.parentId })
+    }
+
     // Update work item and create audit log entries in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Update work item
@@ -484,6 +551,9 @@ export class WorkItemService {
           ...(data.startDate && { startDate: data.startDate }),
           ...(data.estimatedEndDate && { estimatedEndDate: data.estimatedEndDate }),
           ...(data.ownerId && { ownerId: data.ownerId }),
+          // Se compara contra undefined y no por verdadero: null es un valor con significado —subir
+          // la línea a la raíz— y con `data.parentId &&` ese movimiento nunca se escribiría.
+          ...(data.parentId !== undefined && { parentId: data.parentId }),
         },
       })
 

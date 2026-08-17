@@ -190,6 +190,18 @@ async function createWorkItemHandler(
       )
     }
 
+    // La línea de la que cuelga esta, si viene. Que exista y sea de este proyecto lo resuelve el
+    // servicio; aquí solo se descarta un tipo que no es identificador.
+    if (body.parentId !== undefined && body.parentId !== null && typeof body.parentId !== 'string') {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'El identificador de la línea padre debe ser texto.',
+        },
+        { status: 400 }
+      )
+    }
+
     // Validate status if provided
     if (body.status && !Object.values(WorkItemStatus).includes(body.status)) {
       return NextResponse.json(
@@ -214,6 +226,7 @@ async function createWorkItemHandler(
         status: body.status,
         phase: body.phase || null,
         estimatedHours: body.estimatedHours != null ? parseInt(body.estimatedHours) : null,
+        parentId: body.parentId ?? null,
       },
       authContext.userId
     )
@@ -242,6 +255,7 @@ async function createWorkItemHandler(
           priority: workItem.priority,
           startDate: workItem.startDate,
           estimatedEndDate: workItem.estimatedEndDate,
+          parentId: workItem.parentId,
           completedAt: workItem.completedAt,
           kanbanColumnId: workItem.kanbanColumnId,
           createdAt: workItem.createdAt,
@@ -269,7 +283,9 @@ async function createWorkItemHandler(
       return NextResponse.json(
         {
           error: 'NOT_FOUND',
-          message: 'Project or owner not found',
+          // El mensaje del servicio, tal cual: ahora la que puede faltar es el proyecto, el
+          // responsable o la línea padre, y decir siempre «Project or owner» manda a buscar donde no.
+          message: error.message,
         },
         { status: 404 }
       )

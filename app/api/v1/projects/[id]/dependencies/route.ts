@@ -79,10 +79,11 @@ async function deleteHandler(
 /**
  * Los errores del servicio, a códigos HTTP; lo demás, 500 sin filtrar detalles inventados.
  *
- * Se reconoce por `name`, no por `instanceof`: el empaquetador de desarrollo puede cargar dos
- * copias del módulo de errores —una por la cadena de la ruta y otra por la del servicio— y entonces
- * la clase es la misma a los ojos de cualquiera menos de `instanceof`. Pasó aquí: un ciclo bien
- * detectado y bien redactado salía como 500 genérico, que es la peor versión de un buen error.
+ * Se reconoce por `name` además de por `instanceof`. El respaldo por nombre entró aquí con un
+ * diagnóstico equivocado —se culpó al empaquetador de cargar dos copias de `lib/errors`—. La causa
+ * real era `AppError` fijando `AppError.prototype` en vez de `new.target.prototype`, que aplanaba
+ * toda subclase y volvía `instanceof ValidationError` siempre falso; está corregida en su raíz. El
+ * respaldo se conserva porque no cuesta nada y protege de que alguien vuelva a romper la cadena.
  */
 function traducir(error: unknown, contexto: string): NextResponse {
   const nombre = error instanceof Error ? error.name : ''

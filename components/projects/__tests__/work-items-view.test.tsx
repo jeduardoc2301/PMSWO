@@ -34,6 +34,11 @@ vi.mock('@/components/projects/work-items-outline', () => ({
         {props.onDeleteItem ? (
           <button onClick={() => props.onDeleteItem('t1')}>eliminar-primera</button>
         ) : null}
+        {props.onAddChild ? (
+          // Con 'f1', que es resumen y NO existe como WorkItemSummary: colgar de un resumen es el
+          // caso que importa, y no debe depender de que el kanban conozca esa línea.
+          <button onClick={() => props.onAddChild('f1')}>colgar-de-fase</button>
+        ) : null}
         {/* Botones que reproducen los gestos del esquema real, para probar la fontanería. */}
         <button onClick={() => props.onProgressChange('t1', 0.5)}>capturar avance</button>
         <button onClick={() => props.onCutoffChange('2026-02-05')}>congelar corte</button>
@@ -45,9 +50,14 @@ vi.mock('@/components/projects/work-items-outline', () => ({
 
 // Los diálogos de alta, edición y baja no son lo que esta prueba prueba —tienen las suyas— y traen
 // i18n que exigiría montar proveedores. Se simulan con marcas visibles cuando están abiertos.
+// El de alta deja ver el padre que recibió: es lo único suyo que este contenedor decide.
 vi.mock('@/components/projects/create-work-item-dialog', () => ({
-  CreateWorkItemDialog: ({ open }: { open: boolean }) =>
-    open ? <div data-testid="dialogo-alta" /> : null,
+  CreateWorkItemDialog: ({ open, defaultParentId, onOpenChange }: any) =>
+    open ? (
+      <div data-testid="dialogo-alta" data-padre={defaultParentId ?? ''}>
+        <button onClick={() => onOpenChange(false)}>cerrar-alta</button>
+      </div>
+    ) : null,
 }))
 vi.mock('@/components/projects/edit-work-item-dialog', () => ({
   EditWorkItemDialog: ({ open }: { open: boolean }) =>
@@ -356,5 +366,37 @@ describe('Altas, bajas y modificaciones desde el esquema', () => {
     fireEvent.click(screen.getByText('eliminar-primera'))
 
     expect(screen.getByTestId('dialogo-baja')).toBeInTheDocument()
+  })
+
+  it('colgar una línea de una fila abre el alta con esa fila como padre', async () => {
+    montar()
+    await screen.findByTestId('esquema')
+
+    fireEvent.click(screen.getByText('colgar-de-fase'))
+
+    expect(screen.getByTestId('dialogo-alta')).toHaveAttribute('data-padre', 'f1')
+  })
+
+  it('el alta de la barra nace en la raíz, sin padre', async () => {
+    render(<WorkItemsView projectId="project-1" workItems={elementos} canCreateWorkItems />)
+    await screen.findByTestId('esquema')
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Nueva tarea' }))
+
+    expect(screen.getByTestId('dialogo-alta')).toHaveAttribute('data-padre', '')
+  })
+
+  it('cerrar el alta olvida el padre: la siguiente no lo hereda', async () => {
+    render(<WorkItemsView projectId="project-1" workItems={elementos} canCreateWorkItems />)
+    await screen.findByTestId('esquema')
+
+    fireEvent.click(screen.getByText('colgar-de-fase'))
+    expect(screen.getByTestId('dialogo-alta')).toHaveAttribute('data-padre', 'f1')
+
+    fireEvent.click(screen.getByText('cerrar-alta'))
+    expect(screen.queryByTestId('dialogo-alta')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Nueva tarea' }))
+    expect(screen.getByTestId('dialogo-alta')).toHaveAttribute('data-padre', '')
   })
 })
