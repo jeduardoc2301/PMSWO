@@ -866,3 +866,108 @@ queda atrás, el control lo dice.
 C9 · Trazabilidad por línea. El importador ya conserva archivo, hoja, fila e identificador de origen
 por cada línea; falta persistirlo y respetar la regla de redacción — la trazabilidad la ve el cliente,
 así que nada de nombres del equipo interno ni versiones internas.
+
+
+---
+
+## Tramo 9 - C9 - Trazabilidad por linea
+
+**Estado:** CERRADO. C9 pasa a HECHO.
+
+### Que se toco
+
+- `lib/scheduling/traceability.ts` - como se escribe la trazabilidad y que no puede llevar.
+- `lib/scheduling/__tests__/traceability.test.ts` - 21 pruebas.
+- `prisma/schema.prisma` - `sourceFile`, `sourceVersion`, `sourceSheet`, `sourceRow`, `sourceId` y
+  `traceability` en `WorkItem`; migracion `add_traceability`, aplicada en local.
+
+### La regla de redaccion esta en el codigo, no en el criterio de nadie
+
+La trazabilidad **la ve el cliente**: aparece en el plan que revisa, en el reporte que recibe y en el
+acta que firma. Eso descarta tres cosas que se cuelan solas cuando el campo se escribe sin pensar en
+quien lo lee:
+
+- **Nombres del equipo interno.** Decir quien reviso le informa al cliente quien trabaja en su cuenta
+  y no le dice nada util sobre la linea.
+- **Versiones internas.** Una version con sufijo de borrador es vocabulario de trabajo; la version
+  que el cliente conoce es la que se le entrego.
+- **Notas de trabajo.** Pendientes de revisar, recordatorios, preguntas para el equipo.
+
+Se revisa en el codigo porque el criterio humano falla justo aqui: quien escribe la nota esta
+pensando en su equipo, no en quien la va a leer. Tambien se revisa **el nombre del archivo**, que es
+donde mas se cuela una version de trabajo: un archivo llamado borrador acaba impreso en el plan del
+cliente sin que nadie lo note.
+
+### El limite, dicho en el codigo
+
+No detecta un nombre que no este en la lista de nombres internos, ni una nota redactada con palabras
+que no estan en las listas. **Reduce el problema, no lo elimina**, y por eso conviene que la lista
+del equipo se mantenga. Queda escrito en el propio modulo para que nadie lo confunda con una
+garantia.
+
+### Sobre el plan real
+
+Las **1 368 lineas** traen trazabilidad, y **ninguna** tiene problemas de redaccion: ni un nombre del
+equipo, ni una version de trabajo, ni un recado interno. El documento de referencia esta bien escrito
+en este punto, y ahora hay como mantenerlo asi.
+
+---
+
+## Tramo 10 - C10 - Criterios de salida verificables
+
+**Estado:** CERRADO. C10 pasa a HECHO. **Con esto cierra la Fase 3.**
+
+### Que se toco
+
+- `lib/scheduling/exit-criteria.ts` - el juicio sobre entregables y criterios.
+- `lib/scheduling/__tests__/exit-criteria.test.ts` - 21 pruebas, con los dos ejemplos del encargo.
+- `lib/scheduling/__tests__/plan-referencia.test.ts` - 6 pruebas mas, sobre el plan real.
+
+### Que se puede juzgar automaticamente y que no
+
+Un motor **no puede** juzgar si un criterio es bueno. Lo que si puede es detectar las formas
+mecanicas en que un criterio deja de ser comprobable: la formula vacia, la frase demasiado corta, la
+que no deja nada a lo que apuntar, y la repetida de mas.
+
+Los dos ejemplos del encargo estan como prueba, tal cual. Y una tercera que marca el matiz: la misma
+formula vacia deja de serlo cuando dice en que acta y quien la firmo, porque entonces ya no es todo
+lo que dice.
+
+### La calibracion fue el trabajo, y quedo documentada
+
+Tres ajustes que salieron de medir contra el plan real, no de suponer:
+
+**El entregable y el criterio tienen barras distintas.** Un entregable es un sustantivo y con dos
+palabras ya nombra algo; un criterio es una oracion y necesita cinco. Con una sola barra, 252
+entregables perfectamente buenos salian marcados.
+
+**Buscar el verbo correcto es una carrera perdida.** La primera version exigia un verbo de
+verificacion de una lista, y marcaba criterios que describen con precision que contiene un documento
+y que son comprobables por construccion. El espanol tiene cientos de verbos y cada proyecto usa los
+suyos. La regla quedo asi: **por encima de doce palabras se confia en la frase**. Un linter que marca
+lo bueno deja de leerse a la semana, y entonces tampoco detecta lo malo.
+
+**Una sigla es una senal limpia.** AWS, VPC, CIDR son cosas concretas y no tienen falsos amigos, a
+diferencia de las palabras capitalizadas al inicio de una oracion.
+
+### Sobre el plan real
+
+De las 1 243 hojas: **ninguna** sin entregable o criterio, **ninguna** con formula vacia. Las dos
+comprobaciones mas estrictas salen en cero, lo que dice que el documento esta bien redactado.
+
+Lo que si aparece: **847 lineas comparten criterio con mas de diez hermanas**. El caso extremo se
+repite once veces identico. 188 son demasiado cortas y 108 no dejan a que apuntar. Salen limpias 366.
+
+### Preguntas abiertas nuevas
+
+1. **Los umbrales son decision de producto.** Cinco palabras, doce para confiar, diez repeticiones.
+   Moverlos cambia el volumen de hallazgos de forma importante, y quien revisa planes sabe mejor que
+   el motor donde poner la barra.
+2. **La revision de criterios no esta enganchada al motor de auditoria.** Son dos modulos separados:
+   el control 16 de C8 mira repeticiones y este mira redaccion. Conviene decidir si se unen en un
+   solo informe o se muestran aparte.
+
+### Siguiente
+
+Fase 4. Quedan **C11 - Gantt**, **C12 - Documentacion que se calcula sola** y **C13 - Vista
+ejecutiva**. Es la primera fase que produce algo que se ve en pantalla.

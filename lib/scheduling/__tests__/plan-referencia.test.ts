@@ -7,9 +7,11 @@ import { type AuditRow, auditPlan } from '../audit'
 import { createWorkCalendar } from '../calendar'
 import { analyzeCriticalPath } from '../cpm'
 import { classifySuperCritical } from '../critical-path'
+import { type CriterionRow, reviewExitCriteria } from '../exit-criteria'
 import { importPlanFromXlsx } from '../import-plan'
 import { parentsFromLevels, rollUpProgress } from '../progress'
 import { schedulePlan } from '../schedule'
+import { formatTraceability, reviewForClient } from '../traceability'
 import type { PlanTask } from '../types'
 import { readWorkbook } from '../xlsx'
 
@@ -319,6 +321,83 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
         }
       }
       expect(encontrados).toEqual([])
+    })
+  })
+
+  /**
+   * Los criterios de salida, sobre el plan real.
+   *
+   * Las dos comprobaciones más estrictas —falta el campo, o es una fórmula vacía— salen en cero
+   * sobre las 1 243 hojas. Eso dice que el plan de referencia está bien redactado. Lo que sí
+   * aparece es repetición: 847 líneas comparten un criterio con más de diez hermanas.
+   */
+  describe('los criterios de salida', () => {
+    const report = reviewExitCriteria(
+      plan.rows.map<CriterionRow>((row) => ({
+        id: row.id,
+        name: row.name,
+        isSummary: row.isSummary,
+        deliverable: row.deliverable,
+        exitCriteria: row.exitCriteria,
+      })),
+    )
+
+    it('revisa las 1 243 hojas y ninguna otra', () => {
+      expect(report.checked).toBe(1243)
+    })
+
+    it('a ninguna le falta el entregable ni el criterio', () => {
+      expect(report.byIssue.AUSENTE).toBe(0)
+    })
+
+    it('ninguna usa una fórmula vacía como «queda documentado»', () => {
+      expect(report.byIssue.GENERICO).toBe(0)
+    })
+
+    it('pero 847 comparten criterio con más de diez hermanas', () => {
+      expect(report.byIssue.REPETIDO_EN_EXCESO).toBe(847)
+    })
+
+    it('188 son demasiado cortas y 108 no dejan a qué apuntar', () => {
+      expect(report.byIssue.DEMASIADO_CORTO).toBe(188)
+      expect(report.byIssue.SIN_NADA_QUE_COMPROBAR).toBe(108)
+    })
+
+    it('366 líneas salen completamente limpias', () => {
+      expect(report.clean).toBe(366)
+    })
+  })
+
+  /**
+   * La trazabilidad, sobre el plan real.
+   *
+   * El archivo trae una columna Q dedicada a esto. Que las 1 368 líneas la tengan **y** que ninguna
+   * traiga un nombre del equipo, una versión de trabajo o un recado interno es justo lo que la regla
+   * de redacción de C9 exige, medido sobre un documento que el cliente ya recibió.
+   */
+  describe('la trazabilidad', () => {
+    const EQUIPO = ['Rafael Oliva', 'Salomón Suárez', 'José Cruz', 'Bryan Hernández']
+
+    it('las 1 368 líneas dicen de dónde salieron', () => {
+      expect(plan.rows.filter((row) => row.traceability !== null)).toHaveLength(1368)
+    })
+
+    it('ninguna trae nombres del equipo, versiones de trabajo ni recados internos', () => {
+      const sucias = plan.rows.filter(
+        (row) => reviewForClient(row.traceability, { internalNames: EQUIPO }).length > 0,
+      )
+      expect(sucias).toEqual([])
+    })
+
+    it('el importador conserva archivo, hoja, fila e identificador de origen', () => {
+      const primera = plan.rows[0]
+      expect(formatTraceability({
+        file: 'PDT BU',
+        version: 'V7',
+        sheet: primera.source.sheet,
+        row: primera.source.row,
+        id: primera.source.id,
+      })).toBe('PDT BU V7 · hoja Plan · fila 7 · origen 1')
     })
   })
 
