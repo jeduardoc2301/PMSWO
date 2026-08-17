@@ -161,9 +161,25 @@ model WorkItem {
   // ── PLANEACIÓN · Jerarquía y avance ponderado (C7) ─────────────────────────
   // Línea de la que cuelga esta. De aquí sale el prorrateo: un resumen no tiene avance propio,
   // hereda el de sus hijas pesado por el trabajo de cada una.
-  parentId       String?  @map("parent_id") @db.Char(36)
+  parentId    String? @map("parent_id") @db.Char(36)
   // Avance de 0 a 1. En un resumen se calcula, no se captura.
-  progressPct    Float    @default(0) @map("progress_pct")
+  progressPct Float   @default(0) @map("progress_pct")
+
+  // ── PLANEACIÓN · Trazabilidad por línea (C9) ───────────────────────────────
+  // De dónde salió esta línea. Cuando un plan integra varias fuentes es lo único que permite
+  // reconciliar después.
+  //
+  // OJO: estos campos LOS VE EL CLIENTE. Nada de nombres del equipo interno, versiones de trabajo
+  // ni notas de edición — lib/scheduling/traceability.ts los revisa antes de guardar.
+  sourceFile     String?  @map("source_file")
+  // Versión del documento tal como el cliente la conoce, no la de trabajo.
+  sourceVersion  String?  @map("source_version")
+  sourceSheet    String?  @map("source_sheet")
+  sourceRow      Int?     @map("source_row")
+  // Identificador que la línea tenía en su origen.
+  sourceId       String?  @map("source_id")
+  // Nota de trazabilidad, redactada para el cliente.
+  traceability   String?  @db.Text
   kanbanColumnId String   @map("kanban_column_id") @db.Char(36)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
