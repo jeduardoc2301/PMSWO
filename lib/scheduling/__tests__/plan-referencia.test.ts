@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { type AuditRow, auditPlan } from '../audit'
 import { createWorkCalendar } from '../calendar'
 import { analyzeCriticalPath } from '../cpm'
 import { classifySuperCritical } from '../critical-path'
@@ -318,6 +319,92 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
         }
       }
       expect(encontrados).toEqual([])
+    })
+  })
+
+  /**
+   * Los diecisiete controles sobre el plan real.
+   *
+   * El plan de referencia está auditado y es bueno: trece de los diecisiete controles salen
+   * completamente limpios sobre 1 368 líneas y 1 665 vínculos. Los cinco que disparan encuentran
+   * cosas ciertas, y cada cifra queda fijada aquí para que un cambio en el motor no las mueva sin
+   * que nadie se entere.
+   */
+  describe('la auditoría', () => {
+    const auditar = () => {
+      const parents = parentsFromLevels(
+        plan.rows.map((row) => ({ id: row.id, name: row.name, level: row.level })),
+      )
+      const rows: AuditRow[] = plan.rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        level: row.level,
+        parentId: parents.get(row.id) ?? null,
+        kind: row.kind,
+        duration: row.duration,
+        start: row.declaredStart,
+        finish: row.declaredFinish,
+        owner: row.owner,
+        deliverable: row.deliverable,
+        exitCriteria: row.exitCriteria,
+        predecessors: row.predecessors,
+      }))
+      return auditPlan({ rows, calendar, deadline: plan.declaredFinish })
+    }
+
+    const report = auditar()
+
+    it('trece de los diecisiete controles salen limpios', () => {
+      const limpios = report.controls.filter((control) => control.findings === 0)
+      expect(limpios.map((control) => control.id)).toEqual([
+        'C01', 'C02', 'C03', 'C04', 'C05', 'C06', 'C07', 'C08', 'C10', 'C11', 'C12', 'C13', 'C15',
+      ])
+    })
+
+    it('la estructura del plan es impecable: jerarquía, fechas, duraciones y vínculos', () => {
+      for (const id of ['C01', 'C02', 'C03', 'C04', 'C05', 'C06', 'C07', 'C08']) {
+        expect({ [id]: report.controls.find((c) => c.id === id)!.findings }).toEqual({ [id]: 0 })
+      }
+    })
+
+    it('ninguna línea se sale de su resumen y ningún nombre se repite en un bloque', () => {
+      expect(report.controls.find((c) => c.id === 'C10')!.findings).toBe(0)
+      expect(report.controls.find((c) => c.id === 'C11')!.findings).toBe(0)
+    })
+
+    it('las 1 368 líneas tienen responsable y las 1 243 hojas entregable y criterio', () => {
+      expect(report.controls.find((c) => c.id === 'C12')!.findings).toBe(0)
+      expect(report.controls.find((c) => c.id === 'C13')!.checked).toBe(1243)
+      expect(report.controls.find((c) => c.id === 'C13')!.findings).toBe(0)
+    })
+
+    it('el plan cierra en su fecha de compromiso, no después', () => {
+      expect(report.controls.find((c) => c.id === 'C15')!.findings).toBe(0)
+    })
+
+    it('7 vínculos no concuerdan con las fechas declaradas', () => {
+      expect(report.controls.find((c) => c.id === 'C09')!.findings).toBe(7)
+    })
+
+    it('27 hojas no tienen quien dependa de ellas, sin contar las que cierran el plan', () => {
+      expect(report.controls.find((c) => c.id === 'C14')!.findings).toBe(27)
+    })
+
+    it('78 criterios de salida se repiten más de diez veces', () => {
+      expect(report.controls.find((c) => c.id === 'C16')!.findings).toBe(78)
+    })
+
+    it('los 6 solapamientos se avisan, y avisar no reprueba', () => {
+      const c17 = report.controls.find((c) => c.id === 'C17')!
+      expect(c17.findings).toBe(6)
+      expect(c17.severity).toBe('AVISO')
+      expect(report.warningCount).toBe(6)
+    })
+
+    it('en total, 112 errores y 6 avisos', () => {
+      expect(report.errorCount).toBe(112)
+      expect(report.warningCount).toBe(6)
+      expect(report.passed).toBe(false)
     })
   })
 

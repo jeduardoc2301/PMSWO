@@ -21,7 +21,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C5** · Compuertas (gates) como objeto propio | **NO EXISTE** — no hay modelo `Gate` ni `Milestone`, y `WorkItem` no tiene campo de tipo | **HECHO** | [gates.test.ts](lib/scheduling/__tests__/gates.test.ts) |
 | **C6** · La responsabilidad del cliente como tipo de primera clase | **NO EXISTE** — `WorkItem.ownerId` exige que el responsable pertenezca a la organización proveedora; `Project.client` es solo un nombre | **HECHO** | [client-commitments.test.ts](lib/scheduling/__tests__/client-commitments.test.ts) |
 | **C7** · Avance ponderado por trabajo real | **PARCIAL** — los insumos están en la base (`estimatedHours`, `plannedHours`) pero el avance se calcula por conteo binario de tareas en cuatro lugares | **HECHO** | [progress.test.ts](lib/scheduling/__tests__/progress.test.ts) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) |
-| **C8** · Motor de auditoría permanente | **NO EXISTE** — `lib/services/audit-logger.ts` audita seguridad (accesos, roles), no consistencia del plan | PENDIENTE | — |
+| **C8** · Motor de auditoría permanente | **NO EXISTE** — `lib/services/audit-logger.ts` audita seguridad (accesos, roles), no consistencia del plan | **HECHO** | [audit.test.ts](lib/scheduling/__tests__/audit.test.ts) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) |
 | **C9** · Trazabilidad por línea | **PARCIAL** — `WorkItemChange` registra quién cambió qué campo y cuándo; falta de dónde salió la línea | PENDIENTE | — |
 | **C10** · Criterios de salida verificables | **NO EXISTE** — no hay campo de entregable ni de criterio de salida en ningún modelo | PENDIENTE | — |
 | **C11** · Gantt con estas capacidades | **PARCIAL** — hay una línea de tiempo, pero inventa las fechas que faltan con un desplazamiento pseudoaleatorio | PENDIENTE | — |
@@ -30,7 +30,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 7 en HECHO · 6 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1 y 2 cerradas.**
+**Avance:** 8 en HECHO · 5 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1 y 2 cerradas.**
 
 ---
 

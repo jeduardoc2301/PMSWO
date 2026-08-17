@@ -793,3 +793,76 @@ real y no solo sintético.
 > (125, porque los 4 Habilitadores son compuertas *y* resúmenes). Por eso el informe dice universo
 > 1 247 donde la estructura dice 1 243. No afecta a ninguna cifra acreditada, pero es exactamente el
 > tipo de desajuste que el control 1 de la auditoría (C8) debe detectar. Se resuelve ahí.
+
+---
+
+## Tramo 8 — C8 · Motor de auditoría permanente
+
+**Estado:** CERRADO. C8 pasa a HECHO.
+
+### Qué se tocó
+
+- `lib/scheduling/audit.ts` — los 17 controles.
+- `lib/scheduling/__tests__/audit.test.ts` — 46 pruebas: cada control con un caso que pasa y uno o
+  varios que fallan, sobre un plan base de cuatro líneas que sale limpio de los diecisiete.
+- `lib/scheduling/__tests__/plan-referencia.test.ts` — 10 pruebas más, la auditoría sobre el plan real.
+
+### Cómo están planteados
+
+Cada hallazgo se puede **citar**: lleva control, título, línea y un mensaje escrito para que quien lo
+lea sepa qué hacer. «Control 8, línea 412» es accionable; «el plan tiene problemas» no lo es.
+
+Se separan **errores** de **avisos**. Un error está mal y hay que arreglarlo; un aviso puede estar
+bien y conviene mirarlo. Solo los errores reprueban. El control 17 —solapamientos declarados— es el
+único aviso, tal como pide el encargo.
+
+El informe además dice **cuánto revisó cada control**, no solo cuántos hallazgos tuvo. Un control con
+cero hallazgos y cero revisiones no probó nada; uno con cero hallazgos sobre 1 665 vínculos sí.
+
+### El resultado sobre el plan real: 13 de 17 limpios
+
+Sobre 1 368 líneas y 1 665 vínculos:
+
+| Salen limpios | Disparan |
+|---|---|
+| Jerarquía, niveles, fechas presentes, orden de fechas, duración contra el rango, hitos en cero, predecesoras existentes, ninguna apuntando adelante, ninguna línea fuera de su resumen, sin nombres repetidos, todas con responsable, las 1 243 hojas con entregable y criterio, y el plan cerrando en su fecha de compromiso | **C09** 7 vínculos que no concuerdan con las fechas · **C14** 27 hojas de las que nadie depende · **C16** 78 criterios de salida repetidos más de diez veces · **C17** 6 solapamientos (aviso) |
+
+En total **112 errores y 6 avisos**. Que un plan auditado y bien construido saque trece controles
+completamente limpios y aun así deje 112 hallazgos dice bastante sobre para qué sirve esto.
+
+El hallazgo con más volumen es el 16: un criterio de salida que aparece **once veces idéntico**
+—«las cargas de la ola operan en AWS y el origen quedó apagado»— dejó de decir algo de cada línea.
+Es exactamente lo que C10 va a pedir que no pase.
+
+### Lo que se encontró y no se esperaba
+
+**El control 14 necesitaba una excepción, y hacerla explícita fue el trabajo.** «Ninguna hoja queda
+sin sucesora» suena absoluto, pero la línea que **cierra el plan** no tiene sucesora por definición, y
+exigírsela obligaría a inventar una. Sin la excepción, el control disparaba sobre 138 líneas del plan
+de referencia y era ruido; con ella, dispara sobre 27 y cada una es un hallazgo real: una tarea cuyo
+atraso nadie acusaría.
+
+La regla quedó escrita en el código, no en la cabeza de nadie: se exceptúan las líneas que terminan
+cuando termina el plan, porque su atraso **es** el atraso del plan y no se esconde.
+
+**Dos pruebas mías fallaron por un defecto que sembré sin querer.** Al mover una tarea para probar el
+control 9, dejé atrás el hito que colgaba de ella en fin-fin — y el control detectó **ese** vínculo
+roto, no el que yo quería medir. El control funcionaba; la prueba estaba mal montada. Quedó un
+ayudante que cambia varias líneas a la vez, y una prueba más que fija justo ese caso: si el hito se
+queda atrás, el control lo dice.
+
+### Preguntas abiertas nuevas
+
+1. **El umbral del control 16 es una decisión de producto, no técnica.** Diez repeticiones por
+   omisión; en el plan de referencia eso da 78 hallazgos. Bajarlo a cinco daría muchos más. Qué tan
+   estricto ser con los criterios repetidos lo decide quien revisa planes, no el motor.
+2. **La auditoría corre sobre las fechas declaradas, no sobre las calculadas.** Es lo correcto para
+   revisar un plan tal como está, pero habrá que decidir si también se corre sobre el resultado de un
+   recálculo — donde el control 9 no puede fallar nunca, porque el motor no produce fechas que
+   incumplan sus vínculos.
+
+### Siguiente
+
+C9 · Trazabilidad por línea. El importador ya conserva archivo, hoja, fila e identificador de origen
+por cada línea; falta persistirlo y respetar la regla de redacción — la trazabilidad la ve el cliente,
+así que nada de nombres del equipo interno ni versiones internas.
