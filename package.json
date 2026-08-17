@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -22,7 +22,8 @@
     "prisma:format": "prisma format",
     "prisma:seed": "tsx prisma/seed.ts",
     "smoke": "tsx scripts/smoke.ts",
-    "plan:report": "tsx scripts/plan-report.ts"
+    "plan:report": "tsx scripts/plan-report.ts",
+    "dev:webpack": "next dev"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
