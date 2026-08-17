@@ -1321,3 +1321,49 @@ exista la tabla- en vez de esperar un encabezado que se dibuja desde el primer m
 - **94 archivos, 1 757 pruebas, cero fallas.** Tres corridas seguidas con el mismo resultado.
 - La linea base paso de 36 archivos rojos a cero.
 - Las 13 capacidades siguen en HECHO; sus 528 pruebas entre motor y vistas, en verde.
+
+---
+
+## Tramo 15 - El porte al producto
+
+### La correccion de rumbo
+
+El encargo se habia cumplido en su letra -trece capacidades con prueba de aceptacion- pero no en su
+intencion: el motor no tocaba los proyectos del sistema. Los seis modelos nuevos del esquema tenian
+cero lectores, y lo unico que consumia el motor era una pantalla que lee un archivo del disco. El
+usuario lo dijo con precision: la idea era que **la plataforma** tuviera las capacidades, y verlo
+cargado como proyecto para que no quede duda.
+
+### Que se construyo
+
+Dos servicios, uno por direccion, y la pestania que lo muestra:
+
+- **plan-import.service**: archivo → base. El plan de referencia es ahora un proyecto con 1 368
+  elementos, 1 665 vinculos en `task_dependencies`, jerarquia en `parent_id`, y prioridades que
+  salen del motor: super critica → CRITICAL, critica → HIGH, con holgura → MEDIUM.
+- **schedule.service**: base → motor. Duracion derivada de fechas, hitos en cero por clase, cada
+  linea anclada a su fecha.
+- **PlanTab** monta en el Timeline del proyecto el mismo `PlanWorkspace` que la pantalla del plan.
+  La linea de tiempo que inventaba fechas ya no se monta desde ninguna pantalla.
+
+### El viaje redondo, que es la prueba que importa
+
+archivo → base → motor: cierre **2026-11-30**, **312** super criticas (210 decide un tercero, 58
+tiempo transcurrido, 44 fecha pactada), **165 cliente / 147 proveedor**. Identico al archivo.
+
+No salio a la primera: el primer recalculo desde la base dio **188** super criticas. El archivo trae
+276 clasificaciones explicitas y no se habian persistido -no habia columna-. Se midio la perdida, se
+agrego `recoverability` con su migracion, y el numero volvio a 312. La marca puesta a mano gana
+sobre la regla; eso ahora tambien es cierto en la base.
+
+Dos defectos mios atrapados antes de correr: `plan.tasks` no trae `parentId` (el arbol se habria
+quedado sin escribir, en silencio) y el reemplazo no puede borrar por cascada (los elementos
+referencian su columna kanban sin ella).
+
+### Estado
+
+- Proyecto visible en `/es/projects` como cualquier otro; kanban, lista y Timeline con datos reales.
+- Humo ampliado: exige 1 368 tareas y 1 665 vinculos por la API con sesion real.
+- Bateria: 98 archivos, 1 815 pruebas, cero fallas.
+- Pendiente del porte al producto: capturar y editar dependencias desde la interfaz, e importar un
+  plan desde la pantalla (hoy el guion `scripts/import-plan-db.ts` con candado contra produccion).
