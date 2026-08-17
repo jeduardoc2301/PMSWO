@@ -12,8 +12,16 @@ import { auth } from '@/lib/auth'
 import { Permission, UserRole } from '@/types'
 
 // Mock next/navigation
+/**
+ * `redirect` de Next **interrumpe** el renderizado lanzando una excepción; no es una función que
+ * devuelve y sigue. La simulación anterior no lanzaba, así que el componente continuaba después de
+ * redirigir y tronaba leyendo una sesión que acababa de descartar por inexistente. Aquí se lanza un
+ * error reconocible y cada prueba lo espera.
+ */
 vi.mock('next/navigation', () => ({
-  redirect: vi.fn(),
+  redirect: vi.fn((destino: string) => {
+    throw new Error(`NEXT_REDIRECT ${destino}`)
+  }),
 }))
 
 // Mock auth
@@ -30,9 +38,11 @@ describe('ProtectedPage', () => {
     it('should redirect when no session exists', async () => {
       ;(auth as any).mockResolvedValueOnce(null)
 
-      await ProtectedPage({
-        children: <div>Protected Content</div>,
-      })
+      await expect(
+        ProtectedPage({
+          children: <div>Protected Content</div>,
+        }),
+      ).rejects.toThrow('NEXT_REDIRECT')
 
       expect(redirect).toHaveBeenCalledWith('/auth/signin')
     })
@@ -42,9 +52,11 @@ describe('ProtectedPage', () => {
         user: null,
       })
 
-      await ProtectedPage({
-        children: <div>Protected Content</div>,
-      })
+      await expect(
+        ProtectedPage({
+          children: <div>Protected Content</div>,
+        }),
+      ).rejects.toThrow('NEXT_REDIRECT')
 
       expect(redirect).toHaveBeenCalledWith('/auth/signin')
     })
@@ -60,9 +72,11 @@ describe('ProtectedPage', () => {
         },
       })
 
-      await ProtectedPage({
-        children: <div>Protected Content</div>,
-      })
+      await expect(
+        ProtectedPage({
+          children: <div>Protected Content</div>,
+        }),
+      ).rejects.toThrow('NEXT_REDIRECT')
 
       expect(redirect).toHaveBeenCalledWith('/auth/signin')
     })
@@ -89,10 +103,12 @@ describe('ProtectedPage', () => {
     it('should use custom redirect path', async () => {
       ;(auth as any).mockResolvedValueOnce(null)
 
-      await ProtectedPage({
-        children: <div>Protected Content</div>,
-        redirectTo: '/custom-signin',
-      })
+      await expect(
+        ProtectedPage({
+          children: <div>Protected Content</div>,
+          redirectTo: '/custom-signin',
+        }),
+      ).rejects.toThrow('NEXT_REDIRECT')
 
       expect(redirect).toHaveBeenCalledWith('/custom-signin')
     })

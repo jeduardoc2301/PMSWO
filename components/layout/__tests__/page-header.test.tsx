@@ -178,7 +178,8 @@ describe('PageHeader', () => {
       renderWithIntl(<PageHeader title="Dashboard" quickActions={quickActions} />)
 
       const button = screen.getByText('Create Project')
-      expect(button).toHaveClass('bg-blue-600')
+      // La paleta pasó de azul a índigo cuando el sistema se rediseñó en tema oscuro.
+      expect(button).toHaveClass('bg-indigo-600')
       expect(button).toHaveClass('text-white')
     })
 
@@ -194,8 +195,10 @@ describe('PageHeader', () => {
       renderWithIntl(<PageHeader title="Dashboard" quickActions={quickActions} />)
 
       const button = screen.getByText('Cancel')
-      expect(button).toHaveClass('bg-white')
-      expect(button).toHaveClass('border')
+      // La acción secundaria dejó de ser un botón blanco con borde de clase: es transparente, con
+      // el borde puesto en línea para que combine con el resto del tema oscuro.
+      expect(button).toHaveClass('bg-transparent')
+      expect(button).toHaveStyle({ border: '1px solid #27272a' })
     })
 
     it('should render icon with quick action', () => {
@@ -222,8 +225,11 @@ describe('PageHeader', () => {
   describe('Layout and Styling', () => {
     it('should have proper container structure', () => {
       const { container } = renderWithIntl(<PageHeader title="Dashboard" />)
-      const header = container.querySelector('.bg-white.border-b')
+      // El encabezado va sobre el fondo oscuro del tema y su línea inferior se pone en línea.
+      const header = container.firstElementChild as HTMLElement
       expect(header).toBeInTheDocument()
+      expect(header.className).toContain('#18181b')
+      expect(header.style.borderBottom).toBe('1px solid #27272a')
     })
 
     it('should apply responsive padding classes', () => {

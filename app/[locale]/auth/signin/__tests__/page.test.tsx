@@ -41,6 +41,13 @@ describe('SignInPage', () => {
       refresh: mockRefresh,
     })
     ;(useTranslations as any).mockReturnValue(mockT)
+    // Tras validar las credenciales, la pantalla pregunta quién es la persona para decidir a dónde
+    // mandarla: al tablero ejecutivo si lo puede abrir, y a la lista de proyectos si no. Sin simular
+    // esa llamada el error se traga en el `catch` y nunca se navega.
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ user: { id: 'user-1', roles: ['PROJECT_MANAGER'] } }),
+    })) as never
   })
 
   it('renders sign-in form with all fields', () => {
@@ -108,7 +115,12 @@ describe('SignInPage', () => {
       })
     })
 
-    expect(mockPush).toHaveBeenCalledWith('/dashboard')
+    // Tras entrar, la pantalla consulta quién es la persona y la manda donde le corresponde: al
+    // tablero ejecutivo si lo puede abrir, y a la lista de proyectos si no. Con las credenciales de
+    // prueba —sin rol ejecutivo— el destino es la lista, con el prefijo de idioma.
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/es/projects')
+    })
     expect(mockRefresh).toHaveBeenCalled()
   })
 
@@ -151,7 +163,7 @@ describe('SignInPage', () => {
     expect(submitButton).toBeDisabled()
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard')
+      expect(mockPush).toHaveBeenCalledWith('/es/projects')
     })
   })
 
@@ -197,7 +209,7 @@ describe('SignInPage', () => {
     expect(submitButton).toBeDisabled()
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard')
+      expect(mockPush).toHaveBeenCalledWith('/es/projects')
     })
   })
 })
