@@ -15,7 +15,10 @@ import { AIAnalysisDialog } from '@/components/ai/ai-analysis-dialog'
 import { ExportProjectDialog } from '@/components/projects/export-project-dialog'
 import { ApplyTemplateDialog } from '@/components/templates/apply-template-dialog'
 import { ProjectBurndownChart } from '@/components/projects/project-burndown-chart'
-import { TimelineTab } from '@/components/projects/timeline/timeline-tab'
+// La línea de tiempo anterior inventaba las fechas que faltaban con un desplazamiento
+// pseudoaleatorio; la pestaña nueva pide el plan real del proyecto y lo pasa por el motor de
+// planeación: ruta súper crítica, holgura y vínculos de verdad.
+import { PlanTab } from '@/components/projects/plan-tab'
 import { ProjectStatus, WorkItemStatus, Permission, UserRole, type KanbanBoard as KanbanBoardType } from '@/types'
 import { hasPermission } from '@/lib/rbac'
 
@@ -674,11 +677,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'agreements' && <AgreementsTab projectId={projectId} />}
 
             {/* ── TIMELINE (Gantt) ── */}
-            {activeTab === 'gantt' && (
-              kanbanBoard && project
-                ? <TimelineTab project={project} workItems={kanbanBoard.workItems} />
-                : <div className="text-center py-12 text-zinc-500">Cargando timeline...</div>
-            )}
+            {activeTab === 'gantt' && <PlanTab projectId={projectId} />}
 
           </div>
         </div>

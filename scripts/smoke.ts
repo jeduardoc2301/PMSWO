@@ -166,6 +166,36 @@ async function revisar(caso: Caso): Promise<{ ok: boolean; detalle: string }> {
   return { ok: true, detalle: `${(html.length / 1024).toFixed(0)} KB` }
 }
 
+/**
+ * Busca el proyecto del plan de referencia y comprueba que su plan se lee completo.
+ *
+ * Devuelve `null` si el proyecto no está cargado en esta base — no es una falla: la comprobación
+ * corre igual en una base recién sembrada donde nadie ha importado el plan.
+ */
+async function revisarPlanImportado(): Promise<{ ok: boolean; detalle: string } | null> {
+  const busqueda = await pedir('/api/v1/projects?limit=50')
+  if (!busqueda.ok) return { ok: false, detalle: `no se pudo listar proyectos (HTTP ${busqueda.status})` }
+  const { projects } = (await busqueda.json()) as { projects?: { id: string; name: string }[] }
+  const proyecto = (projects ?? []).find((p) => p.name.includes('PDT BU V7'))
+  if (!proyecto) return null
+
+  const respuesta = await pedir(`/api/v1/projects/${proyecto.id}/schedule`)
+  if (!respuesta.ok) return { ok: false, detalle: `la API del plan respondió HTTP ${respuesta.status}` }
+  const { plan } = (await respuesta.json()) as {
+    plan?: { tasks?: unknown[]; dependencies?: unknown[]; deadline?: string }
+  }
+
+  const tareas = plan?.tasks?.length ?? 0
+  const vinculos = plan?.dependencies?.length ?? 0
+  if (tareas !== 1368 || vinculos !== 1665) {
+    return { ok: false, detalle: `el plan llegó incompleto: ${tareas} tareas, ${vinculos} vínculos` }
+  }
+  if (plan?.deadline !== '2026-11-30') {
+    return { ok: false, detalle: `el compromiso llegó como ${plan?.deadline}, no 2026-11-30` }
+  }
+  return { ok: true, detalle: `${tareas} tareas · ${vinculos} vínculos · compromiso 2026-11-30` }
+}
+
 async function main(): Promise<void> {
   console.log(`\nComprobación de humo contra ${BASE}\n${'─'.repeat(72)}`)
 
@@ -197,6 +227,15 @@ async function main(): Promise<void> {
       const { ok, detalle } = await revisar(caso)
       if (!ok) fallas += 1
       console.log(`  ${ok ? '✓' : '✗'} ${caso.ruta.padEnd(24)} ${detalle}`)
+    }
+
+    // El plan importado como proyecto: si está cargado, el motor tiene que poder leerlo entero
+    // desde la base. Es la comprobación del viaje redondo — la que atrapa un mapeo que perdió
+    // información, no solo una pantalla que no abre.
+    const importado = await revisarPlanImportado()
+    if (importado !== null) {
+      if (!importado.ok) fallas += 1
+      console.log(`  ${importado.ok ? '✓' : '✗'} ${'plan importado'.padEnd(24)} ${importado.detalle}`)
     }
   } else {
     console.log('  · Las pantallas con sesión no se revisaron: no se pudo entrar.')

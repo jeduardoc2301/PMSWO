@@ -155,6 +155,7 @@ model WorkItem {
   // lado del cliente casi nunca tiene usuario en la herramienta del proveedor, y exigirle uno es la
   // forma más rápida de que esas líneas terminen asignadas a alguien que no las controla.
   clientOwner String?   @map("client_owner")
+  recoverability String? @db.VarChar(20)
   // Fecha límite comprometida, cuando es distinta de la que calcula el plan.
   dueDate     DateTime? @map("due_date") @db.Date
 
