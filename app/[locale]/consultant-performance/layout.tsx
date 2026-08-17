@@ -4,7 +4,7 @@ export default function ConsultantPerformanceLayout({ children }: { children: Re
   return (
     <div className="flex min-h-screen bg-[#09090b]">
       <MainNavWrapper />
-      <main className="flex-1 ml-64">
+      <main className="flex-1 ml-64 min-w-0">
         {children}
       </main>
     </div>

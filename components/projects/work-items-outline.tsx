@@ -193,14 +193,34 @@ export function WorkItemsOutline({
       </div>
 
       <div className="max-w-full overflow-x-auto rounded-xl border border-zinc-800 bg-[#18181b]">
-        <table className="w-full min-w-[860px] border-collapse text-sm">
+        {/*
+          `table-fixed` con anchos declarados, y no el reparto automático.
+          Con el reparto por contenido, la columna del título se llevaba 1 294 px de 2 336 —los
+          nombres del plan son largos— y las ocho columnas restantes quedaban fuera de la pantalla:
+          se veía una sola columna y había que desplazar a ciegas. Con anchos fijos el título es lo
+          único elástico, se recorta con puntos suspensivos y el nombre completo queda en el
+          `title`. Medido en el navegador antes y después.
+        */}
+        <table className="w-full min-w-[980px] table-fixed border-collapse text-sm">
+          <colgroup>
+            {/* El título toma lo que sobre; las demás piden lo justo para su contenido. */}
+            <col />
+            <col style={{ width: 92 }} />
+            <col style={{ width: 96 }} />
+            <col style={{ width: 78 }} />
+            <col style={{ width: 70 }} />
+            <col style={{ width: 72 }} />
+            <col style={{ width: 116 }} />
+            <col style={{ width: 150 }} />
+            {onEditItem || onDeleteItem ? <col style={{ width: 72 }} /> : null}
+          </colgroup>
           <thead>
             <tr className="border-b border-zinc-800 text-left text-xs uppercase tracking-wide text-zinc-400">
               <th className="px-3 py-2 font-medium">Línea del plan</th>
               <th className="px-3 py-2 font-medium">Tipo</th>
-              <th className="px-3 py-2 font-medium">Estado al corte</th>
-              <th className="px-3 py-2 text-right font-medium">% avance</th>
-              <th className="px-3 py-2 text-right font-medium">Atraso (−) / Ventaja (+)</th>
+              <th className="px-3 py-2 font-medium" title="Estado al corte del avance">Estado</th>
+              <th className="px-3 py-2 text-right font-medium">Avance</th>
+              <th className="px-3 py-2 text-right font-medium" title="Atraso (−) o ventaja (+) en días hábiles al corte">Atraso</th>
               <th className="px-3 py-2 text-center font-medium">Vínculos</th>
               <th className="px-3 py-2 font-medium">Responsable</th>
               <th className="px-3 py-2 font-medium">Fechas</th>
@@ -315,7 +335,7 @@ function Linea({
           </span>
         </div>
       </td>
-      <td className="whitespace-nowrap px-3 py-1.5 text-zinc-400">{tipoDeLinea(row)}</td>
+      <td className="truncate px-3 py-1.5 text-zinc-400" title={tipoDeLinea(row)}>{tipoDeLinea(row)}</td>
       <td className="px-3 py-1.5">
         <span
           data-testid={`estado-${row.id}`}
@@ -351,7 +371,7 @@ function Linea({
       <td className="whitespace-nowrap px-3 py-1.5 text-center">
         <CeldaDeVinculos row={row} vinculos={vinculos} onEditLinks={onEditLinks} />
       </td>
-      <td className="whitespace-nowrap px-3 py-1.5 text-zinc-300">{owner ? owner : '—'}</td>
+      <td className="truncate px-3 py-1.5 text-zinc-300" title={owner ?? undefined}>{owner ? owner : '—'}</td>
       <td className="whitespace-nowrap px-3 py-1.5 text-xs text-zinc-400">
         {/* Una sola celda: nueve columnas desbordaban la pestaña, y el rango se lee mejor junto. */}
         {row.isMilestone ? row.start : `${row.start} → ${row.finish}`}

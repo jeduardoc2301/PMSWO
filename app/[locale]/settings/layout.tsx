@@ -18,7 +18,7 @@ export default function SettingsLayout({
   return (
     <div className="flex min-h-screen bg-[#09090b]">
       <MainNavWrapper />
-      <main className="flex-1 ml-64">
+      <main className="flex-1 ml-64 min-w-0">
         <div className="p-8">
           <div className="flex gap-6">
             <SettingsNav />

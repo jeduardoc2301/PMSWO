@@ -1456,3 +1456,36 @@ y cualquier cambio refresca esquema y tablero a la vez.
 
 Bateria: 104 archivos, 1 909 pruebas, cero fallas. Humo completo. Kanban por HTTP: 1 368 tarjetas
 con responsable real.
+
+---
+
+## Tramo 19 - El desborde, medido con el navegador
+
+Yo habia dicho «el estilo se respeta» leyendo codigo. Nunca habia mirado la pantalla. Al medirla con
+Chrome por su protocolo de depuracion, el resultado me desmintio:
+
+    Elementos de Trabajo   scrollWidth 2708 · ventana 1440 · desborde 1268 px
+    Timeline                            2400                            960 px
+    Tablero Kanban                      1892                            452 px
+
+**Causa raiz, de libro:** `<main className="flex-1 ml-64">` es un hijo flex, y un hijo flex trae
+`min-width: auto`, que en CSS significa «no encojas por debajo de tu contenido». Una tabla ancha
+adentro estiraba el `main` a 2 452 px dentro de un padre de 1 434, y el `overflow-x-auto` interno
+nunca llegaba a actuar porque su contenedor ya habia crecido. Una clase —`min-w-0`— en los cinco
+layouts que comparten ese patron.
+
+**Segunda causa, en la tabla del esquema:** con `table-layout: auto` la columna del titulo se
+llevaba 1 294 de 2 336 px —los nombres del plan son largos— y las ocho columnas restantes quedaban
+fuera de la vista: se veia una sola columna y habia que desplazar a ciegas. Ahora `table-fixed` con
+anchos declarados en `<colgroup>`: el titulo es lo unico elastico (316 px), se recorta con puntos
+suspensivos y el nombre completo queda en el `title`.
+
+Medicion final, la misma sonda: **0 px de desplazamiento horizontal** en las tres pestanias, a 1440
+y a 1280.
+
+Y la verificacion que faltaba de verdad: capturas de las cuatro vistas. La Lista conserva exactamente
+su estilo original -agrupacion por fase con contadores, insignias «Por Hacer» y Alta/Media/Critica,
+asas de arrastre, acciones-, asi que el arreglo del `DndContext` no la rompio. El Kanban muestra la
+paridad con la tarjeta intacta: prioridad, vencimiento, avance y atraso (-6.0d, -2.5d).
+
+Leccion, escrita para no repetirla: «se ve bien» no se deduce del codigo. Se mide y se mira.
