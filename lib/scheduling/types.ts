@@ -146,6 +146,13 @@ export interface PlanTask {
   readonly dueDate?: IsoDate
   /** Avance de 0 a 1. Uno significa cumplida. */
   readonly progress?: number
+  /**
+   * Línea de la que cuelga esta, si cuelga de alguna.
+   *
+   * De aquí sale el avance ponderado: un resumen no tiene avance propio, hereda el de sus hijas
+   * pesado por el trabajo de cada una.
+   */
+  readonly parentId?: string
 }
 
 /** Una tarea ya programada por el pase adelante. */

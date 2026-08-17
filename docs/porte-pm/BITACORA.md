@@ -704,3 +704,78 @@ pactada el compromiso vence cuando el plan diga; con ella, cuando se acordó.
 C7 · Avance ponderado por trabajo real. Es la última de la Fase 2 y necesita la jerarquía padre/hijo
 que quedó anotada como pendiente en el tramo 4: el peso de un resumen es la suma de los días hábiles
 de las hojas que cuelgan, no su lapso de calendario.
+
+---
+
+## Tramo 7 — C7 · Avance ponderado por trabajo real
+
+**Estado:** CERRADO. C7 pasa a HECHO. **Con esto cierra la Fase 2.**
+
+### Qué se tocó
+
+- `lib/scheduling/progress.ts` — jerarquía, peso y prorrateo del avance.
+- `lib/scheduling/types.ts` — `parentId` en `PlanTask`.
+- `lib/scheduling/__tests__/progress.test.ts` — 25 pruebas.
+- `lib/scheduling/__tests__/plan-referencia.test.ts` — 5 pruebas más, contra el plan real.
+- `prisma/schema.prisma` — `parentId` con su relación consigo misma y `progressPct` en `WorkItem`;
+  migración `add_hierarchy_and_progress`, aplicada en local.
+
+### El error que este módulo existe para evitar
+
+Ponderar el avance de un resumen por su **duración**. La duración de un resumen no es trabajo: es el
+lapso de calendario que abarca, desde que empieza su primera hija hasta que termina la última.
+
+Un bloque de tres tareas estirado sobre tres meses tiene una duración de tres meses. Uno de ochenta y
+dos tareas concentrado en tres semanas tiene una de tres semanas. Ponderado por duración, el primero
+pesa cuatro veces más que el segundo — y el plan reporta un avance que no se parece a nada.
+
+El peso correcto es el trabajo: la suma de los días hábiles de las hojas que cuelgan.
+
+    avance(resumen) = Σ(peso_i × avance_i) / Σ(peso_i)
+
+### La prueba de aceptación
+
+Dos ramas con **el mismo trabajo y distinto lapso**: tres tareas de cuatro días pegadas contra tres
+tareas de cuatro días separadas por meses. Doce días de trabajo cada una. Pesan **exactamente
+igual**, y con una terminada y la otra sin empezar el plan va al 50 %, no a otra cosa.
+
+### Verificación cruzada contra el plan real
+
+El archivo no trae identificador de padre: trae una **columna de nivel**, como todo plan exportado de
+MS Project. `parentsFromLevels` deriva el árbol de esa columna, y el resultado reproduce **exactamente
+los 125 resúmenes y las 1 243 hojas** que ya se habían contado por otro camino —tener hijas—. Son dos
+formas independientes de responder la misma pregunta, y coinciden.
+
+Las dos raíces del árbol son las dos Etapas del plan. El avance ponderado del plan completo da cero,
+que es correcto: el plan de referencia está sin avance capturado.
+
+### Decisiones que quedaron en el código
+
+**Un hito pesa cero.** Marca un momento, no consume trabajo. De ahí sale un caso que hay que resolver
+y no dividir entre cero: un bloque que solo agrupa hitos no se puede ponderar. Ahí el avance es el
+promedio simple de las hijas — si las tres ocurrieron, el bloque ocurrió.
+
+**Un resumen no tiene avance propio.** Si el archivo declara uno, se ignora: se calcula del contenido.
+Es la misma regla que C12 pide para las cifras de la documentación.
+
+**El salto de nivel se rechaza, no se adivina.** Una línea de nivel 3 después de una de nivel 1 no
+tiene padre posible; inventarlo sería fabricar estructura que nadie escribió.
+
+**El recorrido es por profundidad descendente, sin recursión.** Una línea se resuelve cuando sus hijas
+ya están resueltas, y ordenar por profundidad garantiza eso sin arriesgar la pila en un plan hondo.
+
+### Preguntas abiertas nuevas
+
+1. **El avance ponderado todavía no reemplaza al conteo binario del sistema.** Los cuatro lugares que
+   calculan `completadas / totales` siguen intactos, y el índice de salud se alimenta de ese número.
+   Cambiarlo reclasifica la salud de todo el portafolio y deja incomparables los snapshots ya
+   guardados. Es una migración de datos, no un cambio de fórmula, y merece decidirse aparte.
+2. **`progressPct` existe en el esquema pero nada lo llena todavía.** Lo llenará la capa de servicio
+   cuando el motor se conecte a la base.
+
+### Siguiente
+
+Fase 3. **C8 · Motor de auditoría permanente**: los 17 controles, cada uno con un caso que pasa y uno
+que falla. El plan de referencia da varios casos servidos —27 vínculos que cuelgan de un resumen, 6
+desfases negativos, 9 filas cuyas fechas no cuadran con sus enlaces— así que la prueba tiene material
+real y no solo sintético.

@@ -7,6 +7,7 @@ import { createWorkCalendar } from '../calendar'
 import { analyzeCriticalPath } from '../cpm'
 import { classifySuperCritical } from '../critical-path'
 import { importPlanFromXlsx } from '../import-plan'
+import { parentsFromLevels, rollUpProgress } from '../progress'
 import { schedulePlan } from '../schedule'
 import type { PlanTask } from '../types'
 import { readWorkbook } from '../xlsx'
@@ -317,6 +318,60 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
         }
       }
       expect(encontrados).toEqual([])
+    })
+  })
+
+  /**
+   * La jerarquía y el peso, sobre el plan real.
+   *
+   * El archivo no trae identificador de padre: trae una columna de nivel, como todo plan exportado
+   * de MS Project. Derivar el árbol de esa columna y que el resultado coincida con el conteo de
+   * resúmenes es una verificación cruzada — son dos formas independientes de responder la misma
+   * pregunta.
+   */
+  describe('la jerarquía y el avance ponderado', () => {
+    const jerarquia = () => {
+      const parents = parentsFromLevels(plan.rows.map((row) => ({ id: row.id, name: row.name, level: row.level })))
+      return plan.rows.map((row) => {
+        const parentId = parents.get(row.id)
+        return {
+          id: row.id,
+          name: row.name,
+          duration: row.duration,
+          progress: row.progress ?? 0,
+          ...(parentId ? { parentId } : {}),
+        }
+      })
+    }
+
+    it('el nivel del archivo produce un árbol válido, sin saltos ni huérfanos', () => {
+      expect(() => rollUpProgress(jerarquia())).not.toThrow()
+    })
+
+    it('el árbol derivado da los mismos 125 resúmenes que el conteo por hijas', () => {
+      const rollup = rollUpProgress(jerarquia())
+      expect(rollup.tasks.filter((task) => task.isSummary)).toHaveLength(125)
+      expect(rollup.tasks.filter((task) => !task.isSummary)).toHaveLength(1243)
+    })
+
+    it('las dos etapas del plan son las raíces', () => {
+      expect(rollUpProgress(jerarquia()).roots).toHaveLength(2)
+    })
+
+    it('el peso del plan es el trabajo de sus hojas, no su lapso de calendario', () => {
+      const rollup = rollUpProgress(jerarquia())
+      const trabajo = plan.rows
+        .filter((row) => !row.isSummary)
+        .reduce((total, row) => total + Math.max(row.duration, 0), 0)
+
+      expect(rollup.totalWeight).toBe(trabajo)
+      // El plan abarca 122 días hábiles de calendario y son 1 243 hojas: el trabajo es mucho mayor
+      // que el lapso, que es justo la razón por la que ponderar por duración da cifras absurdas.
+      expect(rollup.totalWeight).toBeGreaterThan(122)
+    })
+
+    it('el plan de referencia está sin avance capturado, y el prorrateo lo dice', () => {
+      expect(rollUpProgress(jerarquia()).progress).toBe(0)
     })
   })
 

@@ -20,7 +20,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C4** · Ruta crítica y Ruta Súper Crítica | **NO EXISTE** — sin grafo ni holgura no hay sobre qué calcular; lo más cercano es una heurística de salud por SPI | **HECHO** | [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) · [critical-path.test.ts](lib/scheduling/__tests__/critical-path.test.ts) |
 | **C5** · Compuertas (gates) como objeto propio | **NO EXISTE** — no hay modelo `Gate` ni `Milestone`, y `WorkItem` no tiene campo de tipo | **HECHO** | [gates.test.ts](lib/scheduling/__tests__/gates.test.ts) |
 | **C6** · La responsabilidad del cliente como tipo de primera clase | **NO EXISTE** — `WorkItem.ownerId` exige que el responsable pertenezca a la organización proveedora; `Project.client` es solo un nombre | **HECHO** | [client-commitments.test.ts](lib/scheduling/__tests__/client-commitments.test.ts) |
-| **C7** · Avance ponderado por trabajo real | **PARCIAL** — los insumos están en la base (`estimatedHours`, `plannedHours`) pero el avance se calcula por conteo binario de tareas en cuatro lugares | PENDIENTE | — |
+| **C7** · Avance ponderado por trabajo real | **PARCIAL** — los insumos están en la base (`estimatedHours`, `plannedHours`) pero el avance se calcula por conteo binario de tareas en cuatro lugares | **HECHO** | [progress.test.ts](lib/scheduling/__tests__/progress.test.ts) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) |
 | **C8** · Motor de auditoría permanente | **NO EXISTE** — `lib/services/audit-logger.ts` audita seguridad (accesos, roles), no consistencia del plan | PENDIENTE | — |
 | **C9** · Trazabilidad por línea | **PARCIAL** — `WorkItemChange` registra quién cambió qué campo y cuándo; falta de dónde salió la línea | PENDIENTE | — |
 | **C10** · Criterios de salida verificables | **NO EXISTE** — no hay campo de entregable ni de criterio de salida en ningún modelo | PENDIENTE | — |
@@ -30,7 +30,7 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 6 en HECHO · 7 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fase 1 cerrada.**
+**Avance:** 7 en HECHO · 6 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1 y 2 cerradas.**
 
 ---
 

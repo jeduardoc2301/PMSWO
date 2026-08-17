@@ -148,18 +148,25 @@ model WorkItem {
   // ── PLANEACIÓN · Responsabilidad del cliente (C6) ──────────────────────────
   // Clase de línea: "ACTIVIDAD", "HITO", "PUNTO_DE_CONTROL", "APROBACION_CLIENTE",
   // "ENTREGA_CLIENTE", "COMPUERTA", "RESUMEN".
-  kind           String    @default("ACTIVIDAD") @db.VarChar(20)
+  kind        String    @default("ACTIVIDAD") @db.VarChar(20)
   // Quién responde: "PROVEEDOR", "CLIENTE" o "AMBOS".
-  party          String    @default("PROVEEDOR") @db.VarChar(10)
+  party       String    @default("PROVEEDOR") @db.VarChar(10)
   // Nombre de quien responde del lado del cliente. Es un nombre, no una cuenta: quien entrega del
   // lado del cliente casi nunca tiene usuario en la herramienta del proveedor, y exigirle uno es la
   // forma más rápida de que esas líneas terminen asignadas a alguien que no las controla.
-  clientOwner    String?   @map("client_owner")
+  clientOwner String?   @map("client_owner")
   // Fecha límite comprometida, cuando es distinta de la que calcula el plan.
-  dueDate        DateTime? @map("due_date") @db.Date
-  kanbanColumnId String    @map("kanban_column_id") @db.Char(36)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  dueDate     DateTime? @map("due_date") @db.Date
+
+  // ── PLANEACIÓN · Jerarquía y avance ponderado (C7) ─────────────────────────
+  // Línea de la que cuelga esta. De aquí sale el prorrateo: un resumen no tiene avance propio,
+  // hereda el de sus hijas pesado por el trabajo de cada una.
+  parentId       String?  @map("parent_id") @db.Char(36)
+  // Avance de 0 a 1. En un resumen se calcula, no se captura.
+  progressPct    Float    @default(0) @map("progress_pct")
+  kanbanColumnId String   @map("kanban_column_id") @db.Char(36)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   organization  Organization        @relation(fields: [organizationId], references: [id])
   project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -173,6 +180,8 @@ model WorkItem {
   // Vínculos en los que esta tarea es la predecesora.
   outgoingLinks TaskDependency[]    @relation("DependencyPredecessor")
   // Compuertas que habilitan a esta tarea.
+  parent        WorkItem?           @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children      WorkItem[]          @relation("WorkItemHierarchy")
   gateUnlocks   GateUnlock[]
   // Compuertas cuyo hito de cierre es esta línea.
   closesGates   Gate[]              @relation("GateClosingMilestone")
@@ -187,6 +196,8 @@ model WorkItem {
   @@index([estimatedEndDate])
   // Para la vista de lo que el cliente debe entregar o decidir, ordenada por fecha.
   @@index([organizationId, party, dueDate])
+  // Para recorrer la jerarquía de un plan sin barrer la tabla.
+  @@index([parentId])
   @@map("work_items")
 }
 
