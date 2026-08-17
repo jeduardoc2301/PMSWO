@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MainNavWrapper } from '../main-nav-wrapper'
 import { UserRole, Locale } from '@/types'
@@ -11,8 +11,21 @@ vi.mock('next-auth/react', () => ({
 }))
 
 // Mock next/navigation
+// El componente guarda el idioma elegido llamando a la interfaz de programación. Sin simular
+// `fetch`, la prueba intenta salir a la red de verdad contra un servidor que no está levantado.
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 204 })))
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
+  // El componente resalta la sección activa, así que necesita saber en qué ruta está. La
+  // simulación se había quedado solo con el enrutador.
+  usePathname: vi.fn(() => '/es/dashboard'),
 }))
 
 // Mock next-intl
@@ -129,10 +142,16 @@ describe('MainNavWrapper', () => {
     })
   })
 
+  /**
+   * El cambio de idioma dejó de navegar con el enrutador y ahora recarga la página entera
+   * (`window.location.href`). No es un detalle: los mensajes se cargan en el servidor según el
+   * prefijo de idioma de la ruta, y una navegación del lado del cliente conserva los que ya estaban
+   * en memoria. Recargar es lo que garantiza que el idioma cambie de verdad.
+   */
   it('handles locale change correctly', async () => {
     // Mock window.location
     delete (window as any).location
-    window.location = { pathname: '/es/dashboard' } as any
+    window.location = { pathname: '/es/dashboard', href: '/es/dashboard' } as any
 
     vi.mocked(NextAuthReact.useSession).mockReturnValue({
       data: {
@@ -156,9 +175,9 @@ describe('MainNavWrapper', () => {
     changeLocaleButton.click()
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/pt/dashboard')
-      expect(mockRefresh).toHaveBeenCalled()
+      expect(window.location.href).toBe('/pt/dashboard')
     })
+    expect(mockPush).not.toHaveBeenCalledWith('/pt/dashboard')
   })
 
   it('redirects to sign-in when session user is null', () => {

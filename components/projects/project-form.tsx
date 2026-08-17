@@ -476,10 +476,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {/* Dates */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <Label className="block text-zinc-300 mb-2">
+          <Label htmlFor="startDate" className="block text-zinc-300 mb-2">
             {t('startDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <DatePicker
+            id="startDate"
             value={formData.startDate}
             onChange={(v) => { setFormData(prev => ({ ...prev, startDate: v })); if (errors.startDate) setErrors(prev => { const e = { ...prev }; delete e.startDate; return e }) }}
             disabled={isSubmitting}
@@ -487,10 +488,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           {errors.startDate && <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>}
         </div>
         <div>
-          <Label className="block text-zinc-300 mb-2">
+          <Label htmlFor="estimatedEndDate" className="block text-zinc-300 mb-2">
             {t('estimatedEndDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <DatePicker
+            id="estimatedEndDate"
             value={formData.estimatedEndDate}
             onChange={(v) => { setFormData(prev => ({ ...prev, estimatedEndDate: v })); if (errors.estimatedEndDate) setErrors(prev => { const e = { ...prev }; delete e.estimatedEndDate; return e }) }}
             min={formData.startDate || undefined}

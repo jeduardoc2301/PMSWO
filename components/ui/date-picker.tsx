@@ -12,6 +12,14 @@ interface DatePickerProps {
   max?: string
   disabled?: boolean
   className?: string
+  /**
+   * Identificador del control, para que una etiqueta pueda apuntarle con `htmlFor`.
+   *
+   * Sin esto, el campo queda sin nombre accesible: un lector de pantalla anuncia «botón» y ya, y
+   * hacer clic en la etiqueta no lleva el foco al control. Es opcional para no obligar a los usos
+   * que ya existen, pero conviene ponerlo siempre que haya etiqueta.
+   */
+  id?: string
 }
 
 export function DatePicker({
@@ -21,6 +29,7 @@ export function DatePicker({
   min,
   max,
   disabled = false,
+  id,
   className,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
@@ -273,6 +282,7 @@ export function DatePicker({
     <div ref={containerRef} className={`dp-root${className ? ' ' + className : ''}`}>
       <button
         type="button"
+        id={id}
         className="dp-input"
         data-open={open || undefined}
         data-empty={!value || undefined}
