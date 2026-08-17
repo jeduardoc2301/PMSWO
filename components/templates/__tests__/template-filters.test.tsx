@@ -1,164 +1,149 @@
+/**
+ * Los filtros del catálogo de plantillas.
+ *
+ * Esta prueba describía un componente que ya no existe: tenía un encabezado «Filtros», un estado de
+ * carga mientras traía las categorías, y `<select>` para categoría y orden. El componente se rehizo
+ * como una barra de una sola línea con menús propios, en español y sin traducción, y las categorías
+ * llegan en segundo plano sin bloquear nada.
+ *
+ * Se reescribe contra lo que hace hoy. Lo que se comprueba no cambió de fondo: que los filtros se
+ * lean de la dirección, que al cambiarlos se actualice la dirección, y que avise a quien lo montó.
+ */
+
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { useRouter, useSearchParams } from 'next/navigation'
+
 import { TemplateFilters } from '../template-filters'
-
-// Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      'filters': 'Filtros',
-      'category': 'Categoría',
-      'allCategories': 'Todas las Categorías',
-      'searchTemplates': 'Buscar plantillas...',
-      'sortBy': 'Ordenar por',
-      'sortByName': 'Nombre',
-      'sortByUpdated': 'Fecha de Actualización',
-      'sortByUsage': 'Veces Utilizada',
-      'sortByLastUsed': 'Última Utilización',
-      'loading': 'Cargando...',
-      'clearFilters': 'Limpiar Filtros',
-      'placeholders.searchTemplates': 'Buscar por nombre...',
-    }
-    return translations[key] || key
-  },
-}))
-
-// Mock next/navigation
-const mockPush = vi.fn()
-const mockSearchParams = new URLSearchParams()
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
   useSearchParams: vi.fn(),
 }))
 
-import { useRouter, useSearchParams } from 'next/navigation'
+const mockPush = vi.fn()
 
-// Mock fetch
-global.fetch = vi.fn() as any
+const CATEGORIAS = [
+  { id: 'cat-1', name: 'Migración' },
+  { id: 'cat-2', name: 'Implementación' },
+]
+
+function conParametros(qs = '') {
+  ;(useSearchParams as unknown as ReturnType<typeof vi.fn>).mockReturnValue(new URLSearchParams(qs))
+}
 
 describe('TemplateFilters', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useRouter).mockReturnValue({
-      push: mockPush,
-      back: vi.fn(),
-      forward: vi.fn(),
-      refresh: vi.fn(),
-      replace: vi.fn(),
-      prefetch: vi.fn(),
-    })
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams)
-    
-    // Mock successful categories fetch
-    vi.mocked(global.fetch).mockResolvedValue({
+    ;(useRouter as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ push: mockPush })
+    conParametros()
+    global.fetch = vi.fn(async () => ({
       ok: true,
-      json: async () => ({
-        categories: [
-          { id: 'cat-1', name: 'Category 1' },
-          { id: 'cat-2', name: 'Category 2' },
-        ],
-      }),
-    } as Response)
+      json: async () => ({ categories: CATEGORIAS }),
+    })) as never
   })
 
-  it('should render filter controls', () => {
+  it('muestra la búsqueda y los dos menús', async () => {
     render(<TemplateFilters />)
 
-    expect(screen.getByText('Filtros')).toBeInTheDocument()
-    expect(screen.getByText('Categoría')).toBeInTheDocument()
-    expect(screen.getByText('Buscar plantillas...')).toBeInTheDocument()
-    expect(screen.getByText('Ordenar por')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Buscar plantillas...')).toBeInTheDocument()
+    expect(screen.getByText('Categoría:')).toBeInTheDocument()
+    expect(screen.getByText('Ordenar:')).toBeInTheDocument()
+    // Sin filtros puestos, no se ofrece limpiarlos.
+    expect(screen.queryByText('Limpiar')).not.toBeInTheDocument()
   })
 
-  it('should fetch and display categories', async () => {
+  it('trae las categorías y las ofrece en su menú', async () => {
     render(<TemplateFilters />)
 
-    // Wait for categories to load
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith('/api/v1/template-categories')
     })
 
-    await waitFor(() => {
-      const categorySelect = screen.getByRole('combobox', { name: /categoría/i }) as HTMLSelectElement
-      expect(categorySelect.options.length).toBe(3) // "All" + 2 categories
-    })
-  })
-
-  it('should show loading state while fetching categories', () => {
-    render(<TemplateFilters />)
-
-    expect(screen.getByText('Cargando...')).toBeInTheDocument()
-  })
-
-  it('should update URL params when category filter changes', async () => {
-    render(<TemplateFilters />)
+    fireEvent.click(screen.getByText('Categoría:').closest('button') as HTMLElement)
 
     await waitFor(() => {
-      expect(screen.queryByText('Cargando...')).not.toBeInTheDocument()
+      expect(screen.getByText('Migración')).toBeInTheDocument()
     })
-
-    const categorySelect = screen.getByRole('combobox', { name: /categoría/i })
-    fireEvent.change(categorySelect, { target: { value: 'cat-1' } })
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith(
-        expect.stringContaining('category=cat-1'),
-        expect.any(Object)
-      )
-    })
+    expect(screen.getByText('Implementación')).toBeInTheDocument()
+    // Siempre hay una opción para no filtrar por categoría.
+    expect(screen.getAllByText('Todas las categorías').length).toBeGreaterThan(0)
   })
 
-  it('should initialize filters from URL search params', () => {
-    const searchParamsWithFilters = new URLSearchParams({
-      category: 'cat-1',
-      search: 'initial',
-      sortBy: 'updatedAt',
-      sortOrder: 'desc',
-    })
-    vi.mocked(useSearchParams).mockReturnValue(searchParamsWithFilters)
+  /**
+   * Antes había un «Cargando…» mientras llegaban las categorías. Se quitó a propósito: la barra es
+   * usable sin ellas —se puede buscar y ordenar—, y un rótulo de carga en una barra de filtros hace
+   * parpadear la pantalla en cada visita para no aportar nada.
+   */
+  it('la barra sirve desde el primer momento, sin esperar a las categorías', () => {
+    global.fetch = vi.fn(() => new Promise(() => {})) as never
 
     render(<TemplateFilters />)
 
-    const searchInput = screen.getByPlaceholderText('Buscar por nombre...') as HTMLInputElement
-    expect(searchInput.value).toBe('initial')
+    expect(screen.getByPlaceholderText('Buscar plantillas...')).toBeInTheDocument()
+    expect(screen.getByText('Todas las categorías')).toBeInTheDocument()
   })
 
-  it('should call onFilterChange callback when filters change', async () => {
+  it('elegir categoría actualiza la dirección y avisa a quien lo montó', async () => {
     const onFilterChange = vi.fn()
-    
     render(<TemplateFilters onFilterChange={onFilterChange} />)
 
-    await waitFor(() => {
-      expect(screen.queryByText('Cargando...')).not.toBeInTheDocument()
-    })
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
 
-    const categorySelect = screen.getByRole('combobox', { name: /categoría/i })
-    fireEvent.change(categorySelect, { target: { value: 'cat-2' } })
+    fireEvent.click(screen.getByText('Categoría:').closest('button') as HTMLElement)
+    await waitFor(() => expect(screen.getByText('Migración')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Migración'))
 
-    await waitFor(() => {
-      expect(onFilterChange).toHaveBeenCalledWith(
-        expect.objectContaining({ category: 'cat-2' })
-      )
-    })
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('category=cat-1'), { scroll: false })
+    expect(onFilterChange).toHaveBeenCalledWith(expect.objectContaining({ category: 'cat-1' }))
   })
 
-  it('should handle category fetch error gracefully', async () => {
-    // Mock fetch error
-    vi.mocked(global.fetch).mockRejectedValue(new Error('Network error'))
-    
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('cambiar el orden actualiza la dirección', async () => {
+    render(<TemplateFilters />)
+
+    fireEvent.click(screen.getByText('Ordenar:').closest('button') as HTMLElement)
+    fireEvent.click(screen.getByText('Más usado'))
+
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('sortBy=usageCount'), { scroll: false })
+  })
+
+  it('parte de los filtros que trae la dirección', () => {
+    conParametros('category=cat-2&search=aws&sortBy=updatedAt&sortOrder=desc')
 
     render(<TemplateFilters />)
 
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error fetching categories:',
-        expect.any(Error)
-      )
-    })
+    expect(screen.getByPlaceholderText('Buscar plantillas...')).toHaveValue('aws')
+    expect(screen.getByText('Actualizado')).toBeInTheDocument()
+    // Con filtros puestos sí se ofrece limpiarlos.
+    expect(screen.getByText('Limpiar')).toBeInTheDocument()
+  })
 
-    consoleErrorSpy.mockRestore()
+  it('limpiar deja la dirección sin parámetros', () => {
+    conParametros('search=aws')
+    const onFilterChange = vi.fn()
+
+    render(<TemplateFilters onFilterChange={onFilterChange} />)
+    fireEvent.click(screen.getByText('Limpiar'))
+
+    expect(screen.getByPlaceholderText('Buscar plantillas...')).toHaveValue('')
+    expect(onFilterChange).toHaveBeenCalledWith({})
+  })
+
+  /**
+   * Si las categorías no llegan, la barra sigue funcionando y no dice nada: no hay forma de que
+   * quien está buscando una plantilla haga algo con ese error, y un aviso ahí solo estorba.
+   */
+  it('si las categorías no llegan, la barra sigue en pie', async () => {
+    global.fetch = vi.fn(async () => {
+      throw new Error('Network error')
+    }) as never
+
+    render(<TemplateFilters />)
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    expect(screen.getByPlaceholderText('Buscar plantillas...')).toBeInTheDocument()
+    expect(screen.getByText('Todas las categorías')).toBeInTheDocument()
   })
 })

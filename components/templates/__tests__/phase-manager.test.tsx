@@ -109,8 +109,10 @@ describe('PhaseManager', () => {
     renderWithIntl(<PhaseManager phases={phases} onChange={mockOnChange} />)
     
     expect(screen.getByText('Phases (1)')).toBeInTheDocument()
-    expect(screen.getByText(/Phase 1: Discovery/)).toBeInTheDocument()
-    expect(screen.getByText(/1 Activity/)).toBeInTheDocument()
+    // El nombre de la fase dejó de ser texto y es un campo editable: «Phase 1:» va como rótulo y el
+    // nombre vive dentro del `input`. Plegada, la fase dice cuántas actividades tiene.
+    expect(screen.getByText('Phase 1:')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Discovery')).toBeInTheDocument()
   })
 
   it('allows removing a phase', () => {
@@ -179,66 +181,52 @@ describe('PhaseManager', () => {
     }
   })
 
-  it('allows moving phase down', () => {
+  /**
+   * Ya no hay botones de subir y bajar fase. El botón redondo de la izquierda despliega y pliega,
+   * que es lo que hace hoy; el orden se cambia arrastrando en el paso del asistente.
+   */
+  it('el botón de la izquierda despliega y pliega la fase', () => {
     const phases: PhaseFormData[] = [
-      {
-        name: 'Discovery',
-        order: 1,
-        activities: [],
-      },
-      {
-        name: 'Planning',
-        order: 2,
-        activities: [],
-      },
+      { name: 'Discovery', order: 1, activities: [] },
+      { name: 'Planning', order: 2, activities: [] },
     ]
 
     renderWithIntl(<PhaseManager phases={phases} onChange={mockOnChange} />)
-    
-    // Find all chevron down buttons
-    const downButtons = screen.getAllByRole('button', { name: '' })
-    const chevronDownButtons = downButtons.filter(btn => {
-      const svg = btn.querySelector('svg')
-      return svg && svg.classList.contains('lucide-chevron-down')
-    })
-    
-    // Click the first phase's down button
-    if (chevronDownButtons[0]) {
-      fireEvent.click(chevronDownButtons[0])
-      expect(mockOnChange).toHaveBeenCalled()
-    }
+
+    // La primera arranca desplegada y la segunda plegada.
+    const flechas = screen.getAllByRole('button').filter((b) => b.querySelector('svg.lucide-chevron-down, svg.lucide-chevron-right'))
+    expect(flechas[0].querySelector('svg.lucide-chevron-down')).toBeTruthy()
+    expect(flechas[1].querySelector('svg.lucide-chevron-right')).toBeTruthy()
+
+    fireEvent.click(flechas[1])
+    const despues = screen.getAllByRole('button').filter((b) => b.querySelector('svg.lucide-chevron-down, svg.lucide-chevron-right'))
+    expect(despues[1].querySelector('svg.lucide-chevron-down')).toBeTruthy()
   })
 
-  it('validates phase name is required', () => {
-    const phases: PhaseFormData[] = [
-      {
-        name: '',
-        order: 1,
-        activities: [],
-      },
-    ]
-
-    renderWithIntl(<PhaseManager phases={phases} onChange={mockOnChange} />)
-    
-    expect(screen.getByText(/Phase name is required/)).toBeInTheDocument()
+  /**
+   * ⚠️ La validación se mudó: hoy la hacen los diálogos que arman la plantilla
+   * (`create-template-dialog.tsx:143-156`), no este componente, que quedó como editor puro. El
+   * mensaje existe y se usa —`validation.phaseNameRequired`, `validation.activityRequired`— solo
+   * que en otra capa.
+   *
+   * Queda omitida y nombrada, no borrada: si alguien devuelve la validación aquí, esta prueba lo
+   * está esperando.
+   */
+  it.skip('validates phase name is required (la validación vive ahora en el diálogo)', () => {
+    // Ver components/templates/__tests__/create-template-dialog.test.tsx
   })
 
-  it('validates at least one activity per phase', () => {
-    const phases: PhaseFormData[] = [
-      {
-        name: 'Discovery',
-        order: 1,
-        activities: [],
-      },
-    ]
-
-    renderWithIntl(<PhaseManager phases={phases} onChange={mockOnChange} />)
-    
-    // Expand the phase to see validation
-    const phaseButton = screen.getByText(/Phase 1: Discovery/)
-    fireEvent.click(phaseButton)
-    
-    expect(screen.getByText(/Must add at least one activity per phase/)).toBeInTheDocument()
+  /**
+   * ⚠️ La validación se mudó: hoy la hacen los diálogos que arman la plantilla
+   * (`create-template-dialog.tsx:143-156`), no este componente, que quedó como editor puro. El
+   * mensaje existe y se usa —`validation.phaseNameRequired`, `validation.activityRequired`— solo
+   * que en otra capa.
+   *
+   * Queda omitida y nombrada, no borrada: si alguien devuelve la validación aquí, esta prueba lo
+   * está esperando.
+   */
+  it.skip('validates at least one activity per phase (la validación vive ahora en el diálogo)', () => {
+    // Ver components/templates/__tests__/create-template-dialog.test.tsx
   })
 
   it('disables controls when disabled prop is true', () => {
@@ -268,7 +256,7 @@ describe('PhaseManager', () => {
     renderWithIntl(<PhaseManager phases={phases} onChange={mockOnChange} />)
     
     // Expand the phase
-    const phaseButton = screen.getByText(/Phase 1: Discovery/)
+    const phaseButton = screen.getByText('Phase 1:')
     fireEvent.click(phaseButton)
     
     // Find and update the input
