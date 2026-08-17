@@ -9,6 +9,14 @@ vi.mock('next-auth/react', () => ({
   useSession: vi.fn(),
 }))
 
+// La pantalla deduce el idioma del prefijo de la ruta. Sin `usePathname` simulado llega `null` y
+// truena en la primera línea del componente.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/es/projects',
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -49,7 +57,8 @@ describe('ProjectsPageClient', () => {
 
     render(<ProjectsPageClient />)
 
-    expect(screen.getByText('Loading projects...')).toBeInTheDocument()
+    // El texto de carga viene por traducción; con el diccionario simulado sale la clave.
+    expect(screen.getByText('loading')).toBeInTheDocument()
   })
 
   it('should display projects in table view', async () => {
@@ -84,10 +93,14 @@ describe('ProjectsPageClient', () => {
           blockers: 2,
           risks: 1,
         },
+        completedWorkItems: 4,
       },
     ]
 
-    ;(global.fetch as any).mockResolvedValueOnce({
+    // Respuesta persistente, no de una sola vez: al recibir la paginación el componente actualiza
+    // su estado y vuelve a consultar. Con `mockResolvedValueOnce` la segunda llamada devolvía
+    // `undefined` y la pantalla terminaba en estado de error en vez de mostrar la lista.
+    ;(global.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({
         projects: mockProjects,
@@ -106,11 +119,13 @@ describe('ProjectsPageClient', () => {
       expect(screen.getByText('Project Alpha')).toBeInTheDocument()
     })
 
+    // La tarjeta se rehizo: el estado va con su nombre en español, y en vez de tres contadores
+    // sueltos muestra una línea de salud —cuánto tiempo va corrido contra cuántas tareas se
+    // cerraron— más las fechas de inicio y fin.
     expect(screen.getByText('Client A')).toBeInTheDocument()
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument()
-    expect(screen.getByText('10 items')).toBeInTheDocument()
-    expect(screen.getByText('2 blockers')).toBeInTheDocument()
-    expect(screen.getByText('1 risks')).toBeInTheDocument()
+    expect(screen.getByText('Activo')).toBeInTheDocument()
+    expect(screen.getByText('Salud del proyecto')).toBeInTheDocument()
+    expect(document.body.textContent).toContain('/10 tareas')
   })
 
   it('should show "Create Project" button for users with PROJECT_CREATE permission', async () => {
@@ -128,7 +143,10 @@ describe('ProjectsPageClient', () => {
       update: vi.fn(),
     })
 
-    ;(global.fetch as any).mockResolvedValueOnce({
+    // Respuesta persistente, no de una sola vez: al recibir la paginación el componente actualiza
+    // su estado y vuelve a consultar. Con `mockResolvedValueOnce` la segunda llamada devolvía
+    // `undefined` y la pantalla terminaba en estado de error en vez de mostrar la lista.
+    ;(global.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({
         projects: [],
@@ -144,7 +162,9 @@ describe('ProjectsPageClient', () => {
     render(<ProjectsPageClient />)
 
     await waitFor(() => {
-      expect(screen.getByText(/Create.*project/i)).toBeInTheDocument()
+      // El botón de alta se rotula «Nuevo proyecto» y aparece tanto en la barra como en el estado
+      // vacío, así que puede haber más de uno.
+      expect(screen.getAllByText('Nuevo proyecto').length).toBeGreaterThan(0)
     })
   })
 
@@ -163,7 +183,10 @@ describe('ProjectsPageClient', () => {
       update: vi.fn(),
     })
 
-    ;(global.fetch as any).mockResolvedValueOnce({
+    // Respuesta persistente, no de una sola vez: al recibir la paginación el componente actualiza
+    // su estado y vuelve a consultar. Con `mockResolvedValueOnce` la segunda llamada devolvía
+    // `undefined` y la pantalla terminaba en estado de error en vez de mostrar la lista.
+    ;(global.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({
         projects: [],
@@ -179,7 +202,7 @@ describe('ProjectsPageClient', () => {
     render(<ProjectsPageClient />)
 
     await waitFor(() => {
-      expect(screen.getByText('No projects found')).toBeInTheDocument()
+      expect(screen.getByText('Sin proyectos que coincidan')).toBeInTheDocument()
     })
 
     expect(screen.queryByText('Create Project')).not.toBeInTheDocument()
@@ -200,7 +223,10 @@ describe('ProjectsPageClient', () => {
       update: vi.fn(),
     })
 
-    ;(global.fetch as any).mockResolvedValueOnce({
+    // Respuesta persistente, no de una sola vez: al recibir la paginación el componente actualiza
+    // su estado y vuelve a consultar. Con `mockResolvedValueOnce` la segunda llamada devolvía
+    // `undefined` y la pantalla terminaba en estado de error en vez de mostrar la lista.
+    ;(global.fetch as any).mockResolvedValue({
       ok: false,
       json: async () => ({
         message: 'Failed to fetch projects',
@@ -245,15 +271,13 @@ describe('ProjectsPageClient', () => {
     const { container } = render(<ProjectsPageClient />)
 
     await waitFor(() => {
-      expect(screen.getByText('No projects found')).toBeInTheDocument()
+      expect(screen.getByText('Sin proyectos que coincidan')).toBeInTheDocument()
     })
 
-    const statusSelect = container.querySelector('#status') as HTMLSelectElement
-    expect(statusSelect).toBeInTheDocument()
-
-    // Change status filter
-    statusSelect.value = ProjectStatus.ACTIVE
-    statusSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    // El filtro de estado dejó de ser un `<select>` y hoy es un menú desplegable propio: se abre y
+    // se elige la opción por su nombre en español.
+    fireEvent.click(screen.getByText('Estado:').closest('button') as HTMLElement)
+    fireEvent.click(screen.getByText('Activo'))
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -293,10 +317,12 @@ describe('ProjectsPageClient', () => {
     render(<ProjectsPageClient />)
 
     await waitFor(() => {
-      expect(screen.getByText('No projects found')).toBeInTheDocument()
+      expect(screen.getByText('Sin proyectos que coincidan')).toBeInTheDocument()
     })
 
-    const archivedCheckbox = screen.getByLabelText('Include archived') as HTMLInputElement
+    // La casilla se rotula «Archivados» y su etiqueta envuelve al control en vez de apuntarle.
+    const archivedCheckbox = (screen.getByText('Archivados').closest('label') as HTMLElement)
+      .querySelector('input[type="checkbox"]') as HTMLInputElement
     expect(archivedCheckbox).toBeInTheDocument()
 
     // Check the checkbox

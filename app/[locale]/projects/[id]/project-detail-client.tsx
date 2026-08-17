@@ -246,8 +246,20 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     } catch {}
   }
 
+  /**
+   * Formatea una fecha civil sin correrla de día.
+   *
+   * `new Date('2024-01-01')` se interpreta como medianoche **UTC**, y al mostrarla en un huso
+   * negativo —como el de México o el de Colombia— cae en el día anterior: el proyecto arrancaba el
+   * 31 de diciembre según la pantalla y el 1 de enero según la base. Añadir la hora local obliga a
+   * interpretarla en el huso de quien mira, que es lo que una fecha de calendario significa.
+   */
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })
+    new Date(`${dateString.slice(0, 10)}T00:00:00`).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center gap-3 text-zinc-500" style={{ background: '#09090b' }}>

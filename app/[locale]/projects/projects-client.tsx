@@ -225,7 +225,7 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
           <div className="flex items-center gap-1 text-[11px] text-zinc-500">
             <Calendar size={10} className="flex-shrink-0" />
             <span className="text-zinc-600 mr-0.5">Inicio</span>
-            {new Date(project.startDate).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {new Date(`${project.startDate.slice(0, 10)}T00:00:00`).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
           </div>
           {/* Fecha fin — roja si vencida, verde si en tiempo */}
           {(() => {
@@ -329,7 +329,9 @@ export function ProjectsPageClient() {
   }
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
+    // Con la hora local explícita: sin ella, una fecha civil se interpreta en UTC y se muestra un
+    // día antes en cualquier huso negativo.
+    new Date(`${d.slice(0, 10)}T00:00:00`).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
 
   // ─── Status filter dropdown ────────────────────────────────────────────────
   const [statusOpen, setStatusOpen] = useState(false)
