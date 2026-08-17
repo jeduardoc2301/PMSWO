@@ -779,3 +779,17 @@ Fase 3. **C8 · Motor de auditoría permanente**: los 17 controles, cada uno con
 que falla. El plan de referencia da varios casos servidos —27 vínculos que cuelgan de un resumen, 6
 desfases negativos, 9 filas cuyas fechas no cuadran con sus enlaces— así que la prueba tiene material
 real y no solo sintético.
+
+> **Nota — el 932 sigue sin aparecer, y una casi-coincidencia que no lo es.** El informe del motor
+> arroja **933 líneas del plan detenidas por compromisos del cliente**, a una unidad del 932 narrado.
+> Se investigó: las variantes cercanas dan 925 (solo prerrequisitos), 933 (todo el cliente), 979
+> (incluyendo las propias líneas del cliente) y 915 (aguas abajo de la ruta súper crítica). Ninguna
+> da 932, y sobre todo **es otra métrica**: «líneas que dependen del cliente» no es «líneas con
+> holgura cero». La cercanía es casualidad de dos fracciones grandes de 1 243. Queda descartada como
+> explicación.
+
+> **Nota — inconsistencia menor detectada en el informe.** `classifySuperCritical` con
+> `excludeSummaries` excluye por la clase declarada (`RESUMEN`, 121 líneas) y no por la estructura
+> (125, porque los 4 Habilitadores son compuertas *y* resúmenes). Por eso el informe dice universo
+> 1 247 donde la estructura dice 1 243. No afecta a ninguna cifra acreditada, pero es exactamente el
+> tipo de desajuste que el control 1 de la auditoría (C8) debe detectar. Se resuelve ahí.
