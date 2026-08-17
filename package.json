@@ -20,7 +20,9 @@
     "prisma:studio": "prisma studio",
     "prisma:validate": "prisma validate",
     "prisma:format": "prisma format",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "plan:report": "tsx scripts/plan-report.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
