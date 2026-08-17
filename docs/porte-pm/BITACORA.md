@@ -1035,3 +1035,97 @@ que el mismo plan produce el mismo texto dos veces.
 
 Quedan **C11 - Gantt** y **C13 - Vista ejecutiva**, las dos de pantalla. C13 tiene ya todas sus
 cifras: es la vista de este mismo resumen. C11 es la mas grande de las dos.
+
+---
+
+## Tramo 12 - C13 - Vista ejecutiva
+
+### El problema, que no era de calculo
+
+Para el tramo 12 el motor ya sabia todo lo que hace falta: la fecha de cierre, el margen contra el
+compromiso, que lineas no se recuperan con mas gente y como se reparten entre las dos partes. Nada
+de eso habia que calcularlo otra vez. Lo que faltaba era **decirlo**.
+
+Y ahi esta la trampa de esta capacidad. Un plan armado hacia atras desde una fecha de compromiso sale
+con casi todo critico: en el archivo de referencia, nueve de cada diez lineas no tienen holgura. Un
+tablero honesto que muestre esa cifra tal cual dice, en la practica, «el 90 % del proyecto esta en
+riesgo». Eso es a la vez alarmista y falso —es la consecuencia aritmetica de haber armado el plan
+para caber en una fecha, no un defecto— y quema la credibilidad de todo lo demas que se diga en esa
+reunion.
+
+Lo mismo con el reparto entre cliente y proveedor. La mitad de lo que no se recupera con recursos
+depende del cliente. Callarlo hace que el proveedor cargue con atrasos que no controla. Decirlo como
+reproche arruina la conversacion. Habia que decirlo **sin acusar**.
+
+### Que se construyo
+
+Dos capas, deliberadamente separadas.
+
+`lib/scheduling/executive-brief.ts` arma el informe. Recibe el resumen del plan y los compromisos del
+cliente, y devuelve un objeto con las cuatro respuestas mas la prosa ya escrita. El orden es el de las
+preguntas de direccion y no es negociable: primero la fecha, luego el margen, luego que lo puede
+mover, y al final que depende del cliente.
+
+`components/plan/executive-brief-panel.tsx` solo dibuja. No consulta la base, no llama al motor y no
+arma texto propio. Todo lo que muestra viene del informe. Si esta pantalla enseniara una cifra que no
+esta en `ExecutiveBrief`, esa cifra estaria escrita a mano — que es exactamente lo que C12 prohibe.
+La separacion tambien vuelve la prueba estable: no hace falta montar un plan para probar la vista.
+
+### La prueba que atrapo mi propio texto
+
+La prueba de aceptacion de C13 no verifica cifras. Verifica **tono**: prohibe diez palabras de jerga
+del motor («holgura», «pase atras», «ruta critica», «desfase»), exige que el plan apretado se explique
+como consecuencia y no como alarma, y prohibe cinco formas de reproche.
+
+Una de esas prohibiciones es la palabra «culpa», **incluso para negarla**. La primera version del
+parrafo de reparto decia «No es un reparto de culpas: es el mapa de quien puede desatorar que». Suena
+conciliador y la prueba lo rechazo. Tiene razon: nombrar la culpa —aunque sea para negarla— planta el
+marco que se queria evitar. Quedo «No es un senialamiento».
+
+Y una prueba de simetria: el parrafo que explica el plan apretado **solo aparece cuando el plan de
+verdad lo esta**. Si sale siempre, deja de ser una explicacion y se vuelve una excusa de plantilla.
+
+### La concordancia, que aqui no es cosmetica
+
+Un informe que dice «1 hitos» o «detiene 1 tareas» pierde autoridad en la primera linea. La vista
+concuerda numero con sustantivo en cada lugar donde puede haber un uno: «Detiene 1 tarea» contra
+«Detiene 797 tareas», «1 dia» contra «7 dias». Hay prueba para el singular.
+
+Lo mismo con el margen: se dice como lo diria una persona, no como un numero con signo. Cero es
+«Ninguno», no «0». Un margen negativo es «9 dias tarde», no «-9». Sin fecha comprometida es «—» y el
+detalle lo explica, en vez de inventar un margen que no existe.
+
+### Un tropiezo de configuracion, y la decision de no imponerla
+
+Las doce pruebas del componente fallaron todas de golpe con `ReferenceError: React is not defined`.
+
+No era un error mio: es un defecto que el repositorio ya tenia. `tsconfig.json` declara
+`jsx: "preserve"` y `vitest.config.ts` no fija `esbuild.jsx: "automatic"` ni carga
+`@vitejs/plugin-react`, asi que en pruebas el JSX se compila en modo clasico —a `React.createElement`—
+y cualquier componente que no importe React explicitamente truena al renderizar. Es la misma causa de
+15 de las pruebas que ya estaban en rojo antes de que yo tocara nada, todas de
+`components/ui/date-picker.tsx`.
+
+La correccion global es de **una linea**: `esbuild: { jsx: 'automatic' }` en `vitest.config.ts`. Y muy
+probablemente recuperaria esas 15 pruebas de una vez.
+
+No la apliqué. La regla 1 del encargo dice que si una capacidad choca con el disenio actual se
+escribe y se propone la migracion, no se impone; y `vitest.config.ts` es configuracion global que
+afecta a los 73 archivos de prueba del repositorio, incluida la linea base contra la cual estoy
+comparando cada tramo. Cambiarla a mitad del porte me dejaria sin poder distinguir una regresion mia
+de un efecto de la configuracion.
+
+Se resolvio con el import explicito de React en los dos archivos nuevos, comentado en el codigo para
+que nadie lo borre por parecer sobrante.
+
+**Queda propuesto, para tu decision:** anadir `esbuild: { jsx: 'automatic' }` a `vitest.config.ts` y
+`types: ["vitest/globals"]` a `tsconfig.json`. Lo primero desbloquearia esas 15 pruebas; lo segundo,
+304 errores de tipos. Ambos son globales y ninguno es necesario para cerrar el encargo.
+
+### Estado
+
+- 20 pruebas de motor + 12 de vista, todas en verde.
+- `lib/scheduling` + `components/plan`: **453 pruebas en 20 archivos, todas pasan.**
+- C13 pasa a HECHO.
+
+Queda **C11 · Gantt**, la ultima.

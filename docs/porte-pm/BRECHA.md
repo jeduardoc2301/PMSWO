@@ -26,11 +26,12 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C10** · Criterios de salida verificables | **NO EXISTE** — no hay campo de entregable ni de criterio de salida en ningún modelo | **HECHO** | [exit-criteria.test.ts](lib/scheduling/__tests__/exit-criteria.test.ts) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) |
 | **C11** · Gantt con estas capacidades | **PARCIAL** — hay una línea de tiempo, pero inventa las fechas que faltan con un desplazamiento pseudoaleatorio | PENDIENTE | — |
 | **C12** · Documentación que se calcula sola | **PARCIAL** — el reporte Word ya calcula sus cifras en el servidor y se las entrega a la IA como hechos; el patrón es correcto y no hay plan del cual sacar cifras | **HECHO** | [plan-summary.test.ts](lib/scheduling/__tests__/plan-summary.test.ts) |
-| **C13** · Vista ejecutiva | **PARCIAL** — hay tablero ejecutivo con puntaje de salud y tendencia; no responde fecha de cierre, margen, qué lo mueve ni qué depende del cliente | PENDIENTE | — |
+| **C13** · Vista ejecutiva | **PARCIAL** — hay tablero ejecutivo con puntaje de salud y tendencia; no responde fecha de cierre, margen, qué lo mueve ni qué depende del cliente | **HECHO** | `lib/scheduling/__tests__/executive-brief.test.ts` (20) · `components/plan/__tests__/executive-brief-panel.test.tsx` (12) |
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 11 en HECHO · 2 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1, 2 y 3 cerradas.**
+**Avance:** 12 en HECHO · 1 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1, 2 y 3 cerradas.**
+De la fase 4 falta C11 · Gantt.
 
 ---
 
@@ -195,12 +196,36 @@ contradicen a sus propios datos —el reparto por nivel suma 1 354 en vez de 1 3
 un responsable cuando son 328; dice 66 hitos cuando son 86; y menciona 3 desfases negativos cuando
 hay 6—.
 
-### C13 · Vista ejecutiva — PARCIAL
+### C13 · Vista ejecutiva — HECHO
 
 Hay tablero ejecutivo con puntaje de salud por factores y tendencia semana contra semana
 ([services/dashboard.service.ts](services/dashboard.service.ts)), y ya se genera un informe Word con
-tono ejecutivo. Lo que no responde es lo que pide el encargo: en qué fecha cierra, cuánto margen hay,
-qué lo puede mover y qué depende del cliente. Eso requiere que exista el plan.
+tono ejecutivo. Lo que no respondía es lo que pide el encargo: en qué fecha cierra, cuánto margen hay,
+qué lo puede mover y qué depende del cliente.
+
+Se resolvió en dos capas. El motor
+([lib/scheduling/executive-brief.ts](lib/scheduling/executive-brief.ts)) arma el informe a partir del
+resumen del plan y de los compromisos del cliente, y escribe la prosa. La vista
+([components/plan/executive-brief-panel.tsx](components/plan/executive-brief-panel.tsx)) solo dibuja:
+no consulta la base, no llama al motor y no arma texto propio. Si esta pantalla mostrara una cifra
+que no está en el informe, esa cifra estaría escrita a mano, que es justo lo que C12 prohíbe.
+
+El tono es la mitad del trabajo y por eso está bajo prueba. Un plan armado hacia atrás desde una
+fecha de compromiso sale con casi todo crítico —en el de referencia, nueve de cada diez líneas—, y
+presentarlo como alarma es a la vez alarmista y falso. El informe lo explica como consecuencia
+aritmética de haberlo armado para caber en una fecha. El reparto entre cliente y proveedor hay que
+decirlo —si no, el proveedor carga con atrasos que no controla— y decirlo como reproche arruina la
+reunión: se dice como mapa de quién puede desatorar qué. Hay una prueba que prohíbe la palabra
+«culpa» en todo el informe, **incluso para negarla**; atrapó una primera versión que decía «no es un
+reparto de culpas», porque nombrar la culpa planta el marco que se quería evitar.
+
+Nota de configuración, no de capacidad: el componente y su prueba importan `React` de forma
+explícita. El repositorio compila JSX en modo clásico —[tsconfig.json](tsconfig.json) usa
+`jsx: "preserve"` y [vitest.config.ts](vitest.config.ts) no fija `esbuild.jsx` ni carga el plugin de
+React—, así que sin ese import las pruebas fallan con «React is not defined». Es el mismo defecto que
+hoy tiene en rojo a 15 pruebas de [components/ui/date-picker.tsx](components/ui/date-picker.tsx). Se
+resolvió con el import local en vez de tocar la configuración global, que es un cambio de una línea
+pero afecta a todo el repositorio; queda propuesto en la bitácora.
 
 ---
 
