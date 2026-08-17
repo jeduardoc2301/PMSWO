@@ -22,6 +22,9 @@ const updateWorkItemSchema = z.object({
   ownerId: z.string().uuid().optional(),
   phase: z.string().nullable().optional(),
   estimatedHours: z.number().int().min(0).nullable().optional(),
+  // Avance real de 0 a 1, como lo captura quien revisa el plan. Es el insumo del estado al corte y
+  // del atraso en días; el resumen no se captura, se acumula ponderado desde las hojas.
+  progressPct: z.number().min(0).max(1).optional(),
 })
 
 async function getWorkItemHandler(
@@ -147,6 +150,12 @@ async function updateWorkItemHandler(
         ...(updateData.ownerId && { ownerId: updateData.ownerId }),
         ...(updateData.phase !== undefined && { phase: updateData.phase }),
         ...(updateData.estimatedHours !== undefined && { estimatedHours: updateData.estimatedHours }),
+        ...(updateData.progressPct !== undefined && {
+          progressPct: updateData.progressPct,
+          // El avance completo cierra la línea también para el kanban; capturar 100% y que la
+          // tarjeta siga en «Por hacer» sería decir dos cosas distintas sobre la misma línea.
+          ...(updateData.progressPct >= 1 ? { status: WorkItemStatus.DONE } : {}),
+        }),
         ...(updateData.status === WorkItemStatus.DONE && !workItem.completedAt && {
           completedAt: new Date(),
         }),

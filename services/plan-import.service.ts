@@ -138,6 +138,9 @@ export async function importPlanAsProject(input: ImportPlanInput): Promise<Impor
       kind: fila.kind,
       party: fila.party,
       clientOwner: esCliente ? fila.owner : null,
+      // El responsable real de la línea, sea de la parte que sea. No es una cuenta del sistema ni
+      // se le exige serlo; es el nombre con el que el plan responde «¿quién lo tiene?».
+      responsibleName: fila.owner,
       // La clasificación explícita del archivo se guarda tal cual: la marca puesta a mano siempre
       // gana sobre la que sugiere la regla, y sin persistirla el recálculo desde la base perdería
       // 124 líneas de la ruta súper crítica (medido: 312 con ella, 188 sin ella).

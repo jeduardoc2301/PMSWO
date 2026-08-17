@@ -35,6 +35,12 @@ export interface UpdateProjectDTO {
   startDate?: Date
   estimatedEndDate?: Date
   status?: ProjectStatus
+  /**
+   * Fecha de corte del avance. Nula la descongela: el corte vuelve a ser «hoy», como la celda
+   * `FechaCorte = TODAY()` del plan de referencia. Con fecha, congela la foto contra la que se
+   * miden estado y atraso.
+   */
+  progressCutoffDate?: Date | null
 }
 
 export interface QueryProjectsDTO {
@@ -567,6 +573,8 @@ export class ProjectService {
     if (data.startDate !== undefined) updatePayload.startDate = data.startDate
     if (data.estimatedEndDate !== undefined) updatePayload.estimatedEndDate = data.estimatedEndDate
     if (data.status !== undefined) updatePayload.status = data.status
+    // `null` explícito también viaja: descongelar el corte es un cambio, no una omisión.
+    if (data.progressCutoffDate !== undefined) updatePayload.progressCutoffDate = data.progressCutoffDate
 
     if (Object.keys(updatePayload).length === 0) {
       throw new ValidationError('No fields provided to update')

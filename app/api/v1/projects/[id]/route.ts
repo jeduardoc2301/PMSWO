@@ -112,6 +112,13 @@ const updateProjectSchema = z.object({
     message: 'Invalid estimated end date format',
   }).optional(),
   status: z.nativeEnum(ProjectStatus).optional(),
+  // La fecha de corte del avance. Nula descongela (el corte vuelve a «hoy»); con fecha, congela la
+  // foto contra la que se miden estado y atraso — la celda FechaCorte del plan de referencia.
+  progressCutoffDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid cutoff date format')
+    .nullable()
+    .optional(),
 })
 
 /**
@@ -203,6 +210,12 @@ async function updateProjectHandler(
 
     if (data.status !== undefined) {
       updateData.status = data.status
+    }
+
+    if (data.progressCutoffDate !== undefined) {
+      // Medianoche UTC a propósito: es una fecha civil, y así se lee de vuelta sin correrse un día.
+      updateData.progressCutoffDate =
+        data.progressCutoffDate === null ? null : new Date(`${data.progressCutoffDate}T00:00:00Z`)
     }
 
     // Update project (service layer handles date range validation)

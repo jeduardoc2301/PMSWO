@@ -72,6 +72,7 @@ model Project {
   status           String   @default("PLANNING")
   archived         Boolean  @default(false)
   plannedHours     Int?     @map("planned_hours")
+  progressCutoffDate DateTime? @map("progress_cutoff_date") @db.Date
   actualHours      Int?     @map("actual_hours")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -156,6 +157,7 @@ model WorkItem {
   // forma más rápida de que esas líneas terminen asignadas a alguien que no las controla.
   clientOwner String?   @map("client_owner")
   recoverability String? @db.VarChar(20)
+  responsibleName String? @map("responsible_name")
   // Fecha límite comprometida, cuando es distinta de la que calcula el plan.
   dueDate     DateTime? @map("due_date") @db.Date
 

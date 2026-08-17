@@ -46,6 +46,12 @@ export interface ProjectPlan {
   readonly start: string
   /** Fecha comprometida del proyecto, contra la cual se mide el margen. */
   readonly deadline: string
+  /**
+   * Fecha de corte del avance, si el proyecto la congeló. Nula significa «hoy», igual que la celda
+   * `FechaCorte = TODAY()` del archivo de referencia: el corte flota con el calendario hasta que
+   * alguien lo fija para congelar una foto.
+   */
+  readonly progressCutoff: string | null
 }
 
 /**
@@ -61,7 +67,14 @@ export async function loadProjectPlan(
 ): Promise<ProjectPlan | null> {
   const project = await prisma.project.findFirst({
     where: { id: projectId, organizationId },
-    select: { id: true, name: true, client: true, startDate: true, estimatedEndDate: true },
+    select: {
+      id: true,
+      name: true,
+      client: true,
+      startDate: true,
+      estimatedEndDate: true,
+      progressCutoffDate: true,
+    },
   })
   if (!project) return null
 
@@ -76,6 +89,7 @@ export async function loadProjectPlan(
         party: true,
         recoverability: true,
         clientOwner: true,
+        responsibleName: true,
         dueDate: true,
         parentId: true,
         progressPct: true,
@@ -102,7 +116,11 @@ export async function loadProjectPlan(
       kind,
       party: item.party as ResponsibleParty,
       ...(item.recoverability ? { recoverability: item.recoverability as Recoverability } : {}),
-      ...(item.clientOwner ? { owner: item.clientOwner } : {}),
+      // El responsable con nombre, de la parte que sea; el del cliente queda como respaldo para
+      // filas importadas antes de que existiera la columna.
+      ...(item.responsibleName ?? item.clientOwner
+        ? { owner: (item.responsibleName ?? item.clientOwner)! }
+        : {}),
       ...(item.dueDate ? { dueDate: isoDe(item.dueDate) } : {}),
       ...(item.parentId ? { parentId: item.parentId } : {}),
       progress: item.progressPct,
@@ -125,6 +143,7 @@ export async function loadProjectPlan(
     dependencies,
     start: isoDe(project.startDate),
     deadline: isoDe(project.estimatedEndDate),
+    progressCutoff: project.progressCutoffDate ? isoDe(project.progressCutoffDate) : null,
   }
 }
 
