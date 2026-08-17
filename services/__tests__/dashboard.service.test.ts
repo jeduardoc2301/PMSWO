@@ -23,8 +23,30 @@ vi.mock('@/lib/prisma', () => ({
     blocker: {
       findMany: vi.fn(),
     },
+    // El servicio de salud consulta esta tabla desde que los umbrales se configuran por
+    // organización. El mock se había quedado atrás y `prisma.projectHealthConfig` llegaba como
+    // `undefined`, así que el servicio tronaba antes de calcular nada.
+    projectHealthConfig: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      upsert: vi.fn(),
+    },
   },
 }))
+
+/**
+ * Los umbrales de salud, tal como los deja el esquema cuando una organización no los ha tocado.
+ * Se devuelven en cada prueba para que el servicio encuentre configuración y no invente una.
+ */
+const UMBRALES_POR_OMISION = {
+  criticalBlockerMin: 1,
+  highRiskMin: 2,
+  spiMinElapsedPct: 15.0,
+  criticalSpiThreshold: 0.5,
+  atRiskSpiThreshold: 0.8,
+  overdueTaskPctThreshold: 25.0,
+  onTrackSpiMin: 0.9,
+}
 
 describe('DashboardService', () => {
   let dashboardService: DashboardService
@@ -32,6 +54,7 @@ describe('DashboardService', () => {
   beforeEach(() => {
     dashboardService = new DashboardService()
     vi.clearAllMocks()
+    vi.mocked(prisma.projectHealthConfig.findUnique).mockResolvedValue(UMBRALES_POR_OMISION as never)
   })
 
   describe('getExecutiveDashboard', () => {

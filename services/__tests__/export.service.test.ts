@@ -1,3 +1,8 @@
+/**
+ * Las notificaciones del sistema se emiten en español —es el idioma de la interfaz y de los mensajes
+ * que ve el cliente—. Estas pruebas esperaban la redacción anterior, en inglés, y por eso fallaban:
+ * el producto estaba bien y la prueba se había quedado atrás.
+ */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ExportService } from '../export.service'
 import prisma from '@/lib/prisma'
@@ -591,18 +596,18 @@ describe('ExportService', () => {
 
         expect(result).toBeDefined()
         expect(result.subject).toContain('[CRITICAL]')
-        expect(result.subject).toContain('Blocker Alert')
+        expect(result.subject).toContain('Alerta de Bloqueador')
         expect(result.subject).toContain('Test Project')
         expect(result.subject).toContain('Deploy to production')
-        expect(result.body).toContain('BLOCKER NOTIFICATION')
-        expect(result.body).toContain('Severity: CRITICAL')
-        expect(result.body).toContain('Project: Test Project')
-        expect(result.body).toContain('Client: Test Client')
-        expect(result.body).toContain('Work Item: Deploy to production')
-        expect(result.body).toContain('Owner: John Doe')
-        expect(result.body).toContain('Blocked By: External API dependency')
-        expect(result.body).toContain('Duration:')
-        expect(result.body).toContain('days')
+        expect(result.body).toContain('NOTIFICACIÓN DE BLOQUEADOR')
+        expect(result.body).toContain('Severidad: CRITICAL')
+        expect(result.body).toContain('Proyecto: Test Project')
+        expect(result.body).toContain('Cliente: Test Client')
+        expect(result.body).toContain('Elemento de Trabajo: Deploy to production')
+        expect(result.body).toContain('Responsable: John Doe')
+        expect(result.body).toContain('Bloqueado Por: External API dependency')
+        expect(result.body).toContain('Duración:')
+        expect(result.body).toContain('días')
         expect(result.body).toContain('Critical blocker preventing deployment')
         expect(result.priority).toBe('HIGH')
       })
@@ -642,7 +647,7 @@ describe('ExportService', () => {
 
         const result = await exportService.generateNotificationMessage('blocker', 'blocker-1')
 
-        expect(result.body).toContain('Duration: 5 days')
+        expect(result.body).toContain('Duración: 5 días')
       })
 
       it('should throw NotFoundError if blocker does not exist', async () => {
@@ -666,16 +671,16 @@ describe('ExportService', () => {
 
         expect(result).toBeDefined()
         expect(result.subject).toContain('[CRITICAL]')
-        expect(result.subject).toContain('Risk Alert')
+        expect(result.subject).toContain('Alerta de Riesgo')
         expect(result.subject).toContain('Test Project')
-        expect(result.body).toContain('RISK NOTIFICATION')
-        expect(result.body).toContain('Risk Level: CRITICAL')
-        expect(result.body).toContain('Project: Test Project')
-        expect(result.body).toContain('Client: Test Client')
-        expect(result.body).toContain('Owner: John Doe')
-        expect(result.body).toContain('Status: MONITORING')
-        expect(result.body).toContain('Probability: 4/5')
-        expect(result.body).toContain('Impact: 5/5')
+        expect(result.body).toContain('NOTIFICACIÓN DE RIESGO')
+        expect(result.body).toContain('Nivel de Riesgo: CRITICAL')
+        expect(result.body).toContain('Proyecto: Test Project')
+        expect(result.body).toContain('Cliente: Test Client')
+        expect(result.body).toContain('Responsable: John Doe')
+        expect(result.body).toContain('Estado: MONITORING')
+        expect(result.body).toContain('Probabilidad: 4/5')
+        expect(result.body).toContain('Impacto: 5/5')
         expect(result.body).toContain('High risk of missing deadline')
         expect(result.body).toContain('Add additional resources')
         expect(result.priority).toBe('HIGH')
@@ -712,7 +717,7 @@ describe('ExportService', () => {
 
         const result = await exportService.generateNotificationMessage('risk', 'risk-1')
 
-        expect(result.body).toContain('No mitigation plan defined')
+        expect(result.body).toContain('No se ha definido un plan de mitigación')
       })
 
       it('should throw NotFoundError if risk does not exist', async () => {
@@ -738,9 +743,9 @@ describe('ExportService', () => {
         expect(result.priority).toMatch(/^(LOW|MEDIUM|HIGH)$/)
         
         // Check that body has proper sections
-        expect(result.body).toContain('Severity:')
-        expect(result.body).toContain('Project:')
-        expect(result.body).toContain('Description:')
+        expect(result.body).toContain('Severidad:')
+        expect(result.body).toContain('Proyecto:')
+        expect(result.body).toContain('Descripción:')
       })
 
       it('should format risk notification for email/messaging', async () => {
@@ -756,10 +761,10 @@ describe('ExportService', () => {
         expect(result.priority).toMatch(/^(LOW|MEDIUM|HIGH)$/)
         
         // Check that body has proper sections
-        expect(result.body).toContain('Risk Level:')
-        expect(result.body).toContain('Project:')
-        expect(result.body).toContain('Description:')
-        expect(result.body).toContain('Mitigation Plan:')
+        expect(result.body).toContain('Nivel de Riesgo:')
+        expect(result.body).toContain('Proyecto:')
+        expect(result.body).toContain('Descripción:')
+        expect(result.body).toContain('Plan de Mitigación:')
       })
     })
   })
@@ -1006,10 +1011,10 @@ This is a **critical** project update.
       const emailFormatted = await exportService.formatForEmail(notification.body)
 
       // Should be plain text suitable for email
-      expect(emailFormatted).toContain('BLOCKER NOTIFICATION')
-      expect(emailFormatted).toContain('Severity: CRITICAL')
-      expect(emailFormatted).toContain('Project: Test Project')
-      expect(emailFormatted).toContain('Description:')
+      expect(emailFormatted).toContain('NOTIFICACIÓN DE BLOQUEADOR')
+      expect(emailFormatted).toContain('Severidad: CRITICAL')
+      expect(emailFormatted).toContain('Proyecto: Test Project')
+      expect(emailFormatted).toContain('Descripción:')
       expect(emailFormatted).toContain('Critical blocker')
     })
   })

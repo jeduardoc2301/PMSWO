@@ -40,9 +40,13 @@ describe('AgreementService', () => {
   })
 
   describe('createAgreement', () => {
+    // El acuerdo lleva título desde que se separó del cuerpo del compromiso. El dato de prueba se
+    // había quedado sin él, así que zod fallaba por tipo —«se esperaba texto, llegó indefinido»—
+    // antes de llegar a la validación que cada prueba quería comprobar.
     const validAgreementData = {
       projectId: 'proj-123',
       createdById: 'user-123',
+      title: 'Acuerdo de arranque',
       description: 'Test agreement description',
       agreementDate: new Date('2024-01-01'),
       participants: 'John Doe, Jane Smith',
@@ -56,6 +60,7 @@ describe('AgreementService', () => {
         organizationId: 'org-123',
         projectId: 'proj-123',
         createdById: 'user-123',
+        title: 'Acuerdo de arranque',
         description: 'Test agreement description',
         agreementDate: new Date('2024-01-01'),
         participants: 'John Doe, Jane Smith',
@@ -78,6 +83,7 @@ describe('AgreementService', () => {
           organizationId: 'org-123',
           projectId: 'proj-123',
           createdById: 'user-123',
+          title: 'Acuerdo de arranque',
           description: 'Test agreement description',
           agreementDate: validAgreementData.agreementDate,
           participants: 'John Doe, Jane Smith',
@@ -138,6 +144,7 @@ describe('AgreementService', () => {
         organizationId: 'org-123',
         projectId: 'proj-123',
         createdById: 'user-123',
+        title: 'Acuerdo de arranque',
         description: 'Test agreement description',
         agreementDate: new Date('2024-01-01'),
         participants: 'John Doe, Jane Smith',

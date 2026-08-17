@@ -69,9 +69,13 @@ describe('ProjectService', () => {
       expect(prisma.organization.findUnique).toHaveBeenCalledWith({
         where: { id: 'org-123' },
       })
+      // El proyecto guarda desde hace tiempo a quién pertenece y quién lo dirige. Son dos campos
+      // distintos: el dueño responde por él, el gerente lo lleva del día a día.
       expect(prisma.project.create).toHaveBeenCalledWith({
         data: {
           organizationId: 'org-123',
+          ownerId: undefined,
+          projectManagerId: null,
           name: 'Test Project',
           description: 'Test project description',
           client: 'Test Client',
@@ -459,6 +463,20 @@ describe('ProjectService', () => {
   })
 
   describe('getKanbanBoard', () => {
+    /**
+     * Las tarjetas del tablero muestran fechas y última actualización desde hace varias versiones.
+     * Estos datos de prueba se habían quedado sin esos campos, así que el servicio tronaba al
+     * formatearlos. El servicio estaba bien; el dato de prueba, incompleto.
+     */
+    const FECHAS = {
+      startDate: new Date('2024-01-15'),
+      estimatedEndDate: new Date('2024-03-15'),
+      updatedAt: new Date('2024-02-01'),
+      phase: null,
+      templateOrder: null,
+      blockers: [],
+    }
+
     it('should return Kanban board with columns and work items', async () => {
       const mockProject = {
         id: 'proj-123',
@@ -479,6 +497,7 @@ describe('ProjectService', () => {
             kanbanColumnId: 'col-2',
             ownerId: 'user-1',
             owner: { id: 'user-1', name: 'John Doe' },
+            ...FECHAS,
           },
           {
             id: 'item-2',
@@ -488,6 +507,7 @@ describe('ProjectService', () => {
             kanbanColumnId: 'col-3',
             ownerId: 'user-2',
             owner: { id: 'user-2', name: 'Jane Smith' },
+            ...FECHAS,
           },
           {
             id: 'item-3',
@@ -497,6 +517,7 @@ describe('ProjectService', () => {
             kanbanColumnId: 'col-4',
             ownerId: 'user-1',
             owner: { id: 'user-1', name: 'John Doe' },
+            ...FECHAS,
           },
         ],
       }
@@ -519,6 +540,8 @@ describe('ProjectService', () => {
       expect(result.columns[3].workItemIds).toEqual(['item-3'])
 
       // Check work item summaries
+      // La tarjeta del tablero creció: además de quién la tiene, muestra sus fechas, en qué fase
+      // va, cuántos bloqueadores activos arrastra y cuándo se tocó por última vez.
       expect(result.workItems[0]).toEqual({
         id: 'item-1',
         title: 'Task 1',
@@ -527,6 +550,12 @@ describe('ProjectService', () => {
         kanbanColumnId: 'col-2',
         ownerId: 'user-1',
         ownerName: 'John Doe',
+        startDate: '2024-01-15',
+        estimatedEndDate: '2024-03-15',
+        phase: null,
+        templateOrder: null,
+        activeBlockers: 0,
+        lastUpdatedAt: FECHAS.updatedAt.toISOString(),
       })
     })
 
@@ -558,19 +587,29 @@ describe('ProjectService', () => {
   })
 
   describe('getProjectMetrics', () => {
+    /**
+     * Las métricas reparten las tareas terminadas por semana desde el arranque del proyecto, así que
+     * necesitan su ventana de fechas. Los datos de prueba se habían quedado sin ella.
+     */
+    const VENTANA = {
+      startDate: new Date('2024-01-01'),
+      estimatedEndDate: new Date('2024-03-31'),
+    }
+
     it('should calculate metrics correctly with work items and blockers', async () => {
       const mockProject = {
         id: 'proj-123',
         organizationId: 'org-123',
         name: 'Test Project',
+        ...VENTANA,
       }
 
       const mockWorkItems = [
-        { id: 'item-1', status: WorkItemStatus.DONE },
-        { id: 'item-2', status: WorkItemStatus.DONE },
-        { id: 'item-3', status: WorkItemStatus.IN_PROGRESS },
-        { id: 'item-4', status: WorkItemStatus.TODO },
-        { id: 'item-5', status: WorkItemStatus.BLOCKED },
+        { id: 'item-1', status: WorkItemStatus.DONE, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
+        { id: 'item-2', status: WorkItemStatus.DONE, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
+        { id: 'item-3', status: WorkItemStatus.IN_PROGRESS, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
+        { id: 'item-4', status: WorkItemStatus.TODO, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
+        { id: 'item-5', status: WorkItemStatus.BLOCKED, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
       ]
 
       const mockResolvedBlockers = [
@@ -605,6 +644,7 @@ describe('ProjectService', () => {
         id: 'proj-123',
         organizationId: 'org-123',
         name: 'Empty Project',
+        ...VENTANA,
       }
 
       vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
@@ -628,11 +668,12 @@ describe('ProjectService', () => {
         id: 'proj-123',
         organizationId: 'org-123',
         name: 'Test Project',
+        ...VENTANA,
       }
 
       const mockWorkItems = [
-        { id: 'item-1', status: WorkItemStatus.DONE },
-        { id: 'item-2', status: WorkItemStatus.TODO },
+        { id: 'item-1', status: WorkItemStatus.DONE, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
+        { id: 'item-2', status: WorkItemStatus.TODO, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
       ]
 
       vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
@@ -651,12 +692,13 @@ describe('ProjectService', () => {
         id: 'proj-123',
         organizationId: 'org-123',
         name: 'Test Project',
+        ...VENTANA,
       }
 
       const mockWorkItems = [
-        { id: 'item-1', status: WorkItemStatus.DONE },
-        { id: 'item-2', status: WorkItemStatus.DONE },
-        { id: 'item-3', status: WorkItemStatus.DONE },
+        { id: 'item-1', status: WorkItemStatus.DONE, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
+        { id: 'item-2', status: WorkItemStatus.DONE, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
+        { id: 'item-3', status: WorkItemStatus.DONE, completedAt: new Date('2024-01-20'), updatedAt: new Date('2024-01-20') },
       ]
 
       vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)

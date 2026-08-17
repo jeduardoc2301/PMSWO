@@ -14,6 +14,12 @@ const messages = {
     activityCount: 'Activity Count',
     totalDuration: 'Total Duration',
     phases: 'Phases',
+    // El componente pide estas tres y el diccionario de la prueba no las traía: next-intl no
+    // devuelve la clave cuando falta, lanza. Los valores siguen la convención del archivo real
+    // (messages/es/templates.json), traducidos al idioma en que está escrito este diccionario.
+    phase: 'Phase',
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
     activity: 'activity',
     activities: 'activities',
     priority: 'Priority',
