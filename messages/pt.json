@@ -47,7 +47,8 @@
     "risks": "Riscos",
     "agreements": "Acordos",
     "settings": "Configurações",
-    "signOut": "Sair"
+    "signOut": "Sair",
+    "plan": "Plano"
   },
   "auth": {
     "signIn": "Entrar",

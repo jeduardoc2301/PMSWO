@@ -11,9 +11,7 @@
  * inventar datos termina inventándolos.
  */
 
-// El repositorio compila JSX en modo clásico (tsconfig usa jsx: preserve y vitest no carga el
-// plugin de React), así que React tiene que estar en el ámbito o las pruebas fallan con
-// «React is not defined». Se importa aquí en vez de tocar la configuración global.
+// `React` en el ámbito porque este archivo usa `React.Fragment` de forma explícita.
 import React from 'react'
 
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
@@ -50,7 +48,7 @@ export function GanttChart({
 
   if (layout.rows.length === 0) {
     return (
-      <p className="rounded-lg border border-slate-700 bg-slate-900/50 p-6 text-sm text-slate-400">
+      <p className="rounded-lg border border-zinc-800 bg-[#18181b] p-6 text-sm text-zinc-400">
         No hay líneas que mostrar con los filtros de ahora.
       </p>
     )
@@ -58,10 +56,10 @@ export function GanttChart({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex overflow-x-auto rounded-lg border border-slate-700 bg-slate-900/50">
+      <div className="flex overflow-x-auto rounded-lg border border-zinc-800 bg-[#18181b]">
         {/* La columna de nombres, fija a la izquierda. */}
-        <div className="shrink-0 border-r border-slate-700" style={{ width: nameWidth }}>
-          <div className="border-b border-slate-700 text-xs uppercase tracking-wide text-slate-400" style={{ height: rowHeight }}>
+        <div className="shrink-0 border-r border-zinc-800" style={{ width: nameWidth }}>
+          <div className="border-b border-zinc-800 text-xs uppercase tracking-wide text-zinc-400" style={{ height: rowHeight }}>
             <span className="flex h-full items-center px-3">Línea del plan</span>
           </div>
           {layout.rows.map((row) => (
@@ -78,11 +76,11 @@ export function GanttChart({
 
         {/* El lienzo. */}
         <div className="relative" style={{ width }}>
-          <div className="flex border-b border-slate-700" style={{ height: rowHeight }}>
+          <div className="flex border-b border-zinc-800" style={{ height: rowHeight }}>
             {layout.ticks.map((tick) => (
               <div
                 key={tick.date}
-                className="shrink-0 border-r border-slate-800 px-2 text-xs text-slate-400"
+                className="shrink-0 border-r border-zinc-800 px-2 text-xs text-zinc-400"
                 style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}
               >
                 {tick.label}
@@ -119,8 +117,8 @@ function NameCell({
 }) {
   return (
     <div
-      className={`flex items-center gap-1 border-b border-slate-800 px-2 text-sm ${
-        isSelected ? 'bg-slate-700/50' : ''
+      className={`flex items-center gap-1 border-b border-zinc-800 px-2 text-sm ${
+        isSelected ? 'bg-zinc-800/60' : ''
       }`}
       style={{ height, paddingLeft: 8 + row.level * 14 }}
     >
@@ -130,7 +128,7 @@ function NameCell({
           aria-label={row.isCollapsed ? `Abrir ${row.name}` : `Cerrar ${row.name}`}
           aria-expanded={!row.isCollapsed}
           onClick={() => onToggle(row.id)}
-          className="w-4 shrink-0 text-slate-400"
+          className="w-4 shrink-0 text-zinc-400"
         >
           {row.isCollapsed ? '▸' : '▾'}
         </button>
@@ -140,7 +138,7 @@ function NameCell({
       <button
         type="button"
         onClick={() => onSelect?.(row.id)}
-        className={`truncate text-left ${row.isSummary ? 'font-medium text-slate-100' : 'text-slate-300'}`}
+        className={`truncate text-left ${row.isSummary ? 'font-medium text-zinc-100' : 'text-zinc-300'}`}
         title={row.name}
       >
         {row.name}
@@ -176,7 +174,7 @@ function Bar({
       <div
         data-testid={`hito-${row.id}`}
         title={`${row.name} · ${row.start}`}
-        className={`absolute rotate-45 ${row.isSuperCritical ? 'bg-red-400' : row.isCritical ? 'bg-orange-400' : 'bg-slate-300'}`}
+        className={`absolute rotate-45 ${row.isSuperCritical ? 'bg-red-400' : row.isCritical ? 'bg-orange-400' : 'bg-zinc-300'}`}
         style={{ left: row.x * dayWidth - alto / 2, top: y, width: alto, height: alto }}
       />
     )
@@ -188,7 +186,7 @@ function Bar({
         <div
           data-testid={`holgura-${row.id}`}
           title={`${row.totalFloat} días de margen`}
-          className="absolute rounded-sm border border-dashed border-slate-600"
+          className="absolute rounded-sm border border-dashed border-zinc-700"
           style={{ left: row.floatX * dayWidth, top: y, width: row.floatWidth * dayWidth, height: alto }}
         />
       ) : null}
@@ -201,7 +199,7 @@ function Bar({
         {row.progressWidth > 0 ? (
           <div
             data-testid={`avance-${row.id}`}
-            className="h-full bg-slate-100/40"
+            className="h-full bg-zinc-100/40"
             style={{ width: row.progressWidth * dayWidth }}
           />
         ) : null}
@@ -211,10 +209,10 @@ function Bar({
 }
 
 function barTone(row: GanttRow): string {
-  if (row.isSummary) return 'bg-slate-500'
+  if (row.isSummary) return 'bg-zinc-500'
   if (row.isSuperCritical) return 'bg-red-500/80'
   if (row.isCritical) return 'bg-orange-500/80'
-  return 'bg-sky-500/70'
+  return 'bg-[#6366f1]/80'
 }
 
 /**
@@ -249,7 +247,7 @@ function Links({
     >
       <defs>
         <marker id="punta" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" className="fill-slate-400" />
+          <path d="M0,0 L6,3 L0,6 Z" className="fill-zinc-500" />
         </marker>
         <marker id="punta-critica" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto">
           <path d="M0,0 L6,3 L0,6 Z" className="fill-red-400" />
@@ -276,7 +274,7 @@ function Links({
             fill="none"
             strokeWidth={link.isCritical ? 2 : 1}
             strokeDasharray={link.isFolded ? '4 3' : undefined}
-            className={link.isCritical ? 'stroke-red-400' : 'stroke-slate-500'}
+            className={link.isCritical ? 'stroke-red-400' : 'stroke-zinc-600'}
             markerEnd={link.isCritical ? 'url(#punta-critica)' : 'url(#punta)'}
           >
             <title>{`${link.fromRowId} → ${link.toRowId} · ${rotulo}`}</title>
@@ -325,5 +323,5 @@ function Legend({ layout }: { layout: GanttLayout }) {
     partes.push(`${layout.foldedLinkCount} ${layout.foldedLinkCount === 1 ? 'vínculo plegado' : 'vínculos plegados'}`)
   }
 
-  return <p className="text-xs text-slate-400">{partes.join(' · ')}</p>
+  return <p className="text-xs text-zinc-400">{partes.join(' · ')}</p>
 }

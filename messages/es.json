@@ -47,7 +47,8 @@
     "risks": "Riesgos",
     "agreements": "Acuerdos",
     "settings": "Configuración",
-    "signOut": "Cerrar Sesión"
+    "signOut": "Cerrar Sesión",
+    "plan": "Plan"
   },
   "auth": {
     "signIn": "Iniciar Sesión",

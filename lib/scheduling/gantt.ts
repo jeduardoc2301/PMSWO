@@ -364,7 +364,11 @@ function layoutLinks(context: {
       if (!tocaLaSeleccion) continue
     }
 
-    const clave = `${fromRowId} ${toRowId} ${dependency.type}`
+    // La clave junta las tres cosas que hacen unica a una flecha. Se serializa como arreglo en vez
+    // de pegarlas con un separador: cualquier separador que se elija puede aparecer dentro de un
+    // identificador y volver ambigua la clave, y el que estaba aqui era un byte nulo, que ademas
+    // hacia que `grep` tratara este archivo como binario y lo saltara.
+    const clave = JSON.stringify([fromRowId, toRowId, dependency.type])
     const yaEsta = porClave.get(clave)
     if (yaEsta) {
       porClave.set(clave, { ...yaEsta, foldedCount: yaEsta.foldedCount + 1 })

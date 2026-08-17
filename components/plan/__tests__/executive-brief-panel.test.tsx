@@ -1,9 +1,3 @@
-// El repositorio compila JSX en modo clásico (tsconfig usa jsx: preserve y vitest no carga el
-// plugin de React), así que React tiene que estar en el ámbito o las pruebas fallan con
-// «React is not defined». Se importa aquí en vez de tocar la configuración global, que es un
-// cambio que afecta a todo el repositorio y está propuesto aparte en la bitácora.
-import React from 'react'
-
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
