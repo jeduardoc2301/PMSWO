@@ -29,15 +29,17 @@ cuatro cifras de la captura del usuario:
 
 | Capacidad | Cómo llegó | Cómo va | Prueba que lo acredita |
 |---|---|---|---|
-| **E1** · Esquema multinivel expandible en Elementos de Trabajo | NO EXISTE — lista plana agrupada por fase | PENDIENTE | — |
-| **E2** · Columna Tipo por línea (Etapa/Fase/Bloque/Actividad/Aprobación…) | PARCIAL — `kind` está en la base, no se muestra | PENDIENTE | — |
-| **E3** · % avance por línea, capturable, con acumulado ponderado en resúmenes | PARCIAL — `progressPct` existe; el motor de rollup existe (C7); sin pantalla ni captura | PENDIENTE | — |
-| **E4** · Fecha de corte del avance por proyecto | NO EXISTE | PENDIENTE | — |
-| **E5** · Estado derivado del corte (No iniciado/En curso/Cerrado) | NO EXISTE — el estado del sistema es de kanban, no de corte | PENDIENTE | — |
-| **E6** · Atraso (−) / Ventaja (+) en días por línea | NO EXISTE | PENDIENTE | — |
-| **E7** · Responsable real por línea (las dos partes, sin exigir cuenta) | PARCIAL — solo el del cliente (`clientOwner`); el del proveedor quedó en la descripción | PENDIENTE | — |
+| **E1** · Esquema multinivel expandible en Elementos de Trabajo | NO EXISTE — lista plana agrupada por fase | **HECHO** | [work-items-outline.test.tsx](components/projects/__tests__/work-items-outline.test.tsx) (21) |
+| **E2** · Columna Tipo por línea (Etapa/Fase/Bloque/Actividad/Aprobación…) | PARCIAL — `kind` está en la base, no se muestra | **HECHO** | misma prueba: tipos en palabras, ninguna enumeración cruda |
+| **E3** · % avance por línea, capturable, con acumulado ponderado en resúmenes | PARCIAL — `progressPct` existe; el motor de rollup existe (C7); sin pantalla ni captura | **HECHO** | misma prueba + [work-items-view.test.tsx](components/projects/__tests__/work-items-view.test.tsx) (12): captura optimista con reversión avisada |
+| **E4** · Fecha de corte del avance por proyecto | NO EXISTE | **HECHO** | `progress_cutoff_date` + barra de corte congelar/descongelar, probada en las dos |
+| **E5** · Estado derivado del corte (No iniciado/En curso/Cerrado) | NO EXISTE — el estado del sistema es de kanban, no de corte | **HECHO** | [schedule-variance.test.ts](lib/scheduling/__tests__/schedule-variance.test.ts) (19) |
+| **E6** · Atraso (−) / Ventaja (+) en días por línea | NO EXISTE | **HECHO** | misma prueba: la fórmula J del archivo, celda por celda, incluida la rama de hitos |
+| **E7** · Responsable real por línea (las dos partes, sin exigir cuenta) | PARCIAL — solo el del cliente (`clientOwner`); el del proveedor quedó en la descripción | **HECHO** | `responsible_name` 1 368/1 368 + prueba del esquema |
 | **E8** · Predecesoras visibles y editables por línea | PARCIAL — visibles en el Timeline; ni visibles en la lista ni editables en ningún lado | PENDIENTE | — |
 | **E9** · Reimportar el plan actualizado sin perder lo capturado en la plataforma | PARCIAL — `--replace` borra y recrea; pisa avance capturado aquí | PENDIENTE | — |
+
+**Avance:** 7 en HECHO · 2 en PENDIENTE.
 
 ## Nota sobre el avance del archivo
 

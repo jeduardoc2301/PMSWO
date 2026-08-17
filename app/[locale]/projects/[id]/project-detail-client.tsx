@@ -6,7 +6,10 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
 import { ArrowLeft, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { KanbanBoard } from '@/components/projects/kanban-board'
-import { WorkItemsList } from '@/components/projects/work-items-list'
+// La pestaña de elementos dejó de montar la lista directamente: monta un contenedor con dos vistas
+// —el esquema del plan, con avance y fecha de corte, y la lista de siempre—. La lista sigue viva un
+// nivel más adentro, con el mismo comportamiento y las mismas props.
+import { WorkItemsView } from '@/components/projects/work-items-view'
 import { BlockersTab } from '@/components/projects/blockers-tab'
 import { RisksTab } from '@/components/projects/risks-tab'
 import { AgreementsTab } from '@/components/projects/agreements-tab'
@@ -654,7 +657,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {/* ── WORK ITEMS ── */}
             {activeTab === 'work-items' && (
               kanbanBoard
-                ? <WorkItemsList projectId={projectId} workItems={kanbanBoard.workItems}
+                ? <WorkItemsView projectId={projectId} workItems={kanbanBoard.workItems}
                     onWorkItemCreated={handleWorkItemCreated} editDatesData={editDatesData}
                     onEditDatesDataUsed={() => setEditDatesData(null)} canCreateWorkItems={canCreateWorkItems}
                     onApplyTemplate={() => setApplyTemplateDialogOpen(true)} />

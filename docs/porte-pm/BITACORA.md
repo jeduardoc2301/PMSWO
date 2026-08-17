@@ -1367,3 +1367,33 @@ referencian su columna kanban sin ella).
 - Bateria: 98 archivos, 1 815 pruebas, cero fallas.
 - Pendiente del porte al producto: capturar y editar dependencias desde la interfaz, e importar un
   plan desde la pantalla (hoy el guion `scripts/import-plan-db.ts` con candado contra produccion).
+
+---
+
+## Tramo 16 - La vista de esquema: E1 a E7
+
+El usuario puso la pantalla del sistema junto a la del Excel y la diferencia era la mision: el Excel
+tiene esquema multinivel, tipo, avance, corte, atraso y responsable real; la plataforma tenia una
+lista plana con «Admin User» en todo. Y una instruccion que corrigio el metodo: **guiarse por el
+archivo, no por la captura**.
+
+Del archivo salieron las formulas literales (columnas I y J de la hoja «Plan»), y extraerlas
+corrigio dos cosas: un hito vencido y sin cerrar si acumula deuda -un dia por dia habil-, y el
+transcurrido se topa en el fin de la linea. La captura, ademas, resulto tener **avance sin guardar**
+(AutoSave apagado): el archivo en disco tiene cero en esas celdas, verificado celda por celda.
+
+Lo construido: `schedule-variance.ts` (la formula como motor, 19 pruebas), `responsible_name` y
+`progress_cutoff_date` (migraciones locales), captura de avance por PATCH con cierre automatico al
+100%, y la vista de esquema (`WorkItemsOutline` + `WorkItemsView`) montada como modo por omision de
+la pestania Elementos de Trabajo, con la lista anterior intacta como segundo modo.
+
+Nota de proceso: el workflow de agentes murio por limite de sesion con los archivos a medias. Se
+revisaron linea por linea antes de darlos por buenos -un comentario mentia sobre la duracion de los
+resumenes y se corrigio-, y la prueba del esquema (21 casos) se escribio desde cero porque el agente
+no llego a escribirla.
+
+El humo atrapo una regresion real antes que el usuario: la API del plan en 500 porque el servidor
+llevaba en memoria el cliente de Prisma anterior a la migracion. Reinicio y verde.
+
+Estado: E1-E7 en HECHO. Pendientes E8 (editar predecesoras) y E9 (reimportar sin pisar lo
+capturado). Bateria: 101 archivos, 1 867 pruebas, cero fallas.
