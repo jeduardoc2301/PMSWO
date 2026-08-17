@@ -19,6 +19,15 @@ vi.mock('next-auth/react', () => ({
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
+vi.mock('@/components/projects/edit-work-item-dialog', () => ({
+  EditWorkItemDialog: ({ open, workItem }: { open: boolean; workItem: { title: string } }) =>
+    open ? <div data-testid="dialogo-edicion">{workItem.title}</div> : null,
+}))
+vi.mock('@/components/projects/delete-work-item-dialog', () => ({
+  DeleteWorkItemDialog: ({ open, workItem }: { open: boolean; workItem: { title: string } }) =>
+    open ? <div data-testid="dialogo-baja">{workItem.title}</div> : null,
+}))
+
 vi.mock('next-intl', () => ({
   useTranslations: () => Object.assign((key: string) => key, { rich: (key: string) => key }),
   useLocale: () => 'es',
@@ -313,5 +322,88 @@ describe('KanbanBoard', () => {
       .map((e) => e.textContent?.trim())
       .filter((t) => ['Backlog', 'To Do', 'In Progress', 'Done'].includes(t ?? ''))
     expect(enPantalla).toEqual(['Backlog', 'To Do', 'In Progress', 'Done'])
+  })
+})
+
+
+describe('La paridad con el esquema del plan', () => {
+  const columnas = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: ['p-1'] },
+  ] as any
+
+  /**
+   * Cifra calculada a mano con la fórmula del archivo: 5 días hábiles del 1-jun al 5-jun de 2026,
+   * corte el viernes 5 → esperado 100%; con 40% capturado, (0.4 − 1) × 5 = −3.0. Si la tarjeta
+   * dijera otra cosa que la tabla del esquema sobre la misma línea, habría dos verdades.
+   */
+  const elemento = {
+    id: 'p-1',
+    title: 'Levantamiento de servidores',
+    status: WorkItemStatus.BACKLOG,
+    priority: WorkItemPriority.MEDIUM,
+    kanbanColumnId: 'col-1',
+    ownerId: 'user-1',
+    ownerName: 'Admin User',
+    responsibleName: 'Salomón Suárez',
+    progressPct: 0.4,
+    startDate: '2026-06-01',
+    estimatedEndDate: '2026-06-05',
+    kind: 'ACTIVIDAD',
+  } as any
+
+  it('la tarjeta dice el responsable real, no la cuenta que importó', () => {
+    render(
+      <KanbanBoard projectId="project-1" columns={columnas} workItems={[elemento]} cutoff="2026-06-05" />,
+    )
+
+    expect(screen.getByText('Salomón Suárez')).toBeInTheDocument()
+    expect(screen.queryByText('Admin User')).not.toBeInTheDocument()
+  })
+
+  it('la barra de avance y el atraso al corte, con la fórmula del plan', () => {
+    render(
+      <KanbanBoard projectId="project-1" columns={columnas} workItems={[elemento]} cutoff="2026-06-05" />,
+    )
+
+    expect(screen.getByTestId('avance-barra-p-1')).toBeInTheDocument()
+    expect(screen.getByText('40%')).toBeInTheDocument()
+    expect(screen.getByTestId('atraso-p-1')).toHaveTextContent('-3.0d')
+  })
+
+  it('sin corte no se inventa atraso', () => {
+    render(<KanbanBoard projectId="project-1" columns={columnas} workItems={[elemento]} />)
+
+    expect(screen.queryByTestId('atraso-p-1')).not.toBeInTheDocument()
+  })
+})
+
+describe('Modificaciones y bajas desde la tarjeta', () => {
+  const columnas = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: ['p-1'] },
+  ] as any
+  const elemento = {
+    id: 'p-1',
+    title: 'Levantamiento de servidores',
+    status: WorkItemStatus.BACKLOG,
+    priority: WorkItemPriority.MEDIUM,
+    kanbanColumnId: 'col-1',
+    ownerId: 'user-1',
+    ownerName: 'Admin User',
+  } as any
+
+  it('editar abre el diálogo del sistema con esa línea', () => {
+    render(<KanbanBoard projectId="project-1" columns={columnas} workItems={[elemento]} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Levantamiento de servidores' }))
+
+    expect(screen.getByTestId('dialogo-edicion')).toHaveTextContent('Levantamiento de servidores')
+  })
+
+  it('eliminar abre el diálogo de baja con esa línea', () => {
+    render(<KanbanBoard projectId="project-1" columns={columnas} workItems={[elemento]} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar Levantamiento de servidores' }))
+
+    expect(screen.getByTestId('dialogo-baja')).toHaveTextContent('Levantamiento de servidores')
   })
 })

@@ -27,6 +27,13 @@ vi.mock('@/components/projects/work-items-outline', () => ({
             </li>
           ))}
         </ul>
+        {props.onEditItem ? (
+          // Con 't1', que es hoja y existe como WorkItemSummary: el contenedor empareja por id.
+          <button onClick={() => props.onEditItem('t1')}>editar-primera</button>
+        ) : null}
+        {props.onDeleteItem ? (
+          <button onClick={() => props.onDeleteItem('t1')}>eliminar-primera</button>
+        ) : null}
         {/* Botones que reproducen los gestos del esquema real, para probar la fontanería. */}
         <button onClick={() => props.onProgressChange('t1', 0.5)}>capturar avance</button>
         <button onClick={() => props.onCutoffChange('2026-02-05')}>congelar corte</button>
@@ -34,6 +41,21 @@ vi.mock('@/components/projects/work-items-outline', () => ({
       </div>
     )
   },
+}))
+
+// Los diálogos de alta, edición y baja no son lo que esta prueba prueba —tienen las suyas— y traen
+// i18n que exigiría montar proveedores. Se simulan con marcas visibles cuando están abiertos.
+vi.mock('@/components/projects/create-work-item-dialog', () => ({
+  CreateWorkItemDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="dialogo-alta" /> : null,
+}))
+vi.mock('@/components/projects/edit-work-item-dialog', () => ({
+  EditWorkItemDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="dialogo-edicion" /> : null,
+}))
+vi.mock('@/components/projects/delete-work-item-dialog', () => ({
+  DeleteWorkItemDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="dialogo-baja" /> : null,
 }))
 
 vi.mock('@/components/projects/work-items-list', () => ({
@@ -57,7 +79,12 @@ const planBase = {
   progressCutoff: null as string | null,
 }
 
-const elementos = [{ id: 'w1', title: 'Tarea', status: 'TODO', priority: 'MEDIUM' }] as any
+// 't1' coincide con la hoja del plan simulado: editar y eliminar emparejan el id del esquema con
+// el resumen del kanban, y sin esa coincidencia los diálogos no tendrían qué editar.
+const elementos = [
+  { id: 't1', title: 'Levantamiento', status: 'TODO', priority: 'MEDIUM' },
+  { id: 'w1', title: 'Tarea', status: 'TODO', priority: 'MEDIUM' },
+] as any
 
 /**
  * La fecha civil de hoy con la misma aritmética local que usa el contenedor: si alguna de las dos
@@ -287,5 +314,47 @@ describe('WorkItemsView', () => {
       expect(screen.getByText(/No se pudo cargar el plan/)).toBeInTheDocument()
     })
     expect(screen.getByText(/La respuesta no trae un plan/)).toBeInTheDocument()
+  })
+})
+
+
+describe('Altas, bajas y modificaciones desde el esquema', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    simularRed()
+  })
+
+  it('con permiso de alta, la barra ofrece «Nueva tarea» y abre el diálogo', async () => {
+    render(<WorkItemsView projectId="project-1" workItems={elementos} canCreateWorkItems />)
+    await screen.findByTestId('esquema')
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Nueva tarea' }))
+
+    expect(screen.getByTestId('dialogo-alta')).toBeInTheDocument()
+  })
+
+  it('sin permiso de alta no se ofrece el botón', async () => {
+    montar()
+    await screen.findByTestId('esquema')
+
+    expect(screen.queryByRole('button', { name: '+ Nueva tarea' })).not.toBeInTheDocument()
+  })
+
+  it('editar una línea del esquema abre el diálogo de edición del sistema', async () => {
+    montar()
+    await screen.findByTestId('esquema')
+
+    fireEvent.click(screen.getByText('editar-primera'))
+
+    expect(screen.getByTestId('dialogo-edicion')).toBeInTheDocument()
+  })
+
+  it('eliminar una línea del esquema abre el diálogo de baja del sistema', async () => {
+    montar()
+    await screen.findByTestId('esquema')
+
+    fireEvent.click(screen.getByText('eliminar-primera'))
+
+    expect(screen.getByTestId('dialogo-baja')).toBeInTheDocument()
   })
 })

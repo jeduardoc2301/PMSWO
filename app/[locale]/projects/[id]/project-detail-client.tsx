@@ -260,6 +260,17 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
    * 31 de diciembre según la pantalla y el 1 de enero según la base. Añadir la hora local obliga a
    * interpretarla en el huso de quien mira, que es lo que una fecha de calendario significa.
    */
+  /**
+   * La fecha de corte con la que el tablero dice su atraso: la congelada del proyecto si la API la
+   * trae, y si no, hoy en fecha civil local — el mismo `TODAY()` flotante del plan de referencia.
+   */
+  const cutoffResuelto = (proyecto: Project | null): string => {
+    const congelada = (proyecto as { progressCutoffDate?: string | null } | null)?.progressCutoffDate
+    if (congelada) return congelada.slice(0, 10)
+    const ahora = new Date()
+    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
+  }
+
   const formatDate = (dateString: string) =>
     new Date(`${dateString.slice(0, 10)}T00:00:00`).toLocaleDateString(locale, {
       year: 'numeric',
@@ -650,7 +661,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'kanban' && (
               kanbanBoard
                 ? <KanbanBoard projectId={projectId} columns={kanbanBoard.columns} workItems={kanbanBoard.workItems}
-                    onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated} />
+                    onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
+                    cutoff={cutoffResuelto(project)} />
                 : <div className="text-center py-12 text-zinc-500">{t('loadingKanbanBoard')}</div>
             )}
 

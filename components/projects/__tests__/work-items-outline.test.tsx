@@ -258,6 +258,44 @@ describe('E4 · la barra del corte', () => {
   })
 })
 
+describe('Las altas, bajas y modificaciones desde el esquema', () => {
+  it('una hoja ofrece editar y eliminar cuando quien monta lo pide', () => {
+    const onEditItem = vi.fn()
+    const onDeleteItem = vi.fn()
+    dibujar({ onEditItem, onDeleteItem })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Presentar el plan de trabajo' }))
+    expect(onEditItem).toHaveBeenCalledWith('presenta')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar Presentar el plan de trabajo' }))
+    expect(onDeleteItem).toHaveBeenCalledWith('presenta')
+  })
+
+  it('un resumen no se edita ni se borra desde aquí: no es una tarea, es un grupo', () => {
+    dibujar({ onEditItem: vi.fn(), onDeleteItem: vi.fn() })
+
+    expect(screen.queryByRole('button', { name: 'Editar Inicio del plan' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Eliminar ETAPA MOBILIZE' })).not.toBeInTheDocument()
+  })
+
+  it('sin callbacks no hay columna de acciones que estorbe', () => {
+    dibujar()
+
+    expect(screen.queryByRole('button', { name: /^Editar Presentar/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('Las fechas van en una sola celda', () => {
+  it('una tarea dice su rango y un hito solo su día', () => {
+    dibujar()
+
+    expect(screen.getByText('2026-06-01 → 2026-06-05')).toBeInTheDocument()
+    // El hito del 12-jun: una fecha, sin flecha.
+    expect(screen.getByText('2026-06-12')).toBeInTheDocument()
+    expect(screen.queryByText('2026-06-12 → 2026-06-12')).not.toBeInTheDocument()
+  })
+})
+
 describe('La marca de la ruta súper crítica', () => {
   it('señala la línea que no se recupera con más gente', () => {
     dibujar()

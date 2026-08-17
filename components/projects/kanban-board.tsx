@@ -2,11 +2,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import { Plus, ChevronDown, ChevronRight, Layers, AlertOctagon, Clock4, Hourglass, ShieldAlert, Calendar, Info, X, Search, Check } from 'lucide-react'
+import { Plus, ChevronDown, ChevronRight, Layers, AlertOctagon, Clock4, Hourglass, ShieldAlert, Calendar, Info, X, Search, Check, Pencil, Trash2 } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary, type KanbanColumnWithItems } from '@/types'
 import { computeUrgency, urgencyDueLabel, type Urgency } from '@/lib/urgency'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
+import { DeleteWorkItemDialog } from './delete-work-item-dialog'
+import { EditWorkItemDialog } from './edit-work-item-dialog'
+import { createWorkCalendar } from '@/lib/scheduling/calendar'
+import { toDayNumber } from '@/lib/scheduling/date'
+import { varianceAtCutoff } from '@/lib/scheduling/schedule-variance'
 import { KanbanInfoModal } from './kanban-info-modal'
 
 interface KanbanBoardProps {
@@ -15,6 +20,37 @@ interface KanbanBoardProps {
   workItems: WorkItemSummary[]
   onWorkItemMove?: (workItemId: string, newColumnId: string, newStatus: WorkItemStatus) => Promise<void>
   onWorkItemCreated?: () => void
+  /**
+   * La fecha de corte del avance, ya resuelta (la congelada del proyecto, o hoy). Con ella la
+   * tarjeta dice su atraso con la misma fórmula que el esquema; sin ella, la pastilla no se dibuja.
+   */
+  cutoff?: string
+}
+
+/** El mismo calendario del motor; construirlo por tarjeta sería pagar mil veces lo mismo. */
+const CALENDARIO = createWorkCalendar()
+
+/**
+ * El atraso de una tarjeta al corte, con la fórmula del esquema — la tarjeta y la tabla tienen que
+ * decir la misma cifra sobre la misma línea. Sin fechas o sin corte no hay nada que decir.
+ */
+function atrasoDeTarjeta(workItem: WorkItemSummary, cutoff: string | undefined): number | null {
+  if (!cutoff || !workItem.startDate || !workItem.estimatedEndDate) return null
+  const esHito = workItem.kind === 'HITO'
+  const inicio = CALENDARIO.ordinalOf(CALENDARIO.next(toDayNumber(workItem.startDate)))
+  const fin = CALENDARIO.ordinalOf(CALENDARIO.previous(toDayNumber(workItem.estimatedEndDate)))
+  const duracion = esHito ? 0 : Math.max(1, fin - inicio + 1)
+  const v = varianceAtCutoff(
+    {
+      start: workItem.startDate,
+      finish: workItem.estimatedEndDate,
+      duration: duracion,
+      progress: workItem.progressPct ?? 0,
+      cutoff,
+    },
+    CALENDARIO,
+  )
+  return v.deltaDays
 }
 
 const PRIORITY_BAR: Record<WorkItemPriority, string> = {
@@ -39,9 +75,12 @@ interface WorkItemCardProps {
   syncingItems: Set<string>
   onDragStart: (e: React.DragEvent, id: string) => void
   onDragEnd: () => void
+  cutoff?: string
+  onEdit: (item: WorkItemSummary) => void
+  onDelete: (item: WorkItemSummary) => void
 }
 
-function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd }: WorkItemCardProps) {
+function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd, cutoff, onEdit, onDelete }: WorkItemCardProps) {
   const isSyncing = syncingItems.has(workItem.id)
   const pb = PRIORITY_BADGE[workItem.priority] ?? PRIORITY_BADGE[WorkItemPriority.MEDIUM]
   const { urgency, daysFromDue, daysStale } = computeUrgency(workItem)
@@ -113,6 +152,27 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
           </span>
           {urgencyBadge}
         </div>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {/* Editar y borrar viven en la tarjeta porque el tablero es donde se trabaja; mandar a
+              otra pestaña para corregir un título rompe el flujo. stopPropagation: el clic no es
+              un arrastre. */}
+          <button
+            type="button"
+            aria-label={`Editar ${workItem.title}`}
+            onClick={(e) => { e.stopPropagation(); onEdit(workItem) }}
+            className="p-1 rounded text-zinc-600 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+          >
+            <Pencil size={12} />
+          </button>
+          <button
+            type="button"
+            aria-label={`Eliminar ${workItem.title}`}
+            onClick={(e) => { e.stopPropagation(); onDelete(workItem) }}
+            className="p-1 rounded text-zinc-600 hover:text-rose-300 hover:bg-rose-900/20 transition-colors"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
         {isSyncing && (
           <svg className="animate-spin h-3.5 w-3.5 text-indigo-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -131,10 +191,45 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
             <Calendar size={11} /> {healthyDueLabel}
           </span>
         )}
-        {workItem.ownerName && (
-          <span className="text-[11px] text-zinc-500 truncate ml-auto">{workItem.ownerName}</span>
+        {(workItem.responsibleName ?? workItem.ownerName) && (
+          // El responsable con nombre —la persona real del plan— y no la cuenta del sistema que
+          // importó las líneas. Es la paridad con el esquema y con el archivo.
+          <span className="text-[11px] text-zinc-500 truncate ml-auto">
+            {workItem.responsibleName ?? workItem.ownerName}
+          </span>
         )}
       </div>
+
+      {/* Fila 4: el avance y el atraso al corte, si hay qué decir. La barra usa el color del estado
+          del tablero; la pastilla del atraso, el rojo/verde del esquema. */}
+      {(() => {
+        const avance = workItem.progressPct ?? 0
+        const delta = atrasoDeTarjeta(workItem, cutoff)
+        if (avance <= 0 && (delta === null || delta === 0)) return null
+        return (
+          <div className="flex items-center gap-2 mt-2">
+            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: '#27272a' }} data-testid={`avance-barra-${workItem.id}`}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${Math.round(avance * 100)}%`, background: avance >= 1 ? '#34d399' : '#6366f1' }}
+              />
+            </div>
+            <span className="text-[10px] text-zinc-500 tabular-nums">{Math.round(avance * 100)}%</span>
+            {delta !== null && delta !== 0 && (
+              <span
+                data-testid={`atraso-${workItem.id}`}
+                className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums"
+                style={delta < 0
+                  ? { background: 'rgba(244,63,94,0.12)', color: '#fda4af', border: '1px solid rgba(244,63,94,0.3)' }
+                  : { background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}
+                title="Atraso (−) o ventaja (+) en días hábiles al corte, con la fórmula del plan"
+              >
+                {delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)}d
+              </span>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
@@ -153,12 +248,16 @@ interface KanbanColumnProps {
   onDrop: (e: React.DragEvent, column: KanbanColumnWithItems) => void
   onDragStart: (e: React.DragEvent, id: string) => void
   onDragEnd: () => void
+  cutoff?: string
+  onEdit: (item: WorkItemSummary) => void
+  onDelete: (item: WorkItemSummary) => void
 }
 
 function KanbanColumn({
   column, workItemsInColumn, isDragTarget, noItemsLabel,
   draggedItemId, syncingItems,
   onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd,
+  cutoff, onEdit, onDelete,
 }: KanbanColumnProps) {
   return (
     <div
@@ -186,6 +285,9 @@ function KanbanColumn({
                 syncingItems={syncingItems}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
+                cutoff={cutoff}
+                onEdit={onEdit}
+                onDelete={onDelete}
               />
             ))}
         </div>
@@ -297,11 +399,15 @@ function UrgencyChip({ kind, count, active, onClick }: UrgencyChipProps) {
 
 // ─── KanbanBoard ─────────────────────────────────────────────────────────────
 
-export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onWorkItemCreated }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onWorkItemCreated, cutoff }: KanbanBoardProps) {
   const t = useTranslations('kanban')
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  // La tarjeta en edición o por borrar. Los diálogos son los mismos de la vista de lista: una sola
+  // forma de editar una línea, se llegue por donde se llegue.
+  const [editando, setEditando] = useState<WorkItemSummary | null>(null)
+  const [borrando, setBorrando] = useState<WorkItemSummary | null>(null)
   const [showInfo, setShowInfo] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [syncingItems, setSyncingItems] = useState<Set<string>>(new Set())
@@ -587,6 +693,9 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
                             onDrop={handleDrop}
                             onDragStart={handleDragStart}
                             onDragEnd={handleDragEnd}
+                            cutoff={cutoff}
+                            onEdit={setEditando}
+                            onDelete={setBorrando}
                           />
                         ))}
                       </div>
@@ -612,6 +721,9 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
               onDrop={handleDrop}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              cutoff={cutoff}
+              onEdit={setEditando}
+              onDelete={setBorrando}
             />
           ))}
         </div>
@@ -623,6 +735,26 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
         projectId={projectId}
         onSuccess={handleWorkItemCreated}
       />
+
+      {/* Los mismos diálogos que la vista de lista: una sola forma de editar una línea, se llegue
+          por donde se llegue. El onSuccess reusa el refresco del alta: el tablero se vuelve a pedir. */}
+      {editando && (
+        <EditWorkItemDialog
+          open
+          onOpenChange={(abierto) => { if (!abierto) setEditando(null) }}
+          workItem={editando}
+          projectId={projectId}
+          onSuccess={() => { setEditando(null); onWorkItemCreated?.() }}
+        />
+      )}
+      {borrando && (
+        <DeleteWorkItemDialog
+          open
+          onOpenChange={(abierto) => { if (!abierto) setBorrando(null) }}
+          workItem={borrando}
+          onSuccess={() => { setBorrando(null); onWorkItemCreated?.() }}
+        />
+      )}
 
       {showInfo && <KanbanInfoModal onClose={() => setShowInfo(false)} />}
     </div>

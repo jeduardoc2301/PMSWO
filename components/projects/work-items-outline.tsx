@@ -48,6 +48,10 @@ export interface WorkItemsOutlineProps {
   readonly onProgressChange: (id: string, progress: number) => void
   /** Abrir el editor de vínculos de una línea. Sin esto, la columna solo informa. */
   readonly onEditLinks?: (id: string) => void
+  /** Editar una línea (hoja) con el diálogo del sistema. */
+  readonly onEditItem?: (id: string) => void
+  /** Dar de baja una línea (hoja). */
+  readonly onDeleteItem?: (id: string) => void
 }
 
 /**
@@ -85,6 +89,8 @@ export function WorkItemsOutline({
   onCutoffChange,
   onProgressChange,
   onEditLinks,
+  onEditItem,
+  onDeleteItem,
 }: WorkItemsOutlineProps): React.JSX.Element {
   const jerarquia = useMemo(() => nivelesDelPlan(tasks), [tasks])
   const [plegados, setPlegados] = useState<ReadonlySet<string>>(
@@ -183,8 +189,8 @@ export function WorkItemsOutline({
         <p className="text-xs text-zinc-500">{contador}</p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-[#18181b]">
-        <table className="w-full min-w-[880px] border-collapse text-sm">
+      <div className="max-w-full overflow-x-auto rounded-xl border border-zinc-800 bg-[#18181b]">
+        <table className="w-full min-w-[860px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-zinc-800 text-left text-xs uppercase tracking-wide text-zinc-400">
               <th className="px-3 py-2 font-medium">Línea del plan</th>
@@ -194,8 +200,8 @@ export function WorkItemsOutline({
               <th className="px-3 py-2 text-right font-medium">Atraso (−) / Ventaja (+)</th>
               <th className="px-3 py-2 text-center font-medium">Vínculos</th>
               <th className="px-3 py-2 font-medium">Responsable</th>
-              <th className="px-3 py-2 font-medium">Inicio</th>
-              <th className="px-3 py-2 font-medium">Fin</th>
+              <th className="px-3 py-2 font-medium">Fechas</th>
+              {onEditItem || onDeleteItem ? <th className="px-3 py-2 font-medium sr-only">Acciones</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -207,6 +213,8 @@ export function WorkItemsOutline({
                 owner={porId.get(row.id)?.owner}
                 vinculos={vinculosDe.get(row.id)}
                 onEditLinks={onEditLinks}
+                onEditItem={onEditItem}
+                onDeleteItem={onDeleteItem}
                 cutoff={cutoff}
                 calendar={base.calendar}
                 onToggle={alternar}
@@ -241,6 +249,8 @@ function Linea({
   onToggle,
   onProgressChange,
   onEditLinks,
+  onEditItem,
+  onDeleteItem,
 }: {
   row: GanttRow
   avance: number
@@ -251,6 +261,8 @@ function Linea({
   onToggle: (id: string) => void
   onProgressChange: (id: string, progress: number) => void
   onEditLinks?: (id: string) => void
+  onEditItem?: (id: string) => void
+  onDeleteItem?: (id: string) => void
 }) {
   // La fórmula del archivo, sobre las fechas del motor. En un resumen la duración es su lapso en
   // días hábiles y el avance es el acumulado ponderado — la misma pareja (G, H) que el archivo usa
@@ -332,8 +344,38 @@ function Linea({
         <CeldaDeVinculos row={row} vinculos={vinculos} onEditLinks={onEditLinks} />
       </td>
       <td className="whitespace-nowrap px-3 py-1.5 text-zinc-300">{owner ? owner : '—'}</td>
-      <td className="whitespace-nowrap px-3 py-1.5 text-zinc-400">{row.start}</td>
-      <td className="whitespace-nowrap px-3 py-1.5 text-zinc-400">{row.finish}</td>
+      <td className="whitespace-nowrap px-3 py-1.5 text-xs text-zinc-400">
+        {/* Una sola celda: nueve columnas desbordaban la pestaña, y el rango se lee mejor junto. */}
+        {row.isMilestone ? row.start : `${row.start} → ${row.finish}`}
+      </td>
+      {onEditItem || onDeleteItem ? (
+        <td className="whitespace-nowrap px-2 py-1.5">
+          {row.isSummary ? null : (
+            <span className="flex items-center gap-0.5">
+              {onEditItem ? (
+                <button
+                  type="button"
+                  aria-label={`Editar ${row.name}`}
+                  onClick={() => onEditItem(row.id)}
+                  className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
+                >
+                  ✎
+                </button>
+              ) : null}
+              {onDeleteItem ? (
+                <button
+                  type="button"
+                  aria-label={`Eliminar ${row.name}`}
+                  onClick={() => onDeleteItem(row.id)}
+                  className="rounded p-1 text-zinc-600 hover:bg-rose-900/20 hover:text-rose-300"
+                >
+                  🗑
+                </button>
+              ) : null}
+            </span>
+          )}
+        </td>
+      ) : null}
     </tr>
   )
 }

@@ -65,3 +65,22 @@ El Excel del usuario muestra avance capturado (53%, 80%, En curso…) pero **el 
 cero en todas las celdas de avance**: AutoSave está apagado y los cambios viven solo en su sesión.
 Verificado leyendo la celda cruda (H9 = 0, dato plano). Cuando guarde, `scripts/import-plan-db.ts
 --replace` trae el avance real; E9 existe para que ese refresco no pise lo capturado en el sistema.
+
+
+---
+
+## Tercer encargo: paridad en el Kanban, CRUD completo y el desborde
+
+Pedido sobre la marcha al ver la pantalla: lo del esquema también en el Kanban, altas/bajas/
+modificaciones funcionando, y arreglar el desborde visual respetando el estilo original.
+
+| Qué | Cómo quedó | Prueba |
+|---|---|---|
+| Tarjeta del kanban en paridad | Responsable real (no la cuenta que importó), barra de % avance, y pastilla de atraso al corte **con la misma fórmula del plan** — la tarjeta y la tabla dicen la misma cifra sobre la misma línea | [kanban-board.test.tsx](components/projects/__tests__/kanban-board.test.tsx): −3.0 calculado a mano con la fórmula J |
+| Modificación y baja por tarjeta | Lápiz y bote en cada tarjeta, con **los mismos diálogos** de la vista de lista: una sola forma de editar una línea, se llegue por donde se llegue | misma prueba |
+| Alta/edición/baja en el esquema | «+ Nueva tarea» en la barra (con permiso), y ✎/🗑 por hoja — los resúmenes no se editan desde ahí: son grupos, no tareas | [work-items-outline.test.tsx](components/projects/__tests__/work-items-outline.test.tsx) + [work-items-view.test.tsx](components/projects/__tests__/work-items-view.test.tsx) |
+| El desborde | Dos causas: el editor de vínculos como columna de 400 px junto a una tabla de 880 (ahora es **cajón flotante** que no empuja nada), y nueve columnas de tabla (Inicio y Fin se fundieron en una) | el módulo completo en verde |
+
+El estilo nuevo habla el idioma del que había: las pastillas del kanban con su estilo en línea, los
+contenedores en `rounded-xl` con los mismos hexadecimales, y los diálogos reutilizados en vez de
+inventar otros.

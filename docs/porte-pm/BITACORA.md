@@ -1430,3 +1430,29 @@ predecesoras con buscador. Verificado por HTTP contra el plan real: el ciclo 3�
 ### Estado final del encargo
 
 E1-E9 en HECHO. Bateria: 104 archivos, 1 896 pruebas, cero fallas. Humo completo con viaje redondo.
+
+---
+
+## Tramo 18 - Paridad en el Kanban, CRUD completo y el desborde
+
+El usuario pidio tres cosas al ver la pantalla: lo del esquema tambien en el Kanban, poder hacer
+altas/bajas/modificaciones, y arreglar el desborde visual que metio lo nuevo.
+
+**El desborde tenia dos causas medibles.** El editor de vinculos montado como columna de 400 px
+junto a una tabla con minimo de 880 px: en el area util (~1 050 px tras la barra lateral y los
+rellenos) eso empuja la pagina a scroll horizontal. Ahora es cajon flotante con fondo oscurecido:
+la tabla conserva su ancho y el editor no empuja nada. Y la tabla tenia nueve columnas: Inicio y
+Fin se fundieron en una celda de rango.
+
+**Paridad en la tarjeta.** Responsable real, barra de avance y pastilla de atraso al corte con
+`varianceAtCutoff` -la tarjeta y la tabla dicen la misma cifra sobre la misma linea; la prueba usa
+un caso calculado a mano con la formula J-. Todo en el lenguaje visual del tablero: pastillas con
+estilo en linea, sin clases de otro palo.
+
+**CRUD por las tres vistas con los mismos dialogos.** El tablero gana lapiz y bote por tarjeta; el
+esquema gana «+ Nueva tarea» y acciones por hoja (los resumenes no se editan desde ahi: son grupos).
+Los dialogos son los de la lista: una sola forma de tocar una linea, se llegue por donde se llegue,
+y cualquier cambio refresca esquema y tablero a la vez.
+
+Bateria: 104 archivos, 1 909 pruebas, cero fallas. Humo completo. Kanban por HTTP: 1 368 tarjetas
+con responsable real.

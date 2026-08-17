@@ -158,6 +158,14 @@ export interface WorkItemSummary {
   templateOrder?: number | null
   activeBlockers?: number
   lastUpdatedAt?: string
+  /** Avance real de 0 a 1, el mismo que captura el esquema del plan. */
+  progressPct?: number
+  /** El responsable con nombre —persona real, no cuenta—, si la línea vino de un plan. */
+  responsibleName?: string | null
+  /** Clase de línea del plan (ACTIVIDAD, HITO, APROBACION_CLIENTE...). */
+  kind?: string
+  /** Quién responde: PROVEEDOR, CLIENTE o AMBOS. */
+  party?: string
 }
 
 // Project Metrics types

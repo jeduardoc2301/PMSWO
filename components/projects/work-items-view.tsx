@@ -16,7 +16,10 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 
+import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
+import { DeleteWorkItemDialog } from '@/components/projects/delete-work-item-dialog'
 import { DependencyEditor } from '@/components/projects/dependency-editor'
+import { EditWorkItemDialog } from '@/components/projects/edit-work-item-dialog'
 import { WorkItemsList } from '@/components/projects/work-items-list'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
@@ -81,6 +84,11 @@ export function WorkItemsView({
   const [editandoVinculos, setEditandoVinculos] = useState<string | null>(null)
   const [vinculoEnCurso, setVinculoEnCurso] = useState(false)
   const [errorDeVinculo, setErrorDeVinculo] = useState<string | null>(null)
+  // Altas, ediciones y bajas desde el esquema, con los mismos diálogos que la lista y el tablero:
+  // una sola forma de tocar una línea, se llegue por donde se llegue.
+  const [creando, setCreando] = useState(false)
+  const [editando, setEditando] = useState<WorkItemSummary | null>(null)
+  const [borrando, setBorrando] = useState<WorkItemSummary | null>(null)
   // La carga y los PATCH sobreviven al desmontaje; sin esta bandera, sus respuestas escribirían
   // estado sobre un componente que ya no existe.
   const vigente = useRef(true)
@@ -230,6 +238,12 @@ export function WorkItemsView({
     }
   }
 
+  /** El esquema y el tablero leen la misma base; cambiarla obliga a refrescar a los dos. */
+  const trasCambioDeLinea = () => {
+    void cargarPlan()
+    onWorkItemCreated?.()
+  }
+
   const cambiarCorte = async (iso: string | null) => {
     setAviso(null)
     try {
@@ -260,13 +274,27 @@ export function WorkItemsView({
     <div className="flex flex-col gap-4">
       {/* El mismo lenguaje de conmutador que la barra del plan: botones con `aria-pressed`, no un
           radio, porque el estado no viaja en ningún formulario. */}
-      <div className="flex items-center justify-end gap-1">
-        <BotonModo activo={modo === 'ESQUEMA'} onClick={() => setModo('ESQUEMA')}>
-          Esquema
-        </BotonModo>
-        <BotonModo activo={modo === 'LISTA'} onClick={() => setModo('LISTA')}>
-          Lista
-        </BotonModo>
+      <div className="flex items-center justify-between gap-2">
+        {canCreateWorkItems && modo === 'ESQUEMA' ? (
+          <button
+            type="button"
+            onClick={() => setCreando(true)}
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+            style={{ background: '#6366f1' }}
+          >
+            + Nueva tarea
+          </button>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-1">
+          <BotonModo activo={modo === 'ESQUEMA'} onClick={() => setModo('ESQUEMA')}>
+            Esquema
+          </BotonModo>
+          <BotonModo activo={modo === 'LISTA'} onClick={() => setModo('LISTA')}>
+            Lista
+          </BotonModo>
+        </div>
       </div>
 
       {modo === 'LISTA' ? (
@@ -299,28 +327,42 @@ export function WorkItemsView({
               {aviso}
             </div>
           ) : null}
-          <div className="flex flex-col gap-4 xl:flex-row">
-            <div className="min-w-0 flex-1">
-              <WorkItemsOutline
-                tasks={estado.plan.tasks}
-                dependencies={estado.plan.dependencies}
-                start={estado.plan.start}
-                cutoff={estado.plan.progressCutoff ?? hoyCivil()}
-                cutoffFrozen={estado.plan.progressCutoff !== null}
-                onCutoffChange={cambiarCorte}
-                onProgressChange={capturarAvance}
-                onEditLinks={(id) => {
-                  setErrorDeVinculo(null)
-                  setEditandoVinculos(id)
-                }}
-              />
-            </div>
-            {editandoVinculos !== null
-              ? (() => {
-                  const tarea = estado.plan.tasks.find((t) => t.id === editandoVinculos)
-                  if (!tarea) return null
-                  return (
-                    <aside className="w-full shrink-0 xl:w-[400px]">
+          <WorkItemsOutline
+            tasks={estado.plan.tasks}
+            dependencies={estado.plan.dependencies}
+            start={estado.plan.start}
+            cutoff={estado.plan.progressCutoff ?? hoyCivil()}
+            cutoffFrozen={estado.plan.progressCutoff !== null}
+            onCutoffChange={cambiarCorte}
+            onProgressChange={capturarAvance}
+            onEditLinks={(id) => {
+              setErrorDeVinculo(null)
+              setEditandoVinculos(id)
+            }}
+            onEditItem={(id) => {
+              const resumen = workItems.find((w) => w.id === id)
+              if (resumen) setEditando(resumen)
+            }}
+            onDeleteItem={(id) => {
+              const resumen = workItems.find((w) => w.id === id)
+              if (resumen) setBorrando(resumen)
+            }}
+          />
+
+          {/* El editor de vínculos como cajón flotante y no como columna: el aside de 400 px junto
+              a la tabla desbordaba la página en cualquier pantalla normal. Flotante, la tabla
+              conserva todo su ancho y el editor no empuja nada. */}
+          {editandoVinculos !== null
+            ? (() => {
+                const tarea = estado.plan.tasks.find((t) => t.id === editandoVinculos)
+                if (!tarea) return null
+                return (
+                  <div className="fixed inset-0 z-40" role="presentation">
+                    <div
+                      className="absolute inset-0 bg-black/50"
+                      onClick={() => setEditandoVinculos(null)}
+                    />
+                    <aside className="absolute right-0 top-0 h-full w-full max-w-[440px] overflow-y-auto p-4">
                       <DependencyEditor
                         task={tarea}
                         tasks={estado.plan.tasks}
@@ -332,13 +374,71 @@ export function WorkItemsView({
                         error={errorDeVinculo}
                       />
                     </aside>
-                  )
-                })()
-              : null}
-          </div>
+                  </div>
+                )
+              })()
+            : null}
         </>
       )}
+      <DialogosDeLinea
+        projectId={projectId}
+        creando={creando}
+        editando={editando}
+        borrando={borrando}
+        onCerrarAlta={() => setCreando(false)}
+        onCerrarEdicion={() => setEditando(null)}
+        onCerrarBaja={() => setBorrando(null)}
+        onCambio={trasCambioDeLinea}
+      />
     </div>
+  )
+}
+
+function DialogosDeLinea({
+  projectId,
+  creando,
+  editando,
+  borrando,
+  onCerrarAlta,
+  onCerrarEdicion,
+  onCerrarBaja,
+  onCambio,
+}: {
+  projectId: string
+  creando: boolean
+  editando: WorkItemSummary | null
+  borrando: WorkItemSummary | null
+  onCerrarAlta: () => void
+  onCerrarEdicion: () => void
+  onCerrarBaja: () => void
+  onCambio: () => void
+}) {
+  return (
+    <React.Fragment>
+      <CreateWorkItemDialog
+        open={creando}
+        onOpenChange={(abierto) => { if (!abierto) onCerrarAlta() }}
+        projectId={projectId}
+        onSuccess={() => { onCerrarAlta(); onCambio() }}
+      />
+      {editando && (
+        <EditWorkItemDialog
+          open
+          onOpenChange={(abierto) => { if (!abierto) onCerrarEdicion() }}
+          workItem={editando}
+          projectId={projectId}
+          onSuccess={() => { onCerrarEdicion(); onCambio() }}
+        />
+      )}
+      {borrando && (
+        <DeleteWorkItemDialog
+          open
+          onOpenChange={(abierto) => { if (!abierto) onCerrarBaja() }}
+          workItem={borrando}
+          onSuccess={() => { onCerrarBaja(); onCambio() }}
+        />
+      )}
+    </React.Fragment>
   )
 }
 

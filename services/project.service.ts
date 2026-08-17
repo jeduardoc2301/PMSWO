@@ -690,6 +690,12 @@ export class ProjectService {
         templateOrder: item.templateOrder,
         activeBlockers: item.blockers.length,
         lastUpdatedAt: item.updatedAt.toISOString(),
+        // La paridad con el esquema del plan: la tarjeta dice lo mismo que la tabla, o hay dos
+        // verdades sobre la misma línea.
+        progressPct: item.progressPct,
+        responsibleName: item.responsibleName,
+        kind: item.kind,
+        party: item.party,
       }
     })
 
