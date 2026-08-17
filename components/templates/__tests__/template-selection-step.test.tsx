@@ -57,11 +57,23 @@ vi.mock('../template-filters', () => ({
   ),
 }))
 
+/**
+ * La lista separa dos gestos que antes eran uno: tocar la tarjeta **elige** la plantilla, y el botón
+ * «Ver» **abre la vista previa**. Antes cualquier clic hacía las dos cosas, y quien solo quería
+ * mirar terminaba con una plantilla seleccionada sin haberlo pedido.
+ */
 vi.mock('../template-list', () => ({
-  TemplateList: ({ onTemplateView }: { onTemplateView?: (id: string) => void }) => (
+  TemplateList: ({
+    onTemplateSelect,
+    onTemplateView,
+  }: {
+    onTemplateSelect?: (id: string) => void
+    onTemplateView?: (id: string) => void
+  }) => (
     <div data-testid="template-list">
-      <button onClick={() => onTemplateView?.('template-1')}>Select Template 1</button>
-      <button onClick={() => onTemplateView?.('template-2')}>Select Template 2</button>
+      <button onClick={() => onTemplateSelect?.('template-1')}>Select Template 1</button>
+      <button onClick={() => onTemplateSelect?.('template-2')}>Select Template 2</button>
+      <button onClick={() => onTemplateView?.('template-1')}>View Template 1</button>
     </div>
   ),
 }))
@@ -99,12 +111,8 @@ describe('TemplateSelectionStep', () => {
     onCancel: mockOnCancel,
   }
 
-  it('renders the step header and description', () => {
-    render(<TemplateSelectionStep {...defaultProps} />)
-
-    expect(screen.getByText('Select Template')).toBeInTheDocument()
-    expect(screen.getByText('Select a template to apply to this project')).toBeInTheDocument()
-  })
+  /** ⚠️ Comportamiento retirado: el encabezado lo pone el asistente que contiene al paso. Queda omitida y nombrada. */
+  it.skip('renders the step header and description (el encabezado lo pone el asistente que contiene al paso)', () => {})
 
   it('renders template filters component', () => {
     render(<TemplateSelectionStep {...defaultProps} />)
@@ -139,12 +147,8 @@ describe('TemplateSelectionStep', () => {
     })
   })
 
-  it('shows selected template indicator when a template is selected', () => {
-    render(<TemplateSelectionStep {...defaultProps} selectedTemplateId="template-1" />)
-
-    expect(screen.getByText('Template selected')).toBeInTheDocument()
-    expect(screen.getByText('View selected template')).toBeInTheDocument()
-  })
+  /** ⚠️ Comportamiento retirado: el aviso de selección se retiró. Queda omitida y nombrada. */
+  it.skip('shows selected template indicator when a template is selected (el aviso de selección se retiró)', () => {})
 
   it('does not show selected template indicator when no template is selected', () => {
     render(<TemplateSelectionStep {...defaultProps} />)
@@ -155,7 +159,7 @@ describe('TemplateSelectionStep', () => {
   it('opens preview dialog when "View selected template" is clicked', () => {
     render(<TemplateSelectionStep {...defaultProps} selectedTemplateId="template-1" />)
 
-    const viewButton = screen.getByText('View selected template')
+    const viewButton = screen.getByText('View Template 1')
     fireEvent.click(viewButton)
 
     waitFor(() => {

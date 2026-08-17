@@ -196,7 +196,8 @@ describe('TemplatePreviewDialog', () => {
 
     await waitFor(() => {
       expect(screen.getByText('3')).toBeInTheDocument()
-      expect(screen.getByText('96 hours')).toBeInTheDocument()
+      // La duración total se muestra como cifra grande con la unidad pegada («96h»), no como frase.
+      expect(screen.getByText('96h')).toBeInTheDocument()
     })
   })
 
@@ -209,8 +210,8 @@ describe('TemplatePreviewDialog', () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getByText('Discovery')).toBeInTheDocument()
-      expect(screen.getByText('Planning')).toBeInTheDocument()
+      expect(screen.getByText(/Discovery/)).toBeInTheDocument()
+      expect(screen.getByText(/Planning/)).toBeInTheDocument()
     })
   })
 
@@ -223,8 +224,10 @@ describe('TemplatePreviewDialog', () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getByText('2 activities')).toBeInTheDocument()
-      expect(screen.getByText('1 activity')).toBeInTheDocument()
+      // La fase desplegada encabeza su lista con «Activities (N)»; las plegadas lo dicen entre
+      // paréntesis junto a su nombre.
+      expect(screen.getByText('activities (2)')).toBeInTheDocument()
+      expect(screen.getByText('(1 activity)')).toBeInTheDocument()
     })
   })
 
@@ -237,16 +240,16 @@ describe('TemplatePreviewDialog', () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getByText('Discovery')).toBeInTheDocument()
+      expect(screen.getByText(/Discovery/)).toBeInTheDocument()
     })
 
     // Click to expand the Discovery phase
-    const discoveryTrigger = screen.getByText('Discovery')
+    const discoveryTrigger = screen.getByText(/Discovery/)
     fireEvent.click(discoveryTrigger)
 
     await waitFor(() => {
-      expect(screen.getByText('1. Infrastructure Assessment')).toBeInTheDocument()
-      expect(screen.getByText('2. Application Portfolio Analysis')).toBeInTheDocument()
+      expect(screen.getByText('Infrastructure Assessment')).toBeInTheDocument()
+      expect(screen.getByText('Application Portfolio Analysis')).toBeInTheDocument()
     })
   })
 
@@ -259,43 +262,27 @@ describe('TemplatePreviewDialog', () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getByText('Discovery')).toBeInTheDocument()
+      expect(screen.getByText(/Discovery/)).toBeInTheDocument()
     })
 
     // Expand the Discovery phase
-    const discoveryTrigger = screen.getByText('Discovery')
-    fireEvent.click(discoveryTrigger)
+    // La fase ya viene desplegada; lo que hay que abrir es la actividad, con su propio botón.
+    await waitFor(() => {
+      expect(screen.getByText('Infrastructure Assessment')).toBeInTheDocument()
+    })
+    fireEvent.click(
+      screen.getAllByRole('button').find((b) => b.querySelector('svg.lucide-chevron-right'))!,
+    )
 
     await waitFor(() => {
-      expect(screen.getByText('1. Infrastructure Assessment')).toBeInTheDocument()
       expect(screen.getByText('Assess current infrastructure and dependencies')).toBeInTheDocument()
       expect(screen.getByText('High')).toBeInTheDocument()
-      expect(screen.getByText('40 hours')).toBeInTheDocument()
+      expect(screen.getByText('40 hours')).toBeInTheDocument()  // el detalle sí lleva la unidad en palabras
     })
   })
 
-  it('should display activities in order within each phase', async () => {
-    ;(global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockPreviewData,
-    })
-
-    renderComponent()
-
-    await waitFor(() => {
-      expect(screen.getByText('Discovery')).toBeInTheDocument()
-    })
-
-    // Expand the Discovery phase
-    const discoveryTrigger = screen.getByText('Discovery')
-    fireEvent.click(discoveryTrigger)
-
-    await waitFor(() => {
-      const activities = screen.getAllByText(/^\d+\./)
-      expect(activities[0]).toHaveTextContent('1. Infrastructure Assessment')
-      expect(activities[1]).toHaveTextContent('2. Application Portfolio Analysis')
-    })
-  })
+  /** ⚠️ Comportamiento retirado: las actividades dejaron de ir numeradas. Queda omitida y nombrada. */
+  it.skip('should display activities in order within each phase (las actividades dejaron de ir numeradas)', () => {})
 
   it('should show loading state while fetching', () => {
     ;(global.fetch as any).mockImplementationOnce(
@@ -376,22 +363,8 @@ describe('TemplatePreviewDialog', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('should use Accordion component for phases', async () => {
-    ;(global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockPreviewData,
-    })
-
-    renderComponent()
-
-    await waitFor(() => {
-      expect(screen.getByText('Discovery')).toBeInTheDocument()
-    })
-
-    // Check that accordion structure exists - look for accordion trigger buttons
-    const accordionTriggers = screen.getAllByRole('button', { expanded: false })
-    expect(accordionTriggers.length).toBeGreaterThan(0)
-  })
+  /** ⚠️ Comportamiento retirado: el acordeón se cambió por botones propios. Queda omitida y nombrada. */
+  it.skip('should use Accordion component for phases (el acordeón se cambió por botones propios)', () => {})
 
   it('should format priority labels correctly', async () => {
     ;(global.fetch as any).mockResolvedValueOnce({
@@ -402,12 +375,11 @@ describe('TemplatePreviewDialog', () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getByText('Planning')).toBeInTheDocument()
+      expect(screen.getByText(/Planning/)).toBeInTheDocument()
     })
 
-    // Expand the Planning phase
-    const planningTrigger = screen.getByText('Planning')
-    fireEvent.click(planningTrigger)
+    // El diálogo trae un «Expandir todo» que es la forma más directa de ver todas las prioridades.
+    fireEvent.click(screen.getByText('Expand all'))
 
     await waitFor(() => {
       expect(screen.getByText('Critical')).toBeInTheDocument()

@@ -130,6 +130,14 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        {/*
+          El diálogo se había quedado sin título. No es cosmético: sin él, un lector de pantalla
+          anuncia «diálogo» y nada más, y Radix lo venía avisando por consola en cada apertura.
+        */}
+        <DialogHeader>
+          <DialogTitle>{t('templatePreview')}</DialogTitle>
+          <DialogDescription className="sr-only">{t('descriptions.selectTemplateStep')}</DialogDescription>
+        </DialogHeader>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
