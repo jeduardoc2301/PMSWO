@@ -105,8 +105,12 @@ describe('GET /api/v1/projects', () => {
       expect(response.status).toBe(200)
       expect(data.projects).toHaveLength(2)
       expect(data.pagination).toEqual(mockPagination)
+      // La consulta lleva quién pregunta y con qué roles: el listado ya no devuelve todos los
+      // proyectos de la organización, filtra por los que a esa persona le tocan.
       expect(projectService.queryProjects).toHaveBeenCalledWith({
         organizationId: 'org-123',
+        userId: 'user-123',
+        userRoles: [UserRole.PROJECT_MANAGER],
         page: 1,
         limit: 20,
         status: undefined,
@@ -479,6 +483,7 @@ describe('GET /api/v1/projects', () => {
       expect(data).toEqual({
         error: 'INTERNAL_ERROR',
         message: 'An unexpected error occurred while fetching projects',
+        details: 'Database connection failed',
       })
     })
 
@@ -492,7 +497,16 @@ describe('GET /api/v1/projects', () => {
       const request = createRequest()
       await GET(request, { params: {} })
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Get projects error:', error)
+      // El registro se etiquetó con la ruta y ganó un segundo renglón con el contexto de quien
+      // llamó: sin eso, un error en la bitácora no dice de dónde salió.
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[GET /api/v1/projects] Error:', error)
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[GET /api/v1/projects] Error details:',
+        expect.objectContaining({
+          message: 'Test error',
+          authContext: expect.objectContaining({ userId: 'user-123', organizationId: 'org-123' }),
+        }),
+      )
       consoleErrorSpy.mockRestore()
     })
   })

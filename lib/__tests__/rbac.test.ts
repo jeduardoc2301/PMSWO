@@ -186,18 +186,34 @@ describe('RBAC Permission System', () => {
       expect(pmPerms).not.toContain(Permission.USER_DELETE)
     })
 
-    it('INTERNAL_CONSULTANT should have limited permissions with AI access', () => {
+    /**
+     * El consultor interno se amplió: antes solo podía editar las tareas que tenía asignadas, hoy
+     * puede trabajar sobre todo el proyecto en el que participa —crear y editar tareas, bloqueadores
+     * y riesgos—. Lo que sigue sin poder es administrar: crear proyectos o tocar usuarios.
+     *
+     * `WORK_ITEM_UPDATE_OWN` continúa declarado en el catálogo de permisos pero ya no lo usa ningún
+     * rol. Se deja comprobado aquí para que no se confunda «existe» con «se usa».
+     */
+    it('INTERNAL_CONSULTANT works across their project, but cannot administer', () => {
       const internalPerms = rolePermissions[UserRole.INTERNAL_CONSULTANT]
-      
-      // Should have view and own work item update
+
       expect(internalPerms).toContain(Permission.PROJECT_VIEW)
-      expect(internalPerms).toContain(Permission.WORK_ITEM_UPDATE_OWN)
+      expect(internalPerms).toContain(Permission.WORK_ITEM_CREATE)
+      expect(internalPerms).toContain(Permission.WORK_ITEM_UPDATE)
       expect(internalPerms).toContain(Permission.BLOCKER_CREATE)
+      expect(internalPerms).toContain(Permission.BLOCKER_RESOLVE)
       expect(internalPerms).toContain(Permission.AI_USE)
-      
-      // Should not have full update permissions
-      expect(internalPerms).not.toContain(Permission.WORK_ITEM_UPDATE)
+
       expect(internalPerms).not.toContain(Permission.PROJECT_CREATE)
+      expect(internalPerms).not.toContain(Permission.USER_CREATE)
+      expect(internalPerms).not.toContain(Permission.WORK_ITEM_UPDATE_OWN)
+    })
+
+    it('no role uses WORK_ITEM_UPDATE_OWN any more', () => {
+      const conElPermiso = Object.values(rolePermissions).filter((permisos) =>
+        permisos.includes(Permission.WORK_ITEM_UPDATE_OWN),
+      )
+      expect(conElPermiso).toHaveLength(0)
     })
 
     it('EXTERNAL_CONSULTANT should have minimal read-only permissions', () => {

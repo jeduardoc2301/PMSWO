@@ -1,3 +1,13 @@
+/**
+ * Esta prueba se había quedado escrita para Jest en un proyecto que corre con Vitest: usaba
+ * `vi.mock`, `vi.fn` y `ReturnType<typeof vi.fn>`, que aquí no existen. El resultado es que el
+ * archivo ni siquiera cargaba —al no simularse la autenticación, se importaba next-auth de verdad y
+ * tronaba resolviendo módulos—, así que sus 15 pruebas nunca corrieron.
+ *
+ * La conversión es mecánica: los nombres cambian, lo que se comprueba es exactamente lo mismo.
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '../route'
 import { blockerService } from '@/services/blocker.service'
@@ -6,28 +16,28 @@ import { auth } from '@/lib/auth'
 import { Permission, UserRole } from '@/types'
 
 // Mock dependencies
-jest.mock('@/lib/auth')
-jest.mock('@/lib/prisma', () => ({
+// Con fábrica explícita: sin ella la simulación automática sigue importando next-auth de verdad y
+// el archivo no llega ni a cargar.
+vi.mock('@/lib/auth', () => ({
+  auth: vi.fn(),
+}))
+vi.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: {
     blocker: {
-      findUnique: jest.fn(),
+      findUnique: vi.fn(),
     },
   },
 }))
-jest.mock('@/services/blocker.service', () => ({
+vi.mock('@/services/blocker.service', () => ({
   blockerService: {
-    resolveBlocker: jest.fn(),
+    resolveBlocker: vi.fn(),
   },
 }))
 
-const mockAuth = auth as jest.MockedFunction<typeof auth>
-const mockBlockerFindUnique = prisma.blocker.findUnique as jest.MockedFunction<
-  typeof prisma.blocker.findUnique
->
-const mockResolveBlocker = blockerService.resolveBlocker as jest.MockedFunction<
-  typeof blockerService.resolveBlocker
->
+const mockAuth = vi.mocked(auth)
+const mockBlockerFindUnique = vi.mocked(prisma.blocker.findUnique)
+const mockResolveBlocker = vi.mocked(blockerService.resolveBlocker)
 
 describe('POST /api/v1/blockers/:id/resolve', () => {
   const mockSession = {
@@ -73,7 +83,7 @@ describe('POST /api/v1/blockers/:id/resolve', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockAuth.mockResolvedValue(mockSession as any)
   })
 

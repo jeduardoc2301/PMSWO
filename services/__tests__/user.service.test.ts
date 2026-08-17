@@ -71,6 +71,9 @@ describe('UserService', () => {
           name: 'Test User',
           roles: [UserRole.PROJECT_MANAGER],
           locale: Locale.ES,
+          // El usuario guarda avatar desde que se muestra en las tarjetas del tablero. Cuando no se
+          // manda, se persiste nulo explícito en vez de dejar el campo sin escribir.
+          avatar: null,
           active: true,
         },
         select: expect.any(Object),

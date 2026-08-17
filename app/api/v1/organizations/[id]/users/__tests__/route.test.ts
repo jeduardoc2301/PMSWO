@@ -91,6 +91,8 @@ describe('GET /api/v1/organizations/:id/users', () => {
         roles: [UserRole.ADMIN],
         locale: Locale.ES,
         active: true,
+        // El listado devuelve avatar desde que la persona se muestra con foto en el tablero.
+        avatar: null,
         createdAt: mockUsers[0].createdAt.toISOString(),
       })
     })

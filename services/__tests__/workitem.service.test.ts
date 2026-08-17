@@ -556,8 +556,11 @@ describe('WorkItemService', () => {
         },
         skip: 0,
         take: 20,
+        // El orden por omisión es el del plan, no el de captura: las tareas salen en la secuencia
+        // que traen de la plantilla. Ordenarlas por fecha de creación mostraba el plan en el orden
+        // en que alguien lo escribió, que no es el orden en que se ejecuta.
         orderBy: {
-          createdAt: 'desc',
+          templateOrder: 'asc',
         },
         include: expect.any(Object),
       })

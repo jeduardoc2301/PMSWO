@@ -209,13 +209,12 @@ describe('TemplateService', () => {
 
       await templateService.listTemplates('org-1', { search: 'test' })
 
+      // Sin `mode: 'insensitive'`: Prisma solo lo admite en PostgreSQL y aquí la base es MySQL,
+      // cuyo cotejamiento por omisión ya ignora mayúsculas. Pedirlo hacía tronar la consulta.
       expect(prisma.template.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            name: {
-              contains: 'test',
-              mode: 'insensitive',
-            },
+            name: { contains: 'test' },
           }),
         })
       )
