@@ -91,6 +91,33 @@ const mockTemplatePreview = {
   totalEstimatedDuration: 48,
 }
 
+/**
+ * El campo de fecha dejó de ser un `<input type="date">` y hoy es un calendario propio: su control
+ * visible es un botón que muestra la fecha escrita para leer («1 de ene de 2024»), no un valor ISO.
+ * Estas dos ayudas hacen sobre él lo que antes se hacía con `value` y `fireEvent.change`.
+ */
+function fechaMostrada(): string {
+  return (screen.getByLabelText('Start Date') as HTMLElement).textContent ?? ''
+}
+
+function elegirFecha(iso: string) {
+  const [anio, mes, dia] = iso.split('-').map(Number)
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+  fireEvent.click(screen.getByLabelText('Start Date'))
+  const abierto = () => [...document.querySelectorAll('[data-datepicker-popup]')].at(-1)!
+  fireEvent.click(abierto().querySelector('.dp-title') as HTMLElement)
+  fireEvent.click(abierto().querySelector('.dp-title') as HTMLElement)
+  const celda = (t: string) =>
+    [...abierto().querySelectorAll('.dp-month-cell')].find((b) => b.textContent?.trim() === t) as HTMLElement
+  fireEvent.click(celda(String(anio)))
+  fireEvent.click(celda(meses[mes - 1]))
+  const dias = [...abierto().querySelectorAll('.dp-day')].filter(
+    (b) => b.textContent?.trim() === String(dia) && !b.hasAttribute('data-outside'),
+  )
+  fireEvent.click(dias[0] as HTMLElement)
+}
+
 describe('DateAssignmentStep', () => {
   const mockOnStartDateChange = vi.fn()
   const mockOnNext = vi.fn()
@@ -99,7 +126,9 @@ describe('DateAssignmentStep', () => {
   const defaultProps = {
     selectedTemplateId: 'template-1',
     selectedActivityIds: ['activity-1', 'activity-2', 'activity-3'],
-    startDate: new Date('2024-01-01'),
+    // Fecha construida en horario local: `new Date('2024-01-01')` es medianoche UTC y en un huso
+    // negativo cae en el 31 de diciembre, que no es la fecha que esta prueba quiere fijar.
+    startDate: new Date(2024, 0, 1),
     onStartDateChange: mockOnStartDateChange,
     onNext: mockOnNext,
     onBack: mockOnBack,
@@ -107,6 +136,10 @@ describe('DateAssignmentStep', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Se reasigna `global.fetch`, no solo se reconfigura: otros archivos del mismo directorio lo
+    // reemplazan por su propia función en su `beforeEach`, y cuando corren antes que este el objeto
+    // que la prueba configura deja de ser el que el componente llama.
+    global.fetch = vi.fn() as never
     ;(global.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => mockTemplatePreview,
@@ -117,12 +150,12 @@ describe('DateAssignmentStep', () => {
     return render(<DateAssignmentStep {...defaultProps} {...props} />)
   }
 
-  it('renders step header and description', async () => {
+  it('describe qué hace el paso', async () => {
     renderComponent()
 
+    // El título del paso lo pone el asistente que lo contiene; aquí queda la explicación.
     await waitFor(() => {
-      expect(screen.getByText('Assign Dates')).toBeInTheDocument()
-      expect(screen.getAllByText('Assign the start date to calculate activity dates').length).toBeGreaterThan(0)
+      expect(screen.getByText('Assign the start date to calculate activity dates')).toBeInTheDocument()
     })
   })
 
@@ -157,9 +190,9 @@ describe('DateAssignmentStep', () => {
     renderComponent()
 
     await waitFor(() => {
-      const input = screen.getByLabelText('Start Date') as HTMLInputElement
-      expect(input).toBeInTheDocument()
-      expect(input.value).toBe('2024-01-01')
+      expect(screen.getByLabelText('Start Date')).toBeInTheDocument()
+      expect(fechaMostrada()).toContain('2024')
+      expect(fechaMostrada()).toContain('ene')
     })
   })
 
@@ -170,21 +203,30 @@ describe('DateAssignmentStep', () => {
       expect(screen.getByLabelText('Start Date')).toBeInTheDocument()
     })
 
-    const input = screen.getByLabelText('Start Date')
-    fireEvent.change(input, { target: { value: '2024-02-01' } })
+    elegirFecha('2024-02-01')
 
     expect(mockOnStartDateChange).toHaveBeenCalled()
   })
 
   it('displays calculated dates table for selected activities', async () => {
+    // La respuesta se fija aquí y no solo en el `beforeEach`: cuando el archivo corre junto a otros,
+    // la simulación global de `fetch` puede llegar ya consumida y la tabla no se dibuja.
+    ;(global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => mockTemplatePreview,
+    })
+
     renderComponent()
 
+    // «Calculated Dates» encabeza la sección y se dibuja desde el primer momento; la tabla llega
+    // después, con los datos. Esperar el encabezado no espera nada.
     await waitFor(() => {
-      expect(screen.getByText('Calculated Dates')).toBeInTheDocument()
+      expect(document.querySelector('table')).toBeInTheDocument()
     })
 
     // Check table headers
-    expect(screen.getByText('Phase')).toBeInTheDocument()
+    // «Phase» aparece como encabezado de columna y también en cada fila del cuerpo.
+    expect(screen.getAllByText('Phase').length).toBeGreaterThan(0)
     expect(screen.getByText('Activity Title')).toBeInTheDocument()
     expect(screen.getByText('Priority')).toBeInTheDocument()
     expect(screen.getByText('Estimated Duration')).toBeInTheDocument()
@@ -330,13 +372,13 @@ describe('DateAssignmentStep', () => {
     rerender(
       <DateAssignmentStep
         {...defaultProps}
-        startDate={new Date('2024-02-01')}
+        startDate={new Date(2024, 1, 1)}
       />
     )
 
     await waitFor(() => {
-      const input = screen.getByLabelText('Start Date') as HTMLInputElement
-      expect(input.value).toBe('2024-02-01')
+      expect(fechaMostrada()).toContain('feb')
+      expect(fechaMostrada()).toContain('2024')
     })
   })
 })

@@ -77,6 +77,15 @@ export function DateAssignmentStep({
   const [error, setError] = useState<string | null>(null)
   const [calculatedActivities, setCalculatedActivities] = useState<CalculatedActivity[]>([])
 
+  /** Fecha civil en texto, con los captadores locales: `toISOString()` convierte a UTC y retrocede
+   *  un día en cualquier huso negativo. */
+  const formatDateForInput = (date: Date): string => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
   useEffect(() => {
     const fetchTemplatePreview = async () => {
       if (!selectedTemplateId) return
@@ -134,8 +143,11 @@ export function DateAssignmentStep({
           phaseName: phase.name,
           priority: activity.priority,
           estimatedDuration: activity.estimatedDuration,
-          startDate: activityStartDate.toISOString().split('T')[0],
-          endDate: activityEndDate.toISOString().split('T')[0],
+          // Con los captadores locales, no con `toISOString()`: esa convierte a UTC y en cualquier
+          // huso negativo devuelve el día anterior, así que las actividades quedaban fechadas un día
+          // antes de donde el cálculo las puso.
+          startDate: formatDateForInput(activityStartDate),
+          endDate: formatDateForInput(activityEndDate),
         })
 
         currentDate = activityEndDate
@@ -152,13 +164,6 @@ export function DateAssignmentStep({
     if (!isNaN(newDate.getTime())) {
       onStartDateChange(newDate)
     }
-  }
-
-  const formatDateForInput = (date: Date): string => {
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
   }
 
   if (isLoading) {
@@ -186,6 +191,7 @@ export function DateAssignmentStep({
             {t('startDate')}
           </Label>
           <DatePicker
+            id="startDate"
             value={formatDateForInput(startDate)}
             onChange={handleStartDateChange}
             className="max-w-xs"

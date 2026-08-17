@@ -65,6 +65,25 @@ interface FinalPreviewStepProps {
  * Provides Back, Cancel, and Confirm buttons
  * Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8, 17.9, 17.10
  */
+/**
+ * Fecha civil en texto, sin correrla de día.
+ *
+ * `toISOString()` convierte a UTC y `new Date('2024-01-01')` se interpreta como medianoche UTC: en
+ * cualquier huso negativo las dos cosas devuelven el día anterior. Lo que aquí se maneja son fechas
+ * de calendario, no instantes, así que se leen y se escriben con los captadores locales.
+ */
+function fechaCivil(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function desdeFechaCivil(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
 export function FinalPreviewStep({
   selectedTemplateId,
   selectedActivityIds,
@@ -138,8 +157,8 @@ export function FinalPreviewStep({
           phaseName: phase.name,
           priority: activity.priority,
           estimatedDuration: activity.estimatedDuration,
-          startDate: activityStartDate.toISOString().split('T')[0],
-          endDate: activityEndDate.toISOString().split('T')[0],
+          startDate: fechaCivil(activityStartDate),
+          endDate: fechaCivil(activityEndDate),
         })
 
         currentDate = activityEndDate
@@ -163,9 +182,22 @@ export function FinalPreviewStep({
   }
 
   const activitiesByPhase = groupActivitiesByPhase()
+
+  useEffect(() => {
+    setExpandedPhases(new Set(Object.keys(groupActivitiesByPhase())))
+    // Solo depende de las actividades calculadas: agrupar es una función pura sobre ellas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculatedActivities])
   const totalDuration = calculatedActivities.reduce((sum, a) => sum + a.estimatedDuration, 0)
 
-  const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set(Object.keys(groupActivitiesByPhase())))
+  /**
+   * Las fases arrancan desplegadas.
+   *
+   * Antes esto se resolvía en el valor inicial del estado, y no funcionaba: en el primer render las
+   * actividades todavía no están calculadas, así que el conjunto salía vacío y todas las fases
+   * aparecían plegadas para siempre. Se llena cuando las actividades existen.
+   */
+  const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
 
   const togglePhase = (phaseName: string) => {
     setExpandedPhases(prev => {
@@ -209,7 +241,7 @@ export function FinalPreviewStep({
             </p>
           </div>
           <div className="text-sm text-[#a5b4fc]">
-            {t('startDate')}: {new Date(startDate).toLocaleDateString()}
+            {t('startDate')}: {startDate.toLocaleDateString()}
           </div>
         </div>
       </div>
@@ -293,13 +325,13 @@ export function FinalPreviewStep({
                                 <div>
                                   <span className="text-zinc-400">{t('startDate')}:</span>{' '}
                                   <span className="font-medium text-zinc-100">
-                                    {new Date(activity.startDate).toLocaleDateString()}
+                                    {desdeFechaCivil(activity.startDate).toLocaleDateString()}
                                   </span>
                                 </div>
                                 <div>
                                   <span className="text-zinc-400">{t('estimatedEndDate')}:</span>{' '}
                                   <span className="font-medium text-zinc-100">
-                                    {new Date(activity.endDate).toLocaleDateString()}
+                                    {desdeFechaCivil(activity.endDate).toLocaleDateString()}
                                   </span>
                                 </div>
                               </div>

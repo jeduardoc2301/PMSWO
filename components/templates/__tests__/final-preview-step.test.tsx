@@ -96,11 +96,27 @@ const mockTemplatePreview = {
 const defaultProps = {
   selectedTemplateId: 'template-1',
   selectedActivityIds: ['activity-1', 'activity-2', 'activity-3'],
-  startDate: new Date('2024-01-01'),
+  // Fecha construida en horario local: `new Date(2024, 0, 1)` es medianoche UTC y en un huso
+  // negativo cae en el 31 de diciembre, que no es la fecha que estas pruebas quieren fijar.
+  startDate: new Date(2024, 0, 1),
   onConfirm: vi.fn(),
   onBack: vi.fn(),
   onCancel: vi.fn(),
   submitting: false,
+}
+
+/**
+ * Espera a que lleguen las actividades.
+ *
+ * La pantalla se dibuja de inmediato con el resumen en cero y las va llenando cuando responde la
+ * consulta. Varias pruebas de este archivo daban por hecho que ya estaban ahí, y pasaban o fallaban
+ * según lo rápido que corriera el resto de la batería. Este es el único punto de espera que hace
+ * falta: si el conteo dejó de ser cero, ya hay datos.
+ */
+async function esperarActividades(container: HTMLElement) {
+  await waitFor(() => {
+    expect(container.textContent).toMatch(/Work Items to Create: [1-9]/)
+  })
 }
 
 const renderComponent = (props = {}) => {
@@ -110,6 +126,10 @@ const renderComponent = (props = {}) => {
 describe('FinalPreviewStep', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Se reasigna `global.fetch`, no solo se reconfigura: otros archivos del mismo directorio lo
+    // reemplazan por su propia función en su `beforeEach`, y cuando corren antes que este el objeto
+    // que la prueba configura deja de ser el que el componente llama.
+    global.fetch = vi.fn() as never
     ;(global.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => mockTemplatePreview,
@@ -143,13 +163,12 @@ describe('FinalPreviewStep', () => {
   })
 
   it('displays start date in summary', async () => {
-    renderComponent()
+    const { container } = renderComponent()
+    await esperarActividades(container)
 
-    await waitFor(() => {
-      expect(screen.getByText(/Start Date:/)).toBeInTheDocument()
-      // Date may be displayed as 12/31/2023 or 1/1/2024 depending on timezone
-      expect(screen.getByText(/12\/31\/2023|1\/1\/2024/)).toBeInTheDocument()
-    })
+    // Ya no hay corrimiento de huso, así que la fecha es exactamente la que se pasó. Va partida
+    // entre el rótulo y el valor, de modo que se comprueba sobre el texto del contenedor.
+    expect(container.textContent).toContain('Start Date: 1/1/2024')
   })
 
   it('displays activities organized by phase', async () => {
@@ -162,16 +181,19 @@ describe('FinalPreviewStep', () => {
   })
 
   it('displays activity count per phase', async () => {
-    renderComponent()
+    const { container } = renderComponent()
+    await esperarActividades(container)
 
     await waitFor(() => {
       expect(screen.getByText('2 activities')).toBeInTheDocument()
-      expect(screen.getByText('1 activities')).toBeInTheDocument()
+      // Concordancia: una sola actividad se dice en singular.
+      expect(screen.getByText('1 activity')).toBeInTheDocument()
     })
   })
 
   it('displays activity details when phase is expanded', async () => {
-    renderComponent()
+    const { container } = renderComponent()
+    await esperarActividades(container)
 
     await waitFor(() => {
       expect(screen.getByText('Phase 1')).toBeInTheDocument()
@@ -190,7 +212,8 @@ describe('FinalPreviewStep', () => {
   })
 
   it('calculates and displays correct dates for activities', async () => {
-    renderComponent()
+    const { container } = renderComponent()
+    await esperarActividades(container)
 
     await waitFor(() => {
       expect(screen.getByText('Phase 1')).toBeInTheDocument()
@@ -209,13 +232,16 @@ describe('FinalPreviewStep', () => {
   })
 
   it('displays warning message with work item count', async () => {
-    renderComponent()
+    const { container } = renderComponent()
+    await esperarActividades(container)
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /^Confirm$/i })).toBeInTheDocument()
     })
 
-    expect(screen.getByText(/This will create 3 work items in the project/)).toBeInTheDocument()
+    // El aviso va partido entre elementos —la cifra en su propia etiqueta—, así que se comprueba
+    // sobre el texto de la pantalla.
+    expect(container.textContent).toContain('This will create 3 work items in the project')
   })
 
   it('calls onBack when Back button is clicked', async () => {
@@ -248,14 +274,17 @@ describe('FinalPreviewStep', () => {
 
   it('calls onConfirm when Confirm button is clicked', async () => {
     const onConfirm = vi.fn()
-    renderComponent({ onConfirm })
+    const { container } = renderComponent({ onConfirm })
+    await esperarActividades(container)
 
+    // Hay que esperar a que lleguen las actividades, no solo a que exista el botón: sin ninguna
+    // actividad calculada el botón se dibuja **deshabilitado**, y el clic no hace nada. El botón
+    // aparece de inmediato; las actividades, no.
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /^Confirm$/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^Confirm$/i })).toBeEnabled()
     })
 
-    const confirmButton = screen.getByRole('button', { name: /^Confirm$/i })
-    fireEvent.click(confirmButton)
+    fireEvent.click(screen.getByRole('button', { name: /^Confirm$/i }))
 
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
@@ -344,28 +373,27 @@ describe('FinalPreviewStep', () => {
   })
 
   it('recalculates dates when startDate changes', async () => {
-    const { rerender } = renderComponent()
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /^Confirm$/i })).toBeInTheDocument()
-    })
+    const { rerender, container } = renderComponent()
+    await esperarActividades(container)
 
     // Rerender with new start date
     rerender(
       <FinalPreviewStep
         {...defaultProps}
-        startDate={new Date('2024-02-01')}
+        startDate={new Date(2024, 1, 1)}
       />
     )
 
     await waitFor(() => {
-      // Date format is 1/31/2024 not 2/1/2024 due to timezone
-      expect(screen.getByText(/1\/31\/2024|2\/1\/2024/)).toBeInTheDocument()
+      // Ya no hay corrimiento de huso: la fecha se muestra tal como se pasó. El formato de este
+      // entorno es día/mes, así que el 1 de febrero se escribe «1/2/2024».
+      expect(container.textContent).toContain('1/2/2024')
     })
   })
 
   it('displays correct priority translations', async () => {
-    renderComponent()
+    const { container } = renderComponent()
+    await esperarActividades(container)
 
     await waitFor(() => {
       expect(screen.getByText('Phase 1')).toBeInTheDocument()
@@ -381,7 +409,8 @@ describe('FinalPreviewStep', () => {
   })
 
   it('calculates sequential dates correctly across phases', async () => {
-    renderComponent()
+    const { container } = renderComponent()
+    await esperarActividades(container)
 
     await waitFor(() => {
       expect(screen.getByText('Phase 2')).toBeInTheDocument()
