@@ -130,6 +130,22 @@ export interface PlanTask {
    * las tres familias que no se puede deducir de la estructura del plan, así que se declara.
    */
   readonly elapsedTime?: boolean
+  /**
+   * Nombre de quien responde por la línea.
+   *
+   * Es un nombre, no una cuenta del sistema. Quien entrega del lado del cliente casi nunca tiene
+   * usuario en la herramienta del proveedor, y exigirle uno es la forma más rápida de que esas
+   * líneas terminen asignadas a alguien del proveedor que no las controla.
+   */
+  readonly owner?: string
+  /**
+   * Fecha límite comprometida, cuando es distinta de la que calcula el plan.
+   *
+   * Sin ella, el compromiso vence cuando el plan diga; con ella, vence cuando se pactó.
+   */
+  readonly dueDate?: IsoDate
+  /** Avance de 0 a 1. Uno significa cumplida. */
+  readonly progress?: number
 }
 
 /** Una tarea ya programada por el pase adelante. */

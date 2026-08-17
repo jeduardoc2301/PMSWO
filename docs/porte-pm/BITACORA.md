@@ -639,3 +639,68 @@ C6 · La responsabilidad del cliente como tipo de primera clase. Buena parte ya 
 distingue las 178 líneas del cliente y `ResponsibleParty` existe. Falta la vista propia filtrable,
 ordenada por fecha y con alerta de vencimiento próximo, y resolver que hoy `WorkItem.ownerId` exige
 que el responsable pertenezca a la organización del proveedor.
+
+---
+
+## Tramo 6 — C6 · La responsabilidad del cliente como tipo de primera clase
+
+**Estado:** CERRADO. C6 pasa a HECHO.
+
+### Qué se tocó
+
+- `lib/scheduling/client-commitments.ts` — la vista de lo que el cliente debe entregar o decidir.
+- `lib/scheduling/types.ts` — `owner`, `dueDate` y `progress` en `PlanTask`.
+- `lib/scheduling/__tests__/client-commitments.test.ts` — 23 pruebas.
+- `prisma/schema.prisma` — `kind`, `party`, `clientOwner` y `dueDate` en `WorkItem`, con índice para la
+  vista; migración `add_client_responsibility`, aplicada en local.
+
+### El choque con el diseño actual, y cómo se resolvió
+
+`WorkItem.ownerId` es llave foránea obligatoria a `User`, y `workitem.service.ts:128` exige que el
+responsable comparta organización con el proyecto. Con ese mecanismo **no se puede nombrar
+responsable a alguien del banco**.
+
+No se tocó esa regla: sigue valiendo para el trabajo del proveedor, que es de quien habla. Se agregó
+al lado un `clientOwner` que es **un nombre, no una cuenta**. Quien entrega del lado del cliente casi
+nunca tiene usuario en la herramienta del proveedor, y exigirle uno es la forma más rápida de que
+esas líneas terminen asignadas a alguien del proveedor que no las controla — que es exactamente el
+problema que C6 viene a resolver.
+
+### Lo que la vista responde
+
+Ordenada por fecha, porque quien la trabaja lo hace de arriba hacia abajo. Para cada compromiso: qué
+falta, de quién es, para cuándo, en qué estado —cumplida, vencida, por vencer, pendiente— y **cuánto
+arrastra si no llega**.
+
+Ese último dato es el que cambia la conversación. Convierte «falta una firma» en «falta una firma y
+las cinco líneas que cuelgan de ella». Se calcula por alcance transitivo en el grafo, no solo por
+sucesoras directas, y en una sola pasada sobre el orden topológico al revés: el arrastre de una
+tarea sale de los de sus sucesoras, en vez de recorrer el grafo una vez por compromiso.
+
+A igualdad de fecha, primero lo que más arrastra. Si dos cosas vencen el mismo día, la que detiene
+cuarenta líneas se persigue antes que la que no detiene ninguna.
+
+### Decisiones que quedaron en el código
+
+**Lo cumplido sale de la lista de trabajo pero no del histórico.** `pendingCommitments()` filtra;
+la vista completa conserva todo. Un compromiso cumplido tarde queda como cumplido, no como vencido:
+vencido es un estado de lo que falta.
+
+**El total de líneas detenidas no cuenta dos veces.** Una tarea que depende de dos compromisos
+pendientes se cuenta una sola vez — si no, el número se infla y deja de servir para decidir.
+
+**La fecha del compromiso es la pactada si la hay, y si no la que calcula el plan.** Sin fecha
+pactada el compromiso vence cuando el plan diga; con ella, cuando se acordó.
+
+### Preguntas abiertas nuevas
+
+1. **La vista existe en el motor, no en la interfaz.** C6 queda acreditada con la lógica y su prueba;
+   la pantalla filtrable entra con la Fase 4 junto a C11 y C13, que comparten componentes.
+2. **`progress` se lee pero todavía no se persiste.** El campo de avance por tarea entra con C7, que
+   es donde se define cómo se pondera. Hoy la vista lo recibe como dato de entrada.
+
+### Siguiente
+
+C7 · Avance ponderado por trabajo real. Es la última de la Fase 2 y necesita la jerarquía padre/hijo
+que quedó anotada como pendiente en el tramo 4: el peso de un resumen es la suma de los días hábiles
+de las hojas que cuelgan, no su lapso de calendario.

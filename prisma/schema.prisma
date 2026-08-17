@@ -144,9 +144,22 @@ model WorkItem {
   completedAt      DateTime? @map("completed_at")
   estimatedHours   Int?      @map("estimated_hours")
   templateOrder    Int?      @map("template_order")
-  kanbanColumnId   String    @map("kanban_column_id") @db.Char(36)
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // ── PLANEACIÓN · Responsabilidad del cliente (C6) ──────────────────────────
+  // Clase de línea: "ACTIVIDAD", "HITO", "PUNTO_DE_CONTROL", "APROBACION_CLIENTE",
+  // "ENTREGA_CLIENTE", "COMPUERTA", "RESUMEN".
+  kind           String    @default("ACTIVIDAD") @db.VarChar(20)
+  // Quién responde: "PROVEEDOR", "CLIENTE" o "AMBOS".
+  party          String    @default("PROVEEDOR") @db.VarChar(10)
+  // Nombre de quien responde del lado del cliente. Es un nombre, no una cuenta: quien entrega del
+  // lado del cliente casi nunca tiene usuario en la herramienta del proveedor, y exigirle uno es la
+  // forma más rápida de que esas líneas terminen asignadas a alguien que no las controla.
+  clientOwner    String?   @map("client_owner")
+  // Fecha límite comprometida, cuando es distinta de la que calcula el plan.
+  dueDate        DateTime? @map("due_date") @db.Date
+  kanbanColumnId String    @map("kanban_column_id") @db.Char(36)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   organization  Organization        @relation(fields: [organizationId], references: [id])
   project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -172,6 +185,8 @@ model WorkItem {
   @@index([organizationId, status, priority])
   // Índice para consultas de items atrasados
   @@index([estimatedEndDate])
+  // Para la vista de lo que el cliente debe entregar o decidir, ordenada por fecha.
+  @@index([organizationId, party, dueDate])
   @@map("work_items")
 }
 
