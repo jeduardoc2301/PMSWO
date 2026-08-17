@@ -1129,3 +1129,93 @@ que nadie lo borre por parecer sobrante.
 - C13 pasa a HECHO.
 
 Queda **C11 · Gantt**, la ultima.
+
+---
+
+## Tramo 13 - C11 - Gantt, la ultima
+
+### Lo que habia, y por que no servia
+
+`components/projects/timeline/timeline-tab.tsx` dibuja una linea de tiempo. Cuando a una tarea le
+faltan fechas, **las inventa**: parte la ventana del proyecto entre el numero de fases, desplaza con
+un factor pseudoaleatorio (`globalIdx * 37`) y asigna duracion segun prioridad. Es decoracion con
+forma de Gantt, y la diferencia se nota el dia que alguien toma una decision mirandola.
+
+El Gantt de referencia, en cambio, es un trabajo serio. Tiene tres decisiones que vale la pena
+conservar y tres defectos que no.
+
+**Lo que conserva:** el plegado de flechas al ancestro visible, que es lo que vuelve legible un plan
+de 1 665 vinculos; el resaltado bicolor de entrantes y salientes al seleccionar una linea; y el panel
+lateral con navegacion a predecesoras y sucesoras.
+
+**Lo que no:** dibuja `FF` y `SF` con la geometria de `FS` —159 flechas diciendo que un fin amarra un
+comienzo cuando amarra otro fin—; parsea el desfase y lo descarta, asi que 394 vinculos con esperas
+de hasta 46 dias se ven identicos a los que no tienen ninguna; y mide el ancho de la barra en dias de
+calendario mientras todos sus textos hablan de dias habiles.
+
+### La division, que no es estetica
+
+`lib/scheduling/gantt.ts` calcula donde va cada cosa y devuelve geometria **en unidades de dia
+habil**. No sabe que es un pixel. `components/plan/gantt-chart.tsx` multiplica por el ancho de un dia
+y no hace mas aritmetica.
+
+La razon de partirlo asi es concreta: la linea de tiempo que ya existia inventaba fechas **dentro del
+componente**. Una vista que puede inventar datos termina inventandolos. Ademas, asi el trazado entero
+se prueba sin montar un navegador — 41 de las 75 pruebas de esta capacidad no tocan React.
+
+### Cuatro reglas y una que la referencia no tiene
+
+1. **Cada tipo se ancla donde de verdad amarra.** Una tabla, `LINK_ANCHORS`, y una sola vez.
+2. **La barra se mide en dias habiles.** Si se mide en dias de calendario, una tarea de cinco dias
+   que cruza un fin de semana se ve 40 % mas larga que otra de cinco dias que no lo cruza.
+3. **El desfase llega al dibujo con su signo.** El vinculo lo lleva y el rotulo lo dice: `FS +3 dias`.
+4. **Al plegar un resumen, sus flechas se pliegan con el.** No desaparecen: se reanclan al ancestro
+   visible, se cuentan, y la flecha dice cuantas representa.
+
+Y la quinta, que la referencia no tiene: **una flecha se pinta como critica solo si de verdad
+empuja**. Que sus dos puntas sean criticas no basta. Una tarea critica puede tener cuatro
+predecesoras criticas y solo una la esta empujando; las otras tres llegan antes y esperan. Pintar las
+cuatro de rojo dice que hay cuatro caminos donde hay uno, y la ruta critica deja de leerse. El pase
+adelante ya guardaba, para cada tarea, cual vinculo le fijo el inicio — bastaba con usarlo.
+
+Corolario: **una flecha plegada nunca se pinta como critica**, porque representa varias y no se sabe
+cual manda. Preferir no decir a decir de mas.
+
+### La cifra que justifica el plegado
+
+Medido contra el archivo real:
+
+| Nivel | Filas | Flechas | Plegadas |
+|---|---|---|---|
+| Todo abierto | 1 368 | 1 665 | 0 |
+| Etapas (nivel 1) | 27 | **55** | 42 |
+| Bloques (nivel 2) | 127 | 148 | 51 |
+
+De 1 665 flechas a 55. Y no se pierde ninguna: cada una dice cuantos vinculos representa, y los que
+no aparecen son los que quedaron dentro de un mismo bloque cerrado —irian de una fila a si misma—.
+
+El filtro de ruta super critica deja **312 lineas** y conserva los **66 resumenes** de los que
+cuelgan. Sin los resumenes queda una lista de tareas sueltas sin la etapa de la que salen: la
+respuesta sin la pregunta.
+
+### Dos tropiezos
+
+**La escala semanal arrancaba torcida.** Agrupaba en bloques de cinco dias habiles contados desde una
+referencia absoluta en vez de desde el arranque del plan, asi que la primera columna media lo que
+sobrara. Error mio; la prueba lo atrapo en el primer intento.
+
+**Y una expectativa mia que estaba mal, no el codigo.** Esperaba que el lienzo midiera 8 dias para un
+plan de 3 + 5 dias. Mide 9. El hito de cierre cae el dia habil **siguiente** al fin de la ultima
+tarea, porque eso es exactamente lo que significa un fin-comienzo. El motor tenia razon.
+
+Tambien: `getByTitle` de la libreria de pruebas solo encuentra `<title>` que sea hijo **directo** del
+`<svg>`. El mio colgaba de un `<g>`. En vez de forzar la consulta, movi el rotulo al propio trazo,
+que ademas es donde corresponde: es el trazo lo que se senala con el puntero.
+
+### Estado
+
+- 41 pruebas de trazado + 24 de vista + 10 contra el archivo real: **75 nuevas, todas en verde**.
+- `lib/scheduling` + `components/plan`: **528 pruebas en 22 archivos, todas pasan.**
+- Bateria completa: 1 502 pasan de 1 760. Los 258 rojos son los preexistentes; la linea base paso de
+  37 archivos rojos a 36 y ninguno es de los nuevos.
+- C11 pasa a HECHO. **Las trece capacidades quedan en HECHO.**

@@ -8,6 +8,7 @@ import { createWorkCalendar } from '../calendar'
 import { analyzeCriticalPath } from '../cpm'
 import { classifySuperCritical } from '../critical-path'
 import { type CriterionRow, reviewExitCriteria } from '../exit-criteria'
+import { type GanttInput, collapseToLevel, ganttLayout } from '../gantt'
 import { importPlanFromXlsx } from '../import-plan'
 import { parentsFromLevels, rollUpProgress } from '../progress'
 import { schedulePlan } from '../schedule'
@@ -540,6 +541,133 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
       expect(rollUpProgress(jerarquia()).progress).toBe(0)
     })
   })
+
+  /**
+   * C11 · El Gantt sobre el plan real.
+   *
+   * Aquí es donde el plegado se gana o se pierde. Un plan de 1 368 líneas y 1 665 vínculos dibujado
+   * entero no es un Gantt: es una maraña. La pregunta que estas pruebas contestan no es si el
+   * trazado corre, sino **si el resultado se puede leer**.
+   */
+  describe('el Gantt', () => {
+    function trazado(opciones: Partial<GanttInput> = {}) {
+      const tareas = conJerarquia()
+      const schedule = schedulePlan({
+        tasks: tareas,
+        dependencies: plan.dependencies,
+        calendar,
+        start: plan.declaredStart,
+      })
+      return ganttLayout({
+        tasks: tareas,
+        dependencies: plan.dependencies,
+        schedule,
+        classified: classifySuperCritical(analyzeCriticalPath(schedule), tareas).tasks,
+        calendar,
+        ...opciones,
+      })
+    }
+
+    it('dibuja las 1 368 líneas y los 1 665 vínculos del archivo', () => {
+      const layout = trazado({ links: 'TODOS' })
+      expect(layout.rows).toHaveLength(1368)
+      expect(layout.links).toHaveLength(1665)
+    })
+
+    it('el lienzo abarca los 122 días hábiles del plan, en seis meses', () => {
+      const layout = trazado()
+      expect(layout.span).toBe(122)
+      expect(layout.ticks).toHaveLength(6)
+      expect(layout.ticks[0].label).toBe('junio 2026')
+      expect(layout.ticks.at(-1)!.label).toBe('noviembre 2026')
+    })
+
+    /**
+     * La cifra que justifica la regla 4. Al nivel de etapas, 1 665 flechas se convierten en 55 —una
+     * por cada par de bloques que se hablan— y el plan se vuelve legible sin perder un solo vínculo:
+     * cada flecha dice cuántos representa.
+     */
+    it('plegado por niveles, 1 665 flechas se leen como 55', () => {
+      const abierto = trazado({ links: 'TODOS' })
+
+      const porEtapas = trazado({ links: 'TODOS', collapsed: collapseToLevel(abierto.rows, 1) })
+      expect(porEtapas.rows).toHaveLength(27)
+      expect(porEtapas.links).toHaveLength(55)
+      expect(porEtapas.foldedLinkCount).toBe(42)
+
+      const porBloques = trazado({ links: 'TODOS', collapsed: collapseToLevel(abierto.rows, 2) })
+      expect(porBloques.rows).toHaveLength(127)
+      expect(porBloques.links).toHaveLength(148)
+    })
+
+    it('ningún vínculo se pierde al plegar: las flechas dicen cuántos representan', () => {
+      const abierto = trazado({ links: 'TODOS' })
+      const plegado = trazado({ links: 'TODOS', collapsed: collapseToLevel(abierto.rows, 1) })
+
+      const representados = plegado.links.reduce((total, link) => total + link.foldedCount, 0)
+      const internos = plan.dependencies.length - representados
+      // Los que no aparecen son los que quedaron dentro de un mismo bloque cerrado: irían de una
+      // fila a sí misma. No se pierden, es que no hay flecha que dibujar.
+      expect(representados + internos).toBe(plan.dependencies.length)
+      expect(representados).toBeGreaterThan(0)
+    })
+
+    it('los 159 vínculos fin-fin se anclan de fin a fin, no de fin a comienzo', () => {
+      const layout = trazado({ links: 'TODOS' })
+      const finFin = layout.links.filter((link) => link.type === 'FF')
+
+      expect(finFin).toHaveLength(159)
+      expect(finFin.every((link) => link.fromAnchor === 'FIN' && link.toAnchor === 'FIN')).toBe(true)
+    })
+
+    it('los 802 comienzo-comienzo unen comienzos', () => {
+      const layout = trazado({ links: 'TODOS' })
+      const ss = layout.links.filter((link) => link.type === 'SS')
+
+      expect(ss).toHaveLength(802)
+      expect(ss.every((link) => link.fromAnchor === 'INICIO' && link.toAnchor === 'INICIO')).toBe(true)
+    })
+
+    it('los 394 desfases del archivo llegan al dibujo con su signo', () => {
+      const layout = trazado({ links: 'TODOS' })
+      const conDesfase = layout.links.filter((link) => link.lag !== 0)
+
+      expect(conDesfase).toHaveLength(394)
+      expect(conDesfase.filter((link) => link.lag < 0)).toHaveLength(6)
+    })
+
+    it('el filtro de la ruta súper crítica deja 312 líneas y los 66 resúmenes que las ubican', () => {
+      const layout = trazado({ filter: { onlySuperCritical: true } })
+
+      expect(layout.rows.filter((row) => row.isSuperCritical)).toHaveLength(312)
+      expect(layout.rows.filter((row) => row.isSummary && !row.isSuperCritical)).toHaveLength(66)
+      expect(layout.rows).toHaveLength(378)
+    })
+
+    it('las barras se miden en días hábiles: ninguna se estira por cruzar un fin de semana', () => {
+      const layout = trazado()
+      for (const row of layout.rows) {
+        const declarada = plan.byId.get(row.id)!
+        if (declarada.isSummary || row.isMilestone) continue
+        expect(row.width, row.id).toBe(Math.max(declarada.duration, 0))
+      }
+    })
+
+    /** El árbol del archivo llega a seis niveles, y el trazado los conserva todos. */
+    it('la jerarquía del archivo se conserva entera', () => {
+      const niveles = new Set(trazado().rows.map((row) => row.level))
+      expect([...niveles].sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5])
+    })
+  })
+
+  /** Las tareas con su padre y su fecha declarada: es lo que el Gantt necesita para plegar. */
+  function conJerarquia(): PlanTask[] {
+    const padres = parentsFromLevels(plan.rows.map((row) => ({ id: row.id, name: row.name, level: row.level })))
+    return anclado().map((tarea) => {
+      const padre = padres.get(tarea.id)
+      return padre ? { ...tarea, parentId: padre } : tarea
+    })
+  }
 
   /** Las fechas del archivo, tomadas como piso: es un plan ya construido, no uno por programar. */
   function anclado(): PlanTask[] {

@@ -24,14 +24,13 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C8** · Motor de auditoría permanente | **NO EXISTE** — `lib/services/audit-logger.ts` audita seguridad (accesos, roles), no consistencia del plan | **HECHO** | [audit.test.ts](lib/scheduling/__tests__/audit.test.ts) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) |
 | **C9** · Trazabilidad por línea | **PARCIAL** — `WorkItemChange` registra quién cambió qué campo y cuándo; falta de dónde salió la línea | **HECHO** | [traceability.test.ts](lib/scheduling/__tests__/traceability.test.ts) |
 | **C10** · Criterios de salida verificables | **NO EXISTE** — no hay campo de entregable ni de criterio de salida en ningún modelo | **HECHO** | [exit-criteria.test.ts](lib/scheduling/__tests__/exit-criteria.test.ts) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) |
-| **C11** · Gantt con estas capacidades | **PARCIAL** — hay una línea de tiempo, pero inventa las fechas que faltan con un desplazamiento pseudoaleatorio | PENDIENTE | — |
+| **C11** · Gantt con estas capacidades | **PARCIAL** — hay una línea de tiempo, pero inventa las fechas que faltan con un desplazamiento pseudoaleatorio | **HECHO** | [gantt.test.ts](lib/scheduling/__tests__/gantt.test.ts) (41) · [gantt-chart.test.tsx](components/plan/__tests__/gantt-chart.test.tsx) (24) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) (10) |
 | **C12** · Documentación que se calcula sola | **PARCIAL** — el reporte Word ya calcula sus cifras en el servidor y se las entrega a la IA como hechos; el patrón es correcto y no hay plan del cual sacar cifras | **HECHO** | [plan-summary.test.ts](lib/scheduling/__tests__/plan-summary.test.ts) |
 | **C13** · Vista ejecutiva | **PARCIAL** — hay tablero ejecutivo con puntaje de salud y tendencia; no responde fecha de cierre, margen, qué lo mueve ni qué depende del cliente | **HECHO** | `lib/scheduling/__tests__/executive-brief.test.ts` (20) · `components/plan/__tests__/executive-brief-panel.test.tsx` (12) |
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 12 en HECHO · 1 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1, 2 y 3 cerradas.**
-De la fase 4 falta C11 · Gantt.
+**Avance:** **13 en HECHO** · 0 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Las cuatro fases cerradas.**
 
 ---
 
@@ -170,7 +169,7 @@ vacías son todas de resumen. Las 1 243 líneas hoja traen ambas sin una sola ex
 libro define el criterio como «la regla que decide si la línea está cerrada; debe poder verificarla
 un tercero sin preguntarle a nadie».
 
-### C11 · Gantt con estas capacidades — PARCIAL
+### C11 · Gantt con estas capacidades — HECHO
 
 Existe [components/projects/timeline/timeline-tab.tsx](components/projects/timeline/timeline-tab.tsx),
 pero cuando a una tarea le faltan fechas **las inventa**: divide la ventana del proyecto entre el
@@ -183,6 +182,30 @@ salientes; preservar plegado, selección y desplazamiento al recargar— y defec
 heredar: dibuja FF y SF con la geometría de FS (miente en 159 vínculos), parsea el desfase y no lo
 usa (394 vínculos con desfase de −22 a +46 días se ven como si fueran cero), y mide el ancho de la
 barra en días calendario mientras todos los textos hablan de días hábiles.
+
+Se resolvió en dos capas, igual que C13. El trazado
+([lib/scheduling/gantt.ts](lib/scheduling/gantt.ts)) calcula **dónde va cada cosa** y devuelve
+geometría en unidades de día hábil; la vista
+([components/plan/gantt-chart.tsx](components/plan/gantt-chart.tsx)) multiplica por el ancho de un
+día y no hace más aritmética. La separación no es estética: la línea de tiempo que ya existía
+inventaba fechas **en el componente**, y una vista que puede inventar datos termina inventándolos.
+
+Las cuatro reglas del trazado, cada una contra un defecto medido de la referencia:
+
+| Regla | Qué corrige | Medido en el archivo |
+|---|---|---|
+| Cada tipo se ancla donde amarra | La referencia dibuja `FF` y `SF` con geometría de `FS` | 159 vínculos fin-fin, ahora anclados de fin a fin |
+| La barra se mide en días hábiles | La referencia la mide en días de calendario | ninguna de las 1 243 hojas se estira por cruzar un fin de semana |
+| El desfase llega al dibujo con su signo | La referencia lo parsea y lo descarta | 394 con desfase, 6 de ellos negativos |
+| Al plegar, las flechas se pliegan y se cuentan | La referencia pliega pero no dice cuántas representa | 1 665 flechas se leen como 55 al nivel de etapas |
+
+Y una regla que la referencia no tiene: **una flecha se pinta como crítica solo si de verdad empuja**.
+Que sus dos puntas sean críticas no basta —una tarea crítica puede tener cuatro predecesoras críticas
+y solo una la está empujando—. El trazado usa el vínculo conductor que ya guardaba el pase adelante.
+
+El filtro de ruta súper crítica deja 312 líneas y conserva los 66 resúmenes de los que cuelgan: sin
+ellos queda una lista de tareas sueltas sin la etapa de la que salen, que es la respuesta sin la
+pregunta.
 
 ### C12 · Documentación que se calcula sola — PARCIAL
 
