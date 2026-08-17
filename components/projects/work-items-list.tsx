@@ -513,21 +513,24 @@ export function WorkItemsList({
 
                   {/* Phase Items */}
                   {isExpanded && (
-                    <div style={{ borderTop: '1px solid #27272a' }}>
-                      <table className="w-full">
-                        <thead>
-                          <tr>
-                            <th style={{ ...thStyle, width: 32, padding: '10px 8px' }}></th>
-                            <th style={thStyle}>{t('workItemTitle')}</th>
-                            <th style={thStyle}>{t('workItemStatus')}</th>
-                            <th style={thStyle}>{t('workItemPriority')}</th>
-                            <th style={thStyle}>{t('owner')}</th>
-                            <th style={thStyle}>Fecha Inicio</th>
-                            <th style={thStyle}>Fecha Final</th>
-                            <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
-                          </tr>
-                        </thead>
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, phaseName)}>
+                    // DndContext va POR FUERA de la tabla: renderiza divs ocultos de accesibilidad
+                    // junto a sus hijos, y un div dentro de <table> es HTML inválido que rompe la
+                    // hidratación. SortableContext sí puede abrazar al tbody: no pinta DOM propio.
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, phaseName)}>
+                      <div style={{ borderTop: '1px solid #27272a' }}>
+                        <table className="w-full">
+                          <thead>
+                            <tr>
+                              <th style={{ ...thStyle, width: 32, padding: '10px 8px' }}></th>
+                              <th style={thStyle}>{t('workItemTitle')}</th>
+                              <th style={thStyle}>{t('workItemStatus')}</th>
+                              <th style={thStyle}>{t('workItemPriority')}</th>
+                              <th style={thStyle}>{t('owner')}</th>
+                              <th style={thStyle}>Fecha Inicio</th>
+                              <th style={thStyle}>Fecha Final</th>
+                              <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
+                            </tr>
+                          </thead>
                           <SortableContext items={(localOrder.get(phaseName) || sortItems(items)).map(i => i.id)} strategy={verticalListSortingStrategy}>
                             <tbody>
                               {(localOrder.get(phaseName) || sortItems(items)).map((item) => (
@@ -543,9 +546,9 @@ export function WorkItemsList({
                               ))}
                             </tbody>
                           </SortableContext>
-                        </DndContext>
-                      </table>
-                    </div>
+                        </table>
+                      </div>
+                    </DndContext>
                   )}
                 </div>
               )
