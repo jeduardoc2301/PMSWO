@@ -36,10 +36,19 @@ cuatro cifras de la captura del usuario:
 | **E5** · Estado derivado del corte (No iniciado/En curso/Cerrado) | NO EXISTE — el estado del sistema es de kanban, no de corte | **HECHO** | [schedule-variance.test.ts](lib/scheduling/__tests__/schedule-variance.test.ts) (19) |
 | **E6** · Atraso (−) / Ventaja (+) en días por línea | NO EXISTE | **HECHO** | misma prueba: la fórmula J del archivo, celda por celda, incluida la rama de hitos |
 | **E7** · Responsable real por línea (las dos partes, sin exigir cuenta) | PARCIAL — solo el del cliente (`clientOwner`); el del proveedor quedó en la descripción | **HECHO** | `responsible_name` 1 368/1 368 + prueba del esquema |
-| **E8** · Predecesoras visibles y editables por línea | PARCIAL — visibles en el Timeline; ni visibles en la lista ni editables en ningún lado | PENDIENTE | — |
+| **E8** · Predecesoras visibles y editables por línea | PARCIAL — visibles en el Timeline; ni visibles en la lista ni editables en ningún lado | **HECHO** | [dependency.service.test.ts](services/__tests__/dependency.service.test.ts) (8, incluida la validación de ciclos con el motor real) · [dependency-editor.test.tsx](components/projects/__tests__/dependency-editor.test.tsx) (11) · viaje completo verificado por HTTP: alta 201, el plan lo trae, baja 200, y el ciclo rechazado con 400 nombrando sus líneas |
 | **E9** · Reimportar el plan actualizado sin perder lo capturado en la plataforma | PARCIAL — `--replace` borra y recrea; pisa avance capturado aquí | **HECHO** | [plan-merge.test.ts](services/__tests__/plan-merge.test.ts) (10) + verificación e2e contra el proyecto real: capturas conservadas, elemento manual intacto, 1 665 vínculos reconstruidos |
 
-**Avance:** 8 en HECHO · 1 en PENDIENTE (E8 · predecesoras editables).
+**Avance:** **9 en HECHO · 0 en PENDIENTE. El encargo está cerrado.**
+
+### El cierre de E8, en corto
+
+La columna «Vínculos» del esquema muestra cuántos entran (◂) y salen (▸) de cada línea; en las hojas
+abre el editor: lista de predecesoras con su tipo y desfase rotulados, quitar por vínculo, y captura
+con buscador que excluye a la propia línea y a las ya vinculadas. La validación que no negocia es la
+de ciclos: se arma el grafo con el motor **antes** de escribir, y el rechazo nombra las líneas del
+ciclo — verificado contra el plan real intentando cerrar 3→4→3. Las sucesoras se leen pero se
+capturan desde la línea que espera, que es donde la pregunta tiene dueño.
 
 ### La política del refresco (E9), escrita
 

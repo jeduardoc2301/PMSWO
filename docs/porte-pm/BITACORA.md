@@ -1397,3 +1397,36 @@ llevaba en memoria el cliente de Prisma anterior a la migracion. Reinicio y verd
 
 Estado: E1-E7 en HECHO. Pendientes E8 (editar predecesoras) y E9 (reimportar sin pisar lo
 capturado). Bateria: 101 archivos, 1 867 pruebas, cero fallas.
+
+---
+
+## Tramo 17 - E8 y E9: el cierre del segundo encargo
+
+### E9, primero, porque protege datos
+
+`refreshProjectFromPlan` + `--merge`: empareja por sourceId y ejecuta lo que decide `planDeRefresco`
+(pura, 10 pruebas). La politica del avance: el archivo manda cuando dice algo; cuando calla, lo
+capturado en la plataforma se conserva -bajar a cero no se puede por reimportacion, a proposito-.
+Verificado e2e: capturas conservadas, elemento manual intacto, vinculos y jerarquia reconstruidos.
+El mapeo fila→datos quedo en una sola funcion compartida entre importar y refrescar.
+
+### E8: capturar vinculos sin romper el plan
+
+Servicio con la validacion que no negocia -ciclos detectados con el motor real ANTES de escribir,
+rechazo nombrando las lineas-, rutas POST/DELETE, columna «Vinculos» en el esquema y editor de
+predecesoras con buscador. Verificado por HTTP contra el plan real: el ciclo 3→4→3 rechazado con
+400 y sus lineas nombradas; alta 201, el plan lo trae, baja 200.
+
+### Tres hallazgos del camino
+
+1. `lib/scheduling/dependencies.ts` tenia un byte nulo (mismo defecto que gantt.ts): grep lo
+   trataba como binario. Limpio.
+2. `clearAllMocks` no vacia las colas de `mockResolvedValueOnce`: una prueba que no consume su cola
+   desalinea a la siguiente. La prueba del servicio usa `resetAllMocks` con el porque escrito.
+3. El empaquetador de desarrollo puede cargar dos copias de `lib/errors` y entonces `instanceof`
+   miente: un ciclo bien detectado salia como 500 generico. La ruta reconoce por `name` ademas de
+   por clase, con el porque escrito.
+
+### Estado final del encargo
+
+E1-E9 en HECHO. Bateria: 104 archivos, 1 896 pruebas, cero fallas. Humo completo con viaje redondo.

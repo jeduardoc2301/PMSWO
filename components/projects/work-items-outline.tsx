@@ -46,6 +46,8 @@ export interface WorkItemsOutlineProps {
   readonly onCutoffChange: (iso: string | null) => void
   /** Capturar avance de una hoja, de 0 a 1. Quien monta persiste y actualiza tasks. */
   readonly onProgressChange: (id: string, progress: number) => void
+  /** Abrir el editor de vínculos de una línea. Sin esto, la columna solo informa. */
+  readonly onEditLinks?: (id: string) => void
 }
 
 /**
@@ -82,6 +84,7 @@ export function WorkItemsOutline({
   cutoffFrozen,
   onCutoffChange,
   onProgressChange,
+  onEditLinks,
 }: WorkItemsOutlineProps): React.JSX.Element {
   const jerarquia = useMemo(() => nivelesDelPlan(tasks), [tasks])
   const [plegados, setPlegados] = useState<ReadonlySet<string>>(
@@ -118,6 +121,21 @@ export function WorkItemsOutline({
   }, [tasks, dependencies, base, plegados])
 
   const porId = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks])
+
+  // Cuántos vínculos entran y salen de cada línea. La columna existe para que las dependencias
+  // dejen de ser un secreto del Timeline: quien revisa avance ve ahí mismo qué amarra qué.
+  const vinculosDe = useMemo(() => {
+    const cuenta = new Map<string, { entran: number; salen: number }>()
+    for (const v of dependencies) {
+      const s = cuenta.get(v.successorId) ?? { entran: 0, salen: 0 }
+      s.entran += 1
+      cuenta.set(v.successorId, s)
+      const p = cuenta.get(v.predecessorId) ?? { entran: 0, salen: 0 }
+      p.salen += 1
+      cuenta.set(v.predecessorId, p)
+    }
+    return cuenta
+  }, [dependencies])
 
   if (base === null || layout === null) {
     return (
@@ -174,6 +192,7 @@ export function WorkItemsOutline({
               <th className="px-3 py-2 font-medium">Estado al corte</th>
               <th className="px-3 py-2 text-right font-medium">% avance</th>
               <th className="px-3 py-2 text-right font-medium">Atraso (−) / Ventaja (+)</th>
+              <th className="px-3 py-2 text-center font-medium">Vínculos</th>
               <th className="px-3 py-2 font-medium">Responsable</th>
               <th className="px-3 py-2 font-medium">Inicio</th>
               <th className="px-3 py-2 font-medium">Fin</th>
@@ -186,6 +205,8 @@ export function WorkItemsOutline({
                 row={row}
                 avance={avanceEfectivo(row, base.rollup)}
                 owner={porId.get(row.id)?.owner}
+                vinculos={vinculosDe.get(row.id)}
+                onEditLinks={onEditLinks}
                 cutoff={cutoff}
                 calendar={base.calendar}
                 onToggle={alternar}
@@ -214,18 +235,22 @@ function Linea({
   row,
   avance,
   owner,
+  vinculos,
   cutoff,
   calendar,
   onToggle,
   onProgressChange,
+  onEditLinks,
 }: {
   row: GanttRow
   avance: number
   owner: string | undefined
+  vinculos: { entran: number; salen: number } | undefined
   cutoff: string
   calendar: ReturnType<typeof createWorkCalendar>
   onToggle: (id: string) => void
   onProgressChange: (id: string, progress: number) => void
+  onEditLinks?: (id: string) => void
 }) {
   // La fórmula del archivo, sobre las fechas del motor. En un resumen la duración es su lapso en
   // días hábiles y el avance es el acumulado ponderado — la misma pareja (G, H) que el archivo usa
@@ -303,6 +328,9 @@ function Linea({
       <td className="px-3 py-1.5 text-right tabular-nums">
         <Delta id={row.id} valor={variance.deltaDays} />
       </td>
+      <td className="whitespace-nowrap px-3 py-1.5 text-center">
+        <CeldaDeVinculos row={row} vinculos={vinculos} onEditLinks={onEditLinks} />
+      </td>
       <td className="whitespace-nowrap px-3 py-1.5 text-zinc-300">{owner ? owner : '—'}</td>
       <td className="whitespace-nowrap px-3 py-1.5 text-zinc-400">{row.start}</td>
       <td className="whitespace-nowrap px-3 py-1.5 text-zinc-400">{row.finish}</td>
@@ -324,6 +352,38 @@ function tipoDeLinea(row: GanttRow): string {
   }
   // Un RESUMEN sin hijas no agrupa nada todavía; se nombra bloque, no con la cadena cruda.
   return row.kind === 'RESUMEN' ? 'Bloque' : TIPO_EN_PALABRAS[row.kind]
+}
+
+/**
+ * La celda de vínculos: cuántos entran (◂) y salen (▸), y la puerta al editor.
+ *
+ * En un resumen solo se informa: sus vínculos reales viven en sus hijas y editar «los del resumen»
+ * sería ambiguo. En una hoja, si quien monta ofreció editor, la celda entera es el botón que lo
+ * abre — incluso con cero vínculos, porque capturar el primero es justamente el caso que importa.
+ */
+function CeldaDeVinculos({
+  row,
+  vinculos,
+  onEditLinks,
+}: {
+  row: GanttRow
+  vinculos: { entran: number; salen: number } | undefined
+  onEditLinks?: (id: string) => void
+}) {
+  const texto = `${vinculos?.entran ?? 0} ◂ · ${vinculos?.salen ?? 0} ▸`
+  if (!onEditLinks || row.isSummary) {
+    return <span className="text-xs text-zinc-500">{texto}</span>
+  }
+  return (
+    <button
+      type="button"
+      aria-label={`Editar vínculos de ${row.name}`}
+      onClick={() => onEditLinks(row.id)}
+      className="rounded px-1.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+    >
+      {texto}
+    </button>
+  )
 }
 
 /** Días de atraso o ventaja, con el signo y la décima del archivo. El cero se atenúa: no es noticia. */

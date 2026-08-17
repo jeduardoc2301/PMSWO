@@ -16,6 +16,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 
+import { DependencyEditor } from '@/components/projects/dependency-editor'
 import { WorkItemsList } from '@/components/projects/work-items-list'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
@@ -75,6 +76,11 @@ export function WorkItemsView({
   const [modo, setModo] = useState<Modo>('ESQUEMA')
   const [estado, setEstado] = useState<EstadoPlan>({ fase: 'cargando' })
   const [aviso, setAviso] = useState<string | null>(null)
+  // La línea cuyos vínculos se editan, y el estado del viaje en curso. El error del editor va
+  // aparte del aviso general: un ciclo rechazado pertenece al editor, no a toda la pestaña.
+  const [editandoVinculos, setEditandoVinculos] = useState<string | null>(null)
+  const [vinculoEnCurso, setVinculoEnCurso] = useState(false)
+  const [errorDeVinculo, setErrorDeVinculo] = useState<string | null>(null)
   // La carga y los PATCH sobreviven al desmontaje; sin esta bandera, sus respuestas escribirían
   // estado sobre un componente que ya no existe.
   const vigente = useRef(true)
@@ -172,6 +178,58 @@ export function WorkItemsView({
     }
   }
 
+  /**
+   * Capturar o quitar un vínculo. En ambos casos, tras el éxito se recarga el plan entero: un
+   * vínculo cambia la ruta crítica, la holgura y quizá la fecha de cierre, y repintar solo la
+   * lista del editor dejaría el resto de la tabla contando una historia vieja.
+   */
+  const capturarVinculo = async (link: { predecessorId: string; type: string; lag: number }) => {
+    if (editandoVinculos === null) return
+    setVinculoEnCurso(true)
+    setErrorDeVinculo(null)
+    try {
+      const respuesta = await fetch(`/api/v1/projects/${projectId}/dependencies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ successorId: editandoVinculos, ...link }),
+      })
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
+      }
+      await cargarPlan()
+    } catch (error) {
+      if (vigente.current) {
+        setErrorDeVinculo(error instanceof Error ? error.message : 'No se pudo capturar el vínculo.')
+      }
+    } finally {
+      if (vigente.current) setVinculoEnCurso(false)
+    }
+  }
+
+  const quitarVinculo = async (predecessorId: string) => {
+    if (editandoVinculos === null) return
+    setVinculoEnCurso(true)
+    setErrorDeVinculo(null)
+    try {
+      const consulta = new URLSearchParams({ predecessorId, successorId: editandoVinculos })
+      const respuesta = await fetch(`/api/v1/projects/${projectId}/dependencies?${consulta}`, {
+        method: 'DELETE',
+      })
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
+      }
+      await cargarPlan()
+    } catch (error) {
+      if (vigente.current) {
+        setErrorDeVinculo(error instanceof Error ? error.message : 'No se pudo quitar el vínculo.')
+      }
+    } finally {
+      if (vigente.current) setVinculoEnCurso(false)
+    }
+  }
+
   const cambiarCorte = async (iso: string | null) => {
     setAviso(null)
     try {
@@ -241,15 +299,43 @@ export function WorkItemsView({
               {aviso}
             </div>
           ) : null}
-          <WorkItemsOutline
-            tasks={estado.plan.tasks}
-            dependencies={estado.plan.dependencies}
-            start={estado.plan.start}
-            cutoff={estado.plan.progressCutoff ?? hoyCivil()}
-            cutoffFrozen={estado.plan.progressCutoff !== null}
-            onCutoffChange={cambiarCorte}
-            onProgressChange={capturarAvance}
-          />
+          <div className="flex flex-col gap-4 xl:flex-row">
+            <div className="min-w-0 flex-1">
+              <WorkItemsOutline
+                tasks={estado.plan.tasks}
+                dependencies={estado.plan.dependencies}
+                start={estado.plan.start}
+                cutoff={estado.plan.progressCutoff ?? hoyCivil()}
+                cutoffFrozen={estado.plan.progressCutoff !== null}
+                onCutoffChange={cambiarCorte}
+                onProgressChange={capturarAvance}
+                onEditLinks={(id) => {
+                  setErrorDeVinculo(null)
+                  setEditandoVinculos(id)
+                }}
+              />
+            </div>
+            {editandoVinculos !== null
+              ? (() => {
+                  const tarea = estado.plan.tasks.find((t) => t.id === editandoVinculos)
+                  if (!tarea) return null
+                  return (
+                    <aside className="w-full shrink-0 xl:w-[400px]">
+                      <DependencyEditor
+                        task={tarea}
+                        tasks={estado.plan.tasks}
+                        dependencies={estado.plan.dependencies}
+                        onAdd={capturarVinculo}
+                        onRemove={quitarVinculo}
+                        onClose={() => setEditandoVinculos(null)}
+                        busy={vinculoEnCurso}
+                        error={errorDeVinculo}
+                      />
+                    </aside>
+                  )
+                })()
+              : null}
+          </div>
         </>
       )}
     </div>

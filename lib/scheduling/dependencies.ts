@@ -234,7 +234,10 @@ export function buildDependencyGraph(
       )
     }
 
-    const pair = `${dependency.predecessorId} ${dependency.successorId}`
+    // La clave del par se serializa como arreglo: cualquier separador elegido puede aparecer dentro
+    // de un identificador y volverla ambigua, y el byte nulo que estaba aqui volvia binario el
+    // archivo para `grep`, que lo saltaba en cualquier busqueda de texto.
+    const pair = JSON.stringify([dependency.predecessorId, dependency.successorId])
     if (seenPairs.has(pair)) {
       throw new SchedulingError(
         'VINCULO_DUPLICADO',
