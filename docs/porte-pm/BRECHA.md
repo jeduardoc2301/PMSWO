@@ -25,12 +25,12 @@ segunda columna. Sin ruta de prueba llena, ninguna capacidad puede estar en HECH
 | **C9** · Trazabilidad por línea | **PARCIAL** — `WorkItemChange` registra quién cambió qué campo y cuándo; falta de dónde salió la línea | **HECHO** | [traceability.test.ts](lib/scheduling/__tests__/traceability.test.ts) |
 | **C10** · Criterios de salida verificables | **NO EXISTE** — no hay campo de entregable ni de criterio de salida en ningún modelo | **HECHO** | [exit-criteria.test.ts](lib/scheduling/__tests__/exit-criteria.test.ts) · [plan-referencia.test.ts](lib/scheduling/__tests__/plan-referencia.test.ts) |
 | **C11** · Gantt con estas capacidades | **PARCIAL** — hay una línea de tiempo, pero inventa las fechas que faltan con un desplazamiento pseudoaleatorio | PENDIENTE | — |
-| **C12** · Documentación que se calcula sola | **PARCIAL** — el reporte Word ya calcula sus cifras en el servidor y se las entrega a la IA como hechos; el patrón es correcto y no hay plan del cual sacar cifras | PENDIENTE | — |
+| **C12** · Documentación que se calcula sola | **PARCIAL** — el reporte Word ya calcula sus cifras en el servidor y se las entrega a la IA como hechos; el patrón es correcto y no hay plan del cual sacar cifras | **HECHO** | [plan-summary.test.ts](lib/scheduling/__tests__/plan-summary.test.ts) |
 | **C13** · Vista ejecutiva | **PARCIAL** — hay tablero ejecutivo con puntaje de salud y tendencia; no responde fecha de cierre, margen, qué lo mueve ni qué depende del cliente | PENDIENTE | — |
 
 **Recuento del diagnóstico:** 8 en NO EXISTE, 5 en PARCIAL, 0 en YA EXISTE.
 
-**Avance:** 10 en HECHO · 3 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1, 2 y 3 cerradas.**
+**Avance:** 11 en HECHO · 2 en PENDIENTE · 0 en EN CURSO · 0 DESCARTADA. **Fases 1, 2 y 3 cerradas.**
 
 ---
 

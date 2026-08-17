@@ -18,6 +18,7 @@ import { analyzeCriticalPath } from '../lib/scheduling/cpm'
 import { classifySuperCritical } from '../lib/scheduling/critical-path'
 import { holidayDates, holidaysFor } from '../lib/scheduling/holidays'
 import { importPlanFromXlsx } from '../lib/scheduling/import-plan'
+import { narrate, summarizePlan } from '../lib/scheduling/plan-summary'
 import { parentsFromLevels, rollUpProgress } from '../lib/scheduling/progress'
 import { schedulePlan } from '../lib/scheduling/schedule'
 import { simulateHolidays } from '../lib/scheduling/simulation'
@@ -188,6 +189,27 @@ function main(): void {
     const t = rollup.byId.get(raiz)!
     dato(`  ${recorta(t.name, 40)}`, `peso ${t.weight}  ·  avance ${pct(t.earnedDays, t.weight)}`)
   }
+
+  // ── El resumen en prosa ────────────────────────────────────────────────────
+  titulo('El plan, en palabras')
+  console.log(
+    narrate(
+      summarizePlan({
+        tasks: anclado,
+        dependencies: plan.dependencies,
+        schedule,
+        classified: clasificado,
+        rollup,
+        commitments: compromisos,
+        calendar,
+        deadline: plan.declaredFinish,
+        computedAt: plan.declaredStart,
+      }),
+    )
+      .split('\n')
+      .map((linea) => (linea === '' ? '' : `  ${linea}`))
+      .join('\n'),
+  )
 
   // ── Simulación de feriados ─────────────────────────────────────────────────
   const anio = Number(plan.declaredStart.slice(0, 4))

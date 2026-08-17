@@ -971,3 +971,67 @@ repite once veces identico. 188 son demasiado cortas y 108 no dejan a que apunta
 
 Fase 4. Quedan **C11 - Gantt**, **C12 - Documentacion que se calcula sola** y **C13 - Vista
 ejecutiva**. Es la primera fase que produce algo que se ve en pantalla.
+
+
+---
+
+## Tramo 11 - C12 - Documentacion que se calcula sola
+
+**Estado:** CERRADO. C12 pasa a HECHO.
+
+### Que se toco
+
+- `lib/scheduling/plan-summary.ts` - las cifras del plan y su redaccion en prosa.
+- `lib/scheduling/__tests__/plan-summary.test.ts` - 20 pruebas.
+- `scripts/plan-report.ts` - el resumen en prosa enganchado al informe, para poder verlo.
+
+### Por que importa, con el ejemplo del propio archivo de referencia
+
+En el plan de referencia, las cifras escritas a mano en su hoja de instrucciones contradijeron al
+plan en cuanto se agregaron catorce lineas: el reparto por nivel suma 1 354 donde el plan tiene
+1 368, dice 322 lineas de un responsable donde son 328, y 66 hitos donde son 86. Un auditor lo
+detecto de inmediato, y con razon: si las cifras del resumen no cuadran con el plan, la duda se
+traslada al plan entero.
+
+De ahi las dos reglas que el modulo hace cumplir: las cifras se calculan al generar, y el texto
+interpola sin escribir jamas un numero. Si una frase necesita un numero que el resumen no tiene, se
+agrega al resumen, no se escribe en la frase.
+
+La prueba de aceptacion es directa: se agregan lineas al plan y el texto cambia solo - y la cifra
+vieja **desaparece**, que es justo lo que no pasa cuando alguien la escribio.
+
+### Sobre el plan real
+
+El resumen en prosa del plan de referencia, con cada cifra contada del contenido:
+
+> El plan tiene 1,368 lineas: 1,243 de detalle y 125 de resumen, con 86 hitos y 4 compuertas. Las
+> une 1,665 vinculos, de los cuales 394 llevan desfase y 6 son solapamientos declarados. Arranca el
+> 2026-06-12 y cierra el 2026-11-30: 122 dias habiles. Es exactamente la fecha de compromiso: no hay
+> margen. De las 1,247 lineas que se ejecutan, 1,127 no tienen holgura -el 90,4 %-. De esas, 312
+> tampoco se recuperan metiendo mas gente: 210 las decide un tercero, 58 son tiempo que tiene que
+> pasar y 44 tienen fecha pactada. 165 de esas 312 dependen del cliente y 147 del proveedor.
+
+### Lo que se encontro y no se esperaba
+
+**El texto decia «1 hitos».** La primera version interpolaba el numero y el sustantivo por separado,
+y en cuanto una cifra valia uno el resultado quedaba en mal espanol. En un documento que firma un
+cliente eso le resta autoridad a todo lo demas: delata que lo armo una maquina y nadie lo leyo.
+
+Quedaron dos ayudantes -uno concuerda el sustantivo, otro el verbo- y una prueba que fija el caso:
+el texto no puede contener «1 hitos», «1 lineas», «1 compromisos» ni «1 vinculos».
+
+**La fecha de corte se recibe, no se lee del reloj.** Un informe que cambia entre dos ejecuciones
+identicas no se puede revisar ni comparar, y ademas seria imposible de probar. Hay una prueba que fija
+que el mismo plan produce el mismo texto dos veces.
+
+### Preguntas abiertas nuevas
+
+1. **El resumen todavia no alimenta el reporte Word.** El patron correcto ya existe en el sistema
+   -`generate-report/docx` calcula sus cifras en el servidor y se las entrega a la IA como hechos-,
+   asi que conectar el resumen del plan a ese generador es trabajo de la capa de servicio, no del
+   motor.
+
+### Siguiente
+
+Quedan **C11 - Gantt** y **C13 - Vista ejecutiva**, las dos de pantalla. C13 tiene ya todas sus
+cifras: es la vista de este mismo resumen. C11 es la mas grande de las dos.
