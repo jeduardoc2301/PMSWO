@@ -37,9 +37,18 @@ cuatro cifras de la captura del usuario:
 | **E6** · Atraso (−) / Ventaja (+) en días por línea | NO EXISTE | **HECHO** | misma prueba: la fórmula J del archivo, celda por celda, incluida la rama de hitos |
 | **E7** · Responsable real por línea (las dos partes, sin exigir cuenta) | PARCIAL — solo el del cliente (`clientOwner`); el del proveedor quedó en la descripción | **HECHO** | `responsible_name` 1 368/1 368 + prueba del esquema |
 | **E8** · Predecesoras visibles y editables por línea | PARCIAL — visibles en el Timeline; ni visibles en la lista ni editables en ningún lado | PENDIENTE | — |
-| **E9** · Reimportar el plan actualizado sin perder lo capturado en la plataforma | PARCIAL — `--replace` borra y recrea; pisa avance capturado aquí | PENDIENTE | — |
+| **E9** · Reimportar el plan actualizado sin perder lo capturado en la plataforma | PARCIAL — `--replace` borra y recrea; pisa avance capturado aquí | **HECHO** | [plan-merge.test.ts](services/__tests__/plan-merge.test.ts) (10) + verificación e2e contra el proyecto real: capturas conservadas, elemento manual intacto, 1 665 vínculos reconstruidos |
 
-**Avance:** 7 en HECHO · 2 en PENDIENTE.
+**Avance:** 8 en HECHO · 1 en PENDIENTE (E8 · predecesoras editables).
+
+### La política del refresco (E9), escrita
+
+El emparejamiento es por `sourceId` —el número de fila del archivo, la misma identidad que el
+archivo usa para sus predecesoras—. El avance tiene una sola regla: **el archivo manda cuando dice
+algo (avance > 0); cuando calla, lo capturado en la plataforma se conserva.** Consecuencia
+deliberada: bajar un avance a cero no se puede por reimportación — se hace en la plataforma, donde
+la intención es inequívoca. Lo creado a mano (sin `sourceId`) no se toca: el archivo no sabe de
+ello. Uso: `npx tsx scripts/import-plan-db.ts --merge`.
 
 ## Nota sobre el avance del archivo
 

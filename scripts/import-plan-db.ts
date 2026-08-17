@@ -17,7 +17,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import prisma from '../lib/prisma'
-import { importPlanAsProject } from '../services/plan-import.service'
+import { importPlanAsProject, refreshProjectFromPlan } from '../services/plan-import.service'
 
 const ARCHIVO = 'referencia/PDT BU V7 - Plan Integrado.xlsx'
 const NOMBRE = 'PDT BU V7 · Plan Integrado'
@@ -51,6 +51,40 @@ async function main(): Promise<void> {
     console.error('No existe admin@test.com en esta base. Corre primero la semilla:')
     console.error('  DATABASE_URL="..." npx tsx prisma/seed.ts')
     process.exitCode = 1
+    return
+  }
+
+  // --merge refresca el proyecto existente sin pisar lo capturado en la plataforma; --replace lo
+  // borra y lo recrea desde cero. Para el dia dos, --merge es el camino.
+  const merge = process.argv.includes('--merge')
+  if (merge) {
+    const existente = await prisma.project.findFirst({
+      where: { organizationId: admin.organizationId, name: NOMBRE },
+      select: { id: true },
+    })
+    if (!existente) {
+      console.error(`No hay un proyecto llamado «${NOMBRE}» que refrescar. Importa primero sin --merge.`)
+      process.exitCode = 1
+      return
+    }
+    console.log(`Refrescando «${NOMBRE}» desde ${ARCHIVO} sin pisar lo capturado...`)
+    const t0m = Date.now()
+    const r = await refreshProjectFromPlan({
+      buffer: readFileSync(ruta),
+      projectId: existente.id,
+      organizationId: admin.organizationId,
+      fileName: ARCHIVO.split('/').at(-1)!,
+    })
+    console.log(`
+Listo en ${((Date.now() - t0m) / 1000).toFixed(1)} s.`)
+    console.log(`  actualizados            : ${r.actualizados}`)
+    console.log(`  creados                 : ${r.creados}`)
+    console.log(`  retirados               : ${r.retirados.length}${r.retirados.length ? ' → ' + r.retirados.slice(0, 10).join(', ') : ''}`)
+    console.log(`  avances conservados aqui: ${r.avancesConservados}`)
+    console.log(`  creados a mano intactos : ${r.intactosDePlataforma}`)
+    console.log(`  cierre calculado        : ${r.computedFinish}`)
+    console.log(`
+Abrelo en:  http://localhost:3100/es/projects/${r.projectId}`)
     return
   }
 
