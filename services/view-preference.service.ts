@@ -14,6 +14,7 @@
 import { z } from 'zod'
 
 import prisma from '@/lib/prisma'
+import { GANTT_POR_OMISION } from '@/lib/plan/gantt-columns'
 import { PANEL_POR_OMISION, WIDGETS_DEL_PANEL } from '@/lib/projects/dashboard-widgets'
 
 /** Las vistas que pueden guardar preferencia. */
@@ -24,8 +25,30 @@ const esquemaDelPanel = z.object({
   widgets: z.array(z.enum(WIDGETS_DEL_PANEL)),
 })
 
-const ESQUEMAS: Partial<Record<Vista, z.ZodTypeAny>> = { PANEL: esquemaDelPanel }
-const POR_OMISION: Partial<Record<Vista, unknown>> = { PANEL: PANEL_POR_OMISION }
+/**
+ * Lo que el Gantt guarda por usuario (§4.8, criterio 8).
+ *
+ * Los anchos entran como número suelto y se acotan al **leer**, no aquí: lo guardado puede venir de
+ * otra versión del catálogo, y rechazarlo dejaría a alguien sin sus preferencias por un cambio que
+ * no hizo él. Los identificadores de columna tampoco se validan contra el catálogo por lo mismo —
+ * `columnasVisibles` descarta los que ya no existen.
+ */
+const esquemaDelGantt = z.object({
+  columnas: z.array(z.string()).max(40),
+  anchos: z.record(z.string(), z.number()),
+  escala: z.enum(['MES', 'SEMANA']),
+  nivel: z.number().int().min(0).max(32),
+  flechas: z.enum(['NINGUNO', 'SELECCION', 'TODOS']),
+})
+
+const ESQUEMAS: Partial<Record<Vista, z.ZodTypeAny>> = {
+  PANEL: esquemaDelPanel,
+  GANTT: esquemaDelGantt,
+}
+const POR_OMISION: Partial<Record<Vista, unknown>> = {
+  PANEL: PANEL_POR_OMISION,
+  GANTT: GANTT_POR_OMISION,
+}
 
 /**
  * Valida lo que entra para una vista.
