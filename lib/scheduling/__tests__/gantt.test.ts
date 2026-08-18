@@ -452,3 +452,57 @@ describe('El trazado es una función pura', () => {
     expect(trazar(anidado).rows.map((r) => r.level)).toEqual([0, 1, 2])
   })
 })
+
+describe('§4.8 · la desviación contra la línea base', () => {
+  // La foto decía que «a» empezaba el lunes 1 y duraba tres días. Hoy empieza donde el motor la
+  // pone, que con este plan es ese mismo lunes.
+  const FOTO = new Map([
+    ['a', { start: '2026-06-01' as const, finish: '2026-06-03' as const }],
+    ['b', { start: '2026-06-04' as const, finish: '2026-06-10' as const }],
+  ])
+
+  it('sin foto, ninguna fila lleva desviación', () => {
+    const layout = trazar(CADENA, ENLACES)
+    for (const fila of layout.rows) {
+      expect(fila.baseX).toBeUndefined()
+      expect(fila.baseWidth).toBeUndefined()
+      expect(fila.baseDrift).toBeUndefined()
+    }
+  })
+
+  it('una línea que no se movió tiene desviación cero y la misma posición', () => {
+    const layout = trazar(CADENA, ENLACES, { baseline: FOTO })
+    const a = layout.rows.find((f) => f.id === 'a')!
+    expect(a.baseX).toBe(a.x)
+    expect(a.baseDrift).toBe(0)
+    // Del lunes 1 al miércoles 3 son tres días hábiles contando los dos extremos, como NETWORKDAYS.
+    expect(a.baseWidth).toBe(3)
+  })
+
+  it('una línea que hoy va más tarde que la foto tiene desviación positiva', () => {
+    // La foto la ponía cinco días hábiles antes de donde el motor la pone hoy.
+    const foto = new Map([['b', { start: '2026-05-28' as const, finish: '2026-06-03' as const }]])
+    const layout = trazar(CADENA, ENLACES, { baseline: foto })
+    const b = layout.rows.find((f) => f.id === 'b')!
+    expect(b.baseDrift).toBeGreaterThan(0)
+    // Y su barra fantasma queda a la izquierda de la de hoy: eso es lo que se ve en pantalla.
+    expect(b.baseX!).toBeLessThan(b.x)
+  })
+
+  it('una línea que no estaba en la foto no gana barra fantasma', () => {
+    const layout = trazar(CADENA, ENLACES, { baseline: FOTO })
+    // «c» no está en FOTO: es una línea que se añadió después de sacarla.
+    const c = layout.rows.find((f) => f.id === 'c')!
+    expect(c.baseX).toBeUndefined()
+    // Dibujarle una barra en el día cero sería inventarle un compromiso que nadie hizo.
+    expect(c.baseWidth).toBeUndefined()
+  })
+
+  it('la posición de la foto usa el mismo origen que la barra de hoy', () => {
+    // Si los orígenes no coincidieran, toda la foto saldría corrida y parecería un retraso general.
+    const layout = trazar(CADENA, ENLACES, { baseline: FOTO })
+    const b = layout.rows.find((f) => f.id === 'b')!
+    // La foto pone «b» el jueves 4: tres días hábiles después del arranque del plan.
+    expect(b.baseX).toBe(3)
+  })
+})

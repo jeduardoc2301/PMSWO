@@ -324,6 +324,25 @@ function Bar({
           style={{ left: row.floatX * dayWidth, top: y, width: row.floatWidth * dayWidth, height: alto }}
         />
       ) : null}
+      {/* Dónde estaba esta línea según la línea base. Va **debajo** y más delgada, no encima: lo
+          que importa es la de hoy, y la foto es la referencia contra la que se lee el corrimiento.
+          El desfase horizontal entre las dos es la desviación, sin tener que leer ningún número. */}
+      {row.baseX !== undefined && row.baseWidth !== undefined ? (
+        <div
+          data-testid={`base-${row.id}`}
+          data-desvio={row.baseDrift}
+          title={`Línea base: ${row.baseDrift === 0 ? 'sin corrimiento' : row.baseDrift! > 0 ? `${row.baseDrift} días hábiles más tarde de lo previsto` : `${-row.baseDrift!} días hábiles antes de lo previsto`}`}
+          className={`absolute rounded-sm ${
+            row.baseDrift === 0 ? 'bg-zinc-600' : row.baseDrift! > 0 ? 'bg-red-400/50' : 'bg-emerald-400/50'
+          }`}
+          style={{
+            left: row.baseX * dayWidth,
+            top: y + alto - 3,
+            width: Math.max(row.baseWidth * dayWidth, 2),
+            height: 4,
+          }}
+        />
+      ) : null}
       <div
         data-testid={`barra-${row.id}`}
         data-movible={movible ? 'sí' : 'no'}

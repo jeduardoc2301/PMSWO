@@ -83,6 +83,21 @@ export interface GanttRow {
   /** Ancho de la barra en días hábiles. Un hito mide cero. */
   readonly width: number
 
+  /**
+   * Dónde empezaba y cuánto medía esta línea según la foto, si hay una puesta.
+   *
+   * Se calcula aquí, en las mismas unidades que `x` y `width`, para que la vista no tenga que
+   * convertir fechas a posiciones: es la única aritmética que se le pidió no hacer.
+   *
+   * `undefined` cuando no hay foto, o cuando la línea no estaba en ella —una línea nueva no tiene
+   * contra qué compararse, y dibujarle una barra fantasma en el día cero sería inventarse un
+   * compromiso que nadie hizo—.
+   */
+  readonly baseX?: number
+  readonly baseWidth?: number
+  /** Días hábiles que se corrió el arranque contra la foto. Positivo es más tarde. */
+  readonly baseDrift?: number
+
   readonly totalFloat: number
   readonly isCritical: boolean
   readonly isSuperCritical: boolean
@@ -169,6 +184,13 @@ export interface GanttInput {
   /** Las tareas ya analizadas y clasificadas. De aquí salen la holgura y la criticidad. */
   readonly classified: readonly ClassifiedTask[]
   readonly calendar: WorkCalendar
+  /**
+   * Las fechas que la línea base guardó, por identificador.
+   *
+   * Sin esto la vista no puede dibujar la desviación, y con ello el §4.8 pide que se vea «la
+   * desviación de cada tarea» y no un número agregado en una tarjeta.
+   */
+  readonly baseline?: ReadonlyMap<string, { readonly start: IsoDate; readonly finish: IsoDate }>
   /** Identificadores de los resúmenes plegados. */
   readonly collapsed?: readonly string[]
   readonly links?: LinkVisibility
@@ -236,6 +258,28 @@ export function ganttLayout(input: GanttInput): GanttLayout {
   const origin = toDayNumber(schedule.start)
   const originOrdinal = calendar.ordinalOf(origin)
 
+  /**
+   * Dónde estaba la línea según la foto, en las mismas unidades que la barra de hoy.
+   *
+   * Devuelve un objeto vacío si no hay foto o la línea no estaba en ella: así el resultado se
+   * esparce sin dejar campos en `undefined` explícito, y una línea nueva no gana una barra fantasma.
+   */
+  const deLaFoto = (
+    id: string,
+  ): { baseX?: number; baseWidth?: number; baseDrift?: number } => {
+    const guardada = input.baseline?.get(id)
+    if (!guardada) return {}
+    const inicio = calendar.ordinalOf(toDayNumber(guardada.start))
+    const fin = calendar.ordinalOf(toDayNumber(guardada.finish))
+    const baseX = inicio - originOrdinal
+    return {
+      baseX,
+      // Ambos extremos cuentan, como `NETWORKDAYS`: del lunes al viernes son cinco días, no cuatro.
+      baseWidth: Math.max(0, fin - inicio + 1),
+      baseDrift: (schedule.earlyStart.get(id) ?? originOrdinal) - inicio,
+    }
+  }
+
   // ── Qué se ve ────────────────────────────────────────────────────────────
   // Dos razones distintas para no ver una fila, y conviene no confundirlas: está **plegada** dentro
   // de un resumen cerrado, o el **filtro** la dejó fuera. La primera se deshace abriendo el resumen;
@@ -288,6 +332,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       // La holgura arranca donde termina la barra y se extiende hasta el fin tardío.
       floatX: startOrdinal + width,
       floatWidth: Math.max(float, 0),
+      ...deLaFoto(task.id),
     }
   })
 

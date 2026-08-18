@@ -23,12 +23,13 @@
  *   funciona.
  */
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
 import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
 import { PlanDetailPanel, type PlanLink } from '@/components/plan/plan-detail-panel'
+import { BaselinePicker, type LineaBaseGuardada } from '@/components/projects/baseline-picker'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import { toDayNumber, toIsoDate } from '@/lib/scheduling/date'
 import {
@@ -146,6 +147,11 @@ export function PlanWorkspace({
   const [abiertosAMano, setAbiertosAMano] = useState<ReadonlySet<string>>(new Set())
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
   const [aplicando, setAplicando] = useState(false)
+  const [fotos, setFotos] = useState<readonly LineaBaseGuardada[]>([])
+  const [fotoActiva, setFotoActiva] = useState<string | null>(null)
+  const [creandoFoto, setCreandoFoto] = useState(false)
+  /** Las fechas que guardó la foto activa, por línea. Vacío mientras no haya ninguna puesta. */
+  const [fechasDeLaFoto, setFechasDeLaFoto] = useState<ReadonlyMap<string, { start: string; finish: string }>>(new Map())
 
   // ── Lo que se calcula una sola vez ────────────────────────────────────────
   const base = useMemo(() => {
@@ -188,6 +194,55 @@ export function PlanWorkspace({
   }, [tasks, dependencies, start, deadline, calendario])
 
   // ── Lo que se recalcula en cada gesto ─────────────────────────────────────
+  useEffect(() => {
+    if (!projectId) return
+    void fetch(`/api/v1/projects/${projectId}/baselines`)
+      .then((r) => (r.ok ? r.json() : { baselines: [] }))
+      .then((d) => setFotos(d.baselines ?? []))
+      .catch(() => setFotos([]))
+  }, [projectId])
+
+  useEffect(() => {
+    if (!projectId || !fotoActiva) {
+      setFechasDeLaFoto(new Map())
+      return
+    }
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/baselines?compare=${fotoActiva}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!vigente || !d?.resumen) return
+        // Sólo las que la foto tenía. Una línea nueva no tiene contra qué compararse.
+        const mapa = new Map<string, { start: string; finish: string }>()
+        for (const linea of d.resumen.lineas ?? []) {
+          if (linea.base) mapa.set(linea.id, { start: linea.base.start, finish: linea.base.finish })
+        }
+        setFechasDeLaFoto(mapa)
+      })
+      .catch(() => setFechasDeLaFoto(new Map()))
+    return () => {
+      vigente = false
+    }
+  }, [projectId, fotoActiva])
+
+  const guardarFoto = async (nombre: string) => {
+    if (!projectId) return
+    setCreandoFoto(true)
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}/baselines`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nombre }),
+      })
+      if (res.ok) {
+        const lista = await fetch(`/api/v1/projects/${projectId}/baselines`).then((r) => r.json())
+        setFotos(lista.baselines ?? [])
+      }
+    } finally {
+      setCreandoFoto(false)
+    }
+  }
+
   /**
    * Lo hondo que llega este plan. Es el valor del botón «Todo».
    *
@@ -229,13 +284,14 @@ export function PlanWorkspace({
       schedule: base.schedule,
       classified: base.classified,
       calendar: base.calendar,
+      baseline: fechasDeLaFoto.size > 0 ? (fechasDeLaFoto as never) : undefined,
       collapsed: plegados,
       links,
       selectedId,
       filter,
       scale,
     })
-  }, [tasks, dependencies, base, level, abiertosAMano, links, selectedId, filter, scale])
+  }, [tasks, dependencies, base, level, abiertosAMano, links, selectedId, filter, scale, fechasDeLaFoto])
 
   // El filtro unificado recorta las filas ya trazadas, conservando los ancestros de lo que
   // sobrevive: una actividad colgando de una fase ausente dejaría de ser un esquema. Y va aquí,
@@ -398,6 +454,19 @@ export function PlanWorkspace({
               ))}
             </ul>
           </details>
+        ) : null}
+
+        {projectId ? (
+          <div className="mb-3">
+            <BaselinePicker
+              baselines={fotos}
+              activa={fotoActiva}
+              onElegir={setFotoActiva}
+              onCrear={(nombre) => void guardarFoto(nombre)}
+              creando={creandoFoto}
+              puedeCrear
+            />
+          </div>
         ) : null}
 
         <PlanControls
