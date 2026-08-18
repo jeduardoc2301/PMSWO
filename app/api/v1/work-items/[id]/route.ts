@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { columnaAlCambiarProgreso, estadoDeLaColumna } from '@/lib/projects/status-progress'
 import { z } from 'zod'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { NotFoundError, ValidationError } from '@/lib/errors'
@@ -149,6 +150,29 @@ async function updateWorkItemHandler(
       await verificarPadre(workItem.projectId, id, updateData.parentId)
     }
 
+    // ── El otro sentido del acoplamiento estado ↔ avance (§4.7) ──────────────────────────────
+    // Capturar el 100 % en la rejilla tiene que mover la tarjeta a la columna terminal, igual que
+    // arrastrarla allí pone el avance al 100 %. Antes esto sólo escribía `status: DONE` y dejaba
+    // `kanbanColumnId` donde estaba: la línea decía «terminada» y la tarjeta seguía en «Backlog»,
+    // que es exactamente la contradicción que el acoplamiento existe para evitar.
+    let movimientoPorAvance: { kanbanColumnId: string; status: WorkItemStatus } | null = null
+    if (updateData.progressPct !== undefined && updateData.progressPct !== workItem.progressPct) {
+      const columnas = await prisma.kanbanColumn.findMany({
+        where: { projectId: workItem.projectId },
+        orderBy: { order: 'asc' },
+        select: { id: true, name: true, isInitial: true, isDone: true, columnType: true },
+      })
+      const actual = columnas.find((c) => c.id === workItem.kanbanColumnId)
+      const destino = columnaAlCambiarProgreso(updateData.progressPct, actual, columnas)
+      // `null` significa «la columna que tiene ya sirve»: no se escribe para dejar todo igual.
+      if (destino) {
+        movimientoPorAvance = {
+          kanbanColumnId: destino.id,
+          status: estadoDeLaColumna(destino) as WorkItemStatus,
+        }
+      }
+    }
+
     // Update work item
     const updatedWorkItem = await prisma.workItem.update({
       where: { id },
@@ -165,12 +189,10 @@ async function updateWorkItemHandler(
         // Contra undefined y no por verdadero: null significa «súbela a la raíz», y por verdadero
         // ese movimiento se perdería en silencio.
         ...(updateData.parentId !== undefined && { parentId: updateData.parentId }),
-        ...(updateData.progressPct !== undefined && {
-          progressPct: updateData.progressPct,
-          // El avance completo cierra la línea también para el kanban; capturar 100% y que la
-          // tarjeta siga en «Por hacer» sería decir dos cosas distintas sobre la misma línea.
-          ...(updateData.progressPct >= 1 ? { status: WorkItemStatus.DONE } : {}),
-        }),
+        ...(updateData.progressPct !== undefined && { progressPct: updateData.progressPct }),
+        // El movimiento va después del avance para que su estado mande: si los dos escribieran
+        // `status`, el último ganaría por accidente en vez de por decisión.
+        ...(movimientoPorAvance ?? {}),
         ...(updateData.status === WorkItemStatus.DONE && !workItem.completedAt && {
           completedAt: new Date(),
         }),

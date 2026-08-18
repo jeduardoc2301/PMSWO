@@ -22,6 +22,7 @@ import { DependencyEditor } from '@/components/projects/dependency-editor'
 import { EditWorkItemDialog } from '@/components/projects/edit-work-item-dialog'
 import { WorkItemsList } from '@/components/projects/work-items-list'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
+import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import {
   BaselinePicker,
   type LineaBaseGuardada,
@@ -61,6 +62,16 @@ export interface WorkItemsViewProps {
   readonly barraDeFiltro?: React.ReactNode
   /** Los ids que pasan ese filtro, o `undefined` si no hay filtro puesto. */
   readonly idsVisibles?: ReadonlySet<string>
+  /** Los botones de deshacer y rehacer, montados arriba en el proyecto (§10.6). */
+  readonly barraDeDeshacer?: React.ReactNode
+  /**
+   * Apunta una operación en la pila de deshacer.
+   *
+   * Llega de fuera porque la pila es del proyecto entero: una captura de avance y un movimiento del
+   * tablero tienen que deshacerse en el mismo orden en que ocurrieron, y dos pilas por separado no
+   * podrían saberlo.
+   */
+  readonly onApuntarOperacion?: (operacion: Operacion | null) => void
 }
 
 /**
@@ -81,6 +92,8 @@ export function WorkItemsView({
   projectId,
   workItems,
   barraDeFiltro,
+  barraDeDeshacer,
+  onApuntarOperacion,
   idsVisibles,
   onWorkItemCreated,
   editDatesData,
@@ -240,8 +253,19 @@ export function WorkItemsView({
    */
   const capturarAvance = async (id: string, progress: number) => {
     if (estado.fase !== 'listo') return
-    const avancePrevio = estado.plan.tasks.find((tarea) => tarea.id === id)?.progress
+    const linea = estado.plan.tasks.find((tarea) => tarea.id === id)
+    const avancePrevio = linea?.progress
     setAviso(null)
+
+    // Se apunta antes de escribir. Capturar avance es un deslizador: equivocarse es un gesto de un
+    // dedo, y sin deshacer la única forma de volver es recordar el número que había.
+    onApuntarOperacion?.(
+      operacionDesde(
+        `Avance de «${(linea?.name ?? id).slice(0, 40)}» al ${Math.round(progress * 100)} %`,
+        [{ id, progressPct: avancePrevio ?? 0 }],
+        [{ id, progressPct: progress }],
+      ),
+    )
     setEstado({
       fase: 'listo',
       plan: {
@@ -391,7 +415,10 @@ export function WorkItemsView({
         {/* La barra del filtro va aquí y no dentro del esquema: el esquema sólo se dibuja cuando el
             plan ha cargado y sólo en un modo, así que ahí dentro el filtro desaparecía al cambiar
             de vista — que es justo lo contrario de lo que el §10.2 pide. */}
-        <div className="min-w-0 flex-1 px-3">{barraDeFiltro}</div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3 px-3">
+          {barraDeFiltro}
+          {barraDeDeshacer}
+        </div>
         <div className="flex items-center gap-1">
           <BotonModo activo={modo === 'ESQUEMA'} onClick={() => setModo('ESQUEMA')}>
             Esquema

@@ -242,14 +242,33 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
    */
   const aplicarCambios = async (cambios: readonly Cambio[]) => {
     for (const cambio of cambios) {
-      const res = await fetch(`/api/v1/work-items/${cambio.workItemId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ columnId: cambio.campos.kanbanColumnId }),
-      })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        throw new Error(d.message || 'No se pudo escribir el cambio')
+      // Cada campo vuelve por la puerta por la que salió. Mover de columna tiene su propia ruta
+      // porque arrastra consigo el estado, el avance acoplado y la fecha de término; el resto de
+      // campos van por la ruta general de la línea.
+      const { kanbanColumnId, ...resto } = cambio.campos as Record<string, unknown>
+
+      if (kanbanColumnId !== undefined) {
+        const res = await fetch(`/api/v1/work-items/${cambio.workItemId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ columnId: kanbanColumnId }),
+        })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          throw new Error(d.message || 'No se pudo escribir el cambio')
+        }
+      }
+
+      if (Object.keys(resto).length > 0) {
+        const res = await fetch(`/api/v1/work-items/${cambio.workItemId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(resto),
+        })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          throw new Error(d.message || 'No se pudo escribir el cambio')
+        }
       }
     }
     // Se recarga desde la base y no se parchea en local: deshacer toca el acoplamiento
@@ -835,6 +854,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
               kanbanBoard
                 ? <WorkItemsView projectId={projectId} workItems={kanbanBoard.workItems}
                     barraDeFiltro={barraDeFiltro}
+                    barraDeDeshacer={barraDeDeshacer}
+                    onApuntarOperacion={undo.apuntar}
                     idsVisibles={idsFiltrados.size === kanbanBoard.workItems.length ? undefined : idsFiltrados}
                     onWorkItemCreated={handleWorkItemCreated} editDatesData={editDatesData}
                     onEditDatesDataUsed={() => setEditDatesData(null)} canCreateWorkItems={canCreateWorkItems}
