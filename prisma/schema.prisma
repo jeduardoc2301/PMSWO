@@ -178,6 +178,15 @@ model WorkItem {
   // Fecha límite comprometida, cuando es distinta de la que calcula el plan.
   dueDate     DateTime? @map("due_date") @db.Date
 
+  /// Restricción de fecha (§3.4). Nula significa «lo antes posible», que es lo normal.
+  ///
+  /// Sólo los dos tipos que el motor entiende hoy: `NO_ANTES_DE` (el `SNET` del spec) y
+  /// `DEBE_EMPEZAR_EL` (`MSO`). Las otras seis del §3.4 no se guardan **a propósito**: guardar un
+  /// tipo que el motor no aplica daría un plan que dice una cosa y se programa de otra, y eso es
+  /// peor que no tenerlo.
+  constraintType String?   @map("constraint_type") @db.VarChar(20)
+  constraintDate DateTime? @map("constraint_date") @db.Date
+
   // ── PLANEACIÓN · Jerarquía y avance ponderado (C7) ─────────────────────────
   // Línea de la que cuelga esta. De aquí sale el prorrateo: un resumen no tiene avance propio,
   // hereda el de sus hijas pesado por el trabajo de cada una.

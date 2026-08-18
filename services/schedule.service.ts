@@ -104,6 +104,8 @@ export async function loadProjectPlan(
         dueDate: true,
         parentId: true,
         progressPct: true,
+        constraintType: true,
+        constraintDate: true,
         startDate: true,
         estimatedEndDate: true,
       },
