@@ -11,6 +11,9 @@ import { KanbanBoard } from '@/components/projects/kanban-board'
 // nivel más adentro, con el mismo comportamiento y las mismas props.
 import { WorkItemsView } from '@/components/projects/work-items-view'
 import { FilterBar, type FiltroGuardadoResumen } from '@/components/projects/filter-bar'
+import { UndoBar } from '@/components/projects/undo-bar'
+import { useUndo } from '@/components/projects/use-undo'
+import { type Cambio, operacionDesde } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { BlockersTab } from '@/components/projects/blockers-tab'
 import { RisksTab } from '@/components/projects/risks-tab'
@@ -230,6 +233,37 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     } catch {}
   }
 
+  /**
+   * Escribe un puñado de cambios: es lo que deshacer y rehacer usan para volver atrás (§10.6).
+   *
+   * Va por la misma interfaz que el gesto original, no por una puerta trasera. Deshacer un
+   * movimiento tiene que pasar por las mismas reglas que hacerlo —el acoplamiento estado↔avance,
+   * la bitácora— o el estado al que se vuelve no sería un estado que el sistema pueda producir.
+   */
+  const aplicarCambios = async (cambios: readonly Cambio[]) => {
+    for (const cambio of cambios) {
+      const res = await fetch(`/api/v1/work-items/${cambio.workItemId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columnId: cambio.campos.kanbanColumnId }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.message || 'No se pudo escribir el cambio')
+      }
+    }
+    // Se recarga desde la base y no se parchea en local: deshacer toca el acoplamiento
+    // estado↔avance y la fecha de término, y un eco local se quedaría corto.
+    const kanbanRes = await fetch(`/api/v1/projects/${projectId}/kanban`)
+    if (kanbanRes.ok) {
+      const kanbanData = await kanbanRes.json()
+      setKanbanBoard(kanbanData.kanbanBoard)
+    }
+    await refreshMetrics()
+  }
+
+  const undo = useUndo(aplicarCambios)
+
   const handleWorkItemMove = async (workItemId: string, newColumnId: string, newStatus: WorkItemStatus) => {
     // Va la columna y no el estado: la columna es lo configurable, y el servidor deriva de ella el
     // estado y el avance acoplado (§5.2, §5.5). Mandar el estado no podría alcanzar una columna que
@@ -240,6 +274,18 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     })
     if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to update work item status') }
     if (kanbanBoard) {
+      // Se apunta antes de tocar el estado local, con el antes y el después de esta línea: así un
+      // movimiento se deshace con un Ctrl+Z, y si mañana el tablero mueve doce a la vez, la misma
+      // operación llevará las doce y se desharán juntas.
+      const antes = kanbanBoard.workItems.find(i => i.id === workItemId)
+      if (antes) {
+        const columna = kanbanBoard.columns.find(c => c.id === newColumnId)
+        undo.apuntar(operacionDesde(
+          `Mover «${antes.title.slice(0, 40)}» a ${columna?.name ?? 'otra columna'}`,
+          [{ id: workItemId, kanbanColumnId: antes.kanbanColumnId }],
+          [{ id: workItemId, kanbanColumnId: newColumnId }],
+        ))
+      }
       const updatedWorkItems = kanbanBoard.workItems.map(item =>
         item.id === workItemId ? { ...item, status: newStatus, kanbanColumnId: newColumnId } : item
       )
@@ -322,6 +368,19 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       )
     : []
   const idsFiltrados = new Set(lineasFiltradas.map((l) => l.id))
+
+  const barraDeDeshacer = (
+    <UndoBar
+      sePuedeDeshacer={undo.sePuedeDeshacer}
+      sePuedeRehacer={undo.sePuedeRehacer}
+      etiquetaDeDeshacer={undo.etiquetaDeDeshacer}
+      etiquetaDeRehacer={undo.etiquetaDeRehacer}
+      onDeshacer={() => void undo.deshacer()}
+      onRehacer={() => void undo.rehacer()}
+      aviso={undo.aviso}
+      onCerrarAviso={undo.limpiarAviso}
+    />
+  )
 
   const barraDeFiltro = (
     <FilterBar
@@ -759,7 +818,10 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'kanban' && (
               kanbanBoard
                 ? <div className="space-y-3">
-                    {barraDeFiltro}
+                    <div className="flex flex-wrap items-center gap-3">
+                      {barraDeFiltro}
+                      {barraDeDeshacer}
+                    </div>
                     <KanbanBoard projectId={projectId} columns={kanbanBoard.columns}
                       workItems={kanbanBoard.workItems.filter(w => idsFiltrados.has(w.id))}
                       onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
