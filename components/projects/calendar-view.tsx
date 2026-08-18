@@ -38,6 +38,13 @@ export interface CalendarViewProps {
   /** Hoy, en fecha civil, para marcar la casilla. Llega de fuera para que la vista sea predecible. */
   readonly today: string
   readonly onSelectTask?: (taskId: string) => void
+  /**
+   * Arrastrar una barra a otro día (§7.5). Recibe la línea y el día en que se soltó.
+   *
+   * Sin esta prop las barras no son arrastrables: una barra que se puede coger y no lleva a ningún
+   * sitio es peor que una que no se mueve.
+   */
+  readonly onMoverLinea?: (taskId: string, nuevoInicio: string) => void
 }
 
 const NOMBRES_DE_MES = [
@@ -63,6 +70,7 @@ export function CalendarView({
   onMonthChange,
   today,
   onSelectTask,
+  onMoverLinea,
 }: CalendarViewProps) {
   const [diaDesplegado, setDiaDesplegado] = useState<string | null>(null)
 
@@ -152,6 +160,7 @@ export function CalendarView({
             today={today}
             onSelectTask={onSelectTask}
             onExpandirDia={setDiaDesplegado}
+            onMoverLinea={onMoverLinea}
           />
         ))}
       </div>
@@ -202,11 +211,13 @@ function Semana({
   today,
   onSelectTask,
   onExpandirDia,
+  onMoverLinea,
 }: {
   semana: CalendarWeek
   today: string
   onSelectTask?: (taskId: string) => void
   onExpandirDia: (dia: string) => void
+  onMoverLinea?: (taskId: string, nuevoInicio: string) => void
 }) {
   // El alto lo fija cuántos carriles se dibujan de verdad, no cuántos se calcularon: una semana con
   // sesenta carriles de los que se ven tres no tiene por qué medir sesenta.
@@ -222,6 +233,18 @@ function Semana({
         <div
           key={dia.date}
           data-testid={`dia-${dia.date}`}
+          onDragOver={onMoverLinea ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } : undefined}
+          onDrop={
+            onMoverLinea
+              ? (e) => {
+                  e.preventDefault()
+                  const id = e.dataTransfer.getData('text/plain')
+                  // Un día no laborable no admite el arranque de una línea: el motor lo empujaría
+                  // al siguiente hábil y quien la soltó vería la barra en otro sitio del que apuntó.
+                  if (id && dia.isWorking) onMoverLinea(id, dia.date)
+                }
+              : undefined
+          }
           className={`min-h-[104px] border-r border-zinc-800 px-1.5 pb-1.5 last:border-r-0 ${
             dia.isWorking ? '' : 'bg-[#111113]'
           } ${dia.isOutsideMonth ? 'opacity-40' : ''}`}
@@ -274,6 +297,11 @@ function Semana({
             type="button"
             data-testid={`barra-${trozo.taskId}-${trozo.startColumn}`}
             data-tarea={trozo.taskId}
+            draggable={onMoverLinea !== undefined}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('text/plain', trozo.taskId)
+              e.dataTransfer.effectAllowed = 'move'
+            }}
             data-hito={trozo.isMilestone ? 'sí' : 'no'}
             title={trozo.name}
             onClick={() => onSelectTask?.(trozo.taskId)}

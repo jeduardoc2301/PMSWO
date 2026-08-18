@@ -34,6 +34,22 @@ interface PlanRemoto {
   readonly calendar: DefinicionDeCalendario
 }
 
+/**
+ * Lo que pasaría si se soltara la barra ahí.
+ *
+ * Se enseña antes de escribir porque arrastrar una línea puede empujar quinientas: quien mueve una
+ * fecha por curiosidad no espera reprogramar medio proyecto.
+ */
+interface Propuesta {
+  readonly taskId: string
+  readonly nombre: string
+  readonly nuevoInicio: string
+  readonly cambios: number
+  readonly empujadas: number
+  readonly cierreAntes: string
+  readonly cierreDespues: string
+}
+
 type Estado =
   | { readonly fase: 'cargando' }
   | { readonly fase: 'error'; readonly mensaje: string }
@@ -66,6 +82,8 @@ export interface CalendarTabProps {
 export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   const [mes, setMes] = useState<string | null>(null)
+  const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
+  const [aplicando, setAplicando] = useState(false)
 
   useEffect(() => {
     let vigente = true
@@ -140,6 +158,74 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
     [estado],
   )
 
+  /**
+   * Arrastrar una barra no escribe: propone.
+   *
+   * El servidor calcula qué se movería y devuelve el efecto —cuántas líneas y si el cierre del
+   * proyecto se corre—. Sólo al confirmar se escribe. Sin este paso, un arrastre por curiosidad
+   * podría reprogramar medio plan.
+   */
+  const proponerMovimiento = async (taskId: string, nuevoInicio: string) => {
+    try {
+      const res = await fetch('/api/v1/projects/' + projectId + '/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, start: nuevoInicio }),
+      })
+      if (!res.ok) {
+        const cuerpo = await res.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? 'no se pudo calcular')
+      }
+      const { previsualizacion } = await res.json()
+      // Sin cambios no hay nada que confirmar: soltarla donde ya estaba no abre un diálogo.
+      if (!previsualizacion?.cambios?.length) return
+      setPropuesta({
+        taskId,
+        nombre: tareas.find((t) => t.id === taskId)?.name ?? 'la línea',
+        nuevoInicio,
+        cambios: previsualizacion.cambios.length,
+        empujadas: previsualizacion.empujadas,
+        cierreAntes: previsualizacion.cierreAntes,
+        cierreDespues: previsualizacion.cierreDespues,
+      })
+    } catch (error) {
+      setEstado({
+        fase: 'error',
+        mensaje: error instanceof Error ? error.message : 'No se pudo calcular la reprogramación.',
+      })
+    }
+  }
+
+  const aplicarMovimiento = async () => {
+    if (!propuesta) return
+    setAplicando(true)
+    try {
+      const res = await fetch('/api/v1/projects/' + projectId + '/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: propuesta.taskId, start: propuesta.nuevoInicio, confirm: true }),
+      })
+      if (!res.ok) {
+        const cuerpo = await res.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? 'no se pudo aplicar')
+      }
+      setPropuesta(null)
+      // Se vuelve a pedir el plan: las fechas cambiaron en la base y hay que reprogramar sobre ellas.
+      const recargado = await fetch('/api/v1/projects/' + projectId + '/schedule')
+      if (recargado.ok) {
+        const { plan } = await recargado.json()
+        if (plan) setEstado({ fase: 'listo', plan })
+      }
+    } catch (error) {
+      setEstado({
+        fase: 'error',
+        mensaje: error instanceof Error ? error.message : 'No se pudo aplicar la reprogramación.',
+      })
+    } finally {
+      setAplicando(false)
+    }
+  }
+
   if (estado.fase === 'cargando') {
     return <p className="py-12 text-center text-sm text-zinc-400">Armando el calendario del proyecto...</p>
   }
@@ -163,12 +249,66 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
   return (
     <div className="flex flex-col gap-3">
       {barraDeFiltro}
+      {propuesta ? (
+        <div
+          role="alertdialog"
+          aria-label="Confirmar la reprogramación"
+          data-testid="propuesta-reprogramacion"
+          className="rounded-xl border border-amber-900/50 bg-amber-950/20 p-4"
+        >
+          <p className="text-sm text-amber-100">
+            Mover «{propuesta.nombre}» al {propuesta.nuevoInicio} cambia{' '}
+            <strong className="tabular-nums">{propuesta.cambios}</strong>{' '}
+            {propuesta.cambios === 1 ? 'línea' : 'líneas'}
+            {propuesta.empujadas > 0 ? (
+              <>
+                {' '}
+                — la arrastrada y{' '}
+                <strong className="tabular-nums">{propuesta.empujadas}</strong> que quedaban en falso
+              </>
+            ) : null}
+            .
+          </p>
+          {/* El cierre del proyecto es la cifra que decide si esto es un ajuste o un problema.
+              Empujar dentro de la holgura no lo mueve, y decirlo evita el susto. */}
+          <p className="mt-1.5 text-xs">
+            {propuesta.cierreDespues === propuesta.cierreAntes ? (
+              <span className="text-emerald-300">
+                El cierre del proyecto no se mueve: sigue el {propuesta.cierreAntes}.
+              </span>
+            ) : (
+              <span className="text-red-300">
+                El cierre del proyecto pasa del {propuesta.cierreAntes} al {propuesta.cierreDespues}.
+              </span>
+            )}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              disabled={aplicando}
+              onClick={() => void aplicarMovimiento()}
+              className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+            >
+              {aplicando ? 'Aplicando...' : 'Aplicar'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPropuesta(null)}
+              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <CalendarView
         tasks={tareas}
         calendar={calendario}
         month={mes ?? hoyCivil().slice(0, 7)}
         onMonthChange={setMes}
         today={hoyCivil()}
+        onMoverLinea={(taskId, nuevoInicio) => void proponerMovimiento(taskId, nuevoInicio)}
       />
     </div>
   )

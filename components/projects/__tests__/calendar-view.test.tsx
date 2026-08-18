@@ -211,3 +211,64 @@ describe('Un mes vacío', () => {
     expect(screen.getByText(/0 de 0 líneas caen en este mes/)).toBeInTheDocument()
   })
 })
+
+describe('§7.5 · arrastrar una barra a otro día', () => {
+  /** Un portapapeles mínimo: happy-dom no lo adjunta a los eventos de arrastre. */
+  function portapapeles() {
+    const datos = new Map<string, string>()
+    return {
+      effectAllowed: '',
+      dropEffect: '',
+      setData: (k: string, v: string) => datos.set(k, v),
+      getData: (k: string) => datos.get(k) ?? '',
+    }
+  }
+
+  it('sin `onMoverLinea` las barras NO son arrastrables', () => {
+    // Una barra que se puede coger y no lleva a ningún sitio es peor que una que no se mueve.
+    dibujar()
+    expect(screen.getAllByTestId(/^barra-/)[0]).not.toHaveAttribute('draggable', 'true')
+  })
+
+  it('con `onMoverLinea` sí lo son', () => {
+    dibujar({ onMoverLinea: vi.fn() })
+    expect(screen.getAllByTestId(/^barra-/)[0]).toHaveAttribute('draggable', 'true')
+  })
+
+  it('soltarla en un día laborable avisa con la línea y el día', () => {
+    const onMoverLinea = vi.fn()
+    dibujar({ onMoverLinea })
+
+    const dataTransfer = portapapeles()
+    fireEvent.dragStart(screen.getByTestId('barra-corta-2'), { dataTransfer })
+    fireEvent.dragOver(screen.getByTestId('dia-2026-08-12'), { dataTransfer })
+    fireEvent.drop(screen.getByTestId('dia-2026-08-12'), { dataTransfer })
+
+    expect(onMoverLinea).toHaveBeenCalledWith('corta', '2026-08-12')
+  })
+
+  it('soltarla en un día NO laborable no avisa', () => {
+    // El motor la empujaría al siguiente hábil y quien la soltó vería la barra en otro sitio del
+    // que apuntó. Mejor que no pase nada que que pase algo distinto.
+    const onMoverLinea = vi.fn()
+    dibujar({ onMoverLinea })
+
+    const dataTransfer = portapapeles()
+    fireEvent.dragStart(screen.getByTestId('barra-corta-2'), { dataTransfer })
+    // 2026-08-15 es sábado.
+    fireEvent.drop(screen.getByTestId('dia-2026-08-15'), { dataTransfer })
+
+    expect(onMoverLinea).not.toHaveBeenCalled()
+  })
+
+  it('el hito también se puede arrastrar', () => {
+    const onMoverLinea = vi.fn()
+    dibujar({ onMoverLinea })
+
+    const dataTransfer = portapapeles()
+    fireEvent.dragStart(screen.getByTestId(/^barra-hito-/), { dataTransfer })
+    fireEvent.drop(screen.getByTestId('dia-2026-08-11'), { dataTransfer })
+
+    expect(onMoverLinea).toHaveBeenCalledWith('hito', '2026-08-11')
+  })
+})
