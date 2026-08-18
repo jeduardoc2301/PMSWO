@@ -23,6 +23,7 @@ import React, { useMemo, useState } from 'react'
 
 import { type WorkCalendar } from '@/lib/scheduling/calendar'
 import {
+  carrilesDibujados,
   type CalendarTask,
   type CalendarWeek,
   calendarLayout,
@@ -140,7 +141,15 @@ export function CalendarView({
           </button>
         </div>
         <p className="text-xs text-zinc-500">
-          {layout.placedTasks} de {tasks.length} {tasks.length === 1 ? 'línea' : 'líneas'} caen en este mes
+          {layout.tasksInRange} de {tasks.length} {tasks.length === 1 ? 'línea' : 'líneas'} caen en
+          este mes
+          {layout.tasksInRange > layout.placedTasks ? (
+            <>
+              {' · '}
+              {layout.placedTasks} {layout.placedTasks === 1 ? 'dibujada' : 'dibujadas'}, el resto
+              tras «N líneas más»
+            </>
+          ) : null}
         </p>
       </div>
 
@@ -219,9 +228,14 @@ function Semana({
   onExpandirDia: (dia: string) => void
   onMoverLinea?: (taskId: string, nuevoInicio: string) => void
 }) {
-  // El alto lo fija cuántos carriles se dibujan de verdad, no cuántos se calcularon: una semana con
-  // sesenta carriles de los que se ven tres no tiene por qué medir sesenta.
-  const carriles = Math.min(semana.laneCount, CARRILES_VISIBLES)
+  // El alto lo fija el carril más alto que **se dibujó**, no el tope de carriles visibles.
+  //
+  // Decía `min(laneCount, CARRILES_VISIBLES)`, y era falso justo donde importa: un hito está exento
+  // del recorte —es un compromiso, no trabajo, y esconderlo tras un «N líneas más» es esconder lo que
+  // alguien vino a buscar—, así que puede tocarle el carril 5 en una semana donde sólo se reservó
+  // alto para 3. Medido en septiembre del plan de referencia: una barra encimada sobre otra 13 px y
+  // dos sobre el rótulo de desborde 17 px. La fila tiene que medir lo que de verdad lleva dentro.
+  const carriles = carrilesDibujados(semana)
   const altoDeBarras = carriles * ALTO_CARRIL
 
   return (

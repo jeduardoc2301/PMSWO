@@ -84,8 +84,16 @@ export interface CalendarWeek {
 
 export interface CalendarLayout {
   readonly weeks: readonly CalendarWeek[]
-  /** Cuántas tareas del conjunto de entrada aparecen al menos una vez. */
+  /** Cuántas tareas del conjunto de entrada aparecen dibujadas al menos una vez. */
   readonly placedTasks: number
+  /**
+   * Cuántas solapan el rango pedido, dibujadas o escondidas tras un «N líneas más».
+   *
+   * No es `placedTasks`: en un mes denso casi todas caen al desborde, y contar sólo las dibujadas
+   * dejaba la cabecera diciendo «37 de 1368 caen en este mes» mientras las casillas de ese mismo mes
+   * decían «63 líneas más» cada una. Dos números que no pueden ser ciertos a la vez.
+   */
+  readonly tasksInRange: number
   /** Cuántas quedaron completamente fuera del rango pedido. */
   readonly outOfRange: number
 }
@@ -117,6 +125,17 @@ export interface CalendarLayoutInput {
 }
 
 const MAX_LANES_POR_OMISION = 3
+
+/**
+ * Cuántos carriles ocupa de verdad lo dibujado en una semana.
+ *
+ * No es `laneCount` ni el tope de carriles visibles: un hito está exento del recorte, así que puede
+ * tocarle un carril por encima del tope y la fila tiene que medir para él. Quien pinte la fila con el
+ * tope en lugar de con esto deja las barras de más colgando sobre la fila siguiente.
+ */
+export function carrilesDibujados(semana: Pick<CalendarWeek, 'segments'>): number {
+  return semana.segments.reduce((alto, trozo) => Math.max(alto, trozo.lane + 1), 0)
+}
 
 /**
  * Arma la rejilla del calendario con sus tareas ya colocadas.
@@ -174,6 +193,7 @@ export function calendarLayout(input: CalendarLayoutInput): CalendarLayout {
   return {
     weeks: semanas,
     placedTasks: colocadas.size,
+    tasksInRange: dentroDelRango.length,
     outOfRange: input.tasks.length - dentroDelRango.length,
   }
 }

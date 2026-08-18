@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import { createWorkCalendar } from '../calendar'
-import { type CalendarTask, calendarLayout, hiddenTasksOfDay } from '../calendar-layout'
+import {
+  type CalendarTask,
+  calendarLayout,
+  carrilesDibujados,
+  hiddenTasksOfDay,
+} from '../calendar-layout'
 
 const calendar = createWorkCalendar()
 
@@ -365,5 +370,62 @@ describe('§7.5 · rendimiento: un mes con 400 tareas', () => {
 
     expect(layout.weeks.length).toBeGreaterThan(0)
     expect(ms).toBeLessThan(200)
+  })
+})
+
+describe('§7.5 · el alto de la fila y la cuenta de la cabecera dicen la verdad', () => {
+  /** Seis hitos el mismo día: más que el tope de carriles, y ninguno se puede esconder. */
+  const SEIS_HITOS: CalendarTask[] = Array.from({ length: 6 }, (_, i) => ({
+    id: `h${i}`,
+    name: `Hito ${i}`,
+    start: '2026-09-02',
+    finish: '2026-09-02',
+    isMilestone: true,
+  }))
+
+  it('un hito por encima del tope se dibuja igual, y la fila mide para él', () => {
+    const layout = calendarLayout({
+      tasks: SEIS_HITOS, from: '2026-09-01', to: '2026-09-30', calendar, maxLanes: 3, month: 9, year: 2026,
+    })
+    const semana = layout.weeks.find((s) => s.segments.length > 0)!
+
+    // Los seis se dibujan: la exención del recorte es deliberada.
+    expect(semana.segments).toHaveLength(6)
+    const masAlto = Math.max(...semana.segments.map((t) => t.lane))
+    expect(masAlto).toBe(5)
+
+    // Y la fila mide seis carriles, no tres. Con `min(laneCount, maxLanes)` medía tres y las tres
+    // barras de sobra colgaban sobre la fila siguiente: 13 px de encimado, medidos en pantalla.
+    expect(carrilesDibujados(semana)).toBe(6)
+    expect(carrilesDibujados(semana)).toBeGreaterThan(3)
+  })
+
+  it('carrilesDibujados es cero cuando no se dibujó nada', () => {
+    expect(carrilesDibujados({ segments: [] })).toBe(0)
+  })
+
+  it('cuenta las que caen en el mes, no sólo las dibujadas', () => {
+    // Veinte tareas el mismo día con tope de tres: diecisiete acaban tras «N líneas más».
+    const veinte: CalendarTask[] = Array.from({ length: 20 }, (_, i) =>
+      tarea(String(i), '2026-09-02', '2026-09-02'),
+    )
+    const layout = calendarLayout({
+      tasks: veinte, from: '2026-09-01', to: '2026-09-30', calendar, maxLanes: 3, month: 9, year: 2026,
+    })
+
+    expect(layout.placedTasks).toBe(3)
+    // Las veinte caen en septiembre. Decir «3 de 20 caen en este mes» mientras la casilla dice
+    // «17 líneas más» son dos afirmaciones que no pueden ser ciertas a la vez.
+    expect(layout.tasksInRange).toBe(20)
+    expect(layout.outOfRange).toBe(0)
+  })
+
+  it('no cuenta como del mes lo que cae fuera del rango dibujado', () => {
+    const layout = calendarLayout({
+      tasks: [tarea('dentro', '2026-09-10', '2026-09-11'), tarea('fuera', '2026-12-01', '2026-12-02')],
+      from: '2026-09-01', to: '2026-09-30', calendar, maxLanes: 3, month: 9, year: 2026,
+    })
+    expect(layout.tasksInRange).toBe(1)
+    expect(layout.outOfRange).toBe(1)
   })
 })
