@@ -31,6 +31,7 @@ import { rollUpProgress } from '@/lib/scheduling/progress'
 import { schedulePlan } from '@/lib/scheduling/schedule'
 import { type EstadoAlCorte, varianceAtCutoff } from '@/lib/scheduling/schedule-variance'
 import type { Dependency, PlanTask, TaskKind } from '@/lib/scheduling/types'
+import { numerarPlan } from '@/lib/scheduling/wbs'
 
 export interface WorkItemsOutlineProps {
   /** El plan del proyecto, como lo entrega GET /api/v1/projects/[id]/schedule. */
@@ -96,6 +97,10 @@ export function WorkItemsOutline({
   onAddChild,
 }: WorkItemsOutlineProps): React.JSX.Element {
   const jerarquia = useMemo(() => nivelesDelPlan(tasks), [tasks])
+  const edtPorId = useMemo(
+    () => new Map(jerarquia.map((linea) => [linea.id, linea.wbs])),
+    [jerarquia],
+  )
   const [plegados, setPlegados] = useState<ReadonlySet<string>>(
     () => new Set(collapseToLevel(jerarquia, NIVEL_INICIAL)),
   )
@@ -234,6 +239,7 @@ export function WorkItemsOutline({
               <Linea
                 key={row.id}
                 row={row}
+                wbs={edtPorId.get(row.id) ?? ''}
                 avance={avanceEfectivo(row, base.rollup)}
                 owner={porId.get(row.id)?.owner}
                 vinculos={vinculosDe.get(row.id)}
@@ -267,6 +273,7 @@ function avanceEfectivo(row: GanttRow, rollup: ReturnType<typeof rollUpProgress>
 
 function Linea({
   row,
+  wbs,
   avance,
   owner,
   vinculos,
@@ -280,6 +287,7 @@ function Linea({
   onAddChild,
 }: {
   row: GanttRow
+  wbs: string
   avance: number
   owner: string | undefined
   vinculos: { entran: number; salen: number } | undefined
@@ -319,6 +327,13 @@ function Linea({
           ) : (
             <span className="w-4 shrink-0" aria-hidden="true" />
           )}
+          <span
+            data-testid={`edt-${row.id}`}
+            title={`EDT ${wbs}`}
+            className="shrink-0 tabular-nums text-[11px] text-zinc-600"
+          >
+            {wbs}
+          </span>
           {row.isSuperCritical ? (
             // La otra vista ya tiene columna de prioridad; aquí basta la marca para no perderla.
             <span
@@ -598,30 +613,28 @@ function BarraDelCorte({
 }
 
 /**
- * Nivel y descendencia de cada línea, directo de la jerarquía.
+ * Nivel, EDT y descendencia de cada línea, directo de la jerarquía.
  *
  * Existe porque el plegado inicial se decide **antes** de programar nada: es el valor con el que
  * nace el estado. Para saber qué es un bloque no hacen falta fechas, solo de quién cuelga cada
  * línea.
+ *
+ * El nivel y el EDT salen del mismo recorrido —`numerarPlan`— y no de dos cálculos parecidos: son
+ * la misma pregunta, «¿dónde está esta línea en el árbol?», y responderla dos veces es la forma
+ * segura de que un día se contesten distinto.
  */
 function nivelesDelPlan(
   tasks: readonly PlanTask[],
-): { id: string; level: number; hasChildren: boolean }[] {
-  const porId = new Map(tasks.map((task) => [task.id, task]))
+): { id: string; level: number; wbs: string; hasChildren: boolean }[] {
   const conHijas = new Set<string>()
   for (const task of tasks) {
     if (task.parentId !== undefined) conHijas.add(task.parentId)
   }
 
-  return tasks.map((task) => {
-    let level = 0
-    // El plan puede llegar mal formado de la API; un ciclo en los padres no debe colgar la vista.
-    const visto = new Set<string>([task.id])
-    for (let padre = task.parentId; padre !== undefined; padre = porId.get(padre)?.parentId) {
-      if (visto.has(padre)) break
-      visto.add(padre)
-      level += 1
-    }
-    return { id: task.id, level, hasChildren: conHijas.has(task.id) }
-  })
+  return numerarPlan(tasks).map((numero) => ({
+    id: numero.id,
+    level: numero.level,
+    wbs: numero.wbs,
+    hasChildren: conHijas.has(numero.id),
+  }))
 }
