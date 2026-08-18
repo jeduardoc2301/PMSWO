@@ -292,6 +292,8 @@ function KanbanColumn({
   return (
     <div
       className="flex-shrink-0 w-72"
+      data-testid={`columna-${column.id}`}
+      data-columna={column.name}
       onDragOver={(e) => onDragOver(e, column.id)}
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, column)}
