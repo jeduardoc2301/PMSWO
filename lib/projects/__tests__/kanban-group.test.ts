@@ -1,0 +1,177 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+  CRITERIOS,
+  type ColumnaDeLaBase,
+  SIN_RESPONSABLE,
+  type TarjetaAgrupable,
+  agruparTarjetas,
+  cambioAlSoltar,
+} from '../kanban-group'
+
+/**
+ * §5.1 y §5.4: agrupar por Estado, Prioridad o Asignados, y que cambiar de criterio reconstruya
+ * las columnas.
+ *
+ * El escenario:
+ *
+ * ```
+ *   a  Backlog     HIGH      Ana
+ *   b  Backlog     CRITICAL  Ana
+ *   c  In Progress LOW       Luis
+ *   d  Done        MEDIUM    (sin responsable)
+ * ```
+ */
+
+const COLUMNAS: ColumnaDeLaBase[] = [
+  { id: 'c0', name: 'Backlog', order: 0, columnType: 'BACKLOG', isInitial: true, isDone: false },
+  { id: 'c2', name: 'In Progress', order: 1, columnType: 'IN_PROGRESS', isInitial: false, isDone: false },
+  { id: 'c4', name: 'Done', order: 2, columnType: 'DONE', isInitial: false, isDone: true },
+  { id: 'c9', name: 'En revisión', order: 3, columnType: 'CUSTOM', isInitial: false, isDone: false },
+]
+
+const TARJETAS: TarjetaAgrupable[] = [
+  { id: 'a', kanbanColumnId: 'c0', priority: 'HIGH', ownerId: 'u1', ownerName: 'Ana Gómez' },
+  { id: 'b', kanbanColumnId: 'c0', priority: 'CRITICAL', ownerId: 'u1', ownerName: 'Ana Gómez' },
+  { id: 'c', kanbanColumnId: 'c2', priority: 'LOW', ownerId: 'u2', ownerName: 'Luis Pérez' },
+  { id: 'd', kanbanColumnId: 'c4', priority: 'MEDIUM' },
+]
+
+function columnas(criterio: Parameters<typeof agruparTarjetas>[2]) {
+  return agruparTarjetas(TARJETAS, COLUMNAS, criterio).map((c) => [c.name, c.workItemIds])
+}
+
+describe('Agrupado por estado', () => {
+  it('las columnas son las de la base, en su orden', () => {
+    expect(columnas('estado')).toEqual([
+      ['Backlog', ['a', 'b']],
+      ['In Progress', ['c']],
+      ['Done', ['d']],
+      ['En revisión', []],
+    ])
+  })
+
+  it('una columna configurada y vacía se dibuja igual', () => {
+    // Es el flujo del proyecto: ver que «En revisión» está vacía informa.
+    expect(agruparTarjetas(TARJETAS, COLUMNAS, 'estado').find((c) => c.name === 'En revisión')).toBeDefined()
+  })
+
+  it('conserva los indicadores, que deciden el acoplamiento con el avance', () => {
+    const done = agruparTarjetas(TARJETAS, COLUMNAS, 'estado').find((c) => c.name === 'Done')!
+    expect(done.isDone).toBe(true)
+    expect(done.columnType).toBe('DONE')
+  })
+})
+
+describe('Agrupado por prioridad', () => {
+  it('las columnas van por urgencia, no por alfabeto', () => {
+    // CRITICAL antes que HIGH aunque la C vaya después de la H.
+    expect(columnas('prioridad')).toEqual([
+      ['CRITICAL', ['b']],
+      ['HIGH', ['a']],
+      ['MEDIUM', ['d']],
+      ['LOW', ['c']],
+    ])
+  })
+
+  it('las cuatro salen aunque alguna esté vacía', () => {
+    const soloUna = [TARJETAS[0]]
+    expect(agruparTarjetas(soloUna, COLUMNAS, 'prioridad')).toHaveLength(4)
+  })
+
+  it('una prioridad que no está en el vocabulario se dibuja al final', () => {
+    const rara = { id: 'x', kanbanColumnId: 'c0', priority: 'URGENTÍSIMO' }
+    const grupos = agruparTarjetas([...TARJETAS, rara], COLUMNAS, 'prioridad')
+    expect(grupos[grupos.length - 1].name).toBe('URGENTÍSIMO')
+  })
+})
+
+describe('Agrupado por responsable', () => {
+  it('una columna por quien tenga trabajo, ordenadas por nombre', () => {
+    expect(columnas('responsable')).toEqual([
+      ['Ana Gómez', ['a', 'b']],
+      ['Luis Pérez', ['c']],
+      ['Sin responsable', ['d']],
+    ])
+  })
+
+  it('«Sin responsable» va al final: es lo que hay que repartir', () => {
+    const grupos = agruparTarjetas(TARJETAS, COLUMNAS, 'responsable')
+    expect(grupos[grupos.length - 1].id).toBe(SIN_RESPONSABLE)
+  })
+
+  it('no inventa columnas para quien no tiene nada', () => {
+    // Inventar una por cada persona de la organización daría veinte vacías y tres con contenido.
+    const soloAna = TARJETAS.filter((t) => t.ownerId === 'u1')
+    expect(agruparTarjetas(soloAna, COLUMNAS, 'responsable')).toHaveLength(1)
+  })
+
+  it('un nombre en blanco no deja la columna sin rótulo', () => {
+    const anonima = { id: 'y', kanbanColumnId: 'c0', priority: 'LOW', ownerId: 'u9', ownerName: '   ' }
+    const grupos = agruparTarjetas([anonima], COLUMNAS, 'responsable')
+    expect(grupos[0].name).toBe('Sin responsable')
+  })
+})
+
+describe('§5.4 · cambiar de criterio reconstruye las columnas', () => {
+  it('de estado a responsable cambia cuántas hay y qué contienen', () => {
+    const porEstado = agruparTarjetas(TARJETAS, COLUMNAS, 'estado')
+    const porResponsable = agruparTarjetas(TARJETAS, COLUMNAS, 'responsable')
+
+    expect(porEstado).toHaveLength(4)
+    expect(porResponsable).toHaveLength(3)
+    // Y ninguna tarjeta se pierde en el camino, con cualquier criterio.
+    for (const grupos of [porEstado, porResponsable]) {
+      const todas = grupos.flatMap((g) => g.workItemIds)
+      expect(todas.sort()).toEqual(['a', 'b', 'c', 'd'])
+    }
+  })
+
+  it('el criterio de por omisión es el estado', () => {
+    expect(CRITERIOS[0].clave).toBe('estado')
+  })
+})
+
+describe('§5.2 · qué se escribe al soltar', () => {
+  const ana = TARJETAS[0]
+
+  it('agrupado por estado, cambia la columna', () => {
+    const destino = agruparTarjetas(TARJETAS, COLUMNAS, 'estado')[2]
+    expect(cambioAlSoltar(ana, destino, 'estado')).toEqual({ campo: 'kanbanColumnId', valor: 'c4' })
+  })
+
+  it('agrupado por prioridad, cambia la prioridad y nada más', () => {
+    const destino = agruparTarjetas(TARJETAS, COLUMNAS, 'prioridad')[0]
+    expect(cambioAlSoltar(ana, destino, 'prioridad')).toEqual({ campo: 'priority', valor: 'CRITICAL' })
+  })
+
+  it('agrupado por responsable, reasigna', () => {
+    const destino = agruparTarjetas(TARJETAS, COLUMNAS, 'responsable')[1]
+    expect(cambioAlSoltar(ana, destino, 'responsable')).toEqual({ campo: 'ownerId', valor: 'u2' })
+  })
+
+  it('soltarla donde ya estaba no escribe nada', () => {
+    const suColumna = agruparTarjetas(TARJETAS, COLUMNAS, 'estado')[0]
+    expect(cambioAlSoltar(ana, suColumna, 'estado')).toBeNull()
+
+    const suPrioridad = agruparTarjetas(TARJETAS, COLUMNAS, 'prioridad')[1]
+    expect(cambioAlSoltar(ana, suPrioridad, 'prioridad')).toBeNull()
+  })
+
+  it('la columna «Sin responsable» no admite tarjetas', () => {
+    // Dejar una línea sin dueño desde un arrastre sería perder trabajo de vista, y el modelo exige
+    // `ownerId`.
+    const sinNadie = agruparTarjetas(TARJETAS, COLUMNAS, 'responsable')[2]
+    expect(cambioAlSoltar(ana, sinNadie, 'responsable')).toBeNull()
+  })
+
+  it('nunca devuelve fechas, con ningún criterio', () => {
+    // El tablero es la vista de seguimiento, no la de planificación (§5.2).
+    for (const criterio of ['estado', 'prioridad', 'responsable'] as const) {
+      for (const destino of agruparTarjetas(TARJETAS, COLUMNAS, criterio)) {
+        const cambio = cambioAlSoltar(ana, destino, criterio)
+        if (cambio) expect(['kanbanColumnId', 'priority', 'ownerId']).toContain(cambio.campo)
+      }
+    }
+  })
+})

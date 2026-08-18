@@ -7,6 +7,13 @@ import { WorkItemStatus, WorkItemPriority, type WorkItemSummary, type KanbanColu
 import { computeUrgency, urgencyDueLabel, type Urgency } from '@/lib/urgency'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import {
+  CRITERIOS,
+  type CriterioDeAgrupacion,
+  SIN_RESPONSABLE,
+  agruparTarjetas,
+  cambioAlSoltar,
+} from '@/lib/projects/kanban-group'
+import {
   CAMPOS_DE_ORDEN,
   type CampoDeOrden,
   type SentidoDeOrden,
@@ -492,6 +499,9 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   // reacomodar las fases.
   // «Ordenar por: EDT por defecto» (§5.1). El EDT devuelve las tarjetas al orden en que el plan
   // las cuenta; sin él, una columna de novecientas tarjetas es una lista sin asidero.
+  // «Agrupar por» del §5.1. El estado por omisión: es la configuración que alguien decidió para
+  // el proyecto, y las otras dos son formas de mirarlo.
+  const [criterioDeAgrupacion, setCriterioDeAgrupacion] = useState<CriterioDeAgrupacion>('estado')
   const [campoDeOrden, setCampoDeOrden] = useState<CampoDeOrden>('wbs')
   const [sentidoDeOrden, setSentidoDeOrden] = useState<SentidoDeOrden>('asc')
 
@@ -520,10 +530,17 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
     onWorkItemCreated?.()
   }
 
+  /** Qué tarjetas caen en una columna, según el criterio de agrupación vigente. */
+  const enLaColumna = (item: WorkItemSummary, columnId: string): boolean => {
+    if (criterioDeAgrupacion === 'prioridad') return item.priority === columnId
+    if (criterioDeAgrupacion === 'responsable') return (item.ownerId ?? SIN_RESPONSABLE) === columnId
+    return item.kanbanColumnId === columnId
+  }
+
   const getWorkItemsForColumnAndPhase = (columnId: string, phaseName: string) => {
     const phaseKey = phaseName === '__NO_PHASE__' ? null : phaseName
     const deLaColumna = filteredWorkItems.filter(item =>
-      item.kanbanColumnId === columnId &&
+      enLaColumna(item, columnId) &&
       (phaseKey === null ? !item.phase : item.phase === phaseKey)
     )
     // El «Ordenar por» del §5.1. El EDT se numera sobre `localWorkItems` —el plan entero— y no
@@ -551,43 +568,88 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
     setIsDraggingOver(null)
     if (!draggedItemId) return
     const workItem = localWorkItems.find(i => i.id === draggedItemId)
-    if (!workItem || workItem.kanbanColumnId === targetColumn.id) { setDraggedItemId(null); return }
-    // Antes había aquí un rechazo mudo de las columnas CUSTOM: la tarjeta simplemente no se movía
-    // y nadie sabía por qué. Ya no hace falta — el servidor deriva el estado de lo que la columna
-    // significa (§5.5), así que cualquier columna del tablero admite tarjetas.
-    const newStatus = estadoDeLaColumna({
-      isInitial: targetColumn.isInitial ?? false,
-      isDone: targetColumn.isDone ?? false,
-      columnType: targetColumn.columnType,
-    }) as WorkItemStatus
+    if (!workItem) { setDraggedItemId(null); return }
+
+    // Qué se escribe depende de cómo esté agrupado (§5.2). Antes esto asumía siempre «cambia la
+    // columna», que con el tablero agrupado por prioridad habría movido la tarjeta a una columna
+    // que no existe en la base. `null` significa que soltarla ahí no cambia nada.
+    const cambio = cambioAlSoltar(
+      { id: workItem.id, kanbanColumnId: workItem.kanbanColumnId, priority: workItem.priority, ownerId: workItem.ownerId, ownerName: workItem.ownerName },
+      { id: targetColumn.id, name: targetColumn.name, order: targetColumn.order, workItemIds: [], isInitial: targetColumn.isInitial, isDone: targetColumn.isDone, columnType: targetColumn.columnType },
+      criterioDeAgrupacion,
+    )
+    if (!cambio) { setDraggedItemId(null); return }
+
     const originalWorkItems = [...localWorkItems]
     const movedId = draggedItemId
-    setLocalWorkItems(prev => prev.map(i => i.id === movedId ? { ...i, kanbanColumnId: targetColumn.id, status: newStatus } : i))
     setSyncingItems(prev => new Set(prev).add(movedId))
     setDraggedItemId(null)
-    if (onWorkItemMove) {
-      try {
-        await onWorkItemMove(movedId, targetColumn.id, newStatus)
-        setSyncingItems(prev => { const s = new Set(prev); s.delete(movedId); return s })
-      } catch {
-        setLocalWorkItems(originalWorkItems)
-        setSyncingItems(prev => { const s = new Set(prev); s.delete(movedId); return s })
-        alert(t('moveError'))
+
+    try {
+      if (cambio.campo === 'kanbanColumnId') {
+        // Antes había aquí un rechazo mudo de las columnas CUSTOM: la tarjeta no se movía y nadie
+        // sabía por qué. El servidor deriva el estado de lo que la columna significa (§5.5).
+        const newStatus = estadoDeLaColumna({
+          isInitial: targetColumn.isInitial ?? false,
+          isDone: targetColumn.isDone ?? false,
+          columnType: targetColumn.columnType,
+        }) as WorkItemStatus
+        setLocalWorkItems(prev => prev.map(i => i.id === movedId ? { ...i, kanbanColumnId: cambio.valor, status: newStatus } : i))
+        if (onWorkItemMove) await onWorkItemMove(movedId, cambio.valor, newStatus)
+      } else {
+        // Prioridad y responsable van por la ruta general de la línea, y **sin fechas**: el tablero
+        // es la vista de seguimiento, no la de planificación.
+        setLocalWorkItems(prev => prev.map(i => i.id === movedId
+          ? cambio.campo === 'priority'
+            ? { ...i, priority: cambio.valor as WorkItemPriority }
+            : { ...i, ownerId: cambio.valor, ownerName: targetColumn.name }
+          : i))
+        const res = await fetch(`/api/v1/work-items/${movedId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [cambio.campo]: cambio.valor }),
+        })
+        if (!res.ok) throw new Error('no se pudo guardar')
+        onWorkItemCreated?.()
       }
-    } else {
       setSyncingItems(prev => { const s = new Set(prev); s.delete(movedId); return s })
+    } catch {
+      setLocalWorkItems(originalWorkItems)
+      setSyncingItems(prev => { const s = new Set(prev); s.delete(movedId); return s })
+      alert(t('moveError'))
     }
   }
 
   const handleDragEnd = () => { setDraggedItemId(null); setIsDraggingOver(null) }
 
   const noItemsLabel = t('noItems', { defaultValue: 'Sin elementos' })
-  const sortedColumns = [...columns].sort((a, b) => a.order - b.order)
+  // Las columnas salen de agrupar, no de la lista de la base: agrupar por prioridad no puede
+  // depender de que alguien haya creado una columna «CRITICAL» en `kanban_columns` (§5.1).
+  // Agrupado por estado devuelve exactamente las configuradas, con su orden y sus indicadores.
+  const sortedColumns = agruparTarjetas(localWorkItems, columns, criterioDeAgrupacion) as unknown as KanbanColumnWithItems[]
 
   return (
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
+        {/* «Agrupar por» del §5.1. Cambiarlo reconstruye las columnas sin recargar, que es el
+            criterio del §5.4: las columnas se derivan de los datos, no de la lista de la base. */}
+        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+          Agrupar por
+          <select
+            aria-label="Agrupar por"
+            value={criterioDeAgrupacion}
+            onChange={(e) => setCriterioDeAgrupacion(e.target.value as CriterioDeAgrupacion)}
+            className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-200"
+          >
+            {CRITERIOS.map((c) => (
+              <option key={c.clave} value={c.clave}>
+                {c.etiqueta}
+              </option>
+            ))}
+          </select>
+        </label>
+
         {/* «Ordenar por» del §5.1, con el EDT por omisión. El sentido va en su propio botón y no
             como doce entradas del desplegable: «Nombre ascendente» y «Nombre descendente» serían
             dos opciones por cada uno de los seis criterios. */}
@@ -791,7 +853,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
               // el desplegable «Ordenar por» no hacía nada en los proyectos sin fases — que son
               // justo los que más lo necesitan, porque no tienen ninguna otra agrupación.
               workItemsInColumn={ordenarTarjetas(
-                filteredWorkItems.filter(i => i.kanbanColumnId === column.id),
+                filteredWorkItems.filter(i => enLaColumna(i, column.id)),
                 localWorkItems,
                 campoDeOrden,
                 sentidoDeOrden,
