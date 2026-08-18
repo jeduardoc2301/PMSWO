@@ -81,23 +81,33 @@ tiempo real y deshacer.
 | 8 | CPM: ruta crítica y holgura (§3.3) | **EXISTE** | `lib/scheduling/cpm.ts`, `critical-path.ts` | Nada. Holgura total, crítica y súper crítica, con 22 pruebas | — | — |
 | 9 | Restricciones de tarea (§3.4) | **PARCIAL** | `PlanTask.constraint` en memoria | El motor entiende `NO_ANTES_DE` y `DEBE_EMPEZAR_EL`, pero no hay columna: no se capturan ni se guardan. Falta `deadline` | M | Bajo |
 | 10 | Roll-up a resúmenes (§3.6) | **EXISTE** | `lib/scheduling/progress.ts` | Nada. Ponderado por trabajo, con hitos en peso cero | — | — |
-| 11 | Carga y sobrecarga de recursos (§3.7) | **CERRADA** | `Resource`, `Assignment`, `ResourceAbsence`, `services/resource.service.ts` | Convive con `ownerId`, no lo sustituye (ver bitácora) | L | Medio |
-| 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **CERRADA (EDT); orden pendiente** | `lib/scheduling/wbs.ts` | Jerarquía sí; `sortOrder` y `wbs` no existen | M | Medio |
+| 11 | Carga y sobrecarga de recursos (§3.7) | **PARCIAL** | `Resource`, `Assignment`, `ResourceAbsence`, `services/resource.service.ts` | Falta `Assignment.work`; no hay alta/baja de asignación; la fórmula del §3.7 usa una constante en vez de minutos laborables | L | Medio |
+| 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | El EDT no es estable: `templateOrder` nace nulo y añadir una línea renumera el plan. Falta `sortOrder`, el tope de 16 niveles y el EDT en el Gantt | M | Medio |
 | 13 | Vista Gantt (§4) | **PARCIAL** | `components/plan/gantt-chart.tsx` | Dibuja barras, vínculos por tipo, ruta crítica y holgura. Falta: arrastrar barras para reprogramar, crear vínculos desde el diagrama, líneas base, zoom persistente | L | Medio |
 | 14 | Vista Tablero (§5) | **PARCIAL** | `components/projects/kanban-board.tsx` | Kanban con arrastre, urgencias, avance y atraso. Falta: agrupar por algo distinto de la fase, columnas configurables | M | Bajo |
 | 15 | Vista Lista (§6) | **EXISTE** | `work-items-outline.tsx` + `work-items-list.tsx` | Dos modos: esquema multinivel y lista por fase. Cumple lo esencial | S | Bajo |
-| 16 | Vista Calendario (§7) | **CERRADA** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx` | — (ver bitácora) | L | Bajo |
-| 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | — (ver bitácora) | L | Medio |
-| 18 | Vista Panel de control (§9) | **CERRADA (4 de 6 widgets)** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | Tiempo y presupuesto siguen sin modelo (ver bitácora) | L | Bajo |
-| 19 | Estados configurables (§5) | **CERRADA** | `KanbanColumn.isInitial/isDone`, `lib/projects/status-progress.ts` | — (ver bitácora) | M | Medio |
-| 20 | Líneas base (§3) | **CERRADA** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | — (ver bitácora) | M | Bajo |
-| 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | — (ver bitácora) | M | Bajo |
-| 22 | Filtros unificados (§10.2) | **CERRADA** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | — (ver bitácora) | M | Bajo |
+| 16 | Vista Calendario (§7) | **PARCIAL** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx` | Cumple 2 de 6 criterios del §7.5. Faltan filtro, arrastre, vista semanal y de agenda | L | Bajo |
+| 17 | Vista Carga de trabajo (§8) | **PARCIAL** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | Cumple 5 de 6 tras el commit 880f788. Falta medir 50 recursos × 3 meses | L | Medio |
+| 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | 4 widgets de 6; el botón Exportar del §9 está escrito y nunca se dibuja | L | Bajo |
+| 19 | Estados configurables (§5) | **PARCIAL** | `KanbanColumn.isInitial/isDone`, `lib/projects/status-progress.ts` | El acoplamiento funciona; falta el alta/baja de columnas desde la pantalla | M | Medio |
+| 20 | Líneas base (§3) | **PARCIAL** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | El motor y la rejilla, sí. Falta la barra bajo la barra del Gantt (§4.6) y el selector no está en el Gantt | M | Bajo |
+| 21 | Preferencias de vista (§10.4) | **PARCIAL** | `ViewPreference`, `services/view-preference.service.ts` | Sólo el panel guarda preferencia; las otras cinco vistas del §10.4 no | M | Bajo |
+| 22 | Filtros unificados (§10.2) | **PARCIAL** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 2 vistas de 6. Faltan los campos creador y color, y aplicarlo a la exportación | M | Bajo |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
-| 24 | Deshacer / rehacer (§10.6) | **CERRADA** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | — (ver bitácora) | L | Bajo |
+| 24 | Deshacer / rehacer (§10.6) | **PARCIAL** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Tablero, avance y edición. Falta el resto de operaciones | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
 
-**Recuento:** 3 EXISTE · 8 PARCIAL · 11 NO EXISTE · 3 EXISTE PERO MAL · 1 NO APLICA.
+**Recuento:** 15 PARCIAL · 4 EXISTE · 3 EXISTE PERO MAL · 2 NO EXISTE · 1 NO APLICA. Total 25 filas.
+
+> **Nota de método (18/08/2026).** Este recuento estuvo mal escrito durante toda una
+> sesión: sumaba 26 sobre 25 filas y nadie lo tocó al declarar diez cierres. Ahora se
+> calcula de las filas, no se escribe a mano.
+>
+> Y las diez filas que llegaron a decir **CERRADA** volvieron **todas** sobreafirmadas
+> en una auditoría con agentes que contrastó los criterios literales del spec en vez de
+> la bitácora. Están de vuelta en PARCIAL con lo que de verdad les falta. Un cierre sólo
+> cuenta si se recorren los criterios de aceptación uno a uno y se demuestra cada uno en
+> pantalla, no en el módulo.
 
 ---
 
@@ -174,7 +184,19 @@ real, deshacer.
 
 ---
 
-## Bitácora de cierre de brechas
+## Bitácora de trabajo
+
+> **Aviso.** Hasta el 18/08/2026 esta bitácora se llamaba «de cierre de brechas» y cada entrada
+> declaraba una cerrada. Una auditoría con agentes contrastó las diez contra los criterios
+> literales del spec y **las diez volvieron sobreafirmadas**. Las entradas se conservan tal cual
+> —son el registro de lo que se hizo— pero **ninguna de ellas demuestra un cierre**. Lo que
+> demuestran es que la pieza existe y está probada; lo que faltaba en todos los casos era el
+> cable, la vista que no la recibía, o el criterio que nadie recorrió.
+>
+> Once piezas estaban escritas, exportadas y con pruebas en verde **sin que las llamara nadie**.
+> Las pruebas verdes no son evidencia de funcionalidad: `columnaAlCambiarProgreso` tuvo 22
+> pruebas durante un commit entero sin un solo llamador.
+
 
 Cada brecha cerrada actualiza aquí su fila con la fecha y el commit, como pide §0.3.
 
