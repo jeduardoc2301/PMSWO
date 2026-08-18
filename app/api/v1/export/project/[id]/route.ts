@@ -117,11 +117,9 @@ async function exportProjectHandler(
       )
     }
 
-    // Export project (service validates project exists and handles organization filtering)
-    const exportResult = await exportService.exportProject(id, options)
-
-    // Verify project belongs to user's organization by checking if export succeeded
-    // (service will throw NotFoundError if project doesn't exist or doesn't belong to org)
+    // La organización va explícita. Aquí había dos comentarios afirmando que el servicio ya
+    // filtraba por ella; era falso, y esa creencia es exactamente lo que dejó la fuga abierta.
+    const exportResult = await exportService.exportProject(id, authContext.organizationId, options)
 
     return NextResponse.json(
       {

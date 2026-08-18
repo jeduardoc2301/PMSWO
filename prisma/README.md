@@ -1,5 +1,10 @@
 # Prisma Database Setup
 
+> **Obsoleto.** `lib/prisma-middleware.ts` se borró el 18/08/2026: nadie lo registraba, y
+> registrarlo habría contaminado peticiones entre organizaciones porque `prisma.$use` es global.
+> El aislamiento se hace acotando el `where` en cada consulta. Ver `lib/AISLAMIENTO.md`.
+
+
 This directory contains the Prisma schema and migration files for the SaaS Project Management platform.
 
 ## Database Configuration

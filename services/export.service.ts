@@ -28,10 +28,19 @@ export class ExportService {
    * - DETAILED: Summary + key items
    * - COMPLETE: All information
    */
-  async exportProject(projectId: string, options: ExportOptions): Promise<ExportResult> {
-    // Fetch project with all related data
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
+  async exportProject(
+    projectId: string,
+    organizationId: string,
+    options: ExportOptions,
+  ): Promise<ExportResult> {
+    // El acotado por organización va AQUÍ, en el `where`, y es obligatorio.
+    //
+    // Antes esto era un `findUnique` por id a secas, y la ruta llevaba un comentario diciendo que
+    // «el servicio filtra por organización». No lo hacía: la palabra `organizationId` no aparecía
+    // ni una vez en este archivo. Cualquiera con permiso de exportar y el id de un proyecto ajeno
+    // se llevaba el informe completo —con el nombre de la otra organización dentro— y un 200.
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, organizationId },
       include: {
         organization: {
           select: {
@@ -567,21 +576,26 @@ export class ExportService {
   async generateNotificationMessage(
     entityType: 'blocker' | 'risk',
     entityId: string,
+    organizationId: string,
     locale: string = 'es'
   ): Promise<NotificationMessage> {
     if (entityType === 'blocker') {
-      return this.generateBlockerNotification(entityId, locale)
+      return this.generateBlockerNotification(entityId, organizationId, locale)
     } else {
-      return this.generateRiskNotification(entityId, locale)
+      return this.generateRiskNotification(entityId, organizationId, locale)
     }
   }
 
   /**
    * Generate notification for a blocker
    */
-  private async generateBlockerNotification(blockerId: string, locale: string = 'es'): Promise<NotificationMessage> {
-    const blocker = await prisma.blocker.findUnique({
-      where: { id: blockerId },
+  private async generateBlockerNotification(
+    blockerId: string,
+    organizationId: string,
+    locale: string = 'es',
+  ): Promise<NotificationMessage> {
+    const blocker = await prisma.blocker.findFirst({
+      where: { id: blockerId, organizationId },
       include: {
         workItem: {
           select: {
@@ -685,9 +699,13 @@ ${t.footer}`
   /**
    * Generate notification for a risk
    */
-  private async generateRiskNotification(riskId: string, locale: string = 'es'): Promise<NotificationMessage> {
-    const risk = await prisma.risk.findUnique({
-      where: { id: riskId },
+  private async generateRiskNotification(
+    riskId: string,
+    organizationId: string,
+    locale: string = 'es',
+  ): Promise<NotificationMessage> {
+    const risk = await prisma.risk.findFirst({
+      where: { id: riskId, organizationId },
       include: {
         owner: {
           select: {

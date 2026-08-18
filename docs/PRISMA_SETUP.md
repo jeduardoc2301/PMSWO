@@ -1,5 +1,10 @@
 # Prisma Setup Guide
 
+> **Obsoleto.** `lib/prisma-middleware.ts` se borró el 18/08/2026: nadie lo registraba, y
+> registrarlo habría contaminado peticiones entre organizaciones porque `prisma.$use` es global.
+> El aislamiento se hace acotando el `where` en cada consulta. Ver `lib/AISLAMIENTO.md`.
+
+
 ## Initial Setup
 
 ### 1. Install Dependencies

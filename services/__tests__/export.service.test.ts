@@ -22,12 +22,15 @@ vi.mock('@/lib/prisma', () => ({
   default: {
     project: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     blocker: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     risk: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }))
@@ -141,7 +144,7 @@ describe('ExportService', () => {
     }
 
     it('should throw NotFoundError if project does not exist', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(null)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -152,11 +155,11 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      await expect(exportService.exportProject('non-existent', options)).rejects.toThrow('Project not found')
+      await expect(exportService.exportProject('non-existent', 'org-1', options)).rejects.toThrow('Project not found')
     })
 
     it('should generate export with all sections when all options are enabled', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -167,7 +170,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result).toBeDefined()
       expect(result.format).toBe('MARKDOWN')
@@ -181,7 +184,7 @@ describe('ExportService', () => {
     })
 
     it('should include project header with basic information', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -192,7 +195,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Test Project')
       expect(result.content).toContain('Test Client')
@@ -201,7 +204,7 @@ describe('ExportService', () => {
     })
 
     it('should include executive summary with key metrics', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -212,7 +215,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Executive Summary')
       expect(result.content).toContain('Completion Rate')
@@ -223,7 +226,7 @@ describe('ExportService', () => {
     })
 
     it('should filter work items by priority in EXECUTIVE detail level', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -234,7 +237,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       // Should include critical work item
       expect(result.content).toContain('Critical Work Item')
@@ -243,7 +246,7 @@ describe('ExportService', () => {
     })
 
     it('should show all work items in COMPLETE detail level', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -254,7 +257,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Critical Work Item')
       expect(result.content).toContain('Completed Work Item')
@@ -263,7 +266,7 @@ describe('ExportService', () => {
     })
 
     it('should only show critical blockers in EXECUTIVE detail level', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -274,7 +277,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Active Blockers')
       expect(result.content).toContain('CRITICAL')
@@ -282,7 +285,7 @@ describe('ExportService', () => {
     })
 
     it('should only show high/critical risks in EXECUTIVE detail level', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -293,7 +296,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Risks')
       expect(result.content).toContain('HIGH')
@@ -301,7 +304,7 @@ describe('ExportService', () => {
     })
 
     it('should only show active agreements in EXECUTIVE detail level', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -312,7 +315,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Agreements')
       expect(result.content).toContain('Agreement to deliver feature X')
@@ -320,7 +323,7 @@ describe('ExportService', () => {
     })
 
     it('should include AI narrative placeholder when useAINarrative is true', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -331,7 +334,7 @@ describe('ExportService', () => {
         useAINarrative: true,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('AI Analysis')
       expect(result.content).toContain('AI-generated narrative')
@@ -346,7 +349,7 @@ describe('ExportService', () => {
         agreements: [],
       }
       
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(projectWithoutRelations as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(projectWithoutRelations as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -357,7 +360,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       // Should only have header and executive summary
       expect(result.content).toContain('Test Project')
@@ -378,7 +381,7 @@ describe('ExportService', () => {
         agreements: [],
       }
       
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(projectWithNoWorkItems as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(projectWithNoWorkItems as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -389,13 +392,13 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('0% (0/0 work items)')
     })
 
     it('should handle project with no active blockers', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue({
+      vi.mocked(prisma.project.findFirst).mockResolvedValue({
         ...mockProject,
         blockers: [],
       } as any)
@@ -409,13 +412,13 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('No active blockers')
     })
 
     it('should handle project with no active risks', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue({
+      vi.mocked(prisma.project.findFirst).mockResolvedValue({
         ...mockProject,
         risks: [],
       } as any)
@@ -429,13 +432,13 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('No active risks')
     })
 
     it('should handle project with no agreements', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue({
+      vi.mocked(prisma.project.findFirst).mockResolvedValue({
         ...mockProject,
         agreements: [],
       } as any)
@@ -449,13 +452,13 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('No agreements recorded')
     })
 
     it('should group work items by status', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -466,7 +469,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       // Should have sections for different statuses
       expect(result.content).toContain('IN_PROGRESS')
@@ -474,7 +477,7 @@ describe('ExportService', () => {
     })
 
     it('should show blocker duration in days', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -485,14 +488,14 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('days')
       expect(result.content).toContain('Duration')
     })
 
     it('should show risk probability and impact', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -503,7 +506,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Probability')
       expect(result.content).toContain('Impact')
@@ -511,7 +514,7 @@ describe('ExportService', () => {
     })
 
     it('should show linked work items for agreements in COMPLETE detail level', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -522,14 +525,14 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Linked Work Items')
       expect(result.content).toContain('Critical Work Item')
     })
 
     it('should show progress notes for agreements in COMPLETE detail level', async () => {
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.COMPLETE,
@@ -540,7 +543,7 @@ describe('ExportService', () => {
         useAINarrative: false,
       }
 
-      const result = await exportService.exportProject('project-1', options)
+      const result = await exportService.exportProject('project-1', 'org-1', options)
 
       expect(result.content).toContain('Progress Notes')
       expect(result.content).toContain('50% complete')
@@ -590,9 +593,9 @@ describe('ExportService', () => {
 
     describe('blocker notifications', () => {
       it('should generate notification for critical blocker', async () => {
-        vi.mocked(prisma.blocker.findUnique).mockResolvedValue(mockBlocker as any)
+        vi.mocked(prisma.blocker.findFirst).mockResolvedValue(mockBlocker as any)
 
-        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1')
+        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1', 'org-1')
 
         expect(result).toBeDefined()
         expect(result.subject).toContain('[CRITICAL]')
@@ -617,9 +620,9 @@ describe('ExportService', () => {
           ...mockBlocker,
           severity: BlockerSeverity.HIGH,
         }
-        vi.mocked(prisma.blocker.findUnique).mockResolvedValue(highBlocker as any)
+        vi.mocked(prisma.blocker.findFirst).mockResolvedValue(highBlocker as any)
 
-        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1')
+        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1', 'org-1')
 
         expect(result.subject).toContain('[HIGH]')
         expect(result.priority).toBe('HIGH')
@@ -630,9 +633,9 @@ describe('ExportService', () => {
           ...mockBlocker,
           severity: BlockerSeverity.MEDIUM,
         }
-        vi.mocked(prisma.blocker.findUnique).mockResolvedValue(mediumBlocker as any)
+        vi.mocked(prisma.blocker.findFirst).mockResolvedValue(mediumBlocker as any)
 
-        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1')
+        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1', 'org-1')
 
         expect(result.subject).toContain('[MEDIUM]')
         expect(result.priority).toBe('MEDIUM')
@@ -643,18 +646,18 @@ describe('ExportService', () => {
           ...mockBlocker,
           startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
         }
-        vi.mocked(prisma.blocker.findUnique).mockResolvedValue(recentBlocker as any)
+        vi.mocked(prisma.blocker.findFirst).mockResolvedValue(recentBlocker as any)
 
-        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1')
+        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1', 'org-1')
 
         expect(result.body).toContain('Duración: 5 días')
       })
 
       it('should throw NotFoundError if blocker does not exist', async () => {
-        vi.mocked(prisma.blocker.findUnique).mockResolvedValue(null)
+        vi.mocked(prisma.blocker.findFirst).mockResolvedValue(null)
 
         await expect(
-          exportService.generateNotificationMessage('blocker', 'non-existent')
+          exportService.generateNotificationMessage('blocker', 'non-existent', 'org-1')
         ).rejects.toThrow('Blocker not found')
       })
     })
@@ -665,9 +668,9 @@ describe('ExportService', () => {
           ...mockRisk,
           riskLevel: RiskLevel.CRITICAL,
         }
-        vi.mocked(prisma.risk.findUnique).mockResolvedValue(criticalRisk as any)
+        vi.mocked(prisma.risk.findFirst).mockResolvedValue(criticalRisk as any)
 
-        const result = await exportService.generateNotificationMessage('risk', 'risk-1')
+        const result = await exportService.generateNotificationMessage('risk', 'risk-1', 'org-1')
 
         expect(result).toBeDefined()
         expect(result.subject).toContain('[CRITICAL]')
@@ -687,9 +690,9 @@ describe('ExportService', () => {
       })
 
       it('should generate notification for high risk', async () => {
-        vi.mocked(prisma.risk.findUnique).mockResolvedValue(mockRisk as any)
+        vi.mocked(prisma.risk.findFirst).mockResolvedValue(mockRisk as any)
 
-        const result = await exportService.generateNotificationMessage('risk', 'risk-1')
+        const result = await exportService.generateNotificationMessage('risk', 'risk-1', 'org-1')
 
         expect(result.subject).toContain('[HIGH]')
         expect(result.priority).toBe('HIGH')
@@ -700,9 +703,9 @@ describe('ExportService', () => {
           ...mockRisk,
           riskLevel: RiskLevel.MEDIUM,
         }
-        vi.mocked(prisma.risk.findUnique).mockResolvedValue(mediumRisk as any)
+        vi.mocked(prisma.risk.findFirst).mockResolvedValue(mediumRisk as any)
 
-        const result = await exportService.generateNotificationMessage('risk', 'risk-1')
+        const result = await exportService.generateNotificationMessage('risk', 'risk-1', 'org-1')
 
         expect(result.subject).toContain('[MEDIUM]')
         expect(result.priority).toBe('MEDIUM')
@@ -713,27 +716,27 @@ describe('ExportService', () => {
           ...mockRisk,
           mitigationPlan: null,
         }
-        vi.mocked(prisma.risk.findUnique).mockResolvedValue(riskWithoutPlan as any)
+        vi.mocked(prisma.risk.findFirst).mockResolvedValue(riskWithoutPlan as any)
 
-        const result = await exportService.generateNotificationMessage('risk', 'risk-1')
+        const result = await exportService.generateNotificationMessage('risk', 'risk-1', 'org-1')
 
         expect(result.body).toContain('No se ha definido un plan de mitigación')
       })
 
       it('should throw NotFoundError if risk does not exist', async () => {
-        vi.mocked(prisma.risk.findUnique).mockResolvedValue(null)
+        vi.mocked(prisma.risk.findFirst).mockResolvedValue(null)
 
         await expect(
-          exportService.generateNotificationMessage('risk', 'non-existent')
+          exportService.generateNotificationMessage('risk', 'non-existent', 'org-1')
         ).rejects.toThrow('Risk not found')
       })
     })
 
     describe('notification format', () => {
       it('should format blocker notification for email/messaging', async () => {
-        vi.mocked(prisma.blocker.findUnique).mockResolvedValue(mockBlocker as any)
+        vi.mocked(prisma.blocker.findFirst).mockResolvedValue(mockBlocker as any)
 
-        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1')
+        const result = await exportService.generateNotificationMessage('blocker', 'blocker-1', 'org-1')
 
         // Check that the notification has clear structure
         expect(result.subject).toBeTruthy()
@@ -749,9 +752,9 @@ describe('ExportService', () => {
       })
 
       it('should format risk notification for email/messaging', async () => {
-        vi.mocked(prisma.risk.findUnique).mockResolvedValue(mockRisk as any)
+        vi.mocked(prisma.risk.findFirst).mockResolvedValue(mockRisk as any)
 
-        const result = await exportService.generateNotificationMessage('risk', 'risk-1')
+        const result = await exportService.generateNotificationMessage('risk', 'risk-1', 'org-1')
 
         // Check that the notification has clear structure
         expect(result.subject).toBeTruthy()
@@ -956,7 +959,7 @@ This is a **critical** project update.
         agreements: [],
       }
 
-      vi.mocked(prisma.project.findUnique).mockResolvedValue(mockProject as any)
+      vi.mocked(prisma.project.findFirst).mockResolvedValue(mockProject as any)
 
       const options = {
         detailLevel: ReportDetailLevel.EXECUTIVE,
@@ -967,7 +970,7 @@ This is a **critical** project update.
         useAINarrative: false,
       }
 
-      const exportResult = await exportService.exportProject('project-1', options)
+      const exportResult = await exportService.exportProject('project-1', 'org-1', options)
       const emailFormatted = await exportService.formatForEmail(exportResult.content)
 
       // Should convert markdown to plain text
@@ -1005,9 +1008,9 @@ This is a **critical** project update.
         },
       }
 
-      vi.mocked(prisma.blocker.findUnique).mockResolvedValue(mockBlocker as any)
+      vi.mocked(prisma.blocker.findFirst).mockResolvedValue(mockBlocker as any)
 
-      const notification = await exportService.generateNotificationMessage('blocker', 'blocker-1')
+      const notification = await exportService.generateNotificationMessage('blocker', 'blocker-1', 'org-1')
       const emailFormatted = await exportService.formatForEmail(notification.body)
 
       // Should be plain text suitable for email

@@ -62,15 +62,13 @@ async function generateNotificationHandler(
     // Get locale from request body or default to 'es'
     const locale = body.locale || 'es'
 
-    // Generate notification message (service validates entity exists and handles organization filtering)
+    // Igual que en la exportación de proyecto: la organización se pasa, no se supone.
     const notification = await exportService.generateNotificationMessage(
       body.type as 'blocker' | 'risk',
       body.entityId,
+      authContext.organizationId,
       locale
     )
-
-    // Note: The service will throw NotFoundError if the entity doesn't exist
-    // or doesn't belong to the user's organization (multi-tenant isolation)
 
     return NextResponse.json(
       {
