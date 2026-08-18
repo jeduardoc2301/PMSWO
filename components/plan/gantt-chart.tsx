@@ -14,6 +14,12 @@
 // `React` en el ámbito porque este archivo usa `React.Fragment` de forma explícita.
 import React, { useRef, useState } from 'react'
 
+import {
+  type ColumnaDelGantt,
+  GANTT_POR_OMISION,
+  anchoDe,
+  columnasVisibles,
+} from '@/lib/plan/gantt-columns'
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 
 export interface GanttChartProps {
@@ -22,8 +28,17 @@ export interface GanttChartProps {
   readonly dayWidth?: number
   /** Alto de cada fila, en píxeles. */
   readonly rowHeight?: number
-  /** Ancho de la columna de nombres. */
-  readonly nameWidth?: number
+  /**
+   * Las columnas de la rejilla, ya resueltas contra el catálogo y en orden.
+   *
+   * Llegan resueltas y no como identificadores: decidir cuáles se ven, con qué orden y qué ancho es
+   * de `lib/plan/gantt-columns`, que se prueba sin navegador.
+   */
+  readonly columnas?: readonly ColumnaDelGantt[]
+  /** Anchos tocados a mano, por identificador. */
+  readonly anchos?: Readonly<Record<string, number>>
+  /** Al soltar el divisor de una columna. Sin esto, las columnas no se pueden redimensionar. */
+  readonly onAnchoCambiado?: (id: string, ancho: number) => void
   readonly selectedId?: string | null
   readonly onSelect?: (id: string) => void
   /** Abrir o cerrar un resumen. Sin esto, los triángulos no se dibujan. */
@@ -40,7 +55,40 @@ export interface GanttChartProps {
 
 const DAY_WIDTH = 14
 const ROW_HEIGHT = 28
-const NAME_WIDTH = 320
+
+/** Las de por omisión, para quien monte el diagrama sin preferencias — la vista global del plan. */
+const COLUMNAS_POR_OMISION = columnasVisibles(GANTT_POR_OMISION)
+
+/**
+ * Lo que va escrito en una celda.
+ *
+ * El nombre no está aquí: esa celda lleva el árbol —triángulos y sangría— y se dibuja aparte.
+ */
+function contenidoDe(row: GanttRow, columnaId: string, indice: number): string {
+  switch (columnaId) {
+    // La EDT no viene en la fila: se numera por posición dentro de lo que se está viendo, que es lo
+    // que hace una hoja de cálculo. Numerar por jerarquía completa daría «2.6.1.1» con el árbol
+    // plegado, y no habría forma de contarlo en pantalla.
+    case 'wbs':
+      return String(indice + 1)
+    case 'kind':
+      return row.kind === 'RESUMEN' ? 'Resumen' : row.isMilestone ? 'Hito' : 'Actividad'
+    case 'party':
+      return row.party === 'CLIENTE' ? 'Cliente' : 'Nuestro'
+    case 'progress':
+      return `${Math.round(row.progress * 100)} %`
+    case 'start':
+      return row.start
+    case 'finish':
+      return row.finish
+    case 'duration':
+      return row.isMilestone ? '—' : String(row.width)
+    case 'float':
+      return row.totalFloat === 0 ? 'sin holgura' : String(row.totalFloat)
+    default:
+      return ''
+  }
+}
 
 /**
  * Alto del área que se desplaza, en píxeles.
@@ -62,7 +110,9 @@ export function GanttChart({
   layout,
   dayWidth = DAY_WIDTH,
   rowHeight = ROW_HEIGHT,
-  nameWidth = NAME_WIDTH,
+  columnas = COLUMNAS_POR_OMISION,
+  anchos = {},
+  onAnchoCambiado,
   selectedId = null,
   onSelect,
   onToggle,
@@ -70,6 +120,10 @@ export function GanttChart({
 }: GanttChartProps) {
   const width = Math.max(layout.span, 1) * dayWidth
   const height = layout.rows.length * rowHeight
+
+  // El ancho de la rejilla es la posición del divisor: no hay dos números que mantener de acuerdo.
+  const anchoPorColumna = columnas.map((columna) => anchoDe(columna, anchos))
+  const anchoDeLaRejilla = anchoPorColumna.reduce((suma, a) => suma + a, 0)
 
   /**
    * Sólo se dibujan las filas que caen dentro de la caja.
@@ -115,33 +169,69 @@ export function GanttChart({
         className="relative overflow-auto rounded-lg border border-zinc-800 bg-[#18181b]"
         style={{ maxHeight: ALTO_VISIBLE + rowHeight }}
       >
-        <div className="flex" style={{ width: nameWidth + width }}>
-          {/* La columna de nombres, pegada a la izquierda: antes se iba con el desplazamiento
-              horizontal y a mitad del plan las barras quedaban sin nombre. */}
+        <div className="flex" style={{ width: anchoDeLaRejilla + width }}>
+          {/* La rejilla, pegada a la izquierda: antes se iba con el desplazamiento horizontal y a
+              mitad del plan las barras quedaban sin nombre. */}
           <div
+            data-testid="gantt-rejilla"
             className="sticky left-0 z-20 shrink-0 border-r border-zinc-800 bg-[#18181b]"
-            style={{ width: nameWidth }}
+            style={{ width: anchoDeLaRejilla }}
           >
             <div
-              className="sticky top-0 z-10 border-b border-zinc-800 bg-[#18181b] text-xs uppercase tracking-wide text-zinc-400"
+              className="sticky top-0 z-10 flex border-b border-zinc-800 bg-[#18181b] text-xs uppercase tracking-wide text-zinc-400"
               style={{ height: rowHeight }}
             >
-              <span className="flex h-full items-center px-3">Línea del plan</span>
+              {columnas.map((columna, i) => (
+                <div
+                  key={columna.id}
+                  data-testid={`cabecera-${columna.id}`}
+                  className="relative shrink-0 overflow-hidden"
+                  style={{ width: anchoPorColumna[i] }}
+                >
+                  <span className="flex h-full items-center truncate px-3">{columna.etiqueta}</span>
+                  {onAnchoCambiado ? (
+                    <TiradorDeColumna
+                      columna={columna}
+                      ancho={anchoPorColumna[i]}
+                      onSoltar={onAnchoCambiado}
+                    />
+                  ) : null}
+                </div>
+              ))}
             </div>
             <div className="relative" style={{ height }}>
               {visibles.map((row, k) => (
                 <div
                   key={row.id}
-                  className="absolute left-0 right-0"
-                  style={{ top: (primera + k) * rowHeight }}
+                  className={`absolute left-0 flex ${row.id === selectedId ? 'bg-zinc-800/60' : ''}`}
+                  style={{ top: (primera + k) * rowHeight, width: anchoDeLaRejilla }}
                 >
-                  <NameCell
-                    row={row}
-                    height={rowHeight}
-                    isSelected={row.id === selectedId}
-                    onSelect={onSelect}
-                    onToggle={onToggle}
-                  />
+                  {columnas.map((columna, i) => (
+                    <div
+                      key={columna.id}
+                      data-testid={`celda-${columna.id}-${row.id}`}
+                      className="shrink-0 overflow-hidden border-b border-zinc-800"
+                      style={{ width: anchoPorColumna[i] }}
+                    >
+                      {columna.id === 'name' ? (
+                        <NameCell
+                          row={row}
+                          height={rowHeight}
+                          onSelect={onSelect}
+                          onToggle={onToggle}
+                        />
+                      ) : (
+                        <span
+                          className={`flex h-full items-center truncate px-2 text-xs text-zinc-400 ${
+                            columna.numerica ? 'justify-end tabular-nums' : ''
+                          }`}
+                          style={{ height: rowHeight }}
+                        >
+                          {contenidoDe(row, columna.id, primera + k)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -195,21 +285,17 @@ export function GanttChart({
 function NameCell({
   row,
   height,
-  isSelected,
   onSelect,
   onToggle,
 }: {
   row: GanttRow
   height: number
-  isSelected: boolean
   onSelect?: (id: string) => void
   onToggle?: (id: string) => void
 }) {
   return (
     <div
-      className={`flex items-center gap-1 border-b border-zinc-800 px-2 text-sm ${
-        isSelected ? 'bg-zinc-800/60' : ''
-      }`}
+      className="flex items-center gap-1 px-2 text-sm"
       style={{ height, paddingLeft: 8 + row.level * 14 }}
     >
       {row.hasChildren && onToggle ? (
@@ -360,6 +446,59 @@ function Bar({
         ) : null}
       </div>
     </React.Fragment>
+  )
+}
+
+/**
+ * El tirador que redimensiona una columna.
+ *
+ * Se mueve con `transform` mientras se arrastra y sólo se avisa al soltar: guardar en cada píxel
+ * dispararía una escritura de preferencias por movimiento de ratón. Es la misma razón por la que la
+ * barra del Gantt tampoco pasa por el estado hasta que se suelta.
+ */
+function TiradorDeColumna({
+  columna,
+  ancho,
+  onSoltar,
+}: {
+  columna: ColumnaDelGantt
+  ancho: number
+  onSoltar: (id: string, ancho: number) => void
+}) {
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`Ancho de la columna ${columna.etiqueta}`}
+      data-testid={`tirador-${columna.id}`}
+      onPointerDown={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const tirador = e.currentTarget
+        const xInicial = e.clientX
+        let nuevo = ancho
+        tirador.setPointerCapture(e.pointerId)
+
+        const alMover = (ev: PointerEvent) => {
+          nuevo = Math.max(columna.minimo, ancho + (ev.clientX - xInicial))
+          tirador.style.transform = `translateX(${nuevo - ancho}px)`
+        }
+        const alSoltar = (ev: PointerEvent) => {
+          tirador.releasePointerCapture(ev.pointerId)
+          tirador.removeEventListener('pointermove', alMover)
+          tirador.removeEventListener('pointerup', alSoltar)
+          tirador.removeEventListener('pointercancel', alSoltar)
+          tirador.style.transform = ''
+          if (ev.type === 'pointerup' && Math.round(nuevo) !== Math.round(ancho)) {
+            onSoltar(columna.id, nuevo)
+          }
+        }
+        tirador.addEventListener('pointermove', alMover)
+        tirador.addEventListener('pointerup', alSoltar)
+        tirador.addEventListener('pointercancel', alSoltar)
+      }}
+      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize touch-none bg-transparent hover:bg-[#6366f1]/60"
+    />
   )
 }
 

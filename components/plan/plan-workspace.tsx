@@ -29,7 +29,15 @@ import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
 import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
 import { PlanDetailPanel, type PlanLink } from '@/components/plan/plan-detail-panel'
+import { FieldsPanel } from '@/components/plan/fields-panel'
 import { BaselinePicker, type LineaBaseGuardada } from '@/components/projects/baseline-picker'
+import {
+  GANTT_POR_OMISION,
+  type PreferenciaDelGantt,
+  alternarColumna,
+  columnasVisibles,
+  redimensionar,
+} from '@/lib/plan/gantt-columns'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import { toDayNumber, toIsoDate } from '@/lib/scheduling/date'
 import {
@@ -139,10 +147,23 @@ export function PlanWorkspace({
   calendario,
   onReprogramado,
 }: PlanWorkspaceProps) {
-  const [level, setLevel] = useState(NIVEL_INICIAL)
-  const [links, setLinks] = useState<LinkVisibility>('SELECCION')
+  /**
+   * Lo que se guarda por usuario: columnas, anchos, escala, nivel y flechas (§4.8, criterio 8).
+   *
+   * Vive junto y no en cinco estados sueltos porque se guarda junto: cinco escrituras separadas
+   * darían cinco carreras contra la misma fila de la base.
+   */
+  const [preferencia, setPreferencia] = useState<PreferenciaDelGantt>(GANTT_POR_OMISION)
+  /** Hasta que llegue lo guardado no se escribe: si no, lo por omisión pisaría lo del usuario. */
+  const [preferenciaCargada, setPreferenciaCargada] = useState(false)
   const [filter, setFilter] = useState<GanttFilter>({})
-  const [scale, setScale] = useState<AxisScale>('MES')
+
+  const level = preferencia.nivel
+  const links = preferencia.flechas as LinkVisibility
+  const scale = preferencia.escala as AxisScale
+  const setLevel = (nivel: number) => setPreferencia((p) => ({ ...p, nivel }))
+  const setLinks = (flechas: LinkVisibility) => setPreferencia((p) => ({ ...p, flechas: flechas as PreferenciaDelGantt['flechas'] }))
+  const setScale = (escala: AxisScale) => setPreferencia((p) => ({ ...p, escala: escala as PreferenciaDelGantt['escala'] }))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [abiertosAMano, setAbiertosAMano] = useState<ReadonlySet<string>>(new Set())
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
@@ -194,6 +215,40 @@ export function PlanWorkspace({
   }, [tasks, dependencies, start, deadline, calendario])
 
   // ── Lo que se recalcula en cada gesto ─────────────────────────────────────
+  useEffect(() => {
+    if (!projectId) {
+      setPreferenciaCargada(true)
+      return
+    }
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=GANTT`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!vigente) return
+        if (d?.settings) setPreferencia({ ...GANTT_POR_OMISION, ...d.settings })
+        setPreferenciaCargada(true)
+      })
+      .catch(() => setPreferenciaCargada(true))
+    return () => {
+      vigente = false
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    if (!projectId || !preferenciaCargada) return
+    // Se manda entera y no por trozos: la fila de preferencias es una, y mandar mitades daría
+    // estados que nadie eligió si dos pestañas escriben a la vez.
+    // La vista va en la URL y no en el cuerpo: es donde la ruta la lee.
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=GANTT`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ view: 'GANTT', settings: preferencia }),
+    }).catch(() => {
+      // Que no se guarde una preferencia no puede tumbar la vista: se sigue trabajando con lo que
+      // hay en pantalla, y la próxima vez volverá a lo guardado.
+    })
+  }, [projectId, preferencia, preferenciaCargada])
+
   useEffect(() => {
     if (!projectId) return
     void fetch(`/api/v1/projects/${projectId}/baselines`)
@@ -457,7 +512,11 @@ export function PlanWorkspace({
         ) : null}
 
         {projectId ? (
-          <div className="mb-3">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <FieldsPanel
+              visibles={preferencia.columnas}
+              onAlternar={(id) => setPreferencia((prev) => alternarColumna(prev, id))}
+            />
             <BaselinePicker
               baselines={fotos}
               activa={fotoActiva}
@@ -541,6 +600,9 @@ export function PlanWorkspace({
 
             <GanttChart
               layout={layoutFiltrado}
+              columnas={columnasVisibles(preferencia)}
+              anchos={preferencia.anchos}
+              onAnchoCambiado={(id, ancho) => setPreferencia((prev) => redimensionar(prev, id, ancho))}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onToggle={alternarPlegado}
