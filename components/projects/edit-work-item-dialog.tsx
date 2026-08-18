@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   Dialog,
@@ -32,7 +32,14 @@ interface EditWorkItemDialogProps {
   onOpenChange: (open: boolean) => void
   workItem: WorkItemSummary
   projectId: string
-  onSuccess: () => void
+  /**
+   * Se llama al guardar. Recibe cómo estaba la línea y con qué se guardó.
+   *
+   * Los dos lados hacen falta para poder deshacer la edición (§10.6), y el diálogo es el único
+   * que los tiene los dos: el «antes» es lo que cargó al abrirse, no lo que hubiera en pantalla
+   * antes de abrirlo.
+   */
+  onSuccess: (antes?: Record<string, unknown>, despues?: Record<string, unknown>) => void
 }
 
 export function EditWorkItemDialog({
@@ -52,6 +59,14 @@ export function EditWorkItemDialog({
   // El tropiezo al leer el tablero se dice en la pantalla: sin él no hay fases ni líneas candidatas
   // y el formulario se ve vacío sin explicación.
   const [boardError, setBoardError] = useState<string | null>(null)
+
+  /**
+   * Cómo estaba la línea cuando el diálogo se abrió.
+   *
+   * Va en un `ref` y no en estado porque no se dibuja: sólo se lee al guardar, para poder decirle
+   * a la pila de deshacer qué había antes.
+   */
+  const comoEstaba = useRef<Record<string, unknown> | null>(null)
 
   const [formData, setFormData] = useState<{
     title: string
@@ -148,7 +163,7 @@ export function EditWorkItemDialog({
       const response = await fetch(`/api/v1/work-items/${workItem.id}`)
       if (response.ok) {
         const data = await response.json()
-        setFormData({
+        const cargado = {
           title: data.workItem.title,
           description: data.workItem.description || '',
           ownerId: data.workItem.ownerId,
@@ -158,7 +173,20 @@ export function EditWorkItemDialog({
           phase: data.workItem.phase || '',
           estimatedHours: data.workItem.estimatedHours != null ? String(data.workItem.estimatedHours) : '',
           parentId: data.workItem.parentId ?? null,
-        })
+        }
+        setFormData(cargado)
+        // El «antes» se guarda tal cual llegó, no se deduce después del formulario: en cuanto
+        // alguien teclea, el formulario deja de ser el estado anterior.
+        //
+        // Y se guarda **con la forma que tiene el envío**, no con la del formulario. El formulario
+        // usa cadena vacía donde la base usa nulo, y con la forma del formulario `phase` salía
+        // como cambiada en toda edición: deshacer habría escrito `''` donde había `null`, que es
+        // un valor distinto. Lo encontró la prueba del contrato, no la revisión.
+        comoEstaba.current = {
+          ...cargado,
+          phase: data.workItem.phase || null,
+          estimatedHours: data.workItem.estimatedHours ?? null,
+        }
       }
     } catch (err) {
       console.error('Error fetching work item details:', err)
@@ -185,22 +213,24 @@ export function EditWorkItemDialog({
       setSubmitting(true)
       setError(null)
 
+      const enviado = {
+        title: formData.title,
+        description: formData.description,
+        ownerId: formData.ownerId,
+        priority: formData.priority,
+        startDate: formData.startDate,
+        estimatedEndDate: formData.estimatedEndDate,
+        phase: formData.phase.trim() || null,
+        estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : null,
+        parentId: formData.parentId,
+      }
+
       const response = await fetch(`/api/v1/work-items/${workItem.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          ownerId: formData.ownerId,
-          priority: formData.priority,
-          startDate: formData.startDate,
-          estimatedEndDate: formData.estimatedEndDate,
-          phase: formData.phase.trim() || null,
-          estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : null,
-          parentId: formData.parentId,
-        }),
+        body: JSON.stringify(enviado),
       })
 
       if (!response.ok) {
@@ -208,7 +238,7 @@ export function EditWorkItemDialog({
         throw new Error(errorData.message || t('errors.updateFailed'))
       }
 
-      onSuccess()
+      onSuccess(comoEstaba.current ?? undefined, enviado)
       onOpenChange(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errors.updateFailed'))

@@ -552,6 +552,7 @@ export function WorkItemsView({
         onCerrarEdicion={() => setEditando(null)}
         onCerrarBaja={() => setBorrando(null)}
         onCambio={trasCambioDeLinea}
+        onApuntarOperacion={onApuntarOperacion}
       />
     </div>
   )
@@ -567,6 +568,7 @@ function DialogosDeLinea({
   onCerrarEdicion,
   onCerrarBaja,
   onCambio,
+  onApuntarOperacion,
 }: {
   projectId: string
   creando: boolean
@@ -577,6 +579,7 @@ function DialogosDeLinea({
   onCerrarEdicion: () => void
   onCerrarBaja: () => void
   onCambio: () => void
+  onApuntarOperacion?: (operacion: Operacion | null) => void
 }) {
   return (
     <React.Fragment>
@@ -593,7 +596,21 @@ function DialogosDeLinea({
           onOpenChange={(abierto) => { if (!abierto) onCerrarEdicion() }}
           workItem={editando}
           projectId={projectId}
-          onSuccess={() => { onCerrarEdicion(); onCambio() }}
+          onSuccess={(antes, despues) => {
+            // El diálogo devuelve los dos lados; `operacionDesde` se queda sólo con lo que cambió,
+            // así que deshacer no escribe encima de campos que esta edición ni tocó.
+            if (antes && despues) {
+              onApuntarOperacion?.(
+                operacionDesde(
+                  `Editar «${editando.title.slice(0, 40)}»`,
+                  [{ id: editando.id, ...antes }],
+                  [{ id: editando.id, ...despues }],
+                ),
+              )
+            }
+            onCerrarEdicion()
+            onCambio()
+          }}
         />
       )}
       {borrando && (

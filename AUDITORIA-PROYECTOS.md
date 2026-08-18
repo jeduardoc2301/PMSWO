@@ -94,7 +94,7 @@ tiempo real y deshacer.
 | 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | — (ver bitácora) | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **CERRADA** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | — (ver bitácora) | M | Bajo |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
-| 24 | Deshacer / rehacer (§10.6) | **CERRADA (tablero y avance)** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Falta enganchar la edición de fechas (ver bitácora) | L | Bajo |
+| 24 | Deshacer / rehacer (§10.6) | **CERRADA** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | — (ver bitácora) | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
 
 **Recuento:** 3 EXISTE · 8 PARCIAL · 11 NO EXISTE · 3 EXISTE PERO MAL · 1 NO APLICA.
@@ -180,6 +180,7 @@ Cada brecha cerrada actualiza aquí su fila con la fecha y el commit, como pide 
 
 | Brecha | Cerrada el | Commit | Nota |
 |---|---|---|---|
+| 24c · Deshacer la edición de una línea | 2026-08-18 | (este commit) | El diálogo devuelve cómo estaba y con qué se guardó: es el único que tiene los dos lados, porque el «antes» es lo que cargó al abrirse. La prueba del contrato destapó que `phase` salía como cambiada en **toda** edición —el formulario usa cadena vacía donde la base usa nulo— y deshacer habría escrito `''` donde había `null`. Comprobado contra la base: editar fechas y prioridad y deshacerlo devuelve los tres campos exactos |
 | 24b · Deshacer el avance + §4.7 bidireccional | 2026-08-18 | (este commit) | Capturar avance ya apunta operación. Y al enchufarlo salió que el acoplamiento del §4.7 estaba a medias en el sentido inverso: capturar 100 % escribía `status: DONE` pero no movía `kanbanColumnId`, así que la línea decía «terminada» y la tarjeta seguía en «Backlog». `columnaAlCambiarProgreso` llevaba escrito y probado desde el commit anterior sin que lo llamara nadie. Comprobado contra la base: 100 % → columna «Done» / DONE, y deshacerlo → «Backlog» / BACKLOG |
 | 24 · Deshacer / rehacer (§10.6) | 2026-08-18 | (este commit) | Pila de 50 con la inversa de cada operación, `Ctrl+Z` / `Ctrl+Shift+Z`, y una operación de doce líneas se deshace de un golpe. Es **datos y no cierres**: un cierre captura el estado del momento y desharía un estado viejo. Si escribir falla, la pila no avanza — si avanzara, diría «ya lo deshice» sobre un cambio que sigue puesto y el siguiente Ctrl+Z daría dos pasos atrás por uno. Enganchado al movimiento del tablero; capturar avance y editar fechas todavía no apuntan operación |
 | 22 · Filtros unificados (§10.2) | 2026-08-18 | (este commit) | El filtro es un dato que vive en el proyecto, no un estado por pantalla: por eso es *el mismo* al cambiar de vista. Árbol AND/OR anidado sin límite, evaluado en memoria (1 368 líneas en menos de un milisegundo) y con los campos en un registro — uno que no exista rompe al validar, que es cuando alguien puede arreglarlo. Un filtro roto **no coincide con nada** en vez de coincidir con todo: el segundo caso escondería líneas sin que nadie lo notara. Comprobado en navegador: filtro puesto en el Tablero (822 de 1368), cambio a Elementos de Trabajo, mismo filtro y mismo conteo |
