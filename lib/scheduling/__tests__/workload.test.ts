@@ -8,6 +8,7 @@ import {
   type TareaDeCarga,
   UNIDADES_COMPLETAS,
   desgloseDelDia,
+  desglosePorTarea,
   recursosConHueco,
   workloadMatrix,
 } from '../workload'
@@ -377,5 +378,87 @@ describe('§8.5 · rendimiento', () => {
     expect(matriz.rows).toHaveLength(50)
     expect(matriz.days).toHaveLength(92)
     expect(tardanza).toBeLessThan(500)
+  })
+})
+
+describe('§8.5 · el desglose de un recurso a lo largo del rango', () => {
+  const conVarias = entrada({
+    resources: [recurso({ id: 'ana', name: 'Ana Gómez' })],
+    tasks: [
+      tarea({ id: 't1', name: 'Migrar la red', start: '2026-06-01', finish: '2026-06-03' }),
+      tarea({ id: 't2', name: 'Revisar accesos', start: '2026-06-01', finish: '2026-06-05' }),
+    ],
+    assignments: [
+      { taskId: 't1', resourceId: 'ana', unitsBp: 5000 },
+      { taskId: 't2', resourceId: 'ana', unitsBp: 2500 },
+    ],
+  })
+
+  it('trae una fila por tarea', () => {
+    const filas = desglosePorTarea(conVarias, conVarias.resources, 'ana')
+    expect(filas.map((f) => f.name).sort()).toEqual(['Migrar la red', 'Revisar accesos'])
+  })
+
+  it('las ordena por lo que pesan, no por su nombre', () => {
+    // «Migrar la red» va al 50 % tres días: 240 × 3 = 720 min.
+    // «Revisar accesos», al 25 % cinco días: 120 × 5 = 600 min.
+    const filas = desglosePorTarea(conVarias, conVarias.resources, 'ana')
+    expect(filas.map((f) => [f.name, f.total])).toEqual([
+      ['Migrar la red', 720],
+      ['Revisar accesos', 600],
+    ])
+  })
+
+  it('LA COMPROBACIÓN DEL CRITERIO: la columna del desglose suma la celda del recurso', () => {
+    // Es la segunda mitad del §8.5.4, «y las horas cuadran con el total de la celda». Si las dos
+    // cuentas no salieran de la misma aritmética, esto sería lo primero en divergir.
+    const matriz = workloadMatrix(conVarias)
+    const filas = desglosePorTarea(conVarias, conVarias.resources, 'ana')
+    const ana = filaDe(matriz, 'ana')
+
+    for (let i = 0; i < matriz.days.length; i += 1) {
+      const suma = filas.reduce((t, f) => t + f.minutosPorDia[i], 0)
+      expect(suma).toBe(ana.celdas[i].cargaMin)
+    }
+  })
+
+  it('cuadra también cuando el recurso está sobrecargado', () => {
+    const saturada = entrada({
+      resources: [recurso({ id: 'ana' })],
+      tasks: [tarea({ id: 'a' }), tarea({ id: 'b' }), tarea({ id: 'c' })],
+      assignments: [
+        { taskId: 'a', resourceId: 'ana', unitsBp: UNIDADES_COMPLETAS },
+        { taskId: 'b', resourceId: 'ana', unitsBp: 5000 },
+        { taskId: 'c', resourceId: 'ana', unitsBp: 2500 },
+      ],
+    })
+    const matriz = workloadMatrix(saturada)
+    const filas = desglosePorTarea(saturada, saturada.resources, 'ana')
+    const celda = filaDe(matriz, 'ana').celdas[0]
+
+    expect(filas.reduce((t, f) => t + f.minutosPorDia[0], 0)).toBe(celda.cargaMin)
+    expect(celda.sobrecargado).toBe(true)
+  })
+
+  it('un día no laborable queda a cero en el desglose, igual que en la celda', () => {
+    // Si el desglose contara el sábado, la suma dejaría de cuadrar justo los fines de semana.
+    const matriz = workloadMatrix(conVarias)
+    const filas = desglosePorTarea(conVarias, conVarias.resources, 'ana')
+    const sabado = columna(matriz, '2026-06-06')
+
+    expect(filas.every((f) => f.minutosPorDia[sabado] === 0)).toBe(true)
+  })
+
+  it('una tarea fuera del rango no aporta una fila de ceros', () => {
+    const fuera = entrada({
+      resources: [recurso({ id: 'ana' })],
+      tasks: [tarea({ id: 'lejos', start: '2026-09-01', finish: '2026-09-05' })],
+      assignments: [{ taskId: 'lejos', resourceId: 'ana', unitsBp: UNIDADES_COMPLETAS }],
+    })
+    expect(desglosePorTarea(fuera, fuera.resources, 'ana')).toEqual([])
+  })
+
+  it('un recurso que no existe devuelve vacío en vez de reventar', () => {
+    expect(desglosePorTarea(conVarias, conVarias.resources, 'nadie')).toEqual([])
   })
 })

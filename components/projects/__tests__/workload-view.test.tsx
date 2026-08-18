@@ -223,3 +223,67 @@ describe('Un proyecto sin nadie asignado', () => {
     expect(screen.getByText(/todavía no tiene a nadie asignado/)).toBeInTheDocument()
   })
 })
+
+describe('§8.5.4 · desplegar un recurso muestra el desglose, y las horas cuadran', () => {
+  it('antes había una frase; ahora hay una fila por tarea', () => {
+    dibujar()
+    fireEvent.click(screen.getByLabelText('Desplegar Ana Gómez'))
+
+    // Ana lleva t1 al 100 % y t2 al 25 %.
+    expect(screen.getByTestId('desglose-t1')).toBeInTheDocument()
+    expect(screen.getByTestId('desglose-t2')).toBeInTheDocument()
+    expect(screen.queryByText(/Toca una celda para ver/)).not.toBeInTheDocument()
+  })
+
+  it('LA SEGUNDA MITAD DEL CRITERIO: la columna del desglose suma la celda del recurso', () => {
+    // Se lee del DOM, no del motor: es lo que exige el criterio —«las horas cuadran con el total
+    // de la celda»— y es justo lo que una prueba del módulo no demuestra.
+    dibujar()
+    fireEvent.click(screen.getByLabelText('Desplegar Ana Gómez'))
+
+    for (const fecha of ['2026-06-01', '2026-06-02', '2026-06-03', '2026-06-04', '2026-06-05']) {
+      const celda = screen.getByTestId(`celda-ana-${fecha}`)
+      const horasDeLaCelda = Number(celda.textContent)
+
+      const suma = ['t1', 't2']
+        .map((t) => screen.getByTestId(`desglose-${t}-${fecha}`))
+        .reduce((total, td) => total + Number(td.getAttribute('data-minutos')), 0)
+
+      expect(suma / 60).toBe(horasDeLaCelda)
+    }
+  })
+
+  it('el desglose cambia de modo con la matriz', () => {
+    dibujar()
+    fireEvent.click(screen.getByLabelText('Desplegar Ana Gómez'))
+    fireEvent.click(screen.getByText('Porcentajes'))
+
+    // t1 va al 100 %; su fila del desglose lo dice igual que la celda.
+    expect(screen.getByTestId('desglose-t1-2026-06-01').textContent).toBe('100')
+    expect(screen.getByTestId('desglose-t2-2026-06-01').textContent).toBe('25')
+  })
+
+  it('un día no laborable queda vacío también en el desglose', () => {
+    dibujar()
+    fireEvent.click(screen.getByLabelText('Desplegar Ana Gómez'))
+
+    expect(screen.getByTestId('desglose-t1-2026-06-06').textContent).toBe('')
+    expect(screen.getByTestId('celda-ana-2026-06-06').textContent).toBe('')
+  })
+
+  it('plegar lo cierra', () => {
+    dibujar()
+    fireEvent.click(screen.getByLabelText('Desplegar Ana Gómez'))
+    expect(screen.getByTestId('desglose-t1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Plegar Ana Gómez'))
+    expect(screen.queryByTestId('desglose-t1')).not.toBeInTheDocument()
+  })
+
+  it('un recurso sin líneas en el periodo lo dice, no abre una fila vacía', () => {
+    dibujar({ from: '2026-09-01', to: '2026-09-07' })
+    fireEvent.click(screen.getByLabelText('Desplegar Ana Gómez'))
+
+    expect(screen.getByText(/no tiene ninguna línea activa en el periodo/)).toBeInTheDocument()
+  })
+})

@@ -335,3 +335,73 @@ export function recursosConHueco(
       b.libreMin === a.libreMin ? a.resource.name.localeCompare(b.resource.name) : b.libreMin - a.libreMin,
     )
 }
+
+export interface FilaDeDesglose {
+  readonly taskId: string
+  readonly name: string
+  readonly unitsBp: number
+  /** Minutos que esta tarea aporta cada día del rango, en el mismo orden que `days`. */
+  readonly minutosPorDia: readonly number[]
+  /** Minutos que suma en todo el rango. Sirve para ordenar por quién pesa más. */
+  readonly total: number
+}
+
+/**
+ * El desglose de un recurso: una fila por tarea suya, a lo largo del rango (§8.5, criterio 4).
+ *
+ * El criterio dice «expandir un recurso muestra el desglose por tarea **y las horas cuadran con el
+ * total de la celda**». Esa segunda mitad es la que obliga a calcularlo aquí y no a ojo en la
+ * pantalla: la suma de la columna en el desglose tiene que dar exactamente la celda del recurso, y
+ * eso sólo se garantiza si las dos salen de la misma aritmética.
+ *
+ * Ojo con la simetría: un día no laborable no acumula carga en la celda del recurso, así que
+ * tampoco puede acumularla aquí. Si el desglose contara ese día, la suma dejaría de cuadrar justo
+ * en los fines de semana.
+ */
+export function desglosePorTarea(
+  entrada: Pick<EntradaDeCarga, 'tasks' | 'assignments' | 'calendar' | 'from' | 'to'>,
+  resources: readonly RecursoDeCarga[],
+  resourceId: string,
+): FilaDeDesglose[] {
+  const { tasks, assignments, calendar, from, to } = entrada
+  const recurso = resources.find((r) => r.id === resourceId)
+  if (!recurso) return []
+
+  const desde = toDayNumber(from)
+  const hasta = toDayNumber(to)
+  const anchura = Math.max(0, hasta - desde + 1)
+  const tareaPorId = new Map(tasks.map((t) => [t.id, t]))
+
+  const filas: FilaDeDesglose[] = []
+
+  for (const asignacion of assignments) {
+    if (asignacion.resourceId !== resourceId) continue
+    const tarea = tareaPorId.get(asignacion.taskId)
+    if (!tarea) continue
+
+    const minutosPorDia = new Array<number>(anchura).fill(0)
+    const porDia = Math.round((asignacion.unitsBp * recurso.dailyMinutes) / UNIDADES_COMPLETAS)
+
+    const inicio = Math.max(desde, toDayNumber(tarea.start))
+    const fin = Math.min(hasta, toDayNumber(tarea.finish))
+    let total = 0
+    for (let dia = inicio; dia <= fin; dia += 1) {
+      if (!calendar.isWorkingDay(dia as DayNumber)) continue
+      minutosPorDia[dia - desde] = porDia
+      total += porDia
+    }
+
+    // Una tarea que no toca ni un día laborable del rango no aporta una fila vacía: sería una
+    // línea de ceros que sólo estorba a quien busca de dónde sale la sobrecarga.
+    if (total === 0) continue
+    filas.push({
+      taskId: tarea.id,
+      name: tarea.name,
+      unitsBp: asignacion.unitsBp,
+      minutosPorDia,
+      total,
+    })
+  }
+
+  return filas.sort((a, b) => (b.total === a.total ? a.name.localeCompare(b.name) : b.total - a.total))
+}

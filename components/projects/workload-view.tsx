@@ -32,7 +32,9 @@ import {
   type CeldaDeCarga,
   type RecursoDeCarga,
   type TareaDeCarga,
+  type FilaDeDesglose,
   desgloseDelDia,
+  desglosePorTarea,
   recursosConHueco,
   workloadMatrix,
 } from '@/lib/scheduling/workload'
@@ -48,6 +50,8 @@ export interface WorkloadViewProps {
   readonly to: string
   readonly onRangoChange: (from: string, to: string) => void
   readonly today?: string
+  /** Abrir el calendario individual de un recurso: sus días libres (§8.1). */
+  readonly onAbrirCalendario?: (resourceId: string) => void
 }
 
 /**
@@ -106,6 +110,7 @@ export function WorkloadView({
   to,
   onRangoChange,
   today,
+  onAbrirCalendario,
 }: WorkloadViewProps) {
   const [modo, setModo] = useState<ModoDeCarga>('horas')
   const [desplegado, setDesplegado] = useState<string | null>(null)
@@ -122,6 +127,17 @@ export function WorkloadView({
         ? []
         : desgloseDelDia({ tasks, assignments, calendar }, resources, celdaElegida.resourceId, celdaElegida.date),
     [celdaElegida, tasks, assignments, calendar, resources],
+  )
+
+  // El desglose del recurso desplegado: una fila por tarea suya a lo largo del rango (§8.5.4).
+  // Antes, desplegar abría una frase que decía «toca una celda» — una afordancia que prometía el
+  // desglose y entregaba una instrucción.
+  const desgloseDelRecurso = useMemo(
+    () =>
+      desplegado === null
+        ? []
+        : desglosePorTarea({ tasks, assignments, calendar, from, to }, resources, desplegado),
+    [desplegado, tasks, assignments, calendar, from, to, resources],
   )
 
   const conHueco = useMemo(
@@ -275,19 +291,32 @@ export function WorkloadView({
                       setDesplegado((actual) => (actual === fila.resource!.id ? null : fila.resource!.id))
                     }
                     onElegirCelda={(date) => setCeldaElegida({ resourceId: fila.resource!.id, date })}
+                    onAbrirCalendario={
+                      onAbrirCalendario ? () => onAbrirCalendario(fila.resource!.id) : undefined
+                    }
                   />
-                  {desplegado === fila.resource!.id ? (
-                    <tr>
-                      <td
-                        colSpan={matriz.days.length + 1}
-                        className="border-b border-zinc-800 bg-[#141416] px-3 py-2"
-                      >
-                        <p className="text-[11px] text-zinc-500">
-                          Toca una celda para ver qué líneas la componen y quién tiene hueco ese día.
-                        </p>
-                      </td>
-                    </tr>
-                  ) : null}
+                  {desplegado === fila.resource!.id
+                    ? (desgloseDelRecurso.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={matriz.days.length + 1}
+                            className="border-b border-zinc-800 bg-[#141416] px-3 py-2 text-[11px] text-zinc-500"
+                          >
+                            Este recurso no tiene ninguna línea activa en el periodo visible.
+                          </td>
+                        </tr>
+                      ) : (
+                        desgloseDelRecurso.map((linea) => (
+                          <FilaDeDesgloseDeTarea
+                            key={linea.taskId}
+                            linea={linea}
+                            dias={matriz.days}
+                            modo={modo}
+                            jornadaMin={fila.resource!.dailyMinutes}
+                          />
+                        ))
+                      ))
+                    : null}
                 </React.Fragment>
               ))}
 
@@ -380,6 +409,7 @@ function FilaDeLaMatriz({
   desplegado = false,
   onDesplegar,
   onElegirCelda,
+  onAbrirCalendario,
 }: {
   readonly clave: string
   readonly titulo: string
@@ -393,6 +423,7 @@ function FilaDeLaMatriz({
   readonly desplegado?: boolean
   readonly onDesplegar?: () => void
   readonly onElegirCelda?: (date: string) => void
+  readonly onAbrirCalendario?: () => void
 }) {
   return (
     <tr data-testid={`fila-${clave}`} className={destacada ? 'bg-[#1c1c20]' : ''}>
@@ -425,6 +456,19 @@ function FilaDeLaMatriz({
             </span>
             <span className="block truncate text-[11px] text-zinc-600">{subtitulo}</span>
           </span>
+          {/* La puerta al calendario individual del recurso (§8.1): sin ella, las vacaciones
+              existían en el modelo y no había forma de ponerlas. */}
+          {onAbrirCalendario ? (
+            <button
+              type="button"
+              aria-label={`Días libres de ${titulo}`}
+              title={`Días libres de ${titulo}`}
+              onClick={onAbrirCalendario}
+              className="shrink-0 rounded px-1 text-xs text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300"
+            >
+              🗓
+            </button>
+          ) : null}
           {/* El contador de días en rojo: el segundo canal, para que la sobrecarga no dependa del
               color de las celdas ni de recorrer noventa columnas con la vista. */}
           {diasSobrecargados > 0 ? (
@@ -467,6 +511,69 @@ function FilaDeLaMatriz({
             ) : (
               texto
             )}
+          </td>
+        )
+      })}
+    </tr>
+  )
+}
+
+/**
+ * Una línea del desglose de un recurso.
+ *
+ * Va con sangría y en tono apagado: son sumandos de la fila de arriba, no filas de la matriz. Y
+ * lleva su porcentaje al lado del nombre, que es de donde salen los minutos de cada celda —así se
+ * puede comprobar la cuenta a ojo sin abrir nada más.
+ */
+function FilaDeDesgloseDeTarea({
+  linea,
+  dias,
+  modo,
+  jornadaMin,
+}: {
+  readonly linea: FilaDeDesglose
+  readonly dias: readonly { readonly date: string; readonly isWorking: boolean }[]
+  readonly modo: ModoDeCarga
+  readonly jornadaMin: number
+}) {
+  return (
+    <tr data-testid={`desglose-${linea.taskId}`} className="bg-[#141416]">
+      <th
+        scope="row"
+        className="sticky left-0 z-10 w-56 min-w-56 border-b border-r border-zinc-800 bg-[#141416] py-1 pl-9 pr-3 text-left font-normal"
+      >
+        <span className="block truncate text-[12px] text-zinc-400" title={linea.name}>
+          {linea.name}
+        </span>
+        <span className="block text-[11px] tabular-nums text-zinc-600">
+          {Math.round(linea.unitsBp / 100)} % · {minutosLegibles(linea.total)} en el periodo
+        </span>
+      </th>
+
+      {linea.minutosPorDia.map((minutos, i) => {
+        const dia = dias[i]
+        const texto =
+          minutos === 0
+            ? ''
+            : modo === 'tareas'
+              ? '1'
+              : modo === 'porcentaje'
+                ? String(Math.round((minutos / jornadaMin) * 100))
+                : Number.isInteger(minutos / 60)
+                  ? String(minutos / 60)
+                  : (minutos / 60).toFixed(1)
+
+        return (
+          <td
+            key={dia.date}
+            data-testid={`desglose-${linea.taskId}-${dia.date}`}
+            data-minutos={minutos}
+            title={`${linea.name} · ${dia.date} · ${minutosLegibles(minutos)}`}
+            className={`w-8 min-w-8 border-b border-zinc-800/60 py-1 text-center text-[11px] tabular-nums text-zinc-500 ${
+              dia.isWorking ? '' : 'bg-[#0f0f11]'
+            }`}
+          >
+            {texto}
           </td>
         )
       })}

@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { WorkloadView } from '@/components/projects/workload-view'
+import { ResourceAbsencesDialog } from '@/components/projects/resource-absences-dialog'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import {
   type DefinicionDeCalendario,
@@ -64,6 +65,7 @@ export function WorkloadTab({ projectId }: { readonly projectId: string }) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   const [rango, setRango] = useState<{ from: string; to: string } | null>(null)
   const [sembrando, setSembrando] = useState(false)
+  const [calendarioDe, setCalendarioDe] = useState<string | null>(null)
 
   const recibir = useCallback((corte: CorteRemoto) => {
     setEstado({ fase: 'listo', corte })
@@ -168,16 +170,40 @@ export function WorkloadTab({ projectId }: { readonly projectId: string }) {
     )
   }
 
+  const recargar = () => {
+    void (async () => {
+      const respuesta = await fetch(`/api/v1/projects/${projectId}/workload`)
+      if (!respuesta.ok) return
+      const { corte: nuevo } = (await respuesta.json()) as { corte: CorteRemoto }
+      recibir(nuevo)
+    })()
+  }
+
   return (
-    <WorkloadView
+    <>
+      <WorkloadView
       resources={corte.resources}
       tasks={corte.tasks}
       assignments={corte.assignments}
       calendar={calendario}
       from={rango?.from ?? corte.projectStart}
       to={rango?.to ?? sumarMeses(corte.projectStart, MESES_VISIBLES)}
-      onRangoChange={(from, to) => setRango({ from, to })}
-      today={hoyCivil()}
-    />
+        onRangoChange={(from, to) => setRango({ from, to })}
+        today={hoyCivil()}
+        onAbrirCalendario={setCalendarioDe}
+      />
+      {calendarioDe !== null ? (
+        <ResourceAbsencesDialog
+          abierto
+          projectId={projectId}
+          resourceId={calendarioDe}
+          nombre={corte.resources.find((r) => r.id === calendarioDe)?.name ?? 'el recurso'}
+          onCerrar={() => setCalendarioDe(null)}
+          // Poner un día libre cambia la capacidad, y con ella la sobrecarga de toda la fila: hay
+          // que volver a pedir el corte, no parchear en local.
+          onCambio={recargar}
+        />
+      ) : null}
+    </>
   )
 }
