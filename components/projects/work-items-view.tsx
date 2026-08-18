@@ -432,7 +432,10 @@ export function WorkItemsView({
       {modo === 'LISTA' ? (
         <WorkItemsList
           projectId={projectId}
-          workItems={workItems}
+          // El filtro también aquí. Antes la lista recibía el array entero mientras la barra —que
+          // se dibuja en la cabecera común a los dos modos— anunciaba «822 de 1368» encima de una
+          // tabla con las 1368. No era una carencia: era la pantalla afirmando algo falso.
+          workItems={idsVisibles ? workItems.filter((w) => idsVisibles.has(w.id)) : workItems}
           onWorkItemCreated={onWorkItemCreated}
           editDatesData={editDatesData}
           onEditDatesDataUsed={onEditDatesDataUsed}

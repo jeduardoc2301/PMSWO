@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { locales } from '@/i18n/config'
 import { SessionProviderWrapper } from '@/components/providers/session-provider-wrapper'
+import { Toaster } from '@/components/ui/toaster'
 import '../globals.css'
 
 const geistSans = Geist({
@@ -82,6 +83,9 @@ export default async function LocaleLayout({
         <SessionProviderWrapper>
           <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
         </SessionProviderWrapper>
+        {/* Una sola vez, aquí. Ocho diálogos de producción llevaban avisando de sus errores a la
+            consola del navegador porque no había dónde dibujarlos. */}
+        <Toaster />
       </body>
     </html>
   )
