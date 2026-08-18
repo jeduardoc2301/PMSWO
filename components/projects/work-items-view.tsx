@@ -22,6 +22,12 @@ import { DependencyEditor } from '@/components/projects/dependency-editor'
 import { EditWorkItemDialog } from '@/components/projects/edit-work-item-dialog'
 import { WorkItemsList } from '@/components/projects/work-items-list'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
+import {
+  BaselinePicker,
+  type LineaBaseGuardada,
+  ResumenDeLineaBase,
+} from '@/components/projects/baseline-picker'
+import { type DesvioDeLinea, type ResumenContraLaBase, desviosPorId } from '@/lib/scheduling/baseline'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 import type { WorkItemSummary } from '@/types'
 
@@ -93,6 +99,12 @@ export function WorkItemsView({
   const [padreDeLaNueva, setPadreDeLaNueva] = useState<string | null>(null)
   const [editando, setEditando] = useState<WorkItemSummary | null>(null)
   const [borrando, setBorrando] = useState<WorkItemSummary | null>(null)
+
+  // ── Líneas base (§4.6) ────────────────────────────────────────────────────────────────────────
+  const [lineasBase, setLineasBase] = useState<readonly LineaBaseGuardada[]>([])
+  const [lineaBaseActiva, setLineaBaseActiva] = useState<string | null>(null)
+  const [contraLaBase, setContraLaBase] = useState<ResumenContraLaBase | null>(null)
+  const [tomandoFoto, setTomandoFoto] = useState(false)
   // La carga y los PATCH sobreviven al desmontaje; sin esta bandera, sus respuestas escribirían
   // estado sobre un componente que ya no existe.
   const vigente = useRef(true)
@@ -131,6 +143,82 @@ export function WorkItemsView({
     void cargarPlan()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
+
+  // ── Líneas base ───────────────────────────────────────────────────────────────────────────────
+  const cargarLineasBase = async () => {
+    try {
+      const respuesta = await fetch(`/api/v1/projects/${projectId}/baselines`)
+      if (!respuesta.ok) return
+      const { baselines } = (await respuesta.json()) as { baselines?: LineaBaseGuardada[] }
+      if (vigente.current && Array.isArray(baselines)) setLineasBase(baselines)
+    } catch {
+      // Que no haya fotos guardadas no puede tumbar la pestaña: el plan se mira igual sin ellas.
+    }
+  }
+
+  useEffect(() => {
+    setLineaBaseActiva(null)
+    setContraLaBase(null)
+    void cargarLineasBase()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
+
+  // La comparación se pide al servidor y no se calcula aquí: hace falta el plan programado y el de
+  // la foto, y el navegador ya tiene bastante con programar el de hoy.
+  useEffect(() => {
+    if (lineaBaseActiva === null) {
+      setContraLaBase(null)
+      return
+    }
+    let sigueVigente = true
+    void (async () => {
+      try {
+        const respuesta = await fetch(
+          `/api/v1/projects/${projectId}/baselines?compare=${lineaBaseActiva}`,
+        )
+        if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`)
+        const { resumen } = (await respuesta.json()) as { resumen: ResumenContraLaBase }
+        if (sigueVigente) setContraLaBase(resumen)
+      } catch {
+        if (sigueVigente) {
+          setContraLaBase(null)
+          setAviso('No se pudo comparar contra esa línea base.')
+        }
+      }
+    })()
+    return () => {
+      sigueVigente = false
+    }
+  }, [projectId, lineaBaseActiva])
+
+  const tomarFoto = async (nombre: string) => {
+    setTomandoFoto(true)
+    try {
+      const respuesta = await fetch(`/api/v1/projects/${projectId}/baselines`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nombre }),
+      })
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
+      }
+      const { baseline } = (await respuesta.json()) as { baseline: LineaBaseGuardada }
+      await cargarLineasBase()
+      // Se activa la recién tomada: quien acaba de fotografiar el plan quiere ver la comparación,
+      // aunque el primer día salga toda en cero.
+      if (vigente.current) setLineaBaseActiva(baseline.id)
+    } catch (error) {
+      if (vigente.current) {
+        setAviso(error instanceof Error ? error.message : 'No se pudo crear la línea base.')
+      }
+    } finally {
+      if (vigente.current) setTomandoFoto(false)
+    }
+  }
+
+  const desvios: ReadonlyMap<string, DesvioDeLinea> | undefined =
+    contraLaBase === null ? undefined : desviosPorId(contraLaBase)
 
   // El ajuste de fechas que sugiere la IA abre un diálogo que vive en la lista; si la sugerencia
   // llega mientras se mira el esquema, hay que cambiar de vista o moriría sin abrirse.
@@ -360,7 +448,27 @@ export function WorkItemsView({
               setPadreDeLaNueva(parentId)
               setCreando(true)
             }}
+            desvios={desvios}
+            barraDeLineaBase={
+              <BaselinePicker
+                baselines={lineasBase}
+                activa={lineaBaseActiva}
+                onElegir={setLineaBaseActiva}
+                onCrear={(nombre) => void tomarFoto(nombre)}
+                creando={tomandoFoto}
+              />
+            }
           />
+
+          {contraLaBase !== null && lineaBaseActiva !== null ? (
+            <ResumenDeLineaBase
+              nombre={lineasBase.find((b) => b.id === lineaBaseActiva)?.name ?? 'la línea base'}
+              movidas={contraLaBase.movidas}
+              nuevas={contraLaBase.nuevas}
+              eliminadas={contraLaBase.eliminadas}
+              driftDelCierre={contraLaBase.driftDelCierre}
+            />
+          ) : null}
 
           {/* El editor de vínculos como cajón flotante y no como columna: el aside de 400 px junto
               a la tabla desbordaba la página en cualquier pantalla normal. Flotante, la tabla

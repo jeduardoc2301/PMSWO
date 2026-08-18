@@ -32,6 +32,7 @@ import { schedulePlan } from '@/lib/scheduling/schedule'
 import { type EstadoAlCorte, varianceAtCutoff } from '@/lib/scheduling/schedule-variance'
 import type { Dependency, PlanTask, TaskKind } from '@/lib/scheduling/types'
 import { numerarPlan } from '@/lib/scheduling/wbs'
+import type { DesvioDeLinea } from '@/lib/scheduling/baseline'
 
 export interface WorkItemsOutlineProps {
   /** El plan del proyecto, como lo entrega GET /api/v1/projects/[id]/schedule. */
@@ -55,6 +56,15 @@ export interface WorkItemsOutlineProps {
   readonly onDeleteItem?: (id: string) => void
   /** Dar de alta una línea que cuelgue de otra. Llega el id del padre, no el de la nueva. */
   readonly onAddChild?: (parentId: string) => void
+  /**
+   * El desvío de cada línea contra la línea base activa, o `undefined` si no hay ninguna elegida.
+   *
+   * Llega ya calculado y ya indexado: la rejilla dibuja mil filas y buscar en una lista por cada
+   * una sería cuadrático. Quien monta decide qué foto está activa; aquí sólo se pinta.
+   */
+  readonly desvios?: ReadonlyMap<string, DesvioDeLinea>
+  /** La barra de líneas base, si quien monta la ofrece. Va en la barra de herramientas. */
+  readonly barraDeLineaBase?: React.ReactNode
 }
 
 /**
@@ -95,6 +105,8 @@ export function WorkItemsOutline({
   onEditItem,
   onDeleteItem,
   onAddChild,
+  desvios,
+  barraDeLineaBase,
 }: WorkItemsOutlineProps): React.JSX.Element {
   const jerarquia = useMemo(() => nivelesDelPlan(tasks), [tasks])
   const edtPorId = useMemo(
@@ -193,6 +205,7 @@ export function WorkItemsOutline({
           >
             Contraer todo
           </button>
+          {barraDeLineaBase}
         </div>
         <p className="text-xs text-zinc-500">{contador}</p>
       </div>
@@ -240,6 +253,7 @@ export function WorkItemsOutline({
                 key={row.id}
                 row={row}
                 wbs={edtPorId.get(row.id) ?? ''}
+                desvio={desvios?.get(row.id)}
                 avance={avanceEfectivo(row, base.rollup)}
                 owner={porId.get(row.id)?.owner}
                 vinculos={vinculosDe.get(row.id)}
@@ -274,6 +288,7 @@ function avanceEfectivo(row: GanttRow, rollup: ReturnType<typeof rollUpProgress>
 function Linea({
   row,
   wbs,
+  desvio,
   avance,
   owner,
   vinculos,
@@ -288,6 +303,7 @@ function Linea({
 }: {
   row: GanttRow
   wbs: string
+  desvio: DesvioDeLinea | undefined
   avance: number
   owner: string | undefined
   vinculos: { entran: number; salen: number } | undefined
@@ -390,6 +406,30 @@ function Linea({
       <td className="whitespace-nowrap px-3 py-1.5 text-xs text-zinc-400">
         {/* Una sola celda: nueve columnas desbordaban la pestaña, y el rango se lee mejor junto. */}
         {row.isMilestone ? row.start : `${row.start} → ${row.finish}`}
+        {/* Lo que prometía la línea base, debajo y en rojo (§4.6). Sólo cuando cambió: repetir la
+            misma fecha en dos renglones no informa de nada y duplica el alto de toda la tabla. */}
+        {desvio && desvio.estado === 'movida' && desvio.base ? (
+          <span
+            data-testid={`base-${row.id}`}
+            title={`Línea base: ${desvio.base.start} → ${desvio.base.finish}`}
+            className="block text-[11px] text-red-400/80"
+          >
+            {row.isMilestone ? desvio.base.start : `${desvio.base.start} → ${desvio.base.finish}`}
+            <span className="ml-1.5 tabular-nums">
+              ({desvio.driftFinish > 0 ? '+' : ''}
+              {desvio.driftFinish} d)
+            </span>
+          </span>
+        ) : null}
+        {desvio?.estado === 'nueva' ? (
+          <span
+            data-testid={`base-${row.id}`}
+            title="Esta línea no existía cuando se tomó la línea base"
+            className="block text-[11px] text-zinc-600"
+          >
+            nueva desde la línea base
+          </span>
+        ) : null}
       </td>
       {onEditItem || onDeleteItem || onAddChild ? (
         <td className="whitespace-nowrap px-2 py-1.5">

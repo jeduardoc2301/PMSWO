@@ -84,6 +84,7 @@ model Project {
   projectManager   User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
   collaborators    ProjectCollaborator[]
   viewPreferences  ViewPreference[]
+  baselines        Baseline[]
   workItems        WorkItem[]
   blockers         Blocker[]
   risks            Risk[]
@@ -203,6 +204,7 @@ model WorkItem {
   outgoingLinks TaskDependency[]    @relation("DependencyPredecessor")
   // Compuertas que habilitan a esta tarea.
   assignments   Assignment[]
+  baselineItems BaselineItem[]
   parent        WorkItem?           @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children      WorkItem[]          @relation("WorkItemHierarchy")
   gateUnlocks   GateUnlock[]
@@ -776,4 +778,57 @@ model ResourceAbsence {
 
   @@index([resourceId, startDate])
   @@map("resource_absences")
+}
+
+
+/// Una foto del plan en un momento dado (§3, §4.6).
+///
+/// El spec la pide como *snapshot directo* y no como historial completo, y es la decisión correcta:
+/// la pregunta que una línea base responde —«¿cuánto nos hemos movido de lo que prometimos?»— sólo
+/// necesita el estado de aquel día, no la secuencia de cambios que llevó hasta aquí. Un sistema de
+/// eventos daría lo mismo y costaría veinte veces más.
+///
+/// Se guardan las fechas de **todas** las líneas, no sólo las que después cambien. En el momento de
+/// tomarla no se sabe cuáles van a moverse, y una foto parcial no es una foto.
+model Baseline {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  projectId      String   @map("project_id") @db.Char(36)
+  name           String
+  createdById    String   @map("created_by_id") @db.Char(36)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   BaselineItem[]
+
+  @@index([projectId, createdAt])
+  @@map("baselines")
+}
+
+/// El estado de una línea en el momento de la foto.
+///
+/// `budget` no está: el spec lo incluye, pero este modelo todavía no lleva dinero por línea, y una
+/// columna siempre en cero mentiría al compararla. Entra el día que entre el presupuesto.
+model BaselineItem {
+  id         String   @id @default(uuid()) @db.Char(36)
+  baselineId String   @map("baseline_id") @db.Char(36)
+  workItemId String   @map("work_item_id") @db.Char(36)
+  startDate  DateTime @map("start_date") @db.Date
+  endDate    DateTime @map("end_date") @db.Date
+  /// Duración en días hábiles al tomar la foto, contando los dos extremos.
+  ///
+  /// Se guarda además de las fechas porque el calendario laborable puede cambiar —un festivo nuevo,
+  /// un cambio de jornada— y entonces recalcularla desde las fechas daría un número que nunca fue
+  /// verdad. La foto guarda lo que se prometió, no lo que hoy se deduciría.
+  durationDays   Int  @map("duration_days")
+  estimatedHours Int? @map("estimated_hours")
+  /// Avance en puntos base: 10000 es el cien por cien.
+  progressBp     Int  @map("progress_bp")
+
+  baseline Baseline @relation(fields: [baselineId], references: [id], onDelete: Cascade)
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@unique([baselineId, workItemId])
+  @@index([workItemId])
+  @@map("baseline_items")
 }

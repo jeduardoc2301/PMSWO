@@ -90,7 +90,7 @@ tiempo real y deshacer.
 | 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | — (ver bitácora) | L | Medio |
 | 18 | Vista Panel de control (§9) | **CERRADA (4 de 6 widgets)** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | Tiempo y presupuesto siguen sin modelo (ver bitácora) | L | Bajo |
 | 19 | Estados configurables (§5) | **NO EXISTE** | `WorkItem.status String` | Texto libre validado solo en TypeScript; no hay `TaskStatusOption` | M | Medio |
-| 20 | Líneas base (§3) | **NO EXISTE** | — | Todo | M | Bajo |
+| 20 | Líneas base (§3) | **CERRADA** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | — (ver bitácora) | M | Bajo |
 | 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | — (ver bitácora) | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL** | Cada vista trae los suyos | No se comparten entre vistas ni se guardan | M | Bajo |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
@@ -180,6 +180,7 @@ Cada brecha cerrada actualiza aquí su fila con la fecha y el commit, como pide 
 
 | Brecha | Cerrada el | Commit | Nota |
 |---|---|---|---|
+| 20 · Líneas base (§3, §4.6) | 2026-08-18 | (este commit) | Foto directa, como pide el §1: el estado de aquel día, sin sistema de eventos. Las fechas salen del motor y no de las columnas, para que la foto retrate lo que se enseñó en pantalla. La duración se guarda además de las fechas porque el calendario laborable puede cambiar. Comprobado de extremo a extremo: foto de 1368 líneas, tres líneas movidas una semana, la cascada arrastra 18 y cada una marca +5 días hábiles en rojo bajo su fecha — y el cierre **sin mover**, porque iban dentro de su holgura |
 | 12 · Numeración EDT (§2.3) | 2026-08-17 | (este commit) | Se calcula, no se guarda: el EDT es función de la jerarquía y el orden, y una columna con la copia acabaría contradiciendo al árbol. Mover una fase renumeraría cientos de registros; calculada, el plan real de 1 368 líneas cuesta menos de un milisegundo. Recorrido con pila explícita —mil niveles no desbordan— y comparador que pone 1.9 antes de 1.10. Queda pendiente `sortOrder` explícito: hoy el orden lo da `templateOrder` |
 | 11 · Modelo de asignación | 2026-08-17 | (este commit) | `Resource` + `Assignment` + `ResourceAbsence`, aditivo: `WorkItem.ownerId` sigue significando lo mismo y ninguna pantalla existente cambia. Recursos sin cuenta de usuario para el lado del cliente. Siembra idempotente desde lo que ya había, repartiendo la estimación de cada línea entre sus días hábiles (`work/duración = units`, §3.7) |
 | 17 · Vista Carga de trabajo (§8) | 2026-08-17 | (este commit) | La sexta y última vista del spec. Motor de matriz recurso × día con 32 pruebas y vista con 21. Tres modos sobre una sola comparación en minutos, ausencias que ponen la capacidad a cero, fila de trabajo huérfano, fila del equipo y sugerencia de quién tiene hueco (§8.4). Medido sobre el plan real: 5 recursos, 651 celdas, 142 en sobrecarga, 0 px de desborde de página |
