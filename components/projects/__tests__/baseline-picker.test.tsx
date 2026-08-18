@@ -180,3 +180,55 @@ describe('El resumen', () => {
     expect(screen.getByText('eliminadas')).toBeInTheDocument()
   })
 })
+
+describe('Borrar una foto guardada', () => {
+  const GUARDADAS = [
+    { id: 'f1', name: 'Plan comprometido', isShared: true, expression: null },
+    { id: 'f2', name: 'Replan de agosto', isShared: false, expression: null },
+  ]
+
+  function abrirConBaselines(sobre: Partial<React.ComponentProps<typeof BaselinePicker>> = {}) {
+    const props = {
+      baselines: [
+        { id: 'b1', name: 'Plan comprometido', createdAt: '2026-06-01T10:00:00.000Z', lineas: 1368 },
+      ],
+      activa: null,
+      onElegir: vi.fn(),
+      onCrear: vi.fn(),
+      ...sobre,
+    }
+    const r = render(<BaselinePicker {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Línea base ▾/ }))
+    return { ...r, props }
+  }
+
+  it('sin `onBorrar` no se ofrece: las fotos se acumulaban sin forma de quitarlas', () => {
+    abrirConBaselines()
+    expect(screen.queryByLabelText(/Borrar la línea base/)).not.toBeInTheDocument()
+  })
+
+  it('con `onBorrar` aparece la cruz y avisa cuál', () => {
+    const onBorrar = vi.fn()
+    abrirConBaselines({ onBorrar })
+
+    fireEvent.click(screen.getByLabelText('Borrar la línea base Plan comprometido'))
+    expect(onBorrar).toHaveBeenCalledWith('b1')
+  })
+
+  it('borrar no elige esa foto de paso', () => {
+    // La cruz vive dentro del mismo renglón que el radio; si el clic burbujeara, quitar una foto
+    // la activaría un instante antes de desaparecer.
+    const onBorrar = vi.fn()
+    const { props } = abrirConBaselines({ onBorrar })
+
+    fireEvent.click(screen.getByLabelText('Borrar la línea base Plan comprometido'))
+    expect(props.onElegir).not.toHaveBeenCalled()
+  })
+
+  it('quien no puede escribir en el proyecto no ve el formulario de tomar foto', () => {
+    // `puedeCrear` llevaba prueba dedicada y ningún llamador se lo pasaba: alguien con sólo
+    // lectura veía «Tomar una foto del plan de hoy» y se comía el rechazo del servidor.
+    abrirConBaselines({ puedeCrear: false })
+    expect(screen.queryByLabelText(/Tomar una foto/)).not.toBeInTheDocument()
+  })
+})

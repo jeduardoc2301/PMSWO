@@ -14,6 +14,7 @@ import { z } from 'zod'
 
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import {
+  borrarLineaBase,
   compararConLineaBase,
   listarLineasBase,
   tomarLineaBase,
@@ -87,5 +88,47 @@ async function postHandler(
   }
 }
 
+/**
+ * Borra una foto guardada.
+ *
+ * `borrarLineaBase` llevaba escrita, con su JSDoc y su cascada, sin handler que la llamara ni botón
+ * que la ofreciera: las fotos se acumulaban sin forma de quitarlas. Sólo puede borrarlas quien
+ * puede escribir en el proyecto — una línea base compartida la mira más gente, y que cualquiera la
+ * quite de en medio convierte una referencia acordada en algo que desaparece sin explicación.
+ */
+async function deleteHandler(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+  authContext: AuthContext,
+): Promise<NextResponse> {
+  try {
+    const { id } = await context.params
+    const baselineId = request.nextUrl.searchParams.get('baselineId')
+    if (!baselineId) {
+      return NextResponse.json(
+        { error: 'Bad Request', message: 'Hace falta el id de la línea base' },
+        { status: 400 },
+      )
+    }
+
+    const borrada = await borrarLineaBase(id, authContext.organizationId, baselineId)
+    if (!borrada) {
+      return NextResponse.json(
+        { error: 'Not Found', message: 'Esa línea base no existe en este proyecto' },
+        { status: 404 },
+      )
+    }
+
+    return NextResponse.json({ ok: true }, { status: 200 })
+  } catch (error) {
+    console.error('[DELETE /api/v1/projects/[id]/baselines] Error:', error)
+    return NextResponse.json(
+      { error: 'Internal Server Error', message: 'Failed to delete baseline' },
+      { status: 500 },
+    )
+  }
+}
+
 export const GET = withAuth(getHandler, { requiredPermissions: [Permission.PROJECT_VIEW] })
 export const POST = withAuth(postHandler, { requiredPermissions: [Permission.PROJECT_UPDATE] })
+export const DELETE = withAuth(deleteHandler, { requiredPermissions: [Permission.PROJECT_UPDATE] })

@@ -26,6 +26,8 @@ export interface BaselinePickerProps {
   readonly activa: string | null
   readonly onElegir: (id: string | null) => void
   readonly onCrear: (nombre: string) => void
+  /** Quitar una foto guardada. Sin esto se acumulan sin forma de limpiarlas. */
+  readonly onBorrar?: (id: string) => void
   readonly creando?: boolean
   /** Falso cuando quien mira no puede escribir en el proyecto: entonces sólo elige. */
   readonly puedeCrear?: boolean
@@ -42,6 +44,7 @@ export function BaselinePicker({
   activa,
   onElegir,
   onCrear,
+  onBorrar,
   creando = false,
   puedeCrear = true,
 }: BaselinePickerProps) {
@@ -147,10 +150,10 @@ export function BaselinePicker({
             ) : (
               <ul className="mt-0.5 flex max-h-56 flex-col overflow-y-auto">
                 {baselines.map((baseline) => (
-                  <li key={baseline.id}>
+                  <li key={baseline.id} className="flex items-center gap-1">
                     <label
                       onClick={() => setAbierto(false)}
-                      className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-zinc-800"
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-zinc-800"
                     >
                       <input
                         type="radio"
@@ -168,6 +171,17 @@ export function BaselinePicker({
                         </span>
                       </span>
                     </label>
+                    {onBorrar ? (
+                      <button
+                        type="button"
+                        aria-label={`Borrar la línea base ${baseline.name}`}
+                        title="Borrar esta foto"
+                        onClick={() => onBorrar(baseline.id)}
+                        className="shrink-0 rounded px-1 text-xs text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300"
+                      >
+                        ✕
+                      </button>
+                    ) : null}
                   </li>
                 ))}
               </ul>

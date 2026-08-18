@@ -15,6 +15,7 @@ import { DashboardView } from '@/components/projects/dashboard-view'
 import { DashboardWidgetsDialog } from '@/components/projects/dashboard-widgets-dialog'
 import type { PanelDeProyecto } from '@/services/project-dashboard.service'
 import { PANEL_POR_OMISION, type WidgetDelPanel } from '@/lib/projects/dashboard-widgets'
+import { nombreDelArchivo, panelComoCsv } from '@/lib/projects/dashboard-csv'
 
 type Estado =
   | { readonly fase: 'cargando' }
@@ -85,6 +86,34 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
     [projectId],
   )
 
+  /**
+   * Exportar el panel (§9, barra superior).
+   *
+   * El botón llevaba escrito en `dashboard-view.tsx` con su prop y su estilo, y esta pestaña
+   * nunca se la pasaba: existía en el código y no se dibujaba nunca.
+   *
+   * El texto lo arma `lib/projects/dashboard-csv.ts`, que es puro y se prueba con aritmética.
+   * Aquí queda sólo lo que no se puede probar sin navegador: pedir la descarga.
+   */
+  const exportar = () => {
+    if (estado.fase !== 'listo') return
+    const { panel, hoy } = estado
+    const cabecera = { nombre: panel.nombre, cliente: panel.cliente, hoy }
+    const csv = panelComoCsv(cabecera, panel.metricas, widgets)
+
+    // Con marca de orden de bytes: sin ella, Excel abre los acentos como mojibake.
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const enlace = document.createElement('a')
+    enlace.href = url
+    enlace.download = nombreDelArchivo(panel.nombre, hoy)
+    document.body.appendChild(enlace)
+    enlace.click()
+    document.body.removeChild(enlace)
+    // Sin esto el blob se queda en memoria hasta que se cierre la pestaña.
+    URL.revokeObjectURL(url)
+  }
+
   if (estado.fase === 'cargando') {
     return <p className="py-12 text-center text-sm text-zinc-400">Armando el panel del proyecto...</p>
   }
@@ -104,6 +133,7 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
         hoy={estado.hoy}
         widgets={widgets}
         onConfigurar={() => setConfigurando(true)}
+        onExportar={exportar}
       />
       <DashboardWidgetsDialog
         abierto={configurando}

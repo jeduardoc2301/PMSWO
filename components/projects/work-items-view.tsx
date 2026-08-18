@@ -239,6 +239,24 @@ export function WorkItemsView({
     }
   }
 
+  const borrarLineaBaseGuardada = async (id: string) => {
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}/baselines?baselineId=${id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const cuerpo = await res.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${res.status}`)
+      }
+      // Si la borrada era la activa, se deja de comparar: seguir enseñando desvíos contra una foto
+      // que ya no existe sería enseñar números sin origen.
+      if (lineaBaseActiva === id) setLineaBaseActiva(null)
+      await cargarLineasBase()
+    } catch (error) {
+      setAviso(error instanceof Error ? error.message : 'No se pudo borrar la línea base.')
+    }
+  }
+
   const desvios: ReadonlyMap<string, DesvioDeLinea> | undefined =
     contraLaBase === null ? undefined : desviosPorId(contraLaBase)
 
@@ -500,7 +518,12 @@ export function WorkItemsView({
                 activa={lineaBaseActiva}
                 onElegir={setLineaBaseActiva}
                 onCrear={(nombre) => void tomarFoto(nombre)}
+                onBorrar={(id) => void borrarLineaBaseGuardada(id)}
                 creando={tomandoFoto}
+                // El permiso real, no el de por omisión. `puedeCrear` llevaba prueba dedicada y
+                // ningún llamador se lo pasaba, así que alguien con sólo lectura veía «Tomar una
+                // foto del plan de hoy» y se comía el rechazo del servidor.
+                puedeCrear={canCreateWorkItems}
               />
             }
           />
