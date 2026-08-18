@@ -25,7 +25,7 @@
 import { type WorkCalendar } from './calendar'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate, weekdayOf } from './date'
 
-/** Una tarea tal como la necesita el calendario: un rango de días y nada más. */
+/** Una tarea tal como la necesita el calendario: un rango de días y poco más. */
 export interface CalendarTask {
   readonly id: string
   readonly name: string
@@ -33,6 +33,17 @@ export interface CalendarTask {
   readonly start: IsoDate
   /** Último día que ocupa, inclusive. En un hito coincide con el inicio. */
   readonly finish: IsoDate
+  /**
+   * Un hito no se dibuja como barra sino como rombo, y **nunca cae en «N tareas más»**.
+   *
+   * Es una mejora deliberada sobre la referencia, y la razón es que un hito es precisamente lo que
+   * no se puede perder de vista: marca un compromiso, no trabajo. Un día saturado esconde tareas
+   * sin drama —se despliegan— pero esconder el hito de cierre de una etapa detrás de un «12 tareas
+   * más» es esconder justo lo que alguien vino a buscar.
+   */
+  readonly isMilestone?: boolean
+  /** Fecha límite comprometida, si es distinta del fin. Se marca en su día con un aviso. */
+  readonly deadline?: IsoDate
 }
 
 /** Un trozo de tarea dentro de una semana, ya colocado en su carril. */
@@ -49,6 +60,8 @@ export interface CalendarSegment {
   readonly continuesFromPrevious: boolean
   /** La tarea sigue en la semana siguiente. */
   readonly continuesIntoNext: boolean
+  /** Se dibuja como rombo, no como barra. */
+  readonly isMilestone: boolean
 }
 
 export interface CalendarWeek {
@@ -65,6 +78,8 @@ export interface CalendarWeek {
   readonly overflowByColumn: readonly number[]
   /** Cuántos carriles se usaron antes de recortar. Sirve para decidir el alto de la fila. */
   readonly laneCount: number
+  /** Qué tareas vencen en cada columna, para poner el aviso de fecha límite en su día. */
+  readonly deadlinesByColumn: readonly (readonly string[])[]
 }
 
 export interface CalendarLayout {
@@ -131,7 +146,7 @@ export function calendarLayout(input: CalendarLayoutInput): CalendarLayout {
       })
     }
 
-    const { segments, overflowByColumn, laneCount } = colocarSemana(
+    const { segments, overflowByColumn, laneCount, deadlinesByColumn } = colocarSemana(
       input.tasks,
       cursor,
       maxLanes,
@@ -144,6 +159,7 @@ export function calendarLayout(input: CalendarLayoutInput): CalendarLayout {
       segments,
       overflowByColumn,
       laneCount,
+      deadlinesByColumn,
     })
   }
 
@@ -173,7 +189,12 @@ function colocarSemana(
   tasks: readonly CalendarTask[],
   inicioSemana: number,
   maxLanes: number,
-): { segments: CalendarSegment[]; overflowByColumn: number[]; laneCount: number } {
+): {
+  segments: CalendarSegment[]
+  overflowByColumn: number[]
+  laneCount: number
+  deadlinesByColumn: string[][]
+} {
   const finSemana = inicioSemana + 6
 
   const enLaSemana = tasks
@@ -185,6 +206,10 @@ function colocarSemana(
     // Un rango invertido no es un intervalo; se descarta en vez de dibujar una barra imposible.
     .filter((t) => t.fin >= t.inicio && t.fin >= inicioSemana && t.inicio <= finSemana)
     .sort((a, b) => {
+      // Los hitos van primero de todo: así toman los carriles altos y nunca caen en el recorte.
+      const hitoA = a.tarea.isMilestone === true
+      const hitoB = b.tarea.isMilestone === true
+      if (hitoA !== hitoB) return hitoA ? -1 : 1
       if (a.inicio !== b.inicio) return a.inicio - b.inicio
       const duracionA = a.fin - a.inicio
       const duracionB = b.fin - b.inicio
@@ -196,6 +221,13 @@ function colocarSemana(
   const ocupadoHasta: number[] = []
   const segments: CalendarSegment[] = []
   const overflowByColumn = new Array<number>(7).fill(0)
+  const deadlinesByColumn: string[][] = Array.from({ length: 7 }, () => [])
+
+  for (const tarea of tasks) {
+    if (!tarea.deadline) continue
+    const dia = toDayNumber(tarea.deadline)
+    if (dia >= inicioSemana && dia <= finSemana) deadlinesByColumn[dia - inicioSemana].push(tarea.id)
+  }
 
   for (const { tarea, inicio, fin } of enLaSemana) {
     const desde = Math.max(inicio, inicioSemana)
@@ -209,7 +241,10 @@ function colocarSemana(
       ocupadoHasta[carril] = hasta
     }
 
-    if (carril >= maxLanes) {
+    // Un hito nunca se recorta: es un compromiso, no trabajo, y esconderlo tras un «N tareas más»
+    // es esconder justo lo que alguien vino a buscar. Como van primeros en el orden, esto solo
+    // salta en la semana rarísima con más hitos que carriles.
+    if (carril >= maxLanes && tarea.isMilestone !== true) {
       // No cabe: cuenta como «una más» en cada día que habría ocupado, que es lo que la casilla
       // necesita saber para decir «N tareas más».
       for (let d = desde; d <= hasta; d += 1) overflowByColumn[d - inicioSemana] += 1
@@ -224,10 +259,11 @@ function colocarSemana(
       span: hasta - desde + 1,
       continuesFromPrevious: inicio < inicioSemana,
       continuesIntoNext: fin > finSemana,
+      isMilestone: tarea.isMilestone === true,
     })
   }
 
-  return { segments, overflowByColumn, laneCount: ocupadoHasta.length }
+  return { segments, overflowByColumn, laneCount: ocupadoHasta.length, deadlinesByColumn }
 }
 
 /**

@@ -257,6 +257,94 @@ describe('La rejilla', () => {
   })
 })
 
+/**
+ * Mejora deliberada sobre la referencia (§7.2): «hitos diferenciados, siempre visibles aunque el
+ * día esté saturado». Un hito marca un compromiso, no trabajo; esconderlo tras un «12 tareas más»
+ * es esconder justo lo que alguien vino a buscar.
+ */
+describe('§7.2 · los hitos nunca se esconden', () => {
+  const hito = (id: string, dia: string): CalendarTask => ({
+    id,
+    name: `Hito ${id}`,
+    start: dia,
+    finish: dia,
+    isMilestone: true,
+  })
+
+  it('un hito se dibuja aunque el día esté saturado de tareas', () => {
+    const layout = calendarLayout({
+      tasks: [
+        tarea('a', '2026-07-28', '2026-07-28'),
+        tarea('b', '2026-07-28', '2026-07-28'),
+        tarea('c', '2026-07-28', '2026-07-28'),
+        tarea('d', '2026-07-28', '2026-07-28'),
+        hito('cierre', '2026-07-28'),
+      ],
+      from: '2026-07-27',
+      to: '2026-08-02',
+      calendar,
+      maxLanes: 3,
+    })
+
+    const dibujados = layout.weeks[0].segments.map((s) => s.taskId)
+    expect(dibujados).toContain('cierre')
+    // Y toma el carril de arriba, porque va primero en el orden.
+    expect(layout.weeks[0].segments.find((s) => s.taskId === 'cierre')!.lane).toBe(0)
+  })
+
+  it('el trozo del hito viene marcado, para dibujarlo como rombo y no como barra', () => {
+    const layout = calendarLayout({
+      tasks: [hito('h', '2026-07-29'), tarea('t', '2026-07-29', '2026-07-30')],
+      from: '2026-07-27',
+      to: '2026-08-02',
+      calendar,
+    })
+    const porId = new Map(layout.weeks[0].segments.map((s) => [s.taskId, s.isMilestone]))
+
+    expect(porId.get('h')).toBe(true)
+    expect(porId.get('t')).toBe(false)
+  })
+
+  it('desplazar el hito al carril alto no roba sitio a las tareas: solo las reordena', () => {
+    const layout = calendarLayout({
+      tasks: [tarea('larga', '2026-07-27', '2026-07-31'), hito('h', '2026-07-29')],
+      from: '2026-07-27',
+      to: '2026-08-02',
+      calendar,
+      maxLanes: 3,
+    })
+
+    expect(layout.weeks[0].segments).toHaveLength(2)
+    expect(layout.weeks[0].overflowByColumn.every((n) => n === 0)).toBe(true)
+  })
+})
+
+describe('§7.2 · las fechas límite se marcan en su día', () => {
+  it('una tarea con fecha límite distinta del fin aparece en la columna del vencimiento', () => {
+    const layout = calendarLayout({
+      tasks: [{ ...tarea('t', '2026-07-27', '2026-07-28'), deadline: '2026-07-31' }],
+      from: '2026-07-27',
+      to: '2026-08-02',
+      calendar,
+    })
+
+    // El viernes 31 es la columna 4 con la semana abriendo en lunes.
+    expect(layout.weeks[0].deadlinesByColumn[4]).toEqual(['t'])
+    expect(layout.weeks[0].deadlinesByColumn[1]).toEqual([])
+  })
+
+  it('sin fecha límite no se marca nada', () => {
+    const layout = calendarLayout({
+      tasks: [tarea('t', '2026-07-27', '2026-07-28')],
+      from: '2026-07-27',
+      to: '2026-08-02',
+      calendar,
+    })
+
+    expect(layout.weeks[0].deadlinesByColumn.every((c) => c.length === 0)).toBe(true)
+  })
+})
+
 describe('§7.5 · rendimiento: un mes con 400 tareas', () => {
   it('se dispone en mucho menos de un segundo', () => {
     const muchas: CalendarTask[] = Array.from({ length: 400 }, (_, i) => {

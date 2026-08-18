@@ -86,7 +86,7 @@ tiempo real y deshacer.
 | 13 | Vista Gantt (§4) | **PARCIAL** | `components/plan/gantt-chart.tsx` | Dibuja barras, vínculos por tipo, ruta crítica y holgura. Falta: arrastrar barras para reprogramar, crear vínculos desde el diagrama, líneas base, zoom persistente | L | Medio |
 | 14 | Vista Tablero (§5) | **PARCIAL** | `components/projects/kanban-board.tsx` | Kanban con arrastre, urgencias, avance y atraso. Falta: agrupar por algo distinto de la fase, columnas configurables | M | Bajo |
 | 15 | Vista Lista (§6) | **EXISTE** | `work-items-outline.tsx` + `work-items-list.tsx` | Dos modos: esquema multinivel y lista por fase. Cumple lo esencial | S | Bajo |
-| 16 | Vista Calendario (§7) | **NO EXISTE** | — | Todo. Cero archivos | L | Bajo |
+| 16 | Vista Calendario (§7) | **CERRADA** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx` | — (ver bitácora) | L | Bajo |
 | 17 | Vista Carga de trabajo (§8) | **NO EXISTE** | — | Todo, y depende de la brecha 11 | L | Bajo |
 | 18 | Vista Panel de control (§9) | **NO EXISTE** | — | Los 6 widgets. Hay tablero ejecutivo de portafolio, pero no por proyecto | M | Bajo |
 | 19 | Estados configurables (§5) | **NO EXISTE** | `WorkItem.status String` | Texto libre validado solo en TypeScript; no hay `TaskStatusOption` | M | Medio |
@@ -180,4 +180,4 @@ Cada brecha cerrada actualiza aquí su fila con la fecha y el commit, como pide 
 
 | Brecha | Cerrada el | Commit | Nota |
 |---|---|---|---|
-| — | — | — | Ninguna todavía: la construcción arranca tras el punto de control del §0.2 |
+| 16 · Vista Calendario (§7) | 2026-08-17 | (este commit) | Motor de empaquetado en carriles con 25 pruebas, rejilla del mes con 19 pruebas. Barras que cruzan semanas con puntas ◀/▶, hitos ◆ exentos del recorte, banderas ⚑ de vencimiento y «N líneas más» desplegable. Medido en navegador sobre el plan real (1368 líneas): 0 px de desborde, 0 encimamientos, empaquetado en 19 ms |
