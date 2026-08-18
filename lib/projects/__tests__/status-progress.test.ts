@@ -5,7 +5,6 @@ import {
   type ColumnaDeEstado,
   columnaAlCambiarProgreso,
   progresoAlMover,
-  seContradicen,
 } from '../status-progress'
 
 /**
@@ -105,27 +104,6 @@ describe('§4.7 · la columna que sale de capturar avance', () => {
   })
 })
 
-describe('Encontrar lo que quedó torcido de antes', () => {
-  it('al cuarenta por ciento en «Terminado» se contradice', () => {
-    expect(seContradicen(0.4, TERMINADO)).toBe(true)
-  })
-
-  it('al treinta por ciento en el backlog también', () => {
-    expect(seContradicen(0.3, BACKLOG)).toBe(true)
-  })
-
-  it('al cero o al cien en una intermedia también', () => {
-    expect(seContradicen(0, EN_CURSO)).toBe(true)
-    expect(seContradicen(1, EN_CURSO)).toBe(true)
-  })
-
-  it('lo coherente no se marca', () => {
-    expect(seContradicen(1, TERMINADO)).toBe(false)
-    expect(seContradicen(0, BACKLOG)).toBe(false)
-    expect(seContradicen(0.5, EN_CURSO)).toBe(false)
-  })
-})
-
 describe('Los dos sentidos cierran el círculo', () => {
   it('mover y volver a preguntar da la misma columna', () => {
     for (const destino of COLUMNAS) {
@@ -140,7 +118,9 @@ describe('Los dos sentidos cierran el círculo', () => {
     for (const avance of [0, ARRANCADA, 0.5, 1]) {
       const destino = columnaAlCambiarProgreso(avance, undefined, COLUMNAS)
       if (!destino) continue
-      expect(seContradicen(progresoAlMover(avance, destino), destino)).toBe(false)
+      // Sin `seContradicen`: se comprueba directamente que el avance resultante encaje.
+      const resultante = progresoAlMover(avance, destino)
+      expect(columnaAlCambiarProgreso(resultante, destino, COLUMNAS)).toBeNull()
     }
   })
 })

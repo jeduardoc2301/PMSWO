@@ -89,20 +89,6 @@ export function columnaAlCambiarProgreso(
 }
 
 /**
- * ¿La columna y el avance se contradicen?
- *
- * Sirve para encontrar lo que quedó torcido antes de que existiera el acoplamiento, sin arreglarlo
- * por la espalda: una línea al 40 % en «Terminado» es un dato que alguien tiene que mirar, no algo
- * que un proceso deba corregir en silencio inventando cuál de los dos campos tenía razón.
- */
-export function seContradicen(progreso: number, columna: ColumnaDeEstado): boolean {
-  const acotado = Math.min(1, Math.max(0, progreso))
-  if (columna.isDone) return acotado < 1
-  if (columna.isInitial) return acotado > 0
-  return acotado <= 0 || acotado >= 1
-}
-
-/**
  * Qué estado le corresponde a una línea que cae en esta columna.
  *
  * El estado sigue siendo un vocabulario cerrado —lo leen la urgencia, el panel de control y los

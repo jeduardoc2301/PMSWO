@@ -879,12 +879,36 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'agreements' && <AgreementsTab projectId={projectId} />}
 
             {/* ── TIMELINE (Gantt) ── */}
-            {activeTab === 'gantt' && <PlanTab projectId={projectId} />}
+            {activeTab === 'gantt' && (
+              <PlanTab
+                projectId={projectId}
+                barraDeFiltro={barraDeFiltro}
+                idsVisibles={
+                  idsFiltrados.size === (kanbanBoard?.workItems.length ?? 0) ? undefined : idsFiltrados
+                }
+              />
+            )}
 
             {/* ── CALENDARIO ── */}
-            {activeTab === 'calendar' && <CalendarTab projectId={projectId} />}
+            {activeTab === 'calendar' && (
+              <CalendarTab
+                projectId={projectId}
+                barraDeFiltro={barraDeFiltro}
+                idsVisibles={
+                  idsFiltrados.size === (kanbanBoard?.workItems.length ?? 0) ? undefined : idsFiltrados
+                }
+              />
+            )}
 
-            {activeTab === 'workload' && <WorkloadTab projectId={projectId} />}
+            {activeTab === 'workload' && (
+              <WorkloadTab
+                projectId={projectId}
+                barraDeFiltro={barraDeFiltro}
+                idsVisibles={
+                  idsFiltrados.size === (kanbanBoard?.workItems.length ?? 0) ? undefined : idsFiltrados
+                }
+              />
+            )}
 
             {activeTab === 'dashboard' && <DashboardTab projectId={projectId} />}
 

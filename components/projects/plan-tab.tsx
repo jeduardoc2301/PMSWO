@@ -33,7 +33,15 @@ type Estado =
   | { readonly fase: 'error'; readonly mensaje: string }
   | { readonly fase: 'listo'; readonly plan: PlanRemoto }
 
-export function PlanTab({ projectId }: { readonly projectId: string }) {
+export interface PlanTabProps {
+  readonly projectId: string
+  /** La barra del filtro unificado (§10.2). */
+  readonly barraDeFiltro?: React.ReactNode
+  /** Los ids que pasan ese filtro, o `undefined` si no hay ninguno puesto. */
+  readonly idsVisibles?: ReadonlySet<string>
+}
+
+export function PlanTab({ projectId, barraDeFiltro, idsVisibles }: PlanTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
 
   useEffect(() => {
@@ -88,6 +96,8 @@ export function PlanTab({ projectId }: { readonly projectId: string }) {
 
   return (
     <PlanWorkspace
+      barraDeFiltro={barraDeFiltro}
+      idsVisibles={idsVisibles}
       tasks={plan.tasks}
       dependencies={plan.dependencies}
       start={plan.start}

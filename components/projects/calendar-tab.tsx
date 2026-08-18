@@ -50,7 +50,20 @@ function hoyCivil(): string {
   return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
 }
 
-export function CalendarTab({ projectId }: { readonly projectId: string }) {
+export interface CalendarTabProps {
+  readonly projectId: string
+  /** La barra del filtro unificado, montada arriba en el proyecto (§10.2). */
+  readonly barraDeFiltro?: React.ReactNode
+  /**
+   * Los ids que pasan ese filtro, o `undefined` si no hay filtro puesto.
+   *
+   * Llega el conjunto ya resuelto y no el filtro: se evalúa **una vez** en el proyecto y las seis
+   * vistas comparten el resultado. Eso es lo que hace que sea *el mismo* filtro y no seis.
+   */
+  readonly idsVisibles?: ReadonlySet<string>
+}
+
+export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   const [mes, setMes] = useState<string | null>(null)
 
@@ -104,7 +117,12 @@ export function CalendarTab({ projectId }: { readonly projectId: string }) {
     // Se recorre el análisis solo para tener los hitos ya resueltos por el motor.
     analyzeCriticalPath(schedule)
 
-    return plan.tasks.map((tarea) => {
+    // El filtro recorta **lo que se dibuja**, no lo que se programa: las fechas de una línea
+    // salen de toda la red de dependencias, y programar un trozo daría fechas que no son las
+    // del plan. Es el mismo error que ya reventó una vez en el esquema.
+    const visibles = idsVisibles ? plan.tasks.filter((t) => idsVisibles.has(t.id)) : plan.tasks
+
+    return visibles.map((tarea) => {
       const programada = schedule.byId.get(tarea.id)
       return {
         id: tarea.id,
@@ -115,7 +133,7 @@ export function CalendarTab({ projectId }: { readonly projectId: string }) {
         ...(tarea.dueDate ? { deadline: tarea.dueDate } : {}),
       }
     })
-  }, [estado])
+  }, [estado, idsVisibles])
 
   const calendario = useMemo(
     () => (estado.fase === 'listo' ? calendarioDesde(estado.plan.calendar) : createWorkCalendar()),
@@ -143,12 +161,15 @@ export function CalendarTab({ projectId }: { readonly projectId: string }) {
   }
 
   return (
-    <CalendarView
-      tasks={tareas}
-      calendar={calendario}
-      month={mes ?? hoyCivil().slice(0, 7)}
-      onMonthChange={setMes}
-      today={hoyCivil()}
-    />
+    <div className="flex flex-col gap-3">
+      {barraDeFiltro}
+      <CalendarView
+        tasks={tareas}
+        calendar={calendario}
+        month={mes ?? hoyCivil().slice(0, 7)}
+        onMonthChange={setMes}
+        today={hoyCivil()}
+      />
+    </div>
   )
 }

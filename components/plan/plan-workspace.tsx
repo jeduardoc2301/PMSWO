@@ -57,6 +57,16 @@ export interface PlanWorkspaceProps {
   /** De dónde salió el plan, para el renglón de origen: «archivo · N líneas», por ejemplo. */
   readonly origin?: string
   readonly warnings?: readonly string[]
+  /** La barra del filtro unificado, montada arriba en el proyecto (§10.2). */
+  readonly barraDeFiltro?: React.ReactNode
+  /**
+   * Los ids que pasan el filtro, o `undefined` si no hay ninguno puesto.
+   *
+   * Recorta **lo que se dibuja**, nunca lo que se programa: las fechas de una línea salen de
+   * toda la red de dependencias. Programar un trozo del plan daría fechas que no son las del
+   * plan, y ya reventó una vez así en el esquema.
+   */
+  readonly idsVisibles?: ReadonlySet<string>
 }
 
 /**
@@ -75,6 +85,8 @@ export function PlanWorkspace({
   projectName,
   origin,
   warnings = [],
+  barraDeFiltro,
+  idsVisibles,
 }: PlanWorkspaceProps) {
   const [level, setLevel] = useState(NIVEL_INICIAL)
   const [links, setLinks] = useState<LinkVisibility>('SELECCION')
@@ -147,8 +159,28 @@ export function PlanWorkspace({
     })
   }, [tasks, dependencies, base, level, abiertosAMano, links, selectedId, filter, scale])
 
+  // El filtro unificado recorta las filas ya trazadas, conservando los ancestros de lo que
+  // sobrevive: una actividad colgando de una fase ausente dejaría de ser un esquema. Y va aquí,
+  // después de programar, porque las fechas salen de toda la red de dependencias.
+  const layoutFiltrado = useMemo(() => {
+    if (!idsVisibles) return layout
+    const porId = new Map(tasks.map((t) => [t.id, t]))
+    const conservar = new Set<string>()
+    for (const t of tasks) {
+      if (!idsVisibles.has(t.id)) continue
+      conservar.add(t.id)
+      const visto = new Set<string>([t.id])
+      for (let padre = t.parentId; padre !== undefined; padre = porId.get(padre)?.parentId) {
+        if (visto.has(padre)) break
+        visto.add(padre)
+        conservar.add(padre)
+      }
+    }
+    return { ...layout, rows: layout.rows.filter((fila) => conservar.has(fila.id)) }
+  }, [layout, idsVisibles, tasks])
+
   const seleccionada =
-    selectedId === null ? null : layout.rows.find((fila) => fila.id === selectedId) ?? null
+    selectedId === null ? null : layoutFiltrado.rows.find((fila) => fila.id === selectedId) ?? null
 
   const nombres = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks])
 
@@ -201,6 +233,10 @@ export function PlanWorkspace({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* El filtro unificado del §10.2, si quien monta lo ofrece. Va arriba del todo porque afecta
+          a lo que se ve debajo, incluido el resumen ejecutivo del plan. */}
+      {barraDeFiltro}
+
       <ExecutiveBriefPanel brief={base.brief} projectName={projectName} />
 
       <section className="flex flex-col gap-3">
@@ -238,14 +274,14 @@ export function PlanWorkspace({
           onFilterChange={setFilter}
           scale={scale}
           onScaleChange={setScale}
-          visibleRows={layout.rows.length}
+          visibleRows={layoutFiltrado.rows.length}
           totalRows={tasks.length}
         />
 
         <div className="flex flex-col gap-4 xl:flex-row">
           <div className="min-w-0 flex-1">
             <GanttChart
-              layout={layout}
+              layout={layoutFiltrado}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onToggle={alternarPlegado}

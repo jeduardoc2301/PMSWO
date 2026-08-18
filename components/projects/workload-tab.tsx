@@ -61,7 +61,20 @@ function hoyCivil(): string {
   ).padStart(2, '0')}`
 }
 
-export function WorkloadTab({ projectId }: { readonly projectId: string }) {
+export interface WorkloadTabProps {
+  readonly projectId: string
+  /** La barra del filtro unificado, montada arriba en el proyecto (§10.2). */
+  readonly barraDeFiltro?: React.ReactNode
+  /**
+   * Los ids que pasan ese filtro, o `undefined` si no hay filtro puesto.
+   *
+   * Llega el conjunto ya resuelto y no el filtro: se evalúa **una vez** en el proyecto y las seis
+   * vistas comparten el resultado. Eso es lo que hace que sea *el mismo* filtro y no seis.
+   */
+  readonly idsVisibles?: ReadonlySet<string>
+}
+
+export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   const [rango, setRango] = useState<{ from: string; to: string } | null>(null)
   const [sembrando, setSembrando] = useState(false)
@@ -179,15 +192,24 @@ export function WorkloadTab({ projectId }: { readonly projectId: string }) {
     })()
   }
 
+  // El filtro recorta las líneas, y las asignaciones se recortan con ellas: si no, la matriz
+  // sumaría carga de tareas que no se están mirando y los totales no cuadrarían con lo visible.
+  // Los recursos se dejan enteros a propósito — quién está libre es la mitad de la respuesta a
+  // «¿a quién le paso esto?», y esconderlo por filtrar sería quitar justo lo útil.
+  const tareasVisibles = idsVisibles ? corte.tasks.filter((t) => idsVisibles.has(t.id)) : corte.tasks
+  const idsDeTareas = new Set(tareasVisibles.map((t) => t.id))
+  const asignacionesVisibles = corte.assignments.filter((a) => idsDeTareas.has(a.taskId))
+
   return (
-    <>
+    <div className="flex flex-col gap-3">
+      {barraDeFiltro}
       <WorkloadView
-      resources={corte.resources}
-      tasks={corte.tasks}
-      assignments={corte.assignments}
-      calendar={calendario}
-      from={rango?.from ?? corte.projectStart}
-      to={rango?.to ?? sumarMeses(corte.projectStart, MESES_VISIBLES)}
+        resources={corte.resources}
+        tasks={tareasVisibles}
+        assignments={asignacionesVisibles}
+        calendar={calendario}
+        from={rango?.from ?? corte.projectStart}
+        to={rango?.to ?? sumarMeses(corte.projectStart, MESES_VISIBLES)}
         onRangoChange={(from, to) => setRango({ from, to })}
         today={hoyCivil()}
         onAbrirCalendario={setCalendarioDe}
@@ -204,6 +226,6 @@ export function WorkloadTab({ projectId }: { readonly projectId: string }) {
           onCambio={recargar}
         />
       ) : null}
-    </>
+    </div>
   )
 }
