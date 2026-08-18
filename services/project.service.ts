@@ -688,6 +688,9 @@ export class ProjectService {
         responsibleName: item.responsibleName,
         kind: item.kind,
         party: item.party,
+        // De aquí sale el EDT de la tarjeta: sin el padre no hay jerarquía que numerar, y el
+        // «Ordenar por: EDT» del §5.1 no tendría con qué ordenar.
+        parentId: item.parentId,
       }
     })
 

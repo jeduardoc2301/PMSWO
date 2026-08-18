@@ -160,6 +160,8 @@ export interface WorkItemSummary {
   phase?: string | null
   estimatedHours?: number | null
   templateOrder?: number | null
+  /** De qué línea cuelga. Lo usa el tablero para numerar el EDT (§5.1). */
+  parentId?: string | null
   activeBlockers?: number
   lastUpdatedAt?: string
   /** Avance real de 0 a 1, el mismo que captura el esquema del plan. */

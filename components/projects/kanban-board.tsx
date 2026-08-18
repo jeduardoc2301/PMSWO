@@ -6,6 +6,13 @@ import { Plus, ChevronDown, ChevronRight, Layers, AlertOctagon, Clock4, Hourglas
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary, type KanbanColumnWithItems } from '@/types'
 import { computeUrgency, urgencyDueLabel, type Urgency } from '@/lib/urgency'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
+import {
+  CAMPOS_DE_ORDEN,
+  type CampoDeOrden,
+  type SentidoDeOrden,
+  edtPorTarjeta,
+  ordenarTarjetas,
+} from '@/lib/projects/kanban-sort'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
@@ -75,13 +82,15 @@ interface WorkItemCardProps {
   draggedItemId: string | null
   syncingItems: Set<string>
   onDragStart: (e: React.DragEvent, id: string) => void
+  /** El EDT de esta línea, para el breadcrumb del §5.1. */
+  edt?: string
   onDragEnd: () => void
   cutoff?: string
   onEdit: (item: WorkItemSummary) => void
   onDelete: (item: WorkItemSummary) => void
 }
 
-function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd, cutoff, onEdit, onDelete }: WorkItemCardProps) {
+function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd, cutoff, onEdit, onDelete, edt }: WorkItemCardProps) {
   const isSyncing = syncingItems.has(workItem.id)
   const pb = PRIORITY_BADGE[workItem.priority] ?? PRIORITY_BADGE[WorkItemPriority.MEDIUM]
   const { urgency, daysFromDue, daysStale } = computeUrgency(workItem)
@@ -147,6 +156,17 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
       {/* Row 1: priority badge + urgency pill + syncing spinner */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* El EDT del §5.1. Va delante de todo porque es lo que nombra la línea: «vamos por la
+              3.2.1» sólo se puede decir si está a la vista. */}
+          {edt ? (
+            <span
+              data-testid={`edt-tarjeta-${workItem.id}`}
+              title={`EDT ${edt}`}
+              className="text-[10px] tabular-nums text-zinc-600"
+            >
+              {edt}
+            </span>
+          ) : null}
           <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
             style={{ background: pb.bg, color: pb.color, border: `1px solid ${pb.border}` }}>
             {workItem.priority}
@@ -252,13 +272,15 @@ interface KanbanColumnProps {
   cutoff?: string
   onEdit: (item: WorkItemSummary) => void
   onDelete: (item: WorkItemSummary) => void
+  /** El EDT de cada línea, numerado sobre el plan entero (§5.1). */
+  edt?: ReadonlyMap<string, string>
 }
 
 function KanbanColumn({
   column, workItemsInColumn, isDragTarget, noItemsLabel,
   draggedItemId, syncingItems,
   onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd,
-  cutoff, onEdit, onDelete,
+  cutoff, onEdit, onDelete, edt,
 }: KanbanColumnProps) {
   return (
     <div
@@ -286,6 +308,7 @@ function KanbanColumn({
                 syncingItems={syncingItems}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
+                edt={edt?.get(wi.id)}
                 cutoff={cutoff}
                 onEdit={onEdit}
                 onDelete={onDelete}
@@ -467,6 +490,15 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
 
   // Se calcula sobre la lista completa, no la filtrada: filtrar no debe
   // reacomodar las fases.
+  // «Ordenar por: EDT por defecto» (§5.1). El EDT devuelve las tarjetas al orden en que el plan
+  // las cuenta; sin él, una columna de novecientas tarjetas es una lista sin asidero.
+  const [campoDeOrden, setCampoDeOrden] = useState<CampoDeOrden>('wbs')
+  const [sentidoDeOrden, setSentidoDeOrden] = useState<SentidoDeOrden>('asc')
+
+  // El EDT se numera sobre el plan entero, no sobre lo visible: si cambiara al filtrar, dejaría
+  // de servir para nombrar una línea en una reunión.
+  const edt = useMemo(() => edtPorTarjeta(localWorkItems), [localWorkItems])
+
   const phaseRank = useMemo(() => buildPhaseRank(localWorkItems), [localWorkItems])
   const comparePhases = useMemo(() => makePhaseComparator(phaseRank), [phaseRank])
 
@@ -490,10 +522,14 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
 
   const getWorkItemsForColumnAndPhase = (columnId: string, phaseName: string) => {
     const phaseKey = phaseName === '__NO_PHASE__' ? null : phaseName
-    return filteredWorkItems.filter(item =>
+    const deLaColumna = filteredWorkItems.filter(item =>
       item.kanbanColumnId === columnId &&
       (phaseKey === null ? !item.phase : item.phase === phaseKey)
     )
+    // El «Ordenar por» del §5.1. El EDT se numera sobre `localWorkItems` —el plan entero— y no
+    // sobre lo que queda en la columna: si cambiara al filtrar o al mover una tarjeta, dejaría de
+    // servir para nombrar una línea en una reunión.
+    return ordenarTarjetas(deLaColumna, localWorkItems, campoDeOrden, sentidoDeOrden)
   }
 
   const handleDragStart = (e: React.DragEvent, workItemId: string) => {
@@ -552,6 +588,38 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
+        {/* «Ordenar por» del §5.1, con el EDT por omisión. El sentido va en su propio botón y no
+            como doce entradas del desplegable: «Nombre ascendente» y «Nombre descendente» serían
+            dos opciones por cada uno de los seis criterios. */}
+        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+          Ordenar por
+          <select
+            aria-label="Ordenar por"
+            value={campoDeOrden}
+            onChange={(e) => setCampoDeOrden(e.target.value as CampoDeOrden)}
+            className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-200"
+          >
+            {CAMPOS_DE_ORDEN.map((c) => (
+              <option key={c.clave} value={c.clave}>
+                {c.etiqueta}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          aria-label={sentidoDeOrden === 'asc' ? 'Orden ascendente' : 'Orden descendente'}
+          title={
+            sentidoDeOrden === 'asc'
+              ? 'Ascendente · pulsa para invertir'
+              : 'Descendente · pulsa para invertir'
+          }
+          onClick={() => setSentidoDeOrden((s) => (s === 'asc' ? 'desc' : 'asc'))}
+          className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+        >
+          {sentidoDeOrden === 'asc' ? '↑' : '↓'}
+        </button>
+
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
@@ -700,6 +768,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
                             onDrop={handleDrop}
                             onDragStart={handleDragStart}
                             onDragEnd={handleDragEnd}
+                            edt={edt}
                             cutoff={cutoff}
                             onEdit={setEditando}
                             onDelete={setBorrando}
@@ -718,7 +787,15 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
             <KanbanColumn
               key={column.id}
               column={column}
-              workItemsInColumn={filteredWorkItems.filter(i => i.kanbanColumnId === column.id)}
+              // Por el mismo orden que la ruta con fases. Esta rama se saltaba `ordenarTarjetas` y
+              // el desplegable «Ordenar por» no hacía nada en los proyectos sin fases — que son
+              // justo los que más lo necesitan, porque no tienen ninguna otra agrupación.
+              workItemsInColumn={ordenarTarjetas(
+                filteredWorkItems.filter(i => i.kanbanColumnId === column.id),
+                localWorkItems,
+                campoDeOrden,
+                sentidoDeOrden,
+              )}
               isDragTarget={isDraggingOver === column.id}
               noItemsLabel={noItemsLabel}
               draggedItemId={draggedItemId}
@@ -728,6 +805,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
               onDrop={handleDrop}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
+              edt={edt}
               cutoff={cutoff}
               onEdit={setEditando}
               onDelete={setBorrando}
