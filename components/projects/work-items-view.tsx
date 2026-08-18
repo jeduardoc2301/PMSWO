@@ -57,6 +57,10 @@ export interface WorkItemsViewProps {
   readonly onEditDatesDataUsed?: () => void
   readonly canCreateWorkItems?: boolean
   readonly onApplyTemplate?: () => void
+  /** La barra del filtro unificado, montada arriba en el proyecto (§10.2). */
+  readonly barraDeFiltro?: React.ReactNode
+  /** Los ids que pasan ese filtro, o `undefined` si no hay filtro puesto. */
+  readonly idsVisibles?: ReadonlySet<string>
 }
 
 /**
@@ -76,6 +80,8 @@ function hoyCivil(): string {
 export function WorkItemsView({
   projectId,
   workItems,
+  barraDeFiltro,
+  idsVisibles,
   onWorkItemCreated,
   editDatesData,
   onEditDatesDataUsed,
@@ -382,6 +388,10 @@ export function WorkItemsView({
         ) : (
           <span />
         )}
+        {/* La barra del filtro va aquí y no dentro del esquema: el esquema sólo se dibuja cuando el
+            plan ha cargado y sólo en un modo, así que ahí dentro el filtro desaparecía al cambiar
+            de vista — que es justo lo contrario de lo que el §10.2 pide. */}
+        <div className="min-w-0 flex-1 px-3">{barraDeFiltro}</div>
         <div className="flex items-center gap-1">
           <BotonModo activo={modo === 'ESQUEMA'} onClick={() => setModo('ESQUEMA')}>
             Esquema
@@ -449,6 +459,7 @@ export function WorkItemsView({
               setCreando(true)
             }}
             desvios={desvios}
+            idsVisibles={idsVisibles}
             barraDeLineaBase={
               <BaselinePicker
                 baselines={lineasBase}

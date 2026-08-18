@@ -85,6 +85,7 @@ model Project {
   collaborators    ProjectCollaborator[]
   viewPreferences  ViewPreference[]
   baselines        Baseline[]
+  savedFilters     SavedFilter[]
   workItems        WorkItem[]
   blockers         Blocker[]
   risks            Risk[]
@@ -843,4 +844,33 @@ model BaselineItem {
   @@unique([baselineId, workItemId])
   @@index([workItemId])
   @@map("baseline_items")
+}
+
+
+/// Un filtro guardado con nombre (§10.2).
+///
+/// `expression` es JSON porque el filtro es un árbol de grupos AND/OR anidados, y una tabla
+/// relacional para eso sería tres tablas y una consulta recursiva para leer lo que en el navegador
+/// es un objeto. Lo que no se relaja es la forma: `lib/projects/filter.ts` la valida al guardar y
+/// al leer, y un filtro que nombre un campo inexistente se rechaza en vez de aplicarse a medias.
+///
+/// `isShared` decide si lo ve todo el proyecto o sólo quien lo creó. Sin ese interruptor, o los
+/// filtros personales ensucian la lista de todos, o no hay forma de acordar «miremos la vista de
+/// bloqueadas» sin que cada cual la reconstruya.
+model SavedFilter {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  projectId      String   @map("project_id") @db.Char(36)
+  createdById    String   @map("created_by_id") @db.Char(36)
+  name           String
+  expression     Json
+  isShared       Boolean  @default(false) @map("is_shared")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, isShared])
+  @@index([createdById])
+  @@map("saved_filters")
 }

@@ -65,6 +65,13 @@ export interface WorkItemsOutlineProps {
   readonly desvios?: ReadonlyMap<string, DesvioDeLinea>
   /** La barra de líneas base, si quien monta la ofrece. Va en la barra de herramientas. */
   readonly barraDeLineaBase?: React.ReactNode
+  /**
+   * Los ids que pasan el filtro, o `undefined` si no hay filtro puesto.
+   *
+   * Llega el conjunto ya resuelto y no el filtro: el filtro se evalúa **una vez** en el proyecto y
+   * las seis vistas comparten el resultado, que es justo lo que hace que sea *el mismo* filtro.
+   */
+  readonly idsVisibles?: ReadonlySet<string>
 }
 
 /**
@@ -94,7 +101,7 @@ const INSIGNIA: Readonly<Record<EstadoAlCorte, { readonly texto: string; readonl
   })
 
 export function WorkItemsOutline({
-  tasks,
+  tasks: todasLasTareas,
   dependencies,
   start,
   cutoff,
@@ -107,7 +114,38 @@ export function WorkItemsOutline({
   onAddChild,
   desvios,
   barraDeLineaBase,
+  idsVisibles,
 }: WorkItemsOutlineProps): React.JSX.Element {
+  // ── El filtro se aplica al dibujar, nunca antes de programar ─────────────────────────────────
+  // La primera versión recortaba las tareas y se las pasaba al motor. El motor recibía entonces los
+  // 1 665 vínculos del plan entero contra ~900 tareas, y reventaba con una excepción que la
+  // pantalla de error se tragaba: cambiar de vista con un filtro puesto dejaba el proyecto en
+  // «Ha ocurrido un error inesperado».
+  //
+  // Aunque no reventara, estaría mal: las fechas de una línea salen de **toda** la red de
+  // dependencias, y programar un trozo del plan daría fechas que no son las del plan. Filtrar es
+  // una decisión de pantalla; programar no lo es.
+  const tasks = todasLasTareas
+
+  // Qué ids se dibujan, conservando los ancestros de lo que sobrevive: una actividad que pasa el
+  // filtro colgando de una fase ausente dejaría de ser un esquema.
+  const idsDibujables = useMemo(() => {
+    if (!idsVisibles) return null
+    const porId = new Map(todasLasTareas.map((t) => [t.id, t]))
+    const conservar = new Set<string>()
+    for (const tarea of todasLasTareas) {
+      if (!idsVisibles.has(tarea.id)) continue
+      conservar.add(tarea.id)
+      const visto = new Set<string>([tarea.id])
+      for (let padre = tarea.parentId; padre !== undefined; padre = porId.get(padre)?.parentId) {
+        if (visto.has(padre)) break
+        visto.add(padre)
+        conservar.add(padre)
+      }
+    }
+    return conservar
+  }, [todasLasTareas, idsVisibles])
+
   const jerarquia = useMemo(() => nivelesDelPlan(tasks), [tasks])
   const edtPorId = useMemo(
     () => new Map(jerarquia.map((linea) => [linea.id, linea.wbs])),
@@ -132,7 +170,7 @@ export function WorkItemsOutline({
     }
   }, [tasks, dependencies, start])
 
-  const layout = useMemo(() => {
+  const layoutCompleto = useMemo(() => {
     if (base === null) return null
     return ganttLayout({
       tasks,
@@ -145,6 +183,14 @@ export function WorkItemsOutline({
       links: 'NINGUNO',
     })
   }, [tasks, dependencies, base, plegados])
+
+  // El recorte va aquí: las filas ya tienen sus fechas del plan completo, y quitar unas cuantas no
+  // cambia las de las que quedan.
+  const layout = useMemo(() => {
+    if (layoutCompleto === null) return null
+    if (idsDibujables === null) return layoutCompleto
+    return { ...layoutCompleto, rows: layoutCompleto.rows.filter((row) => idsDibujables.has(row.id)) }
+  }, [layoutCompleto, idsDibujables])
 
   const porId = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks])
 

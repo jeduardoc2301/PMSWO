@@ -10,6 +10,8 @@ import { KanbanBoard } from '@/components/projects/kanban-board'
 // —el esquema del plan, con avance y fecha de corte, y la lista de siempre—. La lista sigue viva un
 // nivel más adentro, con el mismo comportamiento y las mismas props.
 import { WorkItemsView } from '@/components/projects/work-items-view'
+import { FilterBar, type FiltroGuardadoResumen } from '@/components/projects/filter-bar'
+import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { BlockersTab } from '@/components/projects/blockers-tab'
 import { RisksTab } from '@/components/projects/risks-tab'
 import { AgreementsTab } from '@/components/projects/agreements-tab'
@@ -116,6 +118,13 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null)
   const [tacticalMetrics, setTacticalMetrics] = useState<TacticalMetrics | null>(null)
   const [kanbanBoard, setKanbanBoard] = useState<KanbanBoardType | null>(null)
+
+  // ── El filtro unificado (§10.2) ───────────────────────────────────────────────────────────────
+  // Vive aquí, en el proyecto, y no dentro de cada vista: es lo que hace que filtrar en el Tablero
+  // y cambiar a Elementos de Trabajo conserve el filtro. Con un estado por vista, «el mismo filtro
+  // en otra vista» no significaría nada.
+  const [filtro, setFiltro] = useState<Filtro>(FILTRO_VACIO)
+  const [filtrosGuardados, setFiltrosGuardados] = useState<readonly FiltroGuardadoResumen[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
@@ -244,6 +253,86 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     }
     await refreshMetrics()
   }
+
+  const cargarFiltros = async () => {
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}/filters`)
+      if (!res.ok) return
+      const { filtros } = await res.json()
+      if (Array.isArray(filtros)) setFiltrosGuardados(filtros)
+    } catch {
+      // Que no haya filtros guardados no puede tumbar la pantalla: el plan se mira igual sin ellos.
+    }
+  }
+
+  useEffect(() => {
+    void cargarFiltros()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
+
+  const guardarFiltro = async (nombre: string, compartido: boolean) => {
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}/filters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nombre, expression: filtro, isShared: compartido }),
+      })
+      if (res.ok) await cargarFiltros()
+    } catch {
+      // El filtro sigue puesto en pantalla aunque no se haya podido guardar con nombre.
+    }
+  }
+
+  const borrarFiltroGuardado = async (id: string) => {
+    try {
+      const res = await fetch(`/api/v1/projects/${projectId}/filters?id=${id}`, { method: 'DELETE' })
+      if (res.ok) await cargarFiltros()
+    } catch {
+      // Igual: no poder borrarlo no rompe la vista.
+    }
+  }
+
+  /** Hoy en fecha civil, para el campo «atrasada» del filtro. */
+  const hoyDelFiltro = (() => {
+    const ahora = new Date()
+    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
+  })()
+
+  /** Las líneas que pasan el filtro, en el vocabulario que las dos vistas comparten. */
+  const lineasFiltradas = kanbanBoard
+    ? filtrar(
+        kanbanBoard.workItems.map((w) => ({
+          id: w.id,
+          title: w.title,
+          status: w.status,
+          priority: w.priority,
+          kind: w.kind ?? 'ACTIVIDAD',
+          party: w.party ?? 'PROVEEDOR',
+          startDate: w.startDate,
+          estimatedEndDate: w.estimatedEndDate,
+          progressPct: w.progressPct ?? 0,
+          ownerName: w.ownerName ?? null,
+          // `responsibleName` es el nombre que el resumen del kanban trae del lado del cliente;
+          // el modelo lo llama `clientOwner` y el filtro también, para que el campo se llame igual
+          // en la barra que en la base.
+          clientOwner: w.responsibleName ?? null,
+        })) as LineaFiltrable[],
+        filtro,
+        { hoy: hoyDelFiltro },
+      )
+    : []
+  const idsFiltrados = new Set(lineasFiltradas.map((l) => l.id))
+
+  const barraDeFiltro = (
+    <FilterBar
+      filtro={filtro}
+      onCambiar={setFiltro}
+      guardados={filtrosGuardados}
+      onGuardar={guardarFiltro}
+      onBorrar={borrarFiltroGuardado}
+      conteo={{ visibles: idsFiltrados.size, total: kanbanBoard?.workItems.length ?? 0 }}
+    />
+  )
 
   const handleWorkItemCreated = async () => {
     try {
@@ -669,9 +758,13 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {/* ── KANBAN ── */}
             {activeTab === 'kanban' && (
               kanbanBoard
-                ? <KanbanBoard projectId={projectId} columns={kanbanBoard.columns} workItems={kanbanBoard.workItems}
-                    onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
-                    cutoff={cutoffResuelto(project)} />
+                ? <div className="space-y-3">
+                    {barraDeFiltro}
+                    <KanbanBoard projectId={projectId} columns={kanbanBoard.columns}
+                      workItems={kanbanBoard.workItems.filter(w => idsFiltrados.has(w.id))}
+                      onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
+                      cutoff={cutoffResuelto(project)} />
+                  </div>
                 : <div className="text-center py-12 text-zinc-500">{t('loadingKanbanBoard')}</div>
             )}
 
@@ -679,6 +772,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'work-items' && (
               kanbanBoard
                 ? <WorkItemsView projectId={projectId} workItems={kanbanBoard.workItems}
+                    barraDeFiltro={barraDeFiltro}
+                    idsVisibles={idsFiltrados.size === kanbanBoard.workItems.length ? undefined : idsFiltrados}
                     onWorkItemCreated={handleWorkItemCreated} editDatesData={editDatesData}
                     onEditDatesDataUsed={() => setEditDatesData(null)} canCreateWorkItems={canCreateWorkItems}
                     onApplyTemplate={() => setApplyTemplateDialogOpen(true)} />
