@@ -121,6 +121,11 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
   const tareas: CalendarTask[] = useMemo(() => {
     if (estado.fase !== 'listo') return []
     const { plan } = estado
+    // El motor se niega a programar un plan sin tareas, y con razón: no hay nada que programar. Pero
+    // aquí eso no es un error sino un proyecto recién creado, y sin esta línea la excepción subía
+    // hasta la frontera de error y enseñaba «Ha ocurrido un error inesperado» en lugar del aviso
+    // amable de más abajo — que llevaba escrito desde el principio y al que nadie podía llegar.
+    if (plan.tasks.length === 0) return []
     // El calendario del proyecto, con sus festivos. Antes era `createWorkCalendar()` sin
     // argumentos, así que esta vista sombreaba como laborables días que el plan no trabaja — justo
     // lo contrario de lo que su propio comentario de cabecera prometía.
@@ -238,17 +243,23 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
     )
   }
 
-  if (tareas.length === 0) {
-    return (
-      <p className="py-12 text-center text-sm text-zinc-400">
-        Este proyecto todavía no tiene líneas que poner en el calendario.
-      </p>
-    )
-  }
+  // Un plan sin líneas y un filtro que no deja pasar ninguna se ven igual en la rejilla, pero no
+  // son lo mismo, y decir lo primero cuando pasa lo segundo es acusar al proyecto de estar vacío.
+  const sinNadaQueDibujar = tareas.length === 0
+  const esCulpaDelFiltro = sinNadaQueDibujar && estado.plan.tasks.length > 0
 
   return (
     <div className="flex flex-col gap-3">
+      {/* La barra va siempre, incluso —sobre todo— cuando el filtro se lo comió todo: antes el
+          retorno temprano se la saltaba y dejaba la vista sin manera de deshacer el filtro. */}
       {barraDeFiltro}
+      {sinNadaQueDibujar ? (
+        <p className="py-12 text-center text-sm text-zinc-400" data-testid="calendario-vacio">
+          {esCulpaDelFiltro
+            ? `El filtro no deja pasar ninguna de las ${estado.plan.tasks.length} líneas del plan.`
+            : 'Este proyecto todavía no tiene líneas que poner en el calendario.'}
+        </p>
+      ) : null}
       {propuesta ? (
         <div
           role="alertdialog"
@@ -302,6 +313,7 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
         </div>
       ) : null}
 
+      {sinNadaQueDibujar ? null : (
       <CalendarView
         tasks={tareas}
         calendar={calendario}
@@ -310,6 +322,7 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
         today={hoyCivil()}
         onMoverLinea={(taskId, nuevoInicio) => void proponerMovimiento(taskId, nuevoInicio)}
       />
+      )}
     </div>
   )
 }
