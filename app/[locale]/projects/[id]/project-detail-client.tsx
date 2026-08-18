@@ -240,8 +240,32 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
    * movimiento tiene que pasar por las mismas reglas que hacerlo —el acoplamiento estado↔avance,
    * la bitácora— o el estado al que se vuelve no sería un estado que el sistema pueda producir.
    */
+  /** Los campos que una reprogramación toca. Se reconocen para poder escribirlos de una vez. */
+  const CAMPOS_DE_FECHA = ['start', 'finish', 'constraintType', 'constraintDate']
+
   const aplicarCambios = async (cambios: readonly Cambio[]) => {
-    for (const cambio of cambios) {
+    // Una reprogramación mueve cientos de líneas. Deshacerla con una petición por línea deja el
+    // plan medio revertido en cuanto una falle —y quien pulsó Ctrl+Z creía estar volviendo atrás—,
+    // así que van todas juntas por la ruta que las escribe en una transacción.
+    const deFecha = cambios.filter((c) =>
+      Object.keys(c.campos).length > 0 &&
+      Object.keys(c.campos).every((campo) => CAMPOS_DE_FECHA.includes(campo)),
+    )
+    if (deFecha.length > 0) {
+      const res = await fetch(`/api/v1/projects/${projectId}/reschedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restore: deFecha.map((c) => ({ id: c.workItemId, ...(c.campos as Record<string, unknown>) })),
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.message || 'No se pudo devolver las fechas')
+      }
+    }
+
+    for (const cambio of cambios.filter((c) => !deFecha.includes(c))) {
       // Cada campo vuelve por la puerta por la que salió. Mover de columna tiene su propia ruta
       // porque arrastra consigo el estado, el avance acoplado y la fecha de término; el resto de
       // campos van por la ruta general de la línea.
@@ -882,7 +906,19 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'gantt' && (
               <PlanTab
                 projectId={projectId}
-                barraDeFiltro={barraDeFiltro}
+                onReprogramado={(operacion) =>
+                  undo.apuntar({
+                    etiqueta: operacion.etiqueta,
+                    hacer: operacion.cambios.map((c) => ({ workItemId: c.id, campos: { ...c.despues } })),
+                    deshacer: operacion.cambios.map((c) => ({ workItemId: c.id, campos: { ...c.antes } })),
+                  })
+                }
+                barraDeFiltro={
+                  <div className="flex flex-wrap items-center gap-3">
+                    {barraDeFiltro}
+                    {barraDeDeshacer}
+                  </div>
+                }
                 idsVisibles={
                   idsFiltrados.size === (kanbanBoard?.workItems.length ?? 0) ? undefined : idsFiltrados
                 }

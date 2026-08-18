@@ -81,8 +81,28 @@ export interface PlanWorkspaceProps {
   readonly projectId?: string
   /** El calendario del proyecto. Sin él se cae en la semana genérica de lunes a viernes. */
   readonly calendario?: DefinicionDeCalendario
-  /** Se avisa después de escribir una reprogramación, para que quien trajo el plan lo vuelva a pedir. */
-  readonly onReprogramado?: () => void
+  /**
+   * Se avisa después de escribir una reprogramación.
+   *
+   * Llega el antes y el después de cada línea porque quien lo recibe tiene que poder apuntarlo en
+   * la pila de deshacer. Recalcular «lo contrario» al pulsar Ctrl+Z daría unas fechas que no son
+   * las que había: entre una cosa y la otra el plan pudo cambiar.
+   */
+  readonly onReprogramado?: (operacion: OperacionDeReprogramacion) => void
+}
+
+/** Las cuatro columnas que una reprogramación toca en una línea. */
+export interface FechasDeLinea {
+  readonly start: string
+  readonly finish: string
+  readonly constraintType: string | null
+  readonly constraintDate: string | null
+}
+
+/** Una reprogramación ya escrita, con lo necesario para deshacerla. */
+export interface OperacionDeReprogramacion {
+  readonly etiqueta: string
+  readonly cambios: readonly { readonly id: string; readonly antes: FechasDeLinea; readonly despues: FechasDeLinea }[]
 }
 
 /** Lo que pasaría si se soltara la barra ahí. Igual que en el Calendario, y por la misma razón. */
@@ -334,8 +354,12 @@ export function PlanWorkspace({
         body: JSON.stringify({ taskId: propuesta.taskId, start: propuesta.nuevoInicio, confirm: true }),
       })
       if (res.ok) {
+        const { resultado } = await res.json()
         setPropuesta(null)
-        onReprogramado?.()
+        onReprogramado?.({
+          etiqueta: `Reprogramar: ${propuesta.nombre} → ${propuesta.nuevoInicio}`,
+          cambios: resultado?.cambios ?? [],
+        })
       }
     } finally {
       setAplicando(false)

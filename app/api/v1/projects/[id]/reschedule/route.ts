@@ -15,8 +15,29 @@ import { z } from 'zod'
 
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import { type IsoDate } from '@/lib/scheduling/date'
-import { confirmar, previsualizar } from '@/services/reschedule.service'
+import { confirmar, previsualizar, restaurarFechas } from '@/services/reschedule.service'
 import { Permission } from '@/types'
+
+/**
+ * Devolver unas fechas exactas. Es lo que manda deshacer.
+ *
+ * Va por esta misma ruta y no por la general de la línea porque tiene que ser **una** transacción:
+ * deshacer una reprogramación de 394 líneas con 394 peticiones deja el plan medio revertido en
+ * cuanto una falle, y quien pulsó Ctrl+Z creía estar volviendo atrás.
+ */
+const esquemaDeRestauracion = z.object({
+  restore: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        start: z.string().min(10).max(10),
+        finish: z.string().min(10).max(10),
+        constraintType: z.string().nullable().default(null),
+        constraintDate: z.string().min(10).max(10).nullable().default(null),
+      }),
+    )
+    .min(1),
+})
 
 const esquema = z.object({
   taskId: z.string().uuid(),
@@ -31,7 +52,33 @@ async function postHandler(
 ): Promise<NextResponse> {
   try {
     const { id } = await context.params
-    const { taskId, start, confirm } = esquema.parse(await request.json().catch(() => ({})))
+    const cuerpo = await request.json().catch(() => ({}))
+
+    const restauracion = esquemaDeRestauracion.safeParse(cuerpo)
+    if (restauracion.success) {
+      const escritas = await restaurarFechas(
+        id,
+        authContext.organizationId,
+        restauracion.data.restore.map((f) => ({
+          id: f.id,
+          fechas: {
+            start: f.start as IsoDate,
+            finish: f.finish as IsoDate,
+            constraintType: f.constraintType,
+            constraintDate: f.constraintDate as IsoDate | null,
+          },
+        })),
+      )
+      if (escritas === null) {
+        return NextResponse.json(
+          { error: 'Not Found', message: 'Ese proyecto no existe' },
+          { status: 404 },
+        )
+      }
+      return NextResponse.json({ restauradas: escritas }, { status: 200 })
+    }
+
+    const { taskId, start, confirm } = esquema.parse(cuerpo)
 
     if (!confirm) {
       const previsualizacion = await previsualizar(

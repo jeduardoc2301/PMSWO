@@ -110,6 +110,7 @@ export function GanttChart({
     <div className="flex flex-col gap-2">
       <div
         ref={caja}
+        data-testid="gantt-desplazable"
         onScroll={(e) => setDesplazamiento(e.currentTarget.scrollTop)}
         className="relative overflow-auto rounded-lg border border-zinc-800 bg-[#18181b]"
         style={{ maxHeight: ALTO_VISIBLE + rowHeight }}

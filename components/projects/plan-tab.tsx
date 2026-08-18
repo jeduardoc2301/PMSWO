@@ -16,7 +16,7 @@
 
 import React, { useEffect, useState } from 'react'
 
-import { PlanWorkspace } from '@/components/plan/plan-workspace'
+import { type OperacionDeReprogramacion, PlanWorkspace } from '@/components/plan/plan-workspace'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
@@ -44,13 +44,20 @@ type Estado =
 
 export interface PlanTabProps {
   readonly projectId: string
+  /**
+   * Qué hacer cuando se escribe una reprogramación desde el Gantt.
+   *
+   * Sube hasta el proyecto porque es ahí donde vive la pila de deshacer: una operación que movió
+   * 394 líneas tiene que poder revertirse con Ctrl+Z como cualquier otra (§4.8, §10.6).
+   */
+  readonly onReprogramado?: (operacion: OperacionDeReprogramacion) => void
   /** La barra del filtro unificado (§10.2). */
   readonly barraDeFiltro?: React.ReactNode
   /** Los ids que pasan ese filtro, o `undefined` si no hay ninguno puesto. */
   readonly idsVisibles?: ReadonlySet<string>
 }
 
-export function PlanTab({ projectId, barraDeFiltro, idsVisibles }: PlanTabProps) {
+export function PlanTab({ projectId, barraDeFiltro, idsVisibles, onReprogramado }: PlanTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   /**
    * Cambia cuando hay que volver a pedir el plan.
@@ -113,7 +120,10 @@ export function PlanTab({ projectId, barraDeFiltro, idsVisibles }: PlanTabProps)
   return (
     <PlanWorkspace
       projectId={projectId}
-      onReprogramado={() => setVersion((v) => v + 1)}
+      onReprogramado={(operacion) => {
+        setVersion((v) => v + 1)
+        onReprogramado?.(operacion)
+      }}
       calendario={plan.calendar}
       barraDeFiltro={barraDeFiltro}
       idsVisibles={idsVisibles}
