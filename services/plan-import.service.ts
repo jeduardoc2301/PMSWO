@@ -36,6 +36,7 @@
  */
 
 import { randomUUID } from 'crypto'
+import { COLUMNAS_POR_OMISION } from '@/lib/projects/default-columns'
 
 import prisma from '@/lib/prisma'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
@@ -202,13 +203,7 @@ export async function importPlanAsProject(input: ImportPlanInput): Promise<Impor
 
       // Las mismas cinco columnas que crea el alta normal de proyectos, para que el kanban se vea
       // idéntico a cualquier otro proyecto del sistema.
-      const columnas = [
-        { name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG },
-        { name: 'To Do', order: 1, columnType: KanbanColumnType.TODO },
-        { name: 'In Progress', order: 2, columnType: KanbanColumnType.IN_PROGRESS },
-        { name: 'Blockers', order: 3, columnType: KanbanColumnType.BLOCKED },
-        { name: 'Done', order: 4, columnType: KanbanColumnType.DONE },
-      ].map((columna) => ({ ...columna, id: randomUUID(), projectId }))
+      const columnas = COLUMNAS_POR_OMISION.map((columna) => ({ ...columna, id: randomUUID(), projectId }))
       await tx.kanbanColumn.createMany({ data: columnas })
 
       const backlog = columnas[0].id

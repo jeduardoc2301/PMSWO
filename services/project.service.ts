@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { COLUMNAS_POR_OMISION } from '@/lib/projects/default-columns'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import {
   ProjectStatus,
@@ -154,21 +155,12 @@ export class ProjectService {
 
     // Create 5 default Kanban columns
     // Requirements: 3.2
-    const defaultColumns = [
-      { name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG },
-      { name: 'To Do', order: 1, columnType: KanbanColumnType.TODO },
-      { name: 'In Progress', order: 2, columnType: KanbanColumnType.IN_PROGRESS },
-      { name: 'Blockers', order: 3, columnType: KanbanColumnType.BLOCKED },
-      { name: 'Done', order: 4, columnType: KanbanColumnType.DONE },
-    ]
-
+    //
+    // Se esparce la columna entera y no campo a campo: enumerarlos aquí fue justo lo que dejó
+    // fuera a `isInitial` e `isDone` la primera vez, y un tablero sin ellos no sabe qué significa
+    // «Terminado».
     await prisma.kanbanColumn.createMany({
-      data: defaultColumns.map((col) => ({
-        projectId: project.id,
-        name: col.name,
-        order: col.order,
-        columnType: col.columnType,
-      })),
+      data: COLUMNAS_POR_OMISION.map((columna) => ({ ...columna, projectId: project.id })),
     })
 
     return project
@@ -705,6 +697,10 @@ export class ProjectService {
       name: col.name,
       order: col.order,
       columnType: col.columnType as KanbanColumnType,
+      // Los indicadores viajan al navegador porque el tablero los necesita para saber qué estado le
+      // toca a una tarjeta al soltarla, sin tener que preguntar al servidor antes de pintarla.
+      isInitial: col.isInitial,
+      isDone: col.isDone,
       workItemIds: workItemsByColumn.get(col.id) || [],
     }))
 

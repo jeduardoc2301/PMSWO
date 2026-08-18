@@ -53,6 +53,9 @@ describe('WorkItemService', () => {
       const mockKanbanColumn = {
         id: 'column-1',
         columnType: KanbanColumnType.BACKLOG,
+        name: 'Backlog',
+        isInitial: true,
+        isDone: false,
       }
 
       const mockWorkItem = {
@@ -282,6 +285,9 @@ describe('WorkItemService', () => {
       const mockKanbanColumn = {
         id: 'column-in-progress',
         columnType: KanbanColumnType.IN_PROGRESS,
+        name: 'In Progress',
+        isInitial: false,
+        isDone: false,
       }
 
       const mockUpdated = {
@@ -325,6 +331,10 @@ describe('WorkItemService', () => {
       const mockKanbanColumn = {
         id: 'column-done',
         columnType: KanbanColumnType.DONE,
+        name: 'Done',
+        isInitial: false,
+        // El indicador que decide, desde el §5.2, tanto la fecha de término como el avance al 100 %.
+        isDone: true,
       }
 
       vi.mocked(prisma.workItem.findUnique).mockResolvedValue(mockExisting as any)

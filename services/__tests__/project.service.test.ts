@@ -87,13 +87,17 @@ describe('ProjectService', () => {
       })
       
       // Verify Kanban columns were created
+      //
+      // `isInitial` e `isDone` van en la aserción a propósito, y no como `expect.anything()`: son lo
+      // que hace que mover una tarjeta a «Terminado» ponga el avance al cien por cien (§5.2), y un
+      // proyecto que naciera sin ellos tendría un tablero mudo que nadie notaría hasta mucho después.
       expect(prisma.kanbanColumn.createMany).toHaveBeenCalledWith({
         data: [
-          { projectId: 'proj-123', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG },
-          { projectId: 'proj-123', name: 'To Do', order: 1, columnType: KanbanColumnType.TODO },
-          { projectId: 'proj-123', name: 'In Progress', order: 2, columnType: KanbanColumnType.IN_PROGRESS },
-          { projectId: 'proj-123', name: 'Blockers', order: 3, columnType: KanbanColumnType.BLOCKED },
-          { projectId: 'proj-123', name: 'Done', order: 4, columnType: KanbanColumnType.DONE },
+          { projectId: 'proj-123', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, isInitial: true, isDone: false },
+          { projectId: 'proj-123', name: 'To Do', order: 1, columnType: KanbanColumnType.TODO, isInitial: false, isDone: false },
+          { projectId: 'proj-123', name: 'In Progress', order: 2, columnType: KanbanColumnType.IN_PROGRESS, isInitial: false, isDone: false },
+          { projectId: 'proj-123', name: 'Blockers', order: 3, columnType: KanbanColumnType.BLOCKED, isInitial: false, isDone: false },
+          { projectId: 'proj-123', name: 'Done', order: 4, columnType: KanbanColumnType.DONE, isInitial: false, isDone: true },
         ],
       })
     })

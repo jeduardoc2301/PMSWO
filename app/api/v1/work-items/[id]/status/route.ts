@@ -8,11 +8,26 @@ import { z } from 'zod'
 /**
  * Validation schema for status change
  */
-const changeStatusSchema = z.object({
-  status: z.enum(['BACKLOG', 'TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'], {
-    message: 'Status must be one of: BACKLOG, TODO, IN_PROGRESS, BLOCKED, DONE',
-  }),
-})
+const changeStatusSchema = z
+  .object({
+    status: z
+      .enum(['BACKLOG', 'TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'], {
+        message: 'Status must be one of: BACKLOG, TODO, IN_PROGRESS, BLOCKED, DONE',
+      })
+      .optional(),
+    /**
+     * La columna del tablero a la que va la línea.
+     *
+     * Es el camino preferente desde el §5.5: las columnas son configurables y el estado se deriva
+     * de lo que la columna significa. Mandar `status` sigue valiendo —lo usan la vista de lista y
+     * el servicio de bloqueadores— pero no puede alcanzar una columna que alguien añada, porque no
+     * hay ningún estado que la señale.
+     */
+    columnId: z.string().uuid().optional(),
+  })
+  .refine((cuerpo) => cuerpo.status !== undefined || cuerpo.columnId !== undefined, {
+    message: 'Hace falta status o columnId',
+  })
 
 /**
  * PATCH /api/v1/work-items/:id/status
@@ -72,10 +87,14 @@ async function changeStatusHandler(
       )
     }
 
-    const { status } = validationResult.data
+    const { status, columnId } = validationResult.data
 
-    // Change status (service handles Kanban sync, completedAt, and audit log)
-    const workItem = await workItemService.changeStatus(id, status as WorkItemStatus, authContext.userId)
+    // Change status (service handles Kanban sync, progress coupling, completedAt, and audit log)
+    //
+    // La columna manda cuando viene: es el dato configurable, y el estado sale de ella.
+    const workItem = columnId
+      ? await workItemService.moveToColumn(id, columnId, authContext.userId)
+      : await workItemService.changeStatus(id, status as WorkItemStatus, authContext.userId)
 
     // Return updated work item
     return NextResponse.json(

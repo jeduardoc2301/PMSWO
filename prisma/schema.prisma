@@ -126,6 +126,18 @@ model KanbanColumn {
   order      Int
   columnType String @map("column_type")
 
+  /// Verdadero en la columna donde nace una línea nueva. El «Abierto» del §4.7.
+  ///
+  /// Estos dos indicadores son lo que el §5.5 pide al hablar de `TaskStatusOption`: sin ellos, una
+  /// columna que alguien añada no significa nada para el sistema —el tablero rechazaba en silencio
+  /// soltar tarjetas en ella— y el acoplamiento estado↔avance no tiene sobre qué decidir.
+  ///
+  /// No se añadió una tabla nueva porque las columnas de este tablero **ya son** una tabla por
+  /// proyecto. Dos tablas para «qué estados tiene este proyecto» serían dos verdades.
+  isInitial  Boolean @default(false) @map("is_initial")
+  /// Verdadero en las columnas que significan que la línea ya no está en juego.
+  isDone     Boolean @default(false) @map("is_done")
+
   project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   workItems WorkItem[]
 

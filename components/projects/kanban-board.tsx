@@ -9,6 +9,7 @@ import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
+import { estadoDeLaColumna } from '@/lib/projects/status-progress'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import { toDayNumber } from '@/lib/scheduling/date'
 import { varianceAtCutoff } from '@/lib/scheduling/schedule-variance'
@@ -515,8 +516,14 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
     if (!draggedItemId) return
     const workItem = localWorkItems.find(i => i.id === draggedItemId)
     if (!workItem || workItem.kanbanColumnId === targetColumn.id) { setDraggedItemId(null); return }
-    if (targetColumn.columnType === 'CUSTOM') { setDraggedItemId(null); return }
-    const newStatus = targetColumn.columnType as unknown as WorkItemStatus
+    // Antes había aquí un rechazo mudo de las columnas CUSTOM: la tarjeta simplemente no se movía
+    // y nadie sabía por qué. Ya no hace falta — el servidor deriva el estado de lo que la columna
+    // significa (§5.5), así que cualquier columna del tablero admite tarjetas.
+    const newStatus = estadoDeLaColumna({
+      isInitial: targetColumn.isInitial ?? false,
+      isDone: targetColumn.isDone ?? false,
+      columnType: targetColumn.columnType,
+    }) as WorkItemStatus
     const originalWorkItems = [...localWorkItems]
     const movedId = draggedItemId
     setLocalWorkItems(prev => prev.map(i => i.id === movedId ? { ...i, kanbanColumnId: targetColumn.id, status: newStatus } : i))

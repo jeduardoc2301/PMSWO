@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { estadoDeLaColumna, progresoAlMover } from '@/lib/projects/status-progress'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { validarPadre } from '@/services/hierarchy'
 import { WorkItemStatus, WorkItemPriority, KanbanColumnType } from '@/types'
@@ -645,6 +646,38 @@ export class WorkItemService {
    * Change work item status with Kanban sync
    * Requirement: 4.3
    */
+  /**
+   * Mueve una línea a una columna del tablero, sea cual sea.
+   *
+   * Es el camino que `changeStatus` no podía dar: aquél va del estado a la columna, y por eso una
+   * columna que alguien añadiera —una `CUSTOM`— no tenía ningún estado que la señalara y el tablero
+   * rechazaba soltar tarjetas en ella **en silencio**. Aquí la dependencia va al revés, que es el
+   * sentido correcto: la columna es lo configurable, y el estado se deriva de lo que la columna
+   * significa.
+   *
+   * El estado sigue existiendo y sigue siendo del vocabulario cerrado de siempre, porque lo leen la
+   * urgencia, el panel y los informes. Lo que deja de hacer es decidir a qué columna se puede ir.
+   */
+  async moveToColumn(id: string, columnId: string, changedById: string) {
+    const existing = await prisma.workItem.findUnique({
+      where: { id },
+      include: { project: true },
+    })
+    if (!existing) throw new NotFoundError('Work item')
+
+    // Acotada al proyecto de la línea: mover una tarjeta a una columna de otro proyecto la sacaría
+    // de su tablero y la dejaría invisible en los dos.
+    const kanbanColumn = await prisma.kanbanColumn.findFirst({
+      where: { id: columnId, projectId: existing.projectId },
+    })
+    if (!kanbanColumn) {
+      throw new ValidationError('Esa columna no es de este proyecto')
+    }
+
+    const newStatus = estadoDeLaColumna(kanbanColumn) as WorkItemStatus
+    return this.persistirMovimiento(existing, kanbanColumn, newStatus, changedById)
+  }
+
   async changeStatus(id: string, newStatus: WorkItemStatus, changedById: string) {
     // Validate status
     const validStatuses = Object.values(WorkItemStatus)
@@ -677,10 +710,38 @@ export class WorkItemService {
       throw new ValidationError(`No Kanban column found for status: ${newStatus}`)
     }
 
-    // Update work item status, Kanban column, and completedAt in a transaction
+    return this.persistirMovimiento(existing, kanbanColumn, newStatus, changedById)
+  }
+
+  /**
+   * Escribe el movimiento: columna, estado, avance acoplado y bitácora.
+   *
+   * Lo comparten los dos caminos —mover por columna y cambiar de estado— para que no puedan
+   * divergir. El día que el acoplamiento cambie, cambia aquí y en ningún otro sitio.
+   */
+  private async persistirMovimiento(
+    existing: { id: string; status: string; progressPct: number | null; completedAt: Date | null },
+    kanbanColumn: { id: string; name: string; isInitial: boolean; isDone: boolean },
+    newStatus: WorkItemStatus,
+    changedById: string,
+  ) {
+    const id = existing.id
+    // El acoplamiento estado ↔ avance del §5.2: mover a una columna terminal pone el avance al
+    // cien por cien, a la inicial lo devuelve a cero, y a una intermedia respeta lo capturado o
+    // marca el arranque. Sin esto el tablero se llena de tarjetas en «Terminado» al 40 %, y
+    // entonces cada informe da un número distinto según de qué campo lo saque.
+    const nuevoAvance = progresoAlMover(existing.progressPct ?? 0, {
+      id: kanbanColumn.id,
+      name: kanbanColumn.name,
+      isInitial: kanbanColumn.isInitial,
+      isDone: kanbanColumn.isDone,
+    })
+
+    // Update work item status, Kanban column, progress and completedAt in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Determine completedAt value
-      const completedAt = newStatus === WorkItemStatus.DONE ? new Date() : existing.completedAt
+      // Sacar una línea de la columna terminal borra su fecha de término: dejarla puesta haría que
+      // una tarea reabierta siguiera contando como terminada en cualquier informe por fechas.
+      const completedAt = kanbanColumn.isDone ? (existing.completedAt ?? new Date()) : null
 
       // Update work item
       const updated = await tx.workItem.update({
@@ -688,6 +749,7 @@ export class WorkItemService {
         data: {
           status: newStatus,
           kanbanColumnId: kanbanColumn.id,
+          progressPct: nuevoAvance,
           completedAt,
         },
       })
@@ -701,6 +763,20 @@ export class WorkItemService {
             field: 'status',
             oldValue: existing.status,
             newValue: newStatus,
+          },
+        })
+      }
+
+      // El avance que cambia solo también se registra: si no, la bitácora enseña un salto del 0 al
+      // 100 % sin nada que lo explique, y quien la audite no sabrá si lo capturó alguien.
+      if ((existing.progressPct ?? 0) !== nuevoAvance) {
+        await tx.workItemChange.create({
+          data: {
+            workItemId: id,
+            changedById,
+            field: 'progressPct',
+            oldValue: String(existing.progressPct ?? 0),
+            newValue: String(nuevoAvance),
           },
         })
       }

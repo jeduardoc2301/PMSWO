@@ -222,9 +222,12 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   }
 
   const handleWorkItemMove = async (workItemId: string, newColumnId: string, newStatus: WorkItemStatus) => {
+    // Va la columna y no el estado: la columna es lo configurable, y el servidor deriva de ella el
+    // estado y el avance acoplado (§5.2, §5.5). Mandar el estado no podría alcanzar una columna que
+    // alguien añada al tablero.
     const res = await fetch(`/api/v1/work-items/${workItemId}/status`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ columnId: newColumnId }),
     })
     if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to update work item status') }
     if (kanbanBoard) {

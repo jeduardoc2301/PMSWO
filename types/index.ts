@@ -140,6 +140,10 @@ export interface KanbanColumnWithItems {
   name: string
   order: number
   columnType: KanbanColumnType
+  /** Verdadero en la columna donde nace una línea. Ver `lib/projects/status-progress.ts`. */
+  isInitial?: boolean
+  /** Verdadero en las columnas que significan que la línea ya no está en juego. */
+  isDone?: boolean
   workItemIds: string[]
 }
 
