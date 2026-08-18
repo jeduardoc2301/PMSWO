@@ -21,6 +21,8 @@ import { ProjectBurndownChart } from '@/components/projects/project-burndown-cha
 // La línea de tiempo anterior inventaba las fechas que faltaban con un desplazamiento
 // pseudoaleatorio; la pestaña nueva pide el plan real del proyecto y lo pasa por el motor de
 // planeación: ruta súper crítica, holgura y vínculos de verdad.
+import { CalendarTab } from '@/components/projects/calendar-tab'
+import { DashboardTab } from '@/components/projects/dashboard-tab'
 import { PlanTab } from '@/components/projects/plan-tab'
 import { ProjectStatus, WorkItemStatus, Permission, UserRole, type KanbanBoard as KanbanBoardType } from '@/types'
 import { hasPermission } from '@/lib/rbac'
@@ -60,6 +62,8 @@ const TABS = [
   { value: 'risks',       label: 'Riesgos'           },
   { value: 'agreements',  label: 'Acuerdos'          },
   { value: 'gantt',       label: 'Timeline'          },
+  { value: 'calendar',    label: 'Calendario'        },
+  { value: 'dashboard',   label: 'Panel de control'  },
 ]
 
 // Reusable dark metric card
@@ -693,6 +697,11 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
             {/* ── TIMELINE (Gantt) ── */}
             {activeTab === 'gantt' && <PlanTab projectId={projectId} />}
+
+            {/* ── CALENDARIO ── */}
+            {activeTab === 'calendar' && <CalendarTab projectId={projectId} />}
+
+            {activeTab === 'dashboard' && <DashboardTab projectId={projectId} />}
 
           </div>
         </div>

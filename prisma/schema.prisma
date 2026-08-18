@@ -54,6 +54,7 @@ model User {
   createdAgreementNotes AgreementNote[]       @relation("AgreementNoteCreator")
   workItemChanges       WorkItemChange[]
   templateUsage         TemplateUsage[]
+  viewPreferences       ViewPreference[]
 
   @@index([organizationId])
   @@map("users")
@@ -81,6 +82,7 @@ model Project {
   owner            User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
   projectManager   User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
   collaborators    ProjectCollaborator[]
+  viewPreferences  ViewPreference[]
   workItems        WorkItem[]
   blockers         Blocker[]
   risks            Risk[]
@@ -661,4 +663,34 @@ model GateUnlock {
   @@unique([gateId, workItemId])
   @@index([workItemId])
   @@map("gate_unlocks")
+}
+
+
+/// Cómo tiene configurada cada persona cada vista de cada proyecto (§10.4).
+///
+/// Por usuario × proyecto × vista, no por usuario a secas: quien lleva ocho proyectos no quiere las
+/// mismas columnas ni los mismos widgets en el que está arrancando que en el que está cerrando.
+///
+/// `settings` es JSON a propósito. Es preferencia de pantalla, no dato del negocio: nadie va a
+/// consultarla ni a reportar sobre ella, y una columna por interruptor obligaría a una migración
+/// cada vez que una vista gane un botón. Lo que sí se valida —en el servidor, con zod— es la forma
+/// de lo que entra, para que un JSON con basura no llegue nunca a la tabla.
+model ViewPreference {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  userId         String   @map("user_id") @db.Char(36)
+  projectId      String   @map("project_id") @db.Char(36)
+  // Qué vista: PANEL, GANTT, TABLERO, LISTA, CALENDARIO o CARGA.
+  view           String   @db.VarChar(20)
+  settings       Json
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Una fila por persona, proyecto y vista: el guardado es un upsert sobre esta clave.
+  @@unique([userId, projectId, view])
+  @@index([organizationId, projectId])
+  @@map("view_preferences")
 }

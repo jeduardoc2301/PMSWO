@@ -88,10 +88,10 @@ tiempo real y deshacer.
 | 15 | Vista Lista (§6) | **EXISTE** | `work-items-outline.tsx` + `work-items-list.tsx` | Dos modos: esquema multinivel y lista por fase. Cumple lo esencial | S | Bajo |
 | 16 | Vista Calendario (§7) | **CERRADA** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx` | — (ver bitácora) | L | Bajo |
 | 17 | Vista Carga de trabajo (§8) | **NO EXISTE** | — | Todo, y depende de la brecha 11 | L | Bajo |
-| 18 | Vista Panel de control (§9) | **NO EXISTE** | — | Los 6 widgets. Hay tablero ejecutivo de portafolio, pero no por proyecto | M | Bajo |
+| 18 | Vista Panel de control (§9) | **CERRADA (4 de 6 widgets)** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | Tiempo y presupuesto siguen sin modelo (ver bitácora) | L | Bajo |
 | 19 | Estados configurables (§5) | **NO EXISTE** | `WorkItem.status String` | Texto libre validado solo en TypeScript; no hay `TaskStatusOption` | M | Medio |
 | 20 | Líneas base (§3) | **NO EXISTE** | — | Todo | M | Bajo |
-| 21 | Preferencias de vista (§10.4) | **NO EXISTE** | — | El plegado, el zoom y las columnas se pierden al recargar | S | Bajo |
+| 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | — (ver bitácora) | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL** | Cada vista trae los suyos | No se comparten entre vistas ni se guardan | M | Bajo |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
 | 24 | Deshacer / rehacer (§10.6) | **NO EXISTE** | — | Todo | L | Bajo |
@@ -180,4 +180,6 @@ Cada brecha cerrada actualiza aquí su fila con la fecha y el commit, como pide 
 
 | Brecha | Cerrada el | Commit | Nota |
 |---|---|---|---|
+| 18 · Panel de control (§9) | 2026-08-17 | (este commit) | Cuatro widgets con datos —información, tareas, avance temporal e hitos— y dos con estado vacío que dice qué falta del modelo, como autoriza el §9.4. Un solo cálculo en el servidor (28 pruebas contra un plan calculado a mano) y una sola consulta. Barras apiladas en vez de donas, y rampa ordinal de un tono validada con el validador del oficio contra la superficie real. Medido sobre el plan real: 1243 hojas, 127 atrasadas, 109 hitos, 38.4 % de retraso, 0 px de desborde |
+| 21 · Preferencias de vista (§10.4) | 2026-08-17 | (este commit) | Tabla `view_preferences` por usuario × proyecto × vista, con validación de forma en zod al entrar y al salir. Comprobado de extremo a extremo en navegador: apagar un widget, recargar la página entera y encontrarlo apagado |
 | 16 · Vista Calendario (§7) | 2026-08-17 | (este commit) | Motor de empaquetado en carriles con 25 pruebas, rejilla del mes con 19 pruebas. Barras que cruzan semanas con puntas ◀/▶, hitos ◆ exentos del recorte, banderas ⚑ de vencimiento y «N líneas más» desplegable. Medido en navegador sobre el plan real (1368 líneas): 0 px de desborde, 0 encimamientos, empaquetado en 19 ms |

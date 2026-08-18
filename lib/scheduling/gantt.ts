@@ -32,6 +32,8 @@
  * de flechas entre dos bloques se convierten en una sola que dice cuántas representa.
  */
 
+import { esClaseDeHito } from '@/lib/scheduling/kinds'
+
 import { type WorkCalendar } from './calendar'
 import { type ClassifiedTask } from './critical-path'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
@@ -474,10 +476,7 @@ function filterPredicate(
     const clasificada = analysis.get(task.id)
     if (filter.onlySuperCritical && !(clasificada?.isSuperCritical ?? false)) return false
     if (filter.onlyCritical && !(clasificada?.isCritical ?? false)) return false
-    if (filter.onlyMilestones) {
-      const clase = task.kind ?? (task.duration === 0 ? 'HITO' : 'ACTIVIDAD')
-      if (clase !== 'HITO' && clase !== 'PUNTO_DE_CONTROL') return false
-    }
+    if (filter.onlyMilestones && !esClaseDeHito(task.kind, task.duration)) return false
     if (filter.party !== undefined && (clasificada?.party ?? task.party ?? 'PROVEEDOR') !== filter.party) {
       return false
     }
