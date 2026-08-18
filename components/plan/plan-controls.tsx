@@ -18,8 +18,17 @@ import { type AxisScale, type GanttFilter, type LinkVisibility } from '@/lib/sch
 import { type ResponsibleParty } from '@/lib/scheduling/types'
 
 export interface PlanControlsProps {
-  /** Hasta qué profundidad se ve el árbol. 0 = solo bloques, 3 = todo abierto. */
+  /** Hasta qué profundidad se ve el árbol. 0 = solo bloques. */
   readonly level: number
+  /**
+   * La profundidad real del plan que se está mirando. Es el valor del botón «Todo».
+   *
+   * Estaba fijo en 3, y «Todo» enseñaba 1051 de las 1368 líneas del plan de referencia: las 317 que
+   * viven por debajo del nivel 3 quedaban plegadas para siempre. Entre ellas, las seis entregas del
+   * banco que el propio informe ejecutivo nombra como lo que más arrastra el plan —una de ellas
+   * detiene 797 líneas—. Un botón que dice «Todo» tiene que enseñar todo.
+   */
+  readonly nivelMaximo: number
   readonly onLevelChange: (level: number) => void
   readonly links: LinkVisibility
   readonly onLinksChange: (links: LinkVisibility) => void
@@ -38,12 +47,16 @@ export interface PlanControlsProps {
  * «Nivel 2» no le dice nada a nadie; «Fases» sí, porque es la palabra con la que el plan está
  * escrito. El número queda en el código, que es donde sirve.
  */
-const NIVELES: readonly { readonly value: number; readonly label: string }[] = [
+const NIVELES_FIJOS: readonly { readonly value: number; readonly label: string }[] = [
   { value: 0, label: 'Bloques' },
   { value: 1, label: 'Etapas' },
   { value: 2, label: 'Fases' },
-  { value: 3, label: 'Todo' },
 ]
+
+/** Los cuatro botones, con «Todo» apuntando a lo hondo que de verdad llegue este plan. */
+function nivelesDe(nivelMaximo: number): readonly { readonly value: number; readonly label: string }[] {
+  return [...NIVELES_FIJOS.filter((n) => n.value < nivelMaximo), { value: nivelMaximo, label: 'Todo' }]
+}
 
 const FLECHAS: readonly { readonly value: LinkVisibility; readonly label: string }[] = [
   { value: 'NINGUNO', label: 'Ninguna' },
@@ -71,6 +84,7 @@ type Naturaleza = 'SUPER' | 'HITOS'
 // ruta actual. Es el mismo tipo de siempre.
 export function PlanControls({
   level,
+  nivelMaximo,
   onLevelChange,
   links,
   onLinksChange,
@@ -111,7 +125,7 @@ export function PlanControls({
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-4 rounded-lg border border-[#27272a] bg-[#18181b] px-4 py-3">
       <Grupo titulo="Nivel de detalle">
-        {NIVELES.map((opcion) => (
+        {nivelesDe(nivelMaximo).map((opcion) => (
           // El nivel nunca se apaga: siempre hay una profundidad puesta, aunque sea la máxima.
           <Boton key={opcion.value} activo={level === opcion.value} onClick={() => onLevelChange(opcion.value)}>
             {opcion.label}

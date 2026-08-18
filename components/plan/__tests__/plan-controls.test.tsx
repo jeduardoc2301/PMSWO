@@ -10,6 +10,9 @@ import { PlanControls, type PlanControlsProps } from '../plan-controls'
 function montar(cambios: Partial<PlanControlsProps> = {}): PlanControlsProps {
   const props: PlanControlsProps = {
     level: 1,
+    // Cinco, que es lo hondo que llega el plan de referencia: el botón «Todo» apunta a la
+    // profundidad real del plan, no a un 3 fijo que dejaba 317 líneas plegadas para siempre.
+    nivelMaximo: 5,
     onLevelChange: vi.fn(),
     links: 'SELECCION',
     onLinksChange: vi.fn(),
@@ -53,8 +56,10 @@ describe('El nivel de detalle', () => {
     fireEvent.click(nivel.getByRole('button', { name: 'Fases' }))
     expect(props.onLevelChange).toHaveBeenCalledWith(2)
 
+    // «Todo» vale lo que de verdad mide el plan, que aquí es cinco. Estuvo fijo en 3, y con eso
+    // dejaba 317 de las 1368 líneas del plan de referencia plegadas para siempre.
     fireEvent.click(nivel.getByRole('button', { name: 'Todo' }))
-    expect(props.onLevelChange).toHaveBeenCalledWith(3)
+    expect(props.onLevelChange).toHaveBeenCalledWith(5)
   })
 
   it('volver a tocar el nivel activo no lo apaga: siempre hay una profundidad puesta', () => {
@@ -197,5 +202,30 @@ describe('El rótulo de cuántas líneas se ven', () => {
   it('la concordancia va con el total, no con lo que se ve', () => {
     montar({ visibleRows: 1, totalRows: 12 })
     expect(screen.getByText('1 de 12 líneas')).toBeInTheDocument()
+  })
+})
+
+describe('§4.6 · «Todo» significa todo', () => {
+  it('el último botón de nivel apunta a la profundidad real del plan', () => {
+    const props = montar({ nivelMaximo: 7 })
+    fireEvent.click(grupo('Nivel de detalle').getByRole('button', { name: 'Todo' }))
+    expect(props.onLevelChange).toHaveBeenCalledWith(7)
+  })
+
+  it('con un plan llano sólo ofrece «Todo», que ya es todo', () => {
+    // Se acota al grupo a propósito: el control de filtro tiene su propio botón «Todo», y buscarlo
+    // en toda la barra devolvía dos y hacía fallar la prueba por el motivo equivocado.
+    const props = montar({ nivelMaximo: 0 })
+    const nivel = grupo('Nivel de detalle')
+    const botones = nivel.getAllByRole('button').map((b) => b.textContent)
+    expect(botones).toEqual(['Todo'])
+    fireEvent.click(nivel.getByRole('button', { name: 'Todo' }))
+    expect(props.onLevelChange).toHaveBeenCalledWith(0)
+  })
+
+  it('no ofrece profundidades que el plan no tiene', () => {
+    montar({ nivelMaximo: 2 })
+    const botones = grupo('Nivel de detalle').getAllByRole('button').map((b) => b.textContent)
+    expect(botones).toEqual(['Bloques', 'Etapas', 'Todo'])
   })
 })

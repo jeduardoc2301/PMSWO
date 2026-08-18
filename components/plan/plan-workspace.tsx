@@ -168,6 +168,29 @@ export function PlanWorkspace({
   }, [tasks, dependencies, start, deadline, calendario])
 
   // ── Lo que se recalcula en cada gesto ─────────────────────────────────────
+  /**
+   * Lo hondo que llega este plan. Es el valor del botón «Todo».
+   *
+   * Se saca de la jerarquía de las tareas y no de un número fijo: con 3 quemado en el control,
+   * «Todo» dejaba 317 de las 1368 líneas del plan de referencia plegadas para siempre.
+   */
+  const nivelMaximo = useMemo(() => {
+    const padre = new Map(tasks.map((t) => [t.id, t.parentId]))
+    let mayor = 0
+    for (const t of tasks) {
+      let n = 0
+      let arriba = padre.get(t.id)
+      // El tope evita colgarse si alguna vez entrara un ciclo en la jerarquía; el plan no debería
+      // tenerlo, pero un bucle infinito en el render no se diagnostica desde fuera.
+      while (arriba && n < 32) {
+        n += 1
+        arriba = padre.get(arriba)
+      }
+      if (n > mayor) mayor = n
+    }
+    return mayor
+  }, [tasks])
+
   const layout = useMemo(() => {
     // El nivel dice qué se pliega; lo que la persona abrió a mano gana sobre el nivel, porque bajar
     // a mirar una etapa y que el siguiente filtro la vuelva a cerrar es exasperante.
@@ -355,6 +378,7 @@ export function PlanWorkspace({
 
         <PlanControls
           level={level}
+          nivelMaximo={nivelMaximo}
           onLevelChange={setLevel}
           links={links}
           onLinksChange={setLinks}
