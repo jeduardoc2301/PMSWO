@@ -6,6 +6,8 @@ import { loadProjectPlan } from '../schedule.service'
 vi.mock('@/lib/prisma', () => ({
   default: {
     project: { findFirst: vi.fn() },
+    // El plan resuelve el calendario del proyecto; sin fila, cae a lunes-viernes.
+    projectCalendar: { findFirst: vi.fn().mockResolvedValue(null) },
     workItem: { findMany: vi.fn() },
     taskDependency: { findMany: vi.fn() },
   },

@@ -20,6 +20,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { WorkloadView } from '@/components/projects/workload-view'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
+import {
+  type DefinicionDeCalendario,
+  calendarioDesde,
+} from '@/lib/scheduling/project-calendar'
 import type { AsignacionDeCarga, RecursoDeCarga, TareaDeCarga } from '@/lib/scheduling/workload'
 
 interface CorteRemoto {
@@ -29,6 +33,7 @@ interface CorteRemoto {
   readonly assignments: AsignacionDeCarga[]
   readonly projectStart: string
   readonly projectFinish: string
+  readonly calendar: DefinicionDeCalendario
 }
 
 type Estado =
@@ -121,7 +126,12 @@ export function WorkloadTab({ projectId }: { readonly projectId: string }) {
     }
   }, [projectId, recibir])
 
-  const calendario = useMemo(() => createWorkCalendar(), [])
+  // El calendario del proyecto: sin él la matriz pinta como laborables días que el plan no
+  // trabaja, y la capacidad de esos días sale de la nada.
+  const calendario = useMemo(
+    () => (estado.fase === 'listo' ? calendarioDesde(estado.corte.calendar) : createWorkCalendar()),
+    [estado],
+  )
 
   if (estado.fase === 'cargando') {
     return <p className="py-12 text-center text-sm text-zinc-400">Armando la carga del equipo...</p>

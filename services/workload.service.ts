@@ -13,6 +13,8 @@
 
 import prisma from '@/lib/prisma'
 import { type IsoDate } from '@/lib/scheduling/date'
+import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
+import { loadCalendarDefinition } from '@/services/project-calendar.service'
 import {
   type AsignacionDeCarga,
   type RecursoDeCarga,
@@ -33,6 +35,8 @@ export interface CorteDeCarga {
   /** Rango del proyecto, por si quien mira no pide uno. */
   readonly projectStart: IsoDate
   readonly projectFinish: IsoDate
+  /** El calendario del proyecto, para que la matriz atenúe los días que de verdad no se trabajan. */
+  readonly calendar: DefinicionDeCalendario
 }
 
 /** @returns `null` si el proyecto no existe o no es de la organización. */
@@ -106,5 +110,11 @@ export async function loadProjectWorkload(
     assignments,
     projectStart: isoDe(project.startDate),
     projectFinish: isoDe(project.estimatedEndDate),
+    calendar: await loadCalendarDefinition(
+      projectId,
+      organizationId,
+      isoDe(project.startDate),
+      isoDe(project.estimatedEndDate),
+    ),
   }
 }

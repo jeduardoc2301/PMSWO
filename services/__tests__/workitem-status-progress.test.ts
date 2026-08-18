@@ -40,6 +40,8 @@ async function moverA(
     completedAt: null,
     progressPct: 0,
     project: { id: 'p1' },
+    // El plan resuelve el calendario del proyecto; sin fila, cae a lunes-viernes.
+    projectCalendar: { findFirst: vi.fn().mockResolvedValue(null) },
     ...existente,
   })
   prisma.kanbanColumn.findFirst.mockResolvedValue(columna(destino))

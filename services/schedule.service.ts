@@ -25,6 +25,11 @@
  */
 
 import prisma from '@/lib/prisma'
+import {
+  type DefinicionDeCalendario,
+  calendarioDesde,
+  loadCalendarDefinition,
+} from '@/services/project-calendar.service'
 import { type WorkCalendar, createWorkCalendar } from '@/lib/scheduling/calendar'
 import { toDayNumber, toIsoDate } from '@/lib/scheduling/date'
 import type {
@@ -44,6 +49,12 @@ export interface ProjectPlan {
   readonly dependencies: readonly Dependency[]
   /** Primer día del plan. */
   readonly start: string
+  /**
+   * El calendario laborable del proyecto, para que el navegador reconstruya **el mismo** que usó
+   * el servidor. Si cada lado montara el suyo, el Gantt y el Calendario dibujarían días
+   * laborables distintos para el mismo plan.
+   */
+  readonly calendar: DefinicionDeCalendario
   /** Fecha comprometida del proyecto, contra la cual se mide el margen. */
   readonly deadline: string
   /**
@@ -103,7 +114,16 @@ export async function loadProjectPlan(
     }),
   ])
 
-  const calendar = createWorkCalendar()
+  // El calendario del proyecto, no uno pelado. Antes esto era `createWorkCalendar()` sin
+  // argumentos —lunes a viernes y cero festivos—, así que un plan colombiano se programaba como
+  // si el país no tuviera dieciocho festivos al año.
+  const definicionDelCalendario = await loadCalendarDefinition(
+    projectId,
+    organizationId,
+    isoDe(project.startDate),
+    isoDe(project.estimatedEndDate),
+  )
+  const calendar = calendarioDesde(definicionDelCalendario)
 
   const tasks: PlanTask[] = items.map((item) => {
     const start = isoDe(item.startDate)
@@ -142,6 +162,7 @@ export async function loadProjectPlan(
     tasks,
     dependencies,
     start: isoDe(project.startDate),
+    calendar: definicionDelCalendario,
     deadline: isoDe(project.estimatedEndDate),
     progressCutoff: project.progressCutoffDate ? isoDe(project.progressCutoffDate) : null,
   }

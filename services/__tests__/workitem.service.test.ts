@@ -199,6 +199,8 @@ describe('WorkItemService', () => {
         title: 'Test Work Item',
         owner: { id: 'user-1', name: 'John Doe', email: 'john@example.com' },
         project: { id: 'project-1', name: 'Test Project', organizationId: 'org-1' },
+        // El plan resuelve el calendario del proyecto; sin fila, cae a lunes-viernes.
+        projectCalendar: { findFirst: vi.fn().mockResolvedValue(null) },
         kanbanColumn: { id: 'column-1', name: 'Backlog', columnType: KanbanColumnType.BACKLOG },
         blockers: [],
         _count: { changes: 5, agreements: 2 },

@@ -16,7 +16,8 @@
  */
 
 import prisma from '@/lib/prisma'
-import { type WorkCalendar, createWorkCalendar } from '@/lib/scheduling/calendar'
+import { type WorkCalendar } from '@/lib/scheduling/calendar'
+import { calendarioDesde } from '@/services/project-calendar.service'
 import { type IsoDate, toDayNumber } from '@/lib/scheduling/date'
 import {
   type LineaDeHoy,
@@ -61,7 +62,9 @@ async function planProgramado(
   const plan = await loadProjectPlan(projectId, organizationId)
   if (!plan) return null
 
-  const calendar = createWorkCalendar()
+  // El calendario viene con el plan: la foto tiene que retratar los mismos días laborables que
+  // vio quien la tomó, no lunes-a-viernes genérico.
+  const calendar = calendarioDesde(plan.calendar)
   const schedule = schedulePlan({
     tasks: plan.tasks,
     dependencies: plan.dependencies,

@@ -12,7 +12,7 @@
 
 import prisma from '@/lib/prisma'
 import { type MetricasDelPanel, dashboardMetrics } from '@/lib/projects/dashboard-metrics'
-import { createWorkCalendar } from '@/lib/scheduling/calendar'
+import { loadProjectCalendar } from '@/services/project-calendar.service'
 import { type IsoDate } from '@/lib/scheduling/date'
 
 /** Una fecha de la base a `AAAA-MM-DD`, leyéndola como fecha civil. */
@@ -76,7 +76,12 @@ export async function loadProjectDashboard(
   // El calendario laborable del proyecto. Hoy es el de por omisión —lunes a viernes— igual que en
   // el resto del motor; el día que `ProjectCalendar` se consulte de verdad, se consulta aquí y las
   // seis métricas cambian a la vez porque todas salen del mismo objeto.
-  const calendar = createWorkCalendar()
+  const calendar = await loadProjectCalendar(
+    projectId,
+    organizationId,
+    isoDe(project.startDate),
+    isoDe(project.estimatedEndDate),
+  )
 
   const metricas = dashboardMetrics({
     lineas: project.workItems.map((item) => ({

@@ -23,6 +23,7 @@ import { EditWorkItemDialog } from '@/components/projects/edit-work-item-dialog'
 import { WorkItemsList } from '@/components/projects/work-items-list'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
+import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import {
   BaselinePicker,
   type LineaBaseGuardada,
@@ -38,6 +39,8 @@ interface PlanRemoto {
   readonly dependencies: Dependency[]
   readonly start: string
   readonly deadline: string
+  /** El calendario del proyecto, tal como lo resolvió el servidor. */
+  readonly calendar: DefinicionDeCalendario
   /** Nula significa que el corte flota con el calendario: «hoy» cada vez que alguien mira. */
   readonly progressCutoff: string | null
 }
@@ -466,6 +469,7 @@ export function WorkItemsView({
             tasks={estado.plan.tasks}
             dependencies={estado.plan.dependencies}
             start={estado.plan.start}
+            calendarDef={estado.plan.calendar}
             cutoff={estado.plan.progressCutoff ?? hoyCivil()}
             cutoffFrozen={estado.plan.progressCutoff !== null}
             onCutoffChange={cambiarCorte}

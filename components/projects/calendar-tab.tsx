@@ -16,6 +16,10 @@ import React, { useEffect, useMemo, useState } from 'react'
 
 import { CalendarView } from '@/components/projects/calendar-view'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
+import {
+  type DefinicionDeCalendario,
+  calendarioDesde,
+} from '@/lib/scheduling/project-calendar'
 import { type CalendarTask } from '@/lib/scheduling/calendar-layout'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { schedulePlan } from '@/lib/scheduling/schedule'
@@ -26,6 +30,8 @@ interface PlanRemoto {
   readonly dependencies: Dependency[]
   readonly start: string
   readonly deadline: string
+  /** El calendario del proyecto, tal como lo resolvió el servidor. */
+  readonly calendar: DefinicionDeCalendario
 }
 
 type Estado =
@@ -84,7 +90,10 @@ export function CalendarTab({ projectId }: { readonly projectId: string }) {
   const tareas: CalendarTask[] = useMemo(() => {
     if (estado.fase !== 'listo') return []
     const { plan } = estado
-    const calendar = createWorkCalendar()
+    // El calendario del proyecto, con sus festivos. Antes era `createWorkCalendar()` sin
+    // argumentos, así que esta vista sombreaba como laborables días que el plan no trabaja — justo
+    // lo contrario de lo que su propio comentario de cabecera prometía.
+    const calendar = calendarioDesde(plan.calendar)
     // Las fechas programadas salen del motor, no de la base: es la misma verdad que ve el Gantt.
     const schedule = schedulePlan({
       tasks: plan.tasks,
@@ -108,7 +117,10 @@ export function CalendarTab({ projectId }: { readonly projectId: string }) {
     })
   }, [estado])
 
-  const calendario = useMemo(() => createWorkCalendar(), [])
+  const calendario = useMemo(
+    () => (estado.fase === 'listo' ? calendarioDesde(estado.plan.calendar) : createWorkCalendar()),
+    [estado],
+  )
 
   if (estado.fase === 'cargando') {
     return <p className="py-12 text-center text-sm text-zinc-400">Armando el calendario del proyecto...</p>

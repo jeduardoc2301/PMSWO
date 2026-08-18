@@ -160,6 +160,8 @@ describe('RiskService', () => {
         closureNotes: null,
         owner: { id: 'user-123', name: 'Test User', email: 'test@example.com' },
         project: { id: 'proj-123', name: 'Test Project', organizationId: 'org-123' },
+        // El plan resuelve el calendario del proyecto; sin fila, cae a lunes-viernes.
+        projectCalendar: { findFirst: vi.fn().mockResolvedValue(null) },
       }
 
       vi.mocked(prisma.risk.findUnique).mockResolvedValue(mockRisk as any)

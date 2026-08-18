@@ -28,7 +28,7 @@
  */
 
 import prisma from '@/lib/prisma'
-import { createWorkCalendar } from '@/lib/scheduling/calendar'
+import { loadProjectCalendar } from '@/services/project-calendar.service'
 import { toDayNumber } from '@/lib/scheduling/date'
 
 export const JORNADA_POR_OMISION_MIN = 480
@@ -138,7 +138,16 @@ export async function sembrarRecursosDelProyecto(
   })
   const hecho = new Set(yaAsignadas.map((a) => `${a.workItemId} ${a.resourceId}`))
 
-  const calendar = createWorkCalendar()
+  // Con el calendario real: repartir cuarenta horas entre «cinco días» cuando dos son festivos
+  // del proyecto da una carga diaria que nadie va a poder cumplir.
+  const rango = lineas.reduce(
+    (acc, l) => ({
+      desde: isoDe(l.startDate) < acc.desde ? isoDe(l.startDate) : acc.desde,
+      hasta: isoDe(l.estimatedEndDate) > acc.hasta ? isoDe(l.estimatedEndDate) : acc.hasta,
+    }),
+    { desde: isoDe(lineas[0].startDate), hasta: isoDe(lineas[0].estimatedEndDate) },
+  )
+  const calendar = await loadProjectCalendar(projectId, organizationId, rango.desde, rango.hasta)
 
   const porCrear: { organizationId: string; workItemId: string; resourceId: string; unitsBp: number }[] = []
   for (const linea of lineas) {

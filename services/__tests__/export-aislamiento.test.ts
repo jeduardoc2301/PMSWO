@@ -17,6 +17,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/prisma', () => ({
   default: {
     project: { findFirst: vi.fn(), findUnique: vi.fn() },
+    // El plan resuelve el calendario del proyecto; sin fila, cae a lunes-viernes.
+    projectCalendar: { findFirst: vi.fn().mockResolvedValue(null) },
     blocker: { findFirst: vi.fn(), findUnique: vi.fn() },
     risk: { findFirst: vi.fn(), findUnique: vi.fn() },
     workItem: { findMany: vi.fn() },
