@@ -12,7 +12,7 @@
  */
 
 // `React` en el ámbito porque este archivo usa `React.Fragment` de forma explícita.
-import React from 'react'
+import React, { useRef, useState } from 'react'
 
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 
@@ -42,6 +42,22 @@ const DAY_WIDTH = 14
 const ROW_HEIGHT = 28
 const NAME_WIDTH = 320
 
+/**
+ * Alto del área que se desplaza, en píxeles.
+ *
+ * El diagrama vive dentro de su propia caja en vez de estirar la página: sólo así se puede saber
+ * qué filas están a la vista, y sin saberlo hay que dibujarlas todas.
+ */
+const ALTO_VISIBLE = 560
+
+/**
+ * Filas de más que se dibujan por arriba y por abajo de lo que se ve.
+ *
+ * Sin margen, desplazar rápido enseña huecos blancos antes de que React alcance al scroll. Ocho
+ * filas es lo que cabe en un golpe de rueda.
+ */
+const MARGEN_DE_FILAS = 8
+
 export function GanttChart({
   layout,
   dayWidth = DAY_WIDTH,
@@ -55,6 +71,33 @@ export function GanttChart({
   const width = Math.max(layout.span, 1) * dayWidth
   const height = layout.rows.length * rowHeight
 
+  /**
+   * Sólo se dibujan las filas que caen dentro de la caja.
+   *
+   * Con las 5000 líneas del proyecto de carga, dibujarlas todas daba 2578 ms hasta el pintado y
+   * **2,3 fotogramas por segundo** al desplazar —cinco fotogramas en dos segundos—. El §4.8 pide
+   * menos de 1,5 s y sesenta. No es una optimización: es la diferencia entre una vista que se usa y
+   * una que no.
+   *
+   * El alto total se mantiene, así que la barra de desplazamiento mide lo que el plan mide de
+   * verdad; lo único que cambia es cuántos nodos hay puestos en cada momento.
+   */
+  const caja = useRef<HTMLDivElement | null>(null)
+  const [desplazamiento, setDesplazamiento] = useState(0)
+
+  const primera = Math.max(0, Math.floor(desplazamiento / rowHeight) - MARGEN_DE_FILAS)
+  const ultima = Math.min(
+    layout.rows.length,
+    Math.ceil((desplazamiento + ALTO_VISIBLE) / rowHeight) + MARGEN_DE_FILAS,
+  )
+  const visibles = layout.rows.slice(primera, ultima)
+
+  // Una flecha se dibuja si cruza la banda visible, no sólo si empieza o termina en ella: un vínculo
+  // que va de la fila 3 a la 900 pasa por delante de todo lo que hay en medio.
+  const flechasVisibles = layout.links.filter(
+    (link) => Math.max(link.fromIndex, link.toIndex) >= primera && Math.min(link.fromIndex, link.toIndex) < ultima,
+  )
+
   if (layout.rows.length === 0) {
     return (
       <p className="rounded-lg border border-zinc-800 bg-[#18181b] p-6 text-sm text-zinc-400">
@@ -65,50 +108,80 @@ export function GanttChart({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex overflow-x-auto rounded-lg border border-zinc-800 bg-[#18181b]">
-        {/* La columna de nombres, fija a la izquierda. */}
-        <div className="shrink-0 border-r border-zinc-800" style={{ width: nameWidth }}>
-          <div className="border-b border-zinc-800 text-xs uppercase tracking-wide text-zinc-400" style={{ height: rowHeight }}>
-            <span className="flex h-full items-center px-3">Línea del plan</span>
+      <div
+        ref={caja}
+        onScroll={(e) => setDesplazamiento(e.currentTarget.scrollTop)}
+        className="relative overflow-auto rounded-lg border border-zinc-800 bg-[#18181b]"
+        style={{ maxHeight: ALTO_VISIBLE + rowHeight }}
+      >
+        <div className="flex" style={{ width: nameWidth + width }}>
+          {/* La columna de nombres, pegada a la izquierda: antes se iba con el desplazamiento
+              horizontal y a mitad del plan las barras quedaban sin nombre. */}
+          <div
+            className="sticky left-0 z-20 shrink-0 border-r border-zinc-800 bg-[#18181b]"
+            style={{ width: nameWidth }}
+          >
+            <div
+              className="sticky top-0 z-10 border-b border-zinc-800 bg-[#18181b] text-xs uppercase tracking-wide text-zinc-400"
+              style={{ height: rowHeight }}
+            >
+              <span className="flex h-full items-center px-3">Línea del plan</span>
+            </div>
+            <div className="relative" style={{ height }}>
+              {visibles.map((row, k) => (
+                <div
+                  key={row.id}
+                  className="absolute left-0 right-0"
+                  style={{ top: (primera + k) * rowHeight }}
+                >
+                  <NameCell
+                    row={row}
+                    height={rowHeight}
+                    isSelected={row.id === selectedId}
+                    onSelect={onSelect}
+                    onToggle={onToggle}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-          {layout.rows.map((row) => (
-            <NameCell
-              key={row.id}
-              row={row}
-              height={rowHeight}
-              isSelected={row.id === selectedId}
-              onSelect={onSelect}
-              onToggle={onToggle}
-            />
-          ))}
-        </div>
 
-        {/* El lienzo. */}
-        <div className="relative" style={{ width }}>
-          <div className="flex border-b border-zinc-800" style={{ height: rowHeight }}>
-            {layout.ticks.map((tick) => (
-              <div
-                key={tick.date}
-                className="shrink-0 border-r border-zinc-800 px-2 text-xs text-zinc-400"
-                style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}
-              >
-                {tick.label}
-              </div>
-            ))}
-          </div>
+          {/* El lienzo. */}
+          <div className="relative" style={{ width }}>
+            <div
+              className="sticky top-0 z-10 flex border-b border-zinc-800 bg-[#18181b]"
+              style={{ height: rowHeight }}
+            >
+              {layout.ticks.map((tick) => (
+                <div
+                  key={tick.date}
+                  className="shrink-0 border-r border-zinc-800 px-2 text-xs text-zinc-400"
+                  style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}
+                >
+                  {tick.label}
+                </div>
+              ))}
+            </div>
 
-          <div className="relative" style={{ height }}>
-            {layout.rows.map((row, index) => (
-              <Bar
-                key={row.id}
-                row={row}
-                index={index}
+            <div className="relative" style={{ height }}>
+              {visibles.map((row, k) => (
+                <Bar
+                  key={row.id}
+                  row={row}
+                  index={primera + k}
+                  dayWidth={dayWidth}
+                  rowHeight={rowHeight}
+                  onMoverLinea={onMoverLinea}
+                />
+              ))}
+              <Links
+                links={flechasVisibles}
                 dayWidth={dayWidth}
                 rowHeight={rowHeight}
-                onMoverLinea={onMoverLinea}
+                width={width}
+                height={height}
               />
-            ))}
-            <Links links={layout.links} dayWidth={dayWidth} rowHeight={rowHeight} width={width} height={height} />
+            </div>
           </div>
         </div>
       </div>
