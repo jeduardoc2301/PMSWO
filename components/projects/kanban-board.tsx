@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, ChevronDown, ChevronRight, Layers, AlertOctagon, Clock4, Hourglass, ShieldAlert, Calendar, Info, X, Search, Check, Pencil, Trash2 } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary, type KanbanColumnWithItems } from '@/types'
-import { computeUrgency, urgencyDueLabel, type Urgency } from '@/lib/urgency'
+import { computeUrgency, estaTerminada, urgencyDueLabel, type Urgency } from '@/lib/urgency'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import {
   CRITERIOS,
@@ -13,6 +13,7 @@ import {
   agruparTarjetas,
   cambioAlSoltar,
 } from '@/lib/projects/kanban-group'
+import { progresoAlMover } from '@/lib/projects/status-progress'
 import {
   CAMPOS_DE_ORDEN,
   type CampoDeOrden,
@@ -33,7 +34,13 @@ interface KanbanBoardProps {
   projectId: string
   columns: KanbanColumnWithItems[]
   workItems: WorkItemSummary[]
-  onWorkItemMove?: (workItemId: string, newColumnId: string, newStatus: WorkItemStatus) => Promise<void>
+  onWorkItemMove?: (
+    workItemId: string,
+    newColumnId: string,
+    newStatus: WorkItemStatus,
+    /** El avance acoplado, ya calculado aquí. Que lo derive quien lo necesite es cómo se pierde. */
+    newProgress: number,
+  ) => Promise<void>
   onWorkItemCreated?: () => void
   /**
    * La fecha de corte del avance, ya resuelta (la congelada del proyecto, o hoy). Con ella la
@@ -141,6 +148,11 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
   })()
 
   const healthyDueLabel = (() => {
+    // Una línea terminada no tiene vencimiento que anunciar: su fecha dejó de estar en juego.
+    // `computeUrgency` le devuelve `urgency: null` —correcto— pero conserva su `daysFromDue`, y
+    // `urgencyDueLabel` traduce cualquier negativo a «60d vencida». El resultado era una tarjeta al
+    // 100 % en la columna de terminados leyéndose como atrasada.
+    if (estaTerminada(workItem.status)) return null
     if (urgency !== null || daysFromDue === null) return null
     return urgencyDueLabel(daysFromDue)
   })()
@@ -596,8 +608,23 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
           isDone: targetColumn.isDone ?? false,
           columnType: targetColumn.columnType,
         }) as WorkItemStatus
-        setLocalWorkItems(prev => prev.map(i => i.id === movedId ? { ...i, kanbanColumnId: cambio.valor, status: newStatus } : i))
-        if (onWorkItemMove) await onWorkItemMove(movedId, cambio.valor, newStatus)
+        // El avance va con el estado, y con **la misma función que usa el servidor**: si aquí se
+        // calculara de otro modo, la tarjeta enseñaría un número y la base guardaría otro. Sin esta
+        // línea la tarjeta se quedaba con el avance viejo hasta recargar, y el §5.4 pide que mover
+        // a Terminado ponga el 100 % «al instante».
+        const nuevoAvance = progresoAlMover(workItem.progressPct ?? 0, {
+          id: targetColumn.id,
+          name: targetColumn.name,
+          isInitial: targetColumn.isInitial ?? false,
+          isDone: targetColumn.isDone ?? false,
+        })
+        setLocalWorkItems(prev => prev.map(i => i.id === movedId
+          ? { ...i, kanbanColumnId: cambio.valor, status: newStatus, progressPct: nuevoAvance }
+          : i))
+        // Se pasa el avance ya calculado: el padre tiene su propio parche optimista, y cuando lo
+        // derivaba por su cuenta se le olvidaba este campo — su versión bajaba como props y pisaba
+        // la del hijo, así que la tarjeta volvía al avance viejo hasta recargar.
+        if (onWorkItemMove) await onWorkItemMove(movedId, cambio.valor, newStatus, nuevoAvance)
       } else {
         // Prioridad y responsable van por la ruta general de la línea, y **sin fechas**: el tablero
         // es la vista de seguimiento, no la de planificación.

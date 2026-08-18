@@ -16,6 +16,18 @@ function aFechaLocal(fecha: string): Date {
 const ESTADOS_TERMINALES = new Set(['DONE', 'CLOSED', 'CANCELLED'])
 
 /**
+ * ¿Esta línea ya salió de juego?
+ *
+ * Se exporta porque quien dibuja una tarjeta necesita la misma respuesta: hasta ahora este archivo
+ * tenía **dos** definiciones de «terminada» —`isOverdue` miraba el conjunto entero y
+ * `computeUrgency` comparaba sólo con `DONE`— y una línea `CLOSED` con la fecha pasada se colaba
+ * por la rendija y acababa etiquetada «vence pronto».
+ */
+export function estaTerminada(status: string): boolean {
+  return ESTADOS_TERMINALES.has(status)
+}
+
+/**
  * ¿Esta línea está atrasada?
  *
  * Una sola definición, consumida por el resaltado de la lista y por el contador del panel de
@@ -47,19 +59,29 @@ export interface UrgencyResult {
   daysStale: number | null
 }
 
-export function computeUrgency(item: {
-  estimatedEndDate?: string
-  status: string
-  activeBlockers?: number
-  lastUpdatedAt?: string
-  priority: string
-}): UrgencyResult {
-  const now = new Date()
+/**
+ * Qué etiqueta de urgencia le toca a una línea.
+ *
+ * @param hoy Fecha civil de referencia. Entra por parámetro por la misma razón que en `isOverdue`:
+ *   sin ella la función no se puede probar, y de hecho no tenía ni una prueba. Dos defectos vivieron
+ *   ahí dentro hasta que se vieron en una tarjeta.
+ */
+export function computeUrgency(
+  item: {
+    estimatedEndDate?: string
+    status: string
+    activeBlockers?: number
+    lastUpdatedAt?: string
+    priority: string
+  },
+  hoy: Date = new Date(),
+): UrgencyResult {
+  const now = new Date(hoy)
   now.setHours(0, 0, 0, 0)
 
   const due = item.estimatedEndDate ? aFechaLocal(item.estimatedEndDate) : null
 
-  const done = item.status === 'DONE'
+  const done = estaTerminada(item.status)
   const blocked = (item.activeBlockers ?? 0) > 0
 
   let daysFromDue: number | null = null

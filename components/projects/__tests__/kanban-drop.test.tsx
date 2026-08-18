@@ -128,7 +128,10 @@ describe('Soltar una tarjeta', () => {
     soltarEn('Done')
 
     await waitFor(() =>
-      expect(onWorkItemMove).toHaveBeenCalledWith('w1', 'c4', WorkItemStatus.DONE),
+      // El cuarto argumento es el avance acoplado, calculado **una vez** aquí. El padre tiene su
+      // propio parche optimista y cuando lo derivaba por su cuenta se le olvidaba, así que su
+      // versión bajaba como props y pisaba la del tablero: la tarjeta volvía al avance viejo.
+      expect(onWorkItemMove).toHaveBeenCalledWith('w1', 'c4', WorkItemStatus.DONE, 1),
     )
   })
 
@@ -139,7 +142,8 @@ describe('Soltar una tarjeta', () => {
     soltarEn('En revisión')
 
     await waitFor(() =>
-      expect(onWorkItemMove).toHaveBeenCalledWith('w1', 'c9', WorkItemStatus.IN_PROGRESS),
+      // Columna intermedia con la tarjeta a cero: se marca el arranque, no el 100 %.
+      expect(onWorkItemMove).toHaveBeenCalledWith('w1', 'c9', WorkItemStatus.IN_PROGRESS, 0.01),
     )
   })
 
@@ -158,7 +162,17 @@ describe('Soltar una tarjeta', () => {
     soltarEn('Done')
 
     await waitFor(() => expect(onWorkItemMove).toHaveBeenCalled())
-    expect(onWorkItemMove.mock.calls[0]).toHaveLength(3)
+
+    // Contaba argumentos, y eso se rompió el día que se añadió el avance acoplado —un cambio
+    // legítimo— sin que ninguna fecha se hubiera movido. Ahora se comprueba lo que la prueba quiere
+    // decir: que ninguno de los argumentos es una fecha.
+    const argumentos = onWorkItemMove.mock.calls[0]
+    for (const argumento of argumentos) {
+      expect(argumento instanceof Date).toBe(false)
+      if (typeof argumento === 'string') {
+        expect(Number.isNaN(Date.parse(argumento)) || argumento.length < 10).toBe(true)
+      }
+    }
   })
 
   it('si la escritura falla, la tarjeta vuelve a su columna', async () => {

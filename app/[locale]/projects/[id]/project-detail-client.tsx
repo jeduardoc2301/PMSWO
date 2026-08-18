@@ -307,7 +307,12 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
   const undo = useUndo(aplicarCambios)
 
-  const handleWorkItemMove = async (workItemId: string, newColumnId: string, newStatus: WorkItemStatus) => {
+  const handleWorkItemMove = async (
+    workItemId: string,
+    newColumnId: string,
+    newStatus: WorkItemStatus,
+    newProgress: number,
+  ) => {
     // Va la columna y no el estado: la columna es lo configurable, y el servidor deriva de ella el
     // estado y el avance acoplado (§5.2, §5.5). Mandar el estado no podría alcanzar una columna que
     // alguien añada al tablero.
@@ -330,7 +335,11 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         ))
       }
       const updatedWorkItems = kanbanBoard.workItems.map(item =>
-        item.id === workItemId ? { ...item, status: newStatus, kanbanColumnId: newColumnId } : item
+        // El avance va con el estado. Sin él, este parche bajaba como props y pisaba el del tablero,
+        // que sí lo tenía: la tarjeta se quedaba con el avance viejo hasta recargar la página.
+        item.id === workItemId
+          ? { ...item, status: newStatus, kanbanColumnId: newColumnId, progressPct: newProgress }
+          : item
       )
       const updatedColumns = kanbanBoard.columns.map(col => ({
         ...col,

@@ -215,7 +215,7 @@ describe('KanbanBoard', () => {
     fireEvent.drop(targetColumn, { dataTransfer: { getData: () => 'item-1' } })
 
     await waitFor(() => {
-      expect(onWorkItemMove).toHaveBeenCalledWith('item-1', 'col-2', WorkItemStatus.TODO)
+      expect(onWorkItemMove).toHaveBeenCalledWith('item-1', 'col-2', WorkItemStatus.TODO, expect.any(Number))
     })
   })
 
