@@ -28,6 +28,14 @@ export interface GanttChartProps {
   readonly onSelect?: (id: string) => void
   /** Abrir o cerrar un resumen. Sin esto, los triángulos no se dibujan. */
   readonly onToggle?: (id: string) => void
+  /**
+   * Soltar una barra en otra columna. Llega el desplazamiento en **días hábiles**, no una fecha.
+   *
+   * Es a propósito: este componente sabe cuántos píxeles mide un día y nada más. Convertir un
+   * desplazamiento en una fecha necesita el calendario del proyecto, y el día que esta vista lo
+   * tenga empezará a decidir cuándo es lunes.
+   */
+  readonly onMoverLinea?: (taskId: string, deltaDiasHabiles: number) => void
 }
 
 const DAY_WIDTH = 14
@@ -42,6 +50,7 @@ export function GanttChart({
   selectedId = null,
   onSelect,
   onToggle,
+  onMoverLinea,
 }: GanttChartProps) {
   const width = Math.max(layout.span, 1) * dayWidth
   const height = layout.rows.length * rowHeight
@@ -90,7 +99,14 @@ export function GanttChart({
 
           <div className="relative" style={{ height }}>
             {layout.rows.map((row, index) => (
-              <Bar key={row.id} row={row} index={index} dayWidth={dayWidth} rowHeight={rowHeight} />
+              <Bar
+                key={row.id}
+                row={row}
+                index={index}
+                dayWidth={dayWidth}
+                rowHeight={rowHeight}
+                onMoverLinea={onMoverLinea}
+              />
             ))}
             <Links links={layout.links} dayWidth={dayWidth} rowHeight={rowHeight} width={width} height={height} />
           </div>
@@ -159,22 +175,66 @@ function Bar({
   index,
   dayWidth,
   rowHeight,
+  onMoverLinea,
 }: {
   row: GanttRow
   index: number
   dayWidth: number
   rowHeight: number
+  onMoverLinea?: (taskId: string, deltaDiasHabiles: number) => void
 }) {
   const top = index * rowHeight
   const alto = Math.max(8, rowHeight - 14)
   const y = top + (rowHeight - alto) / 2
 
+  // Un resumen no se arrastra: sus fechas son las de sus hijos, y moverlo sería pedirle al plan que
+  // olvide de dónde salen. Lo dice el §4.8 y además es la única lectura que no miente.
+  const movible = onMoverLinea !== undefined && !row.isSummary
+
+  /**
+   * El arrastre, a mano y fuera de React.
+   *
+   * Se mueve el elemento con `transform` en cada `pointermove` en lugar de guardar el
+   * desplazamiento en el estado: con las 1368 líneas del plan de referencia, un renderizado por cada
+   * píxel del ratón no llega ni de lejos a los 100 ms que pide el §4.8. El estado sólo se toca al
+   * soltar, que es cuando hay algo que decidir.
+   */
+  const alApretar = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!movible || !onMoverLinea) return
+    const elemento = e.currentTarget
+    const xInicial = e.clientX
+    let delta = 0
+    elemento.setPointerCapture(e.pointerId)
+    elemento.style.opacity = '0.7'
+
+    const alMover = (ev: PointerEvent) => {
+      delta = Math.round((ev.clientX - xInicial) / dayWidth)
+      elemento.style.transform = `translateX(${delta * dayWidth}px)`
+    }
+    const alSoltar = (ev: PointerEvent) => {
+      elemento.releasePointerCapture(ev.pointerId)
+      elemento.removeEventListener('pointermove', alMover)
+      elemento.removeEventListener('pointerup', alSoltar)
+      elemento.removeEventListener('pointercancel', alSoltar)
+      // Se devuelve a su sitio: la barra sólo se queda donde la soltaron si el plan lo confirma, y
+      // el plan lo dice después. Dejarla movida sería prometer una escritura que aún no ocurrió.
+      elemento.style.transform = ''
+      elemento.style.opacity = ''
+      if (delta !== 0 && ev.type === 'pointerup') onMoverLinea(row.id, delta)
+    }
+    elemento.addEventListener('pointermove', alMover)
+    elemento.addEventListener('pointerup', alSoltar)
+    elemento.addEventListener('pointercancel', alSoltar)
+  }
+
   if (row.isMilestone) {
     return (
       <div
         data-testid={`hito-${row.id}`}
+        data-movible={movible ? 'sí' : 'no'}
         title={`${row.name} · ${row.start}`}
-        className={`absolute rotate-45 ${row.isSuperCritical ? 'bg-red-400' : row.isCritical ? 'bg-orange-400' : 'bg-zinc-300'}`}
+        onPointerDown={movible ? alApretar : undefined}
+        className={`absolute rotate-45 ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${row.isSuperCritical ? 'bg-red-400' : row.isCritical ? 'bg-orange-400' : 'bg-zinc-300'}`}
         style={{ left: row.x * dayWidth - alto / 2, top: y, width: alto, height: alto }}
       />
     )
@@ -192,8 +252,10 @@ function Bar({
       ) : null}
       <div
         data-testid={`barra-${row.id}`}
+        data-movible={movible ? 'sí' : 'no'}
         title={`${row.name} · ${row.start} → ${row.finish}`}
-        className={`absolute overflow-hidden rounded-sm ${barTone(row)}`}
+        onPointerDown={movible ? alApretar : undefined}
+        className={`absolute overflow-hidden rounded-sm ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${barTone(row)}`}
         style={{ left: row.x * dayWidth, top: y, width: Math.max(row.width * dayWidth, 2), height: alto }}
       >
         {row.progressWidth > 0 ? (

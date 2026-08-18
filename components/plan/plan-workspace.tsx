@@ -30,6 +30,11 @@ import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
 import { PlanDetailPanel, type PlanLink } from '@/components/plan/plan-detail-panel'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
+import { toDayNumber, toIsoDate } from '@/lib/scheduling/date'
+import {
+  type DefinicionDeCalendario,
+  calendarioDesde,
+} from '@/lib/scheduling/project-calendar'
 import { clientCommitments } from '@/lib/scheduling/client-commitments'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
@@ -67,6 +72,28 @@ export interface PlanWorkspaceProps {
    * plan, y ya reventó una vez así en el esquema.
    */
   readonly idsVisibles?: ReadonlySet<string>
+  /**
+   * Con el id del proyecto, las barras se pueden arrastrar. Sin él, no.
+   *
+   * La vista global del plan no es de ningún proyecto en concreto: allí arrastrar no tendría a
+   * dónde escribir, y una barra que se mueve y no guarda nada es peor que una que no se mueve.
+   */
+  readonly projectId?: string
+  /** El calendario del proyecto. Sin él se cae en la semana genérica de lunes a viernes. */
+  readonly calendario?: DefinicionDeCalendario
+  /** Se avisa después de escribir una reprogramación, para que quien trajo el plan lo vuelva a pedir. */
+  readonly onReprogramado?: () => void
+}
+
+/** Lo que pasaría si se soltara la barra ahí. Igual que en el Calendario, y por la misma razón. */
+interface Propuesta {
+  readonly taskId: string
+  readonly nombre: string
+  readonly nuevoInicio: string
+  readonly cambios: number
+  readonly empujadas: number
+  readonly cierreAntes: string
+  readonly cierreDespues: string
 }
 
 /**
@@ -87,6 +114,9 @@ export function PlanWorkspace({
   warnings = [],
   barraDeFiltro,
   idsVisibles,
+  projectId,
+  calendario,
+  onReprogramado,
 }: PlanWorkspaceProps) {
   const [level, setLevel] = useState(NIVEL_INICIAL)
   const [links, setLinks] = useState<LinkVisibility>('SELECCION')
@@ -94,10 +124,15 @@ export function PlanWorkspace({
   const [scale, setScale] = useState<AxisScale>('MES')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [abiertosAMano, setAbiertosAMano] = useState<ReadonlySet<string>>(new Set())
+  const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
+  const [aplicando, setAplicando] = useState(false)
 
   // ── Lo que se calcula una sola vez ────────────────────────────────────────
   const base = useMemo(() => {
-    const calendar = createWorkCalendar()
+    // Antes era `createWorkCalendar()` a secas: el Gantt programaba el plan contra una semana
+    // genérica de lunes a viernes e ignoraba los festivos del proyecto. Es el mismo fallo que tenía
+    // el Calendario, y se arregla igual: el calendario llega de fuera o no llega.
+    const calendar = calendario ? calendarioDesde(calendario) : createWorkCalendar()
     const schedule = schedulePlan({ tasks, dependencies, calendar, start })
     const analysis = analyzeCriticalPath(schedule)
 
@@ -130,7 +165,7 @@ export function PlanWorkspace({
       classified: classified.tasks,
       brief: executiveBrief(summary, commitments),
     }
-  }, [tasks, dependencies, start, deadline])
+  }, [tasks, dependencies, start, deadline, calendario])
 
   // ── Lo que se recalcula en cada gesto ─────────────────────────────────────
   const layout = useMemo(() => {
@@ -231,6 +266,59 @@ export function PlanWorkspace({
     setAbiertosAMano(abrir)
   }
 
+  /**
+   * Soltar una barra propone; no escribe.
+   *
+   * Llega un desplazamiento en días hábiles porque el Gantt sólo sabe de píxeles. La fecha se saca
+   * aquí, con el calendario del proyecto: sumar diez días hábiles no es sumar diez días.
+   */
+  const proponerMovimiento = async (taskId: string, delta: number) => {
+    if (!projectId) return
+    const fila = layout.rows.find((r) => r.id === taskId)
+    if (!fila) return
+    const nuevoInicio = toIsoDate(base.calendar.add(toDayNumber(fila.start), delta))
+    try {
+      const res = await fetch('/api/v1/projects/' + projectId + '/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, start: nuevoInicio }),
+      })
+      if (!res.ok) return
+      const { previsualizacion } = await res.json()
+      if (!previsualizacion?.cambios?.length) return
+      setPropuesta({
+        taskId,
+        nombre: fila.name,
+        nuevoInicio,
+        cambios: previsualizacion.cambios.length,
+        empujadas: previsualizacion.empujadas,
+        cierreAntes: previsualizacion.cierreAntes,
+        cierreDespues: previsualizacion.cierreDespues,
+      })
+    } catch {
+      // Si no se pudo calcular, no se propone nada: es preferible que el arrastre no haga nada a
+      // que enseñe un efecto inventado.
+    }
+  }
+
+  const aplicarMovimiento = async () => {
+    if (!propuesta || !projectId) return
+    setAplicando(true)
+    try {
+      const res = await fetch('/api/v1/projects/' + projectId + '/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: propuesta.taskId, start: propuesta.nuevoInicio, confirm: true }),
+      })
+      if (res.ok) {
+        setPropuesta(null)
+        onReprogramado?.()
+      }
+    } finally {
+      setAplicando(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* El filtro unificado del §10.2, si quien monta lo ofrece. Va arriba del todo porque afecta
@@ -280,11 +368,68 @@ export function PlanWorkspace({
 
         <div className="flex flex-col gap-4 xl:flex-row">
           <div className="min-w-0 flex-1">
+            {propuesta ? (
+              <div
+                role="alertdialog"
+                aria-label="Confirmar la reprogramación"
+                data-testid="propuesta-reprogramacion"
+                className="mb-3 rounded-xl border border-amber-900/50 bg-amber-950/20 p-4"
+              >
+                <p className="text-sm text-amber-100">
+                  Mover «{propuesta.nombre}» al {propuesta.nuevoInicio} cambia{' '}
+                  <strong className="tabular-nums">{propuesta.cambios}</strong>{' '}
+                  {propuesta.cambios === 1 ? 'línea' : 'líneas'}
+                  {propuesta.empujadas > 0 ? (
+                    <>
+                      {' '}
+                      — la arrastrada y{' '}
+                      <strong className="tabular-nums">{propuesta.empujadas}</strong> que quedaban en
+                      falso
+                    </>
+                  ) : null}
+                  .
+                </p>
+                {/* El cierre es la cifra que decide si esto es un ajuste o un problema. */}
+                <p className="mt-1.5 text-xs">
+                  {propuesta.cierreDespues === propuesta.cierreAntes ? (
+                    <span className="text-emerald-300">
+                      El cierre del proyecto no se mueve: sigue el {propuesta.cierreAntes}.
+                    </span>
+                  ) : (
+                    <span className="text-red-300">
+                      El cierre del proyecto pasa del {propuesta.cierreAntes} al{' '}
+                      {propuesta.cierreDespues}.
+                    </span>
+                  )}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={aplicando}
+                    onClick={() => void aplicarMovimiento()}
+                    className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                  >
+                    {aplicando ? 'Aplicando...' : 'Aplicar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPropuesta(null)}
+                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <GanttChart
               layout={layoutFiltrado}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onToggle={alternarPlegado}
+              onMoverLinea={
+                projectId ? (taskId, delta) => void proponerMovimiento(taskId, delta) : undefined
+              }
             />
           </div>
 

@@ -17,6 +17,7 @@
 import React, { useEffect, useState } from 'react'
 
 import { PlanWorkspace } from '@/components/plan/plan-workspace'
+import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
 interface PlanRemoto {
@@ -26,6 +27,14 @@ interface PlanRemoto {
   readonly dependencies: Dependency[]
   readonly start: string
   readonly deadline: string
+  /**
+   * El calendario del proyecto, tal como lo resolvió el servidor.
+   *
+   * La ruta ya lo devolvía; este tipo no lo declaraba, así que el Gantt armaba el suyo con
+   * `createWorkCalendar()` sin argumentos y programaba sobre una semana genérica. Es el mismo fallo
+   * que tenía el Calendario: la vista se inventa el calendario que no le pasan.
+   */
+  readonly calendar: DefinicionDeCalendario
 }
 
 type Estado =
@@ -43,6 +52,13 @@ export interface PlanTabProps {
 
 export function PlanTab({ projectId, barraDeFiltro, idsVisibles }: PlanTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
+  /**
+   * Cambia cuando hay que volver a pedir el plan.
+   *
+   * Después de reprogramar, las fechas de la base son otras y el Gantt tiene que dibujar sobre
+   * ellas. Es un número y no un booleano porque hay que poder recargar dos veces seguidas.
+   */
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let vigente = true
@@ -70,7 +86,7 @@ export function PlanTab({ projectId, barraDeFiltro, idsVisibles }: PlanTabProps)
     return () => {
       vigente = false
     }
-  }, [projectId])
+  }, [projectId, version])
 
   if (estado.fase === 'cargando') {
     return <p className="py-12 text-center text-sm text-zinc-400">Calculando el plan del proyecto...</p>
@@ -96,6 +112,9 @@ export function PlanTab({ projectId, barraDeFiltro, idsVisibles }: PlanTabProps)
 
   return (
     <PlanWorkspace
+      projectId={projectId}
+      onReprogramado={() => setVersion((v) => v + 1)}
+      calendario={plan.calendar}
       barraDeFiltro={barraDeFiltro}
       idsVisibles={idsVisibles}
       tasks={plan.tasks}
