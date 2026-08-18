@@ -1,0 +1,475 @@
+'use client'
+
+/**
+ * La vista de Carga de trabajo (§8): la matriz recurso × día.
+ *
+ * De presentación pura sobre la matriz que arma el motor. Los tres modos —horas, tareas y
+ * porcentajes— no son tres cálculos: son tres formas de pintar la misma celda, y por eso cambiar de
+ * modo no vuelve a pedir nada (§8.5). La sobrecarga tampoco se decide aquí; viene decidida en
+ * minutos desde el motor, para que no pueda pasar que una celda salga roja en un modo y no en otro.
+ *
+ * ## Cómo se lee una celda sin depender del color
+ *
+ * El rojo marca la sobrecarga, pero nunca solo. Cada celda sobrecargada lleva además su número por
+ * encima de cien —o de la jornada— y el título al pasar por encima; y la columna de la izquierda
+ * dice, por recurso, cuántos días del rango están en rojo. Quien no distinga el rojo del gris sigue
+ * teniendo tres formas de encontrarlo.
+ *
+ * ## Por qué la escala de fondo es una rampa de un tono
+ *
+ * La ocupación es una magnitud, no una identidad: es la misma cosa en más o menos cantidad, así que
+ * se dibuja con un solo tono que cambia de luminosidad. Colores distintos por tramo dirían «son
+ * cosas diferentes». El único color que se sale de la rampa es el de la sobrecarga, que no es «más
+ * carga» sino un problema.
+ */
+
+import React, { useMemo, useState } from 'react'
+
+import { COLORES_DE_ESTADO, RAMPA_AZUL } from '@/components/projects/dashboard-charts'
+import { type WorkCalendar } from '@/lib/scheduling/calendar'
+import {
+  type AsignacionDeCarga,
+  type CeldaDeCarga,
+  type RecursoDeCarga,
+  type TareaDeCarga,
+  desgloseDelDia,
+  recursosConHueco,
+  workloadMatrix,
+} from '@/lib/scheduling/workload'
+
+export type ModoDeCarga = 'horas' | 'tareas' | 'porcentaje'
+
+export interface WorkloadViewProps {
+  readonly resources: readonly RecursoDeCarga[]
+  readonly tasks: readonly TareaDeCarga[]
+  readonly assignments: readonly AsignacionDeCarga[]
+  readonly calendar: WorkCalendar
+  readonly from: string
+  readonly to: string
+  readonly onRangoChange: (from: string, to: string) => void
+  readonly today?: string
+}
+
+/**
+ * La rampa de ocupación: la misma del producto, leída de vacío a lleno.
+ *
+ * Sobre fondo oscuro, más lleno es más claro. Al revés que el embudo del panel, y a propósito: en
+ * una matriz de noventa columnas lo que hay que encontrar de un vistazo es dónde está lo lleno, y
+ * lo que resalta sobre negro es lo claro. Un primer intento con pasos propios más oscuros falló el
+ * validador —el más oscuro quedaba en 1.24:1 contra la tarjeta, indistinguible del fondo—, que es
+ * justo el motivo de tener una rampa comprobada en vez de elegir cuatro azules a ojo.
+ */
+const RAMPA = [RAMPA_AZUL[3], RAMPA_AZUL[2], RAMPA_AZUL[1], RAMPA_AZUL[0]] as const
+
+/** El color de fondo de una celda según lo llena que esté. */
+function fondoDeCelda(celda: CeldaDeCarga): string | undefined {
+  if (celda.sobrecargado) return `${COLORES_DE_ESTADO.critico}44`
+  if (celda.capacidadMin === 0 || celda.cargaMin === 0) return undefined
+  const ocupacion = celda.cargaMin / celda.capacidadMin
+  if (ocupacion >= 0.99) return RAMPA[3]
+  if (ocupacion >= 0.66) return RAMPA[2]
+  if (ocupacion >= 0.33) return RAMPA[1]
+  return RAMPA[0]
+}
+
+function textoDeCelda(celda: CeldaDeCarga, modo: ModoDeCarga): string {
+  if (modo === 'tareas') return celda.tareas === 0 ? '' : String(celda.tareas)
+  if (modo === 'porcentaje') {
+    if (celda.cargaMin === 0) return ''
+    // Sin capacidad no hay porcentaje que calcular: es una división por cero, y «∞ %» no informa
+    // de nada. El aspa dice lo que pasa: hay trabajo un día en que esa persona no está.
+    if (celda.capacidadMin === 0) return '✕'
+    return String(Math.round((celda.cargaMin / celda.capacidadMin) * 100))
+  }
+  if (celda.cargaMin === 0) return ''
+  const horas = celda.cargaMin / 60
+  return Number.isInteger(horas) ? String(horas) : horas.toFixed(1)
+}
+
+const NOMBRES_DE_MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+function mesDe(iso: string): string {
+  return `${NOMBRES_DE_MES[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
+}
+
+function minutosLegibles(minutos: number): string {
+  const horas = minutos / 60
+  return Number.isInteger(horas) ? `${horas} h` : `${horas.toFixed(1)} h`
+}
+
+export function WorkloadView({
+  resources,
+  tasks,
+  assignments,
+  calendar,
+  from,
+  to,
+  onRangoChange,
+  today,
+}: WorkloadViewProps) {
+  const [modo, setModo] = useState<ModoDeCarga>('horas')
+  const [desplegado, setDesplegado] = useState<string | null>(null)
+  const [celdaElegida, setCeldaElegida] = useState<{ resourceId: string; date: string } | null>(null)
+
+  const matriz = useMemo(
+    () => workloadMatrix({ resources, tasks, assignments, calendar, from, to }),
+    [resources, tasks, assignments, calendar, from, to],
+  )
+
+  const desglose = useMemo(
+    () =>
+      celdaElegida === null
+        ? []
+        : desgloseDelDia({ tasks, assignments, calendar }, resources, celdaElegida.resourceId, celdaElegida.date),
+    [celdaElegida, tasks, assignments, calendar, resources],
+  )
+
+  const conHueco = useMemo(
+    () => (celdaElegida === null ? [] : recursosConHueco(matriz, celdaElegida.date)),
+    [celdaElegida, matriz],
+  )
+
+  // Las cabeceras de mes: cuántas columnas ocupa cada uno, para no repetir «ago 2026» 31 veces.
+  const meses = useMemo(() => {
+    const tramos: { mes: string; ancho: number }[] = []
+    for (const dia of matriz.days) {
+      const mes = mesDe(dia.date)
+      const ultimo = tramos[tramos.length - 1]
+      if (ultimo && ultimo.mes === mes) ultimo.ancho += 1
+      else tramos.push({ mes, ancho: 1 })
+    }
+    return tramos
+  }, [matriz.days])
+
+  const mover = (meses: number) => {
+    const correr = (iso: string) => {
+      const [a, m, d] = iso.split('-').map(Number)
+      const total = a * 12 + (m - 1) + meses
+      const anio = Math.floor(total / 12)
+      const mes = (total % 12) + 1
+      // El día se recorta al último del mes destino: 31 de enero + 1 mes no es 31 de febrero.
+      const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate()
+      return `${anio}-${String(mes).padStart(2, '0')}-${String(Math.min(d, ultimo)).padStart(2, '0')}`
+    }
+    onRangoChange(correr(from), correr(to))
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Periodo anterior"
+            onClick={() => mover(-1)}
+            className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+          >
+            ‹
+          </button>
+          <span className="min-w-[188px] text-center text-sm text-zinc-300">
+            {from} → {to}
+          </span>
+          <button
+            type="button"
+            aria-label="Periodo siguiente"
+            onClick={() => mover(1)}
+            className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1 rounded-lg border border-zinc-800 p-0.5">
+          {(
+            [
+              ['horas', 'Horas'],
+              ['tareas', 'Tareas'],
+              ['porcentaje', 'Porcentajes'],
+            ] as const
+          ).map(([clave, rotulo]) => (
+            <button
+              key={clave}
+              type="button"
+              aria-pressed={modo === clave}
+              onClick={() => setModo(clave)}
+              className={`rounded-md px-3 py-1 text-sm ${
+                modo === clave ? 'bg-[#6366f1] text-white' : 'text-zinc-400 hover:bg-zinc-800'
+              }`}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {matriz.rows.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
+          <p className="text-sm text-zinc-400">
+            Este proyecto todavía no tiene a nadie asignado a ninguna línea.
+          </p>
+        </div>
+      ) : (
+        // La matriz desborda por la derecha a propósito: noventa columnas no caben. Lo que no puede
+        // desbordar es la página, así que el rodillo vive en esta caja y no en el documento.
+        <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-[#18181b]">
+          <table className="border-collapse text-xs" style={{ minWidth: 'max-content' }}>
+            <thead>
+              <tr>
+                <th
+                  rowSpan={2}
+                  className="sticky left-0 z-20 w-56 min-w-56 border-b border-r border-zinc-800 bg-[#18181b] px-3 py-2 text-left font-normal text-zinc-500"
+                >
+                  Recurso
+                </th>
+                {meses.map((tramo) => (
+                  <th
+                    key={tramo.mes}
+                    colSpan={tramo.ancho}
+                    className="border-b border-l border-zinc-800 px-2 py-1 text-left font-normal text-zinc-400"
+                  >
+                    {tramo.mes}
+                  </th>
+                ))}
+              </tr>
+              <tr>
+                {matriz.days.map((dia) => (
+                  <th
+                    key={dia.date}
+                    title={dia.date}
+                    className={`w-8 min-w-8 border-b border-zinc-800 py-1 text-center font-normal ${
+                      dia.isWorking ? 'text-zinc-500' : 'bg-[#111113] text-zinc-700'
+                    } ${dia.date === today ? 'text-[#a5b4fc]' : ''}`}
+                  >
+                    {Number(dia.date.slice(8, 10))}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              <FilaDeLaMatriz
+                clave="total"
+                titulo="Todo el equipo"
+                subtitulo={`${matriz.rows.length} recursos`}
+                celdas={matriz.total.celdas}
+                dias={matriz.days}
+                modo={modo}
+                diasSobrecargados={matriz.total.diasSobrecargados}
+                destacada
+              />
+
+              {matriz.rows.map((fila) => (
+                <React.Fragment key={fila.resource!.id}>
+                  <FilaDeLaMatriz
+                    clave={fila.resource!.id}
+                    titulo={fila.resource!.name}
+                    subtitulo={`${minutosLegibles(fila.resource!.dailyMinutes)}/día${
+                      fila.resource!.kind === 'PERSONA' ? '' : ` · ${fila.resource!.kind.toLowerCase()}`
+                    }`}
+                    celdas={fila.celdas}
+                    dias={matriz.days}
+                    modo={modo}
+                    diasSobrecargados={fila.diasSobrecargados}
+                    desplegado={desplegado === fila.resource!.id}
+                    onDesplegar={() =>
+                      setDesplegado((actual) => (actual === fila.resource!.id ? null : fila.resource!.id))
+                    }
+                    onElegirCelda={(date) => setCeldaElegida({ resourceId: fila.resource!.id, date })}
+                  />
+                  {desplegado === fila.resource!.id ? (
+                    <tr>
+                      <td
+                        colSpan={matriz.days.length + 1}
+                        className="border-b border-zinc-800 bg-[#141416] px-3 py-2"
+                      >
+                        <p className="text-[11px] text-zinc-500">
+                          Toca una celda para ver qué líneas la componen y quién tiene hueco ese día.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : null}
+                </React.Fragment>
+              ))}
+
+              <FilaDeLaMatriz
+                clave="sin-asignar"
+                titulo="Sin asignar"
+                subtitulo="trabajo huérfano"
+                celdas={matriz.sinAsignar.celdas}
+                dias={matriz.days}
+                modo="tareas"
+                diasSobrecargados={0}
+                apagada
+              />
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {celdaElegida !== null ? (
+        <div className="rounded-xl border border-zinc-800 bg-[#18181b] p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-medium text-zinc-100">
+              {resources.find((r) => r.id === celdaElegida.resourceId)?.name} · {celdaElegida.date}
+            </p>
+            <button
+              type="button"
+              aria-label="Cerrar el desglose del día"
+              onClick={() => setCeldaElegida(null)}
+              className="rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+            >
+              ✕
+            </button>
+          </div>
+
+          {desglose.length === 0 ? (
+            <p className="text-sm text-zinc-500">Ese día no tiene ninguna línea activa.</p>
+          ) : (
+            <ul className="mb-4 flex max-h-56 flex-col gap-1 overflow-y-auto">
+              {desglose.map((linea) => (
+                <li key={linea.taskId} className="flex items-baseline gap-3 px-1 py-0.5">
+                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-200" title={linea.name}>
+                    {linea.name}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-xs text-zinc-500">
+                    {Math.round(linea.unitsBp / 100)} % · {minutosLegibles(linea.minutos)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* La mejora sobre la referencia (§8.4): enseñar la sobrecarga sin ofrecer nada para
+              resolverla deja el problema donde estaba. */}
+          <div className="border-t border-zinc-800 pt-3">
+            <p className="mb-1.5 text-xs text-zinc-500">Quién tiene hueco ese día</p>
+            {conHueco.length === 0 ? (
+              <p className="text-sm text-zinc-500">Nadie del equipo tiene capacidad libre ese día.</p>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {conHueco.slice(0, 8).map((candidato) => (
+                  <li
+                    key={candidato.resource.id}
+                    className="rounded-lg border border-zinc-800 px-2.5 py-1 text-xs text-zinc-300"
+                  >
+                    {candidato.resource.name}{' '}
+                    <span className="tabular-nums text-zinc-500">
+                      {minutosLegibles(candidato.libreMin)} libres
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function FilaDeLaMatriz({
+  clave,
+  titulo,
+  subtitulo,
+  celdas,
+  dias,
+  modo,
+  diasSobrecargados,
+  destacada = false,
+  apagada = false,
+  desplegado = false,
+  onDesplegar,
+  onElegirCelda,
+}: {
+  readonly clave: string
+  readonly titulo: string
+  readonly subtitulo: string
+  readonly celdas: readonly CeldaDeCarga[]
+  readonly dias: readonly { readonly date: string; readonly isWorking: boolean }[]
+  readonly modo: ModoDeCarga
+  readonly diasSobrecargados: number
+  readonly destacada?: boolean
+  readonly apagada?: boolean
+  readonly desplegado?: boolean
+  readonly onDesplegar?: () => void
+  readonly onElegirCelda?: (date: string) => void
+}) {
+  return (
+    <tr data-testid={`fila-${clave}`} className={destacada ? 'bg-[#1c1c20]' : ''}>
+      <th
+        scope="row"
+        className={`sticky left-0 z-10 w-56 min-w-56 border-b border-r border-zinc-800 px-3 py-1.5 text-left font-normal ${
+          destacada ? 'bg-[#1c1c20]' : 'bg-[#18181b]'
+        }`}
+      >
+        <div className="flex items-center gap-1.5">
+          {onDesplegar ? (
+            <button
+              type="button"
+              aria-label={desplegado ? `Plegar ${titulo}` : `Desplegar ${titulo}`}
+              aria-expanded={desplegado}
+              onClick={onDesplegar}
+              className="shrink-0 rounded px-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+            >
+              {desplegado ? '▾' : '▸'}
+            </button>
+          ) : (
+            <span className="w-[18px] shrink-0" />
+          )}
+          <span className="min-w-0 flex-1">
+            <span
+              className={`block truncate text-[13px] ${apagada ? 'text-zinc-500' : 'text-zinc-100'}`}
+              title={titulo}
+            >
+              {titulo}
+            </span>
+            <span className="block truncate text-[11px] text-zinc-600">{subtitulo}</span>
+          </span>
+          {/* El contador de días en rojo: el segundo canal, para que la sobrecarga no dependa del
+              color de las celdas ni de recorrer noventa columnas con la vista. */}
+          {diasSobrecargados > 0 ? (
+            <span
+              data-testid={`sobrecarga-${clave}`}
+              title={`${diasSobrecargados} días sobrecargados en el periodo`}
+              className="shrink-0 rounded px-1.5 py-0.5 text-[11px] tabular-nums"
+              style={{ color: COLORES_DE_ESTADO.critico, backgroundColor: `${COLORES_DE_ESTADO.critico}22` }}
+            >
+              ⚠ {diasSobrecargados}
+            </span>
+          ) : null}
+        </div>
+      </th>
+
+      {celdas.map((celda, i) => {
+        const dia = dias[i]
+        const texto = textoDeCelda(celda, modo)
+        const fondo = apagada ? undefined : fondoDeCelda(celda)
+        return (
+          <td
+            key={dia.date}
+            data-testid={`celda-${clave}-${dia.date}`}
+            data-sobrecargado={celda.sobrecargado ? 'sí' : 'no'}
+            title={
+              celda.capacidadMin === 0 && celda.cargaMin > 0
+                ? `${dia.date} · ${minutosLegibles(celda.cargaMin)} comprometidas en un día sin capacidad`
+                : `${dia.date} · ${minutosLegibles(celda.cargaMin)} de ${minutosLegibles(celda.capacidadMin)} · ${celda.tareas} línea(s)`
+            }
+            onClick={onElegirCelda ? () => onElegirCelda(dia.date) : undefined}
+            className={`w-8 min-w-8 border-b border-zinc-800/60 py-1.5 text-center tabular-nums ${
+              dia.isWorking ? '' : 'bg-[#111113]'
+            } ${onElegirCelda ? 'cursor-pointer hover:ring-1 hover:ring-inset hover:ring-zinc-600' : ''} ${
+              celda.sobrecargado ? 'font-semibold' : ''
+            } ${apagada ? 'text-zinc-500' : 'text-zinc-200'}`}
+            style={fondo ? { backgroundColor: fondo } : undefined}
+          >
+            {celda.sobrecargado ? (
+              <span style={{ color: COLORES_DE_ESTADO.critico }}>{texto}</span>
+            ) : (
+              texto
+            )}
+          </td>
+        )
+      })}
+    </tr>
+  )
+}

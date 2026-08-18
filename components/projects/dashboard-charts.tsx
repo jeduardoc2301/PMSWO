@@ -34,12 +34,30 @@
 
 import React from 'react'
 
-/** El embudo, en orden. Un tono, de claro a oscuro. */
+/**
+ * La rampa azul del producto, del paso más claro al más oscuro.
+ *
+ * Es **una sola** y la comparten todas las escalas ordinales de las vistas: el embudo de estados del
+ * panel y la ocupación de la matriz de carga. Que dos pantallas usen dos rampas parecidas pero
+ * distintas es lo que hace que un producto se vea cosido a retazos.
+ *
+ * Comprobada con el validador contra la superficie real de la tarjeta (`#18181b`): luminosidad
+ * monótona, hueco de al menos 0.06 entre pasos y el extremo oscuro despegado del fondo (2.19:1).
+ */
+export const RAMPA_AZUL = ['#b7d3f6', '#6da7ec', '#2a78d6', '#184f95'] as const
+
+/**
+ * El embudo de estados, del más lejos de terminar al más cerca.
+ *
+ * Va de claro a oscuro porque el trabajo terminado «pesa» más y se ancla mejor: en la matriz de
+ * carga la orientación es la contraria —más carga, más claro sobre fondo oscuro— y ahí está bien
+ * al revés, porque lo que se busca de un vistazo es lo lleno, no lo vacío.
+ */
 export const RAMPA_DEL_EMBUDO: Record<string, string> = {
-  BACKLOG: '#b7d3f6',
-  TODO: '#6da7ec',
-  IN_PROGRESS: '#2a78d6',
-  DONE: '#184f95',
+  BACKLOG: RAMPA_AZUL[0],
+  TODO: RAMPA_AZUL[1],
+  IN_PROGRESS: RAMPA_AZUL[2],
+  DONE: RAMPA_AZUL[3],
 }
 
 /** Colores de estado, reservados: nunca se reutilizan como «una serie más». */

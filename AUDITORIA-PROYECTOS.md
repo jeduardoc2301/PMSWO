@@ -81,13 +81,13 @@ tiempo real y deshacer.
 | 8 | CPM: ruta crítica y holgura (§3.3) | **EXISTE** | `lib/scheduling/cpm.ts`, `critical-path.ts` | Nada. Holgura total, crítica y súper crítica, con 22 pruebas | — | — |
 | 9 | Restricciones de tarea (§3.4) | **PARCIAL** | `PlanTask.constraint` en memoria | El motor entiende `NO_ANTES_DE` y `DEBE_EMPEZAR_EL`, pero no hay columna: no se capturan ni se guardan. Falta `deadline` | M | Bajo |
 | 10 | Roll-up a resúmenes (§3.6) | **EXISTE** | `lib/scheduling/progress.ts` | Nada. Ponderado por trabajo, con hitos en peso cero | — | — |
-| 11 | Carga y sobrecarga de recursos (§3.7) | **NO EXISTE** | — | Un solo responsable por tarea (`ownerId`), sin modelo `Assignment`, sin `units` ni `work` | L | Bajo |
+| 11 | Carga y sobrecarga de recursos (§3.7) | **CERRADA** | `Resource`, `Assignment`, `ResourceAbsence`, `services/resource.service.ts` | Convive con `ownerId`, no lo sustituye (ver bitácora) | L | Medio |
 | 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `WorkItem.parentId`, `templateOrder` | Jerarquía sí; `sortOrder` y `wbs` no existen | M | Medio |
 | 13 | Vista Gantt (§4) | **PARCIAL** | `components/plan/gantt-chart.tsx` | Dibuja barras, vínculos por tipo, ruta crítica y holgura. Falta: arrastrar barras para reprogramar, crear vínculos desde el diagrama, líneas base, zoom persistente | L | Medio |
 | 14 | Vista Tablero (§5) | **PARCIAL** | `components/projects/kanban-board.tsx` | Kanban con arrastre, urgencias, avance y atraso. Falta: agrupar por algo distinto de la fase, columnas configurables | M | Bajo |
 | 15 | Vista Lista (§6) | **EXISTE** | `work-items-outline.tsx` + `work-items-list.tsx` | Dos modos: esquema multinivel y lista por fase. Cumple lo esencial | S | Bajo |
 | 16 | Vista Calendario (§7) | **CERRADA** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx` | — (ver bitácora) | L | Bajo |
-| 17 | Vista Carga de trabajo (§8) | **NO EXISTE** | — | Todo, y depende de la brecha 11 | L | Bajo |
+| 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | — (ver bitácora) | L | Medio |
 | 18 | Vista Panel de control (§9) | **CERRADA (4 de 6 widgets)** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | Tiempo y presupuesto siguen sin modelo (ver bitácora) | L | Bajo |
 | 19 | Estados configurables (§5) | **NO EXISTE** | `WorkItem.status String` | Texto libre validado solo en TypeScript; no hay `TaskStatusOption` | M | Medio |
 | 20 | Líneas base (§3) | **NO EXISTE** | — | Todo | M | Bajo |
@@ -180,6 +180,8 @@ Cada brecha cerrada actualiza aquí su fila con la fecha y el commit, como pide 
 
 | Brecha | Cerrada el | Commit | Nota |
 |---|---|---|---|
+| 11 · Modelo de asignación | 2026-08-17 | (este commit) | `Resource` + `Assignment` + `ResourceAbsence`, aditivo: `WorkItem.ownerId` sigue significando lo mismo y ninguna pantalla existente cambia. Recursos sin cuenta de usuario para el lado del cliente. Siembra idempotente desde lo que ya había, repartiendo la estimación de cada línea entre sus días hábiles (`work/duración = units`, §3.7) |
+| 17 · Vista Carga de trabajo (§8) | 2026-08-17 | (este commit) | La sexta y última vista del spec. Motor de matriz recurso × día con 32 pruebas y vista con 21. Tres modos sobre una sola comparación en minutos, ausencias que ponen la capacidad a cero, fila de trabajo huérfano, fila del equipo y sugerencia de quién tiene hueco (§8.4). Medido sobre el plan real: 5 recursos, 651 celdas, 142 en sobrecarga, 0 px de desborde de página |
 | 18 · Panel de control (§9) | 2026-08-17 | (este commit) | Cuatro widgets con datos —información, tareas, avance temporal e hitos— y dos con estado vacío que dice qué falta del modelo, como autoriza el §9.4. Un solo cálculo en el servidor (28 pruebas contra un plan calculado a mano) y una sola consulta. Barras apiladas en vez de donas, y rampa ordinal de un tono validada con el validador del oficio contra la superficie real. Medido sobre el plan real: 1243 hojas, 127 atrasadas, 109 hitos, 38.4 % de retraso, 0 px de desborde |
 | 21 · Preferencias de vista (§10.4) | 2026-08-17 | (este commit) | Tabla `view_preferences` por usuario × proyecto × vista, con validación de forma en zod al entrar y al salir. Comprobado de extremo a extremo en navegador: apagar un widget, recargar la página entera y encontrarlo apagado |
 | 16 · Vista Calendario (§7) | 2026-08-17 | (este commit) | Motor de empaquetado en carriles con 25 pruebas, rejilla del mes con 19 pruebas. Barras que cruzan semanas con puntas ◀/▶, hitos ◆ exentos del recorte, banderas ⚑ de vencimiento y «N líneas más» desplegable. Medido en navegador sobre el plan real (1368 líneas): 0 px de desborde, 0 encimamientos, empaquetado en 19 ms |

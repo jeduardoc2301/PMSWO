@@ -23,6 +23,7 @@ import { ProjectBurndownChart } from '@/components/projects/project-burndown-cha
 // planeación: ruta súper crítica, holgura y vínculos de verdad.
 import { CalendarTab } from '@/components/projects/calendar-tab'
 import { DashboardTab } from '@/components/projects/dashboard-tab'
+import { WorkloadTab } from '@/components/projects/workload-tab'
 import { PlanTab } from '@/components/projects/plan-tab'
 import { ProjectStatus, WorkItemStatus, Permission, UserRole, type KanbanBoard as KanbanBoardType } from '@/types'
 import { hasPermission } from '@/lib/rbac'
@@ -63,6 +64,7 @@ const TABS = [
   { value: 'agreements',  label: 'Acuerdos'          },
   { value: 'gantt',       label: 'Timeline'          },
   { value: 'calendar',    label: 'Calendario'        },
+  { value: 'workload',    label: 'Carga de trabajo'  },
   { value: 'dashboard',   label: 'Panel de control'  },
 ]
 
@@ -700,6 +702,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
             {/* ── CALENDARIO ── */}
             {activeTab === 'calendar' && <CalendarTab projectId={projectId} />}
+
+            {activeTab === 'workload' && <WorkloadTab projectId={projectId} />}
 
             {activeTab === 'dashboard' && <DashboardTab projectId={projectId} />}
 

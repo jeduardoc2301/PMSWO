@@ -55,6 +55,7 @@ model User {
   workItemChanges       WorkItemChange[]
   templateUsage         TemplateUsage[]
   viewPreferences       ViewPreference[]
+  resource              Resource?
 
   @@index([organizationId])
   @@map("users")
@@ -201,6 +202,7 @@ model WorkItem {
   // Vínculos en los que esta tarea es la predecesora.
   outgoingLinks TaskDependency[]    @relation("DependencyPredecessor")
   // Compuertas que habilitan a esta tarea.
+  assignments   Assignment[]
   parent        WorkItem?           @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children      WorkItem[]          @relation("WorkItemHierarchy")
   gateUnlocks   GateUnlock[]
@@ -693,4 +695,85 @@ model ViewPreference {
   @@unique([userId, projectId, view])
   @@index([organizationId, projectId])
   @@map("view_preferences")
+}
+
+
+/// Quién —o qué— puede tener trabajo asignado (§8.2).
+///
+/// No es lo mismo que un usuario, y por eso es una tabla aparte. Un plan real reparte trabajo entre
+/// gente con cuenta, gente del cliente que nunca la va a tener, proveedores y a veces máquinas o
+/// ventanas de mantenimiento. Colgar la carga de `User` obligaría a inventar cuentas falsas para
+/// que el cliente aparezca en la vista, que es la forma más rápida de acabar con un directorio
+/// lleno de usuarios que nadie puede usar.
+///
+/// `userId` es opcional justo por eso: lleno para la gente del equipo, vacío para todo lo demás.
+model Resource {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  name           String
+  // PERSONA, EQUIPO, PROVEEDOR, MAQUINA o CLIENTE.
+  kind           String   @default("PERSONA") @db.VarChar(20)
+  userId         String?  @unique @map("user_id") @db.Char(36)
+  // Minutos que da en un día laborable suyo. Ocho horas por omisión.
+  dailyMinutes   Int      @default(480) @map("daily_minutes")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  assignments Assignment[]
+  absences    ResourceAbsence[]
+
+  @@index([organizationId])
+  @@map("resources")
+}
+
+/// Quién trabaja en qué, y cuánto de su jornada le dedica (§8.2).
+///
+/// Es la tabla que el §8.2 declara **requisito previo** de la vista de carga: mientras una línea
+/// tenga un solo responsable no hay forma de que la carga sea correcta, porque el reparto real de
+/// un plan no es uno a uno.
+///
+/// Convive con `WorkItem.ownerId` en vez de sustituirlo. Ese campo sigue significando lo que
+/// siempre significó —quién responde de la línea— y ninguna pantalla existente cambia. Lo que esta
+/// tabla añade es otra cosa: quiénes le dedican tiempo y cuánto.
+model Assignment {
+  id             String   @id @default(uuid()) @db.Char(36)
+  organizationId String   @map("organization_id") @db.Char(36)
+  workItemId     String   @map("work_item_id") @db.Char(36)
+  resourceId     String   @map("resource_id") @db.Char(36)
+  /// Fracción de la jornada del recurso, en puntos base: 10000 es jornada completa.
+  ///
+  /// Enteros y no decimales por la misma razón que el dinero: tres asignaciones de un tercio tienen
+  /// que sumar exactamente la jornada, y con flotantes «¿está sobrecargado?» acabaría dependiendo
+  /// del error del último bit.
+  unitsBp        Int      @default(10000) @map("units_bp")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  // Una persona no se asigna dos veces a la misma línea: se le sube el porcentaje.
+  @@unique([workItemId, resourceId])
+  @@index([resourceId])
+  @@index([organizationId, workItemId])
+  @@map("assignments")
+}
+
+/// Los días que un recurso no está: vacaciones, incapacidad, festivo propio (§8.1).
+///
+/// Su efecto es poner la capacidad de esos días a cero, con lo que cualquier trabajo que siga
+/// planificado ahí sale marcado como sobrecarga — que es justo lo que hay que ver.
+model ResourceAbsence {
+  id         String   @id @default(uuid()) @db.Char(36)
+  resourceId String   @map("resource_id") @db.Char(36)
+  startDate  DateTime @map("start_date") @db.Date
+  endDate    DateTime @map("end_date") @db.Date
+  reason     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId, startDate])
+  @@map("resource_absences")
 }
