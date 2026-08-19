@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
-import { WorkloadView } from '@/components/projects/workload-view'
+import { WorkloadView, type ModoDeCarga } from '@/components/projects/workload-view'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { usarPlanParaElDetalle } from '@/lib/plan/usar-plan'
 import { ResourceAbsencesDialog } from '@/components/projects/resource-absences-dialog'
@@ -85,6 +85,43 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
    * propio corte y no necesita la programación para nada más.
    */
   const [detalle, setDetalle] = useState<string | null>(null)
+
+  /**
+   * El modo de lectura guardado de esta persona (§10.4).
+   *
+   * `undefined` hasta que llega: la vista arranca con el suyo por omisión y adopta el guardado
+   * cuando aparece. Si se le pasara un valor concreto antes de tiempo, la primera respuesta pisaría
+   * la elección de quien ya hubiera cambiado de modo.
+   */
+  const [modoGuardado, setModoGuardado] = useState<ModoDeCarga | undefined>(undefined)
+
+  useEffect(() => {
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=CARGA`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (vigente) setModoGuardado((d?.settings?.modo as ModoDeCarga) ?? 'horas')
+      })
+      .catch(() => {
+        if (vigente) setModoGuardado('horas')
+      })
+    return () => {
+      vigente = false
+    }
+  }, [projectId])
+
+  const guardarModo = useCallback(
+    (modo: ModoDeCarga) => {
+      void fetch(`/api/v1/projects/${projectId}/preferences?view=CARGA`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: { modo } }),
+      }).catch(() => {
+        // Que no se guarde no puede tumbar la vista: se sigue con lo que hay en pantalla.
+      })
+    },
+    [projectId],
+  )
   const plan = usarPlanParaElDetalle(projectId, detalle !== null)
   const filaDelDetalle = detalle === null ? null : plan.filas.find((f) => f.id === detalle) ?? null
 
@@ -227,6 +264,8 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
         today={hoyCivil()}
         onAbrirCalendario={setCalendarioDe}
         onAbrirDetalle={setDetalle}
+        modoInicial={modoGuardado}
+        onModoChange={guardarModo}
       />
       {/* El detalle va de cajón: la matriz de carga ocupa el ancho entero y noventa columnas no
           admiten que se les quite sitio. */}

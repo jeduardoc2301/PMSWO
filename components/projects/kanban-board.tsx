@@ -552,6 +552,48 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   const [campoDeOrden, setCampoDeOrden] = useState<CampoDeOrden>('wbs')
   const [sentidoDeOrden, setSentidoDeOrden] = useState<SentidoDeOrden>('asc')
 
+  /**
+   * Cómo agrupa y ordena cada persona su tablero (§10.4).
+   *
+   * No se escribe hasta que llega lo guardado: si no, lo por omisión pisaría la elección de quien
+   * la hizo, y el efecto sería el contrario del que se busca.
+   *
+   * Los filtros de la barra no entran aquí a propósito — el §10.2 los define como un dato del
+   * proyecto compartido por las seis vistas, y una segunda copia daría dos filtros con la misma
+   * cara y distinta respuesta.
+   */
+  const [preferenciaCargada, setPreferenciaCargada] = useState(false)
+
+  useEffect(() => {
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=TABLERO`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!vigente) return
+        if (d?.settings?.agruparPor) setCriterioDeAgrupacion(d.settings.agruparPor as CriterioDeAgrupacion)
+        if (d?.settings?.ordenarPor) setCampoDeOrden(d.settings.ordenarPor as CampoDeOrden)
+        if (d?.settings?.sentido) setSentidoDeOrden(d.settings.sentido as SentidoDeOrden)
+        setPreferenciaCargada(true)
+      })
+      .catch(() => setPreferenciaCargada(true))
+    return () => {
+      vigente = false
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    if (!preferenciaCargada) return
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=TABLERO`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        settings: { agruparPor: criterioDeAgrupacion, ordenarPor: campoDeOrden, sentido: sentidoDeOrden },
+      }),
+    }).catch(() => {
+      // Que no se guarde la elección no puede tumbar el tablero: se sigue con lo que hay en pantalla.
+    })
+  }, [projectId, criterioDeAgrupacion, campoDeOrden, sentidoDeOrden, preferenciaCargada])
+
   // El EDT se numera sobre el plan entero, no sobre lo visible: si cambiara al filtrar, dejaría
   // de servir para nombrar una línea en una reunión.
   const edt = useMemo(() => edtPorTarjeta(localWorkItems), [localWorkItems])

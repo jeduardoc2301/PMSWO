@@ -23,7 +23,7 @@
  * carga» sino un problema.
  */
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { COLORES_DE_ESTADO, RAMPA_AZUL } from '@/components/projects/dashboard-charts'
 import { type WorkCalendar } from '@/lib/scheduling/calendar'
@@ -59,6 +59,15 @@ export interface WorkloadViewProps {
    * lo siguiente que necesita saber es de qué depende la línea que lo satura.
    */
   readonly onAbrirDetalle?: (id: string) => void
+  /**
+   * El modo de lectura guardado de esta persona (§10.4), o `undefined` mientras no llega.
+   *
+   * Es la elección que se rehace en cada visita: quien planifica capacidad mira horas, quien
+   * reparte gente mira porcentajes, y cada cual vuelve siempre al suyo. El rango de fechas no se
+   * guarda porque es dónde estás mirando, no cómo lees.
+   */
+  readonly modoInicial?: ModoDeCarga
+  readonly onModoChange?: (modo: ModoDeCarga) => void
 }
 
 /**
@@ -119,8 +128,25 @@ export function WorkloadView({
   today,
   onAbrirCalendario,
   onAbrirDetalle,
+  modoInicial,
+  onModoChange,
 }: WorkloadViewProps) {
-  const [modo, setModo] = useState<ModoDeCarga>('horas')
+  const [modo, setModo] = useState<ModoDeCarga>(modoInicial ?? 'horas')
+
+  // Cuando llega la preferencia guardada después del primer dibujo, se adopta. Solo entonces: si
+  // se copiara en cada cambio, cambiar de modo a mano se desharía solo.
+  const modoGuardado = useRef(modoInicial)
+  useEffect(() => {
+    if (modoInicial !== undefined && modoInicial !== modoGuardado.current) {
+      modoGuardado.current = modoInicial
+      setModo(modoInicial)
+    }
+  }, [modoInicial])
+
+  useEffect(() => {
+    if (modoInicial === undefined) return
+    onModoChange?.(modo)
+  }, [modo, modoInicial, onModoChange])
   const [desplegado, setDesplegado] = useState<string | null>(null)
   const [celdaElegida, setCeldaElegida] = useState<{ resourceId: string; date: string } | null>(null)
 
