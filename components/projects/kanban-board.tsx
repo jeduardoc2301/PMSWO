@@ -500,6 +500,13 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   const plan = usarPlanParaElDetalle(projectId, detalle !== null)
   const filaDelDetalle = detalle === null ? null : plan.filas.find((f) => f.id === detalle) ?? null
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  /**
+   * El movimiento que el servidor rechazó, con el motivo que dio (§10.7).
+   *
+   * Se guarda el título además del motivo porque la tarjeta ya volvió a su sitio: sin decir cuál
+   * era, quien lo lee tiene que adivinar entre mil trescientas cuál acaba de deshacerse.
+   */
+  const [errorDeMovimiento, setErrorDeMovimiento] = useState<{ titulo: string; motivo: string } | null>(null)
   const [syncingItems, setSyncingItems] = useState<Set<string>>(new Set())
   const [localWorkItems, setLocalWorkItems] = useState<WorkItemSummary[]>(workItems)
 
@@ -735,14 +742,26 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ [cambio.campo]: cambio.valor }),
         })
-        if (!res.ok) throw new Error('no se pudo guardar')
+        if (!res.ok) {
+          const cuerpo = await res.json().catch(() => ({}))
+          // El motivo del servidor, no uno inventado aquí: es quien sabe por qué dijo que no.
+          throw new Error(cuerpo.message ?? `El servidor respondió ${res.status}.`)
+        }
         onWorkItemCreated?.()
       }
       setSyncingItems(prev => { const s = new Set(prev); s.delete(movedId); return s })
-    } catch {
+    } catch (e) {
+      // Reversión **visible** (§10.7): la tarjeta vuelve a su sitio y se dice por qué. Antes esto
+      // era un `alert()` del navegador con un texto genérico — un cuadro modal que hay que cerrar
+      // para volver a ver el tablero, y que no decía cuál de las mil trescientas tarjetas se movió
+      // ni qué contestó el servidor. Las dos cosas eran justo lo que hacía falta saber.
       setLocalWorkItems(originalWorkItems)
       setSyncingItems(prev => { const s = new Set(prev); s.delete(movedId); return s })
-      alert(t('moveError'))
+      const linea = originalWorkItems.find((w) => w.id === movedId)
+      setErrorDeMovimiento({
+        titulo: linea?.title ?? 'La línea',
+        motivo: e instanceof Error ? e.message : 'No se pudo guardar el cambio.',
+      })
     }
   }
 
@@ -756,6 +775,29 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
 
   return (
     <div className="space-y-4">
+      {/* La reversión visible del §10.7, en su propia fila y no dentro de la barra: son dos líneas
+          —qué volvió y por qué— y la barra no tiene sitio para eso sin empujar los controles. */}
+      {errorDeMovimiento !== null ? (
+        <div
+          role="alert"
+          data-testid="error-de-movimiento"
+          className="flex items-start gap-3 rounded-lg border border-amber-900/50 bg-amber-950/20 px-3 py-2"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-amber-100">«{errorDeMovimiento.titulo}» volvió a su sitio.</p>
+            <p className="mt-0.5 text-xs text-amber-200/80">{errorDeMovimiento.motivo}</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Cerrar el aviso"
+            onClick={() => setErrorDeMovimiento(null)}
+            className="shrink-0 rounded px-1.5 text-amber-200/70 hover:bg-amber-900/30 hover:text-amber-100"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* «Agrupar por» del §5.1. Cambiarlo reconstruye las columnas sin recargar, que es el
@@ -869,6 +911,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
         />
 
         <div className="flex items-center gap-2 ml-auto">
+
           {successMessage && (
             <div className="rounded-lg px-3 py-1.5 text-sm text-emerald-400"
               style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}>

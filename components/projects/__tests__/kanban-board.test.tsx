@@ -297,11 +297,15 @@ describe('KanbanBoard', () => {
     fireEvent.dragOver(targetColumn, { dataTransfer: { dropEffect: 'move' } })
     fireEvent.drop(targetColumn, { dataTransfer: { getData: () => 'item-1' } })
 
-    // El fallo se le dice a quien está usando el tablero y la tarjeta vuelve a su sitio; ya no se
-    // escribe en la consola, que es donde nadie lo iba a ver.
+    // El fallo se le dice a quien está usando el tablero y la tarjeta vuelve a su sitio.
+    //
+    // Ya no con `alert()`: era un cuadro modal que hay que cerrar para volver a ver el tablero, y
+    // llevaba un texto genérico que no decía cuál de las mil trescientas tarjetas se deshizo ni qué
+    // contestó el servidor (§10.7). Ahora es un aviso en la propia página, con las dos cosas.
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('moveError')
+      expect(screen.getByTestId('error-de-movimiento')).toBeInTheDocument()
     })
+    expect(window.alert).not.toHaveBeenCalled()
 
     consoleErrorSpy.mockRestore()
     window.alert = originalAlert
@@ -467,5 +471,75 @@ describe('§5.3 · por omisión, solo hojas e hitos', () => {
   it('sin jerarquía no esconde nada', () => {
     montar([linea('a', 'Suelta A'), linea('b', 'Suelta B')] as never)
     expect(screen.getByTestId('conmutador-resumenes')).toHaveTextContent('Sin resúmenes (0)')
+  })
+})
+
+describe('§10.7 · optimista, con reversión visible', () => {
+  /**
+   * El spec pide tres cosas y aquí se prueban las tres juntas: que el cambio se vea antes de que el
+   * servidor conteste, que vuelva atrás si lo rechaza, y que la vuelta sea **visible** — con el
+   * motivo que dio el servidor y diciendo cuál de las mil trescientas tarjetas se deshizo.
+   *
+   * Antes esto era un `alert()` del navegador con un texto genérico: un cuadro modal que hay que
+   * cerrar para volver a ver el tablero, sin decir cuál se movió ni qué contestó el servidor.
+   */
+  const columnas = [
+    { id: 'c1', name: 'Por hacer', order: 1, color: '#71717a', workItemIds: [] },
+    { id: 'c2', name: 'En progreso', order: 2, color: '#6366f1', workItemIds: [] },
+  ] as never
+
+  const linea = {
+    id: 'w1',
+    title: 'Configurar la red',
+    status: 'TODO',
+    priority: 'MEDIUM',
+    kanbanColumnId: 'c1',
+    ownerId: 'u1',
+    ownerName: 'Ana',
+    startDate: '2026-06-01',
+    estimatedEndDate: '2026-06-05',
+    progressPct: 0,
+    activeBlockers: 0,
+  }
+
+  it('cuando el servidor rechaza, se dice QUÉ volvió y POR QUÉ', async () => {
+    const onWorkItemMove = vi.fn().mockRejectedValue(new Error('Cambiar las fechas mueve el cronograma'))
+    render(
+      <KanbanBoard
+        projectId="p1"
+        columns={columnas}
+        workItems={[linea] as never}
+        onWorkItemMove={onWorkItemMove}
+      />,
+    )
+
+    const tarjeta = screen.getByText('Configurar la red').closest('[draggable]') as HTMLElement
+    const destino = screen.getByTestId('columna-c2')
+    const dataTransfer = { setData: vi.fn(), getData: () => 'w1', effectAllowed: '', dropEffect: '' }
+    fireEvent.dragStart(tarjeta, { dataTransfer })
+    fireEvent.dragOver(destino, { dataTransfer })
+    fireEvent.drop(destino, { dataTransfer })
+
+    await waitFor(() => expect(screen.getByTestId('error-de-movimiento')).toBeInTheDocument())
+    const aviso = screen.getByTestId('error-de-movimiento')
+    expect(aviso).toHaveTextContent('Configurar la red')
+    expect(aviso).toHaveTextContent('volvió a su sitio')
+    expect(aviso).toHaveTextContent('Cambiar las fechas mueve el cronograma')
+  })
+
+  it('el aviso se puede cerrar: no es un cuadro modal', async () => {
+    const onWorkItemMove = vi.fn().mockRejectedValue(new Error('No se pudo'))
+    render(
+      <KanbanBoard projectId="p1" columns={columnas} workItems={[linea] as never} onWorkItemMove={onWorkItemMove} />,
+    )
+    const tarjeta = screen.getByText('Configurar la red').closest('[draggable]') as HTMLElement
+    const destino = screen.getByTestId('columna-c2')
+    const dataTransfer = { setData: vi.fn(), getData: () => 'w1', effectAllowed: '', dropEffect: '' }
+    fireEvent.dragStart(tarjeta, { dataTransfer })
+    fireEvent.drop(destino, { dataTransfer })
+
+    await waitFor(() => expect(screen.getByTestId('error-de-movimiento')).toBeInTheDocument())
+    fireEvent.click(screen.getByLabelText('Cerrar el aviso'))
+    expect(screen.queryByTestId('error-de-movimiento')).not.toBeInTheDocument()
   })
 })
