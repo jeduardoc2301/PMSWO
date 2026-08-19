@@ -67,6 +67,16 @@ const esquemaDeLaLista = z.object({
   formato: z.enum(['ESQUEMA', 'LISTA', 'AGRUPADA']),
   agruparPor: z.enum(['status', 'priority', 'owner', 'phase']),
   /**
+   * Por qué columna se ordena, o `null` para el orden del plan (`sortBy` del §10.4).
+   *
+   * `nullable` **y** `optional`, y no son lo mismo: `null` es «el orden del plan», que es una
+   * elección que hay que poder guardar; ausente es «esta preferencia se guardó antes del campo».
+   */
+  orden: z
+    .object({ campo: z.string(), sentido: z.enum(['asc', 'desc']) })
+    .nullable()
+    .optional(),
+  /**
    * Las columnas encendidas (§6.2).
    *
    * Los identificadores no se validan contra el catálogo, igual que en el Gantt: lo guardado puede

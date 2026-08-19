@@ -762,3 +762,39 @@ esta vez coinciden por la regla: la definición es una sola.
 **De paso, una lección sobre medir.** La primera comparación decía 127 contra 113 y culpaba a mi
 cambio. No era eso: el guion de comparación calculaba el lado del Panel **por su cuenta**, con la
 regla vieja. Medía el código de ayer contra el de hoy y llamaba defecto a la diferencia.
+
+## §10.4 — ordenar la Lista por columna
+
+Faltaba entero: no había ningún estado de orden en la Lista. Ahora las cabeceras se pulsan y la
+elección se guarda (`sortBy` del §10.4).
+
+**Tres estados y no dos.** Ascendente → descendente → **el orden del plan**. El tercero no es un
+capricho: el orden natural de un plan —el del archivo, el del EDT— es información, y sin forma de
+volver a él habría que recargar la página para recuperarlo. Pulsar otra columna empieza en
+ascendente y no hereda el sentido de la anterior, que daría una tabla al revés sin que nadie lo
+pidiera.
+
+**Sólo en los formatos planos.** En el esquema el orden ya significa algo: es la jerarquía, y el EDT
+se lee de ella. Ordenar por fecha allí no reordenaría una tabla, desarmaría un árbol — una hija
+antes que su madre, con la sangría diciendo una cosa y el orden otra.
+
+**Tres decisiones que se notan al usarlo:**
+
+- **Los vacíos van al final en los dos sentidos.** Una línea sin responsable no es «el responsable
+  más pequeño»: es una de la que no se sabe eso. Arriba llenaría la primera pantalla de huecos justo
+  cuando alguien busca quién lleva qué. Un cero, en cambio, sí es un dato y ordena como número.
+- **Los empates conservan el orden del plan.** Una tabla que baraja los empates parece que cambia
+  sola cada vez que se dibuja.
+- **El texto se compara con `localeCompare` en español.** Por código, «Ñ» cae después de «Z» y
+  «abrir» después de todas las mayúsculas, y a nadie le parece una lista ordenada.
+
+Comprobado en pantalla sobre las 1247 líneas: sin ordenar sale el orden del plan; ascendente empieza
+por «[Banco] Confirmar las ventanas»; descendente por «VPC y subredes de QA»; se guarda
+`{"campo":"title","sentido":"desc"}`; y tras recargar la página entera sigue descendente con las
+mismas filas. El tercer clic devuelve `null` y el orden del plan.
+
+**Y dos pruebas que fallaban por el reloj, no por el código.** `password.test.ts` (bcrypt es lento a
+propósito) y el archivo entero de `project-detail-client` (monta la pantalla completa trece veces)
+se iban de los cinco segundos por omisión dentro de la suite, y pasaban sueltas. Cada una se cayó ya
+dos veces en días distintos; perseguirlas de una en una es arreglar el síntoma. Margen al archivo,
+con el motivo escrito.

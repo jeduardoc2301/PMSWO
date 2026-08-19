@@ -33,7 +33,16 @@ vi.mock('next-intl', () => ({
 // Mock fetch
 global.fetch = vi.fn()
 
-describe('ProjectDetailClient', () => {
+/**
+ * Con más margen que los cinco segundos de por omisión, y para todo el archivo.
+ *
+ * Cada prueba de aquí monta la pantalla entera del proyecto y espera a que se asiente en dos pasos
+ * —la barra aparece con el proyecto antes de que lleguen las otras peticiones—. Sueltas van
+ * sobradas; dentro de la suite completa, con ciento sesenta archivos peleando por la CPU, se van
+ * del reloj. Ya se cayeron dos por eso, cada una un día distinto, y perseguirlas de una en una es
+ * arreglar el síntoma: lo que falla es el reloj, no la pantalla.
+ */
+describe('ProjectDetailClient', { timeout: 25000 }, () => {
   const mockRouter = {
     push: vi.fn(),
   }

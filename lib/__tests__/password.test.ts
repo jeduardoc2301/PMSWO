@@ -1,6 +1,15 @@
 import { hashPassword, comparePassword } from '../password'
 
-describe('Password Utilities', () => {
+/**
+ * Con más margen que los cinco segundos de por omisión.
+ *
+ * `bcrypt` está hecho para ser lento a propósito —es su trabajo— y con doce factores de sal cada
+ * hash cuesta cientos de milisegundos. Sueltas estas pruebas tardan poco; dentro de la suite
+ * completa, con ciento sesenta archivos peleando por la CPU, se van de los cinco segundos. Lo que
+ * falla ahí es el reloj, no el código, y bajarle el factor de sal para que corran sería probar una
+ * configuración que no es la que se despliega.
+ */
+describe('Password Utilities', { timeout: 30000 }, () => {
   describe('hashPassword', () => {
     it('should hash a password', async () => {
       const password = 'testPassword123!'

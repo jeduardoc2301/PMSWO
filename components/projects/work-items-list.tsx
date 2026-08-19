@@ -15,6 +15,12 @@ import {
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
 import { fechaCorta, fechaIso, hoyCivil } from '@/lib/formato-fecha'
+import {
+  type OrdenDeLaLista,
+  alPulsarCabecera,
+  ordenarLineas,
+  sePuedeOrdenarPor,
+} from '@/lib/projects/list-sort'
 import { CeldaEditable, validarNombre } from '@/components/plan/celda-editable'
 import {
   COLUMNAS_DE_LA_LISTA,
@@ -219,6 +225,10 @@ interface WorkItemsListProps {
    * subtotal por grupo, no jerarquía. La jerarquía es el otro formato, el esquema.
    */
   agruparPor?: CampoDeGrupo
+  /** Por qué columna está ordenada la tabla, o `null` para el orden del plan (§10.4). */
+  orden?: OrdenDeLaLista | null
+  /** Al pulsar una cabecera. Sin esto, las cabeceras no se pueden pulsar. */
+  onOrdenChange?: (orden: OrdenDeLaLista | null) => void
   onWorkItemCreated?: () => void
   editDatesData?: {
     workItemId: string
@@ -245,6 +255,8 @@ interface WorkItemsListProps {
 
 export function WorkItemsList({
   agruparPor,
+  orden,
+  onOrdenChange,
   plana = false,
   projectId,
   workItems,
@@ -427,10 +439,18 @@ export function WorkItemsList({
    * rama— pero se seguían dibujando, así que una cabecera de grupo decía «312 líneas» encima de 340
    * filas. La jerarquía es el otro formato; aquí sobran.
    */
-  const lineasPlanas = useMemo(
-    () => (plana ? filteredWorkItems.filter((i) => i.kind !== 'RESUMEN') : filteredWorkItems),
-    [filteredWorkItems, plana],
-  )
+  /**
+   * El orden por columna (§10.4, `sortBy`), sólo en los formatos planos.
+   *
+   * En el esquema el orden **ya significa algo**: es la jerarquía, y el EDT se lee de ella.
+   * Ordenar por fecha allí no reordenaría una tabla, desarmaría un árbol.
+   */
+  const ordenActivo = plana || agruparPor ? orden ?? null : null
+
+  const lineasPlanas = useMemo(() => {
+    const base = plana ? filteredWorkItems.filter((i) => i.kind !== 'RESUMEN') : filteredWorkItems
+    return ordenarLineas(base as unknown as Record<string, unknown>[], ordenActivo) as unknown as typeof base
+  }, [filteredWorkItems, plana, ordenActivo])
 
   /**
    * Lo que la fila de totales suma: **lo filtrado**, no el plan entero.
@@ -945,15 +965,39 @@ export function WorkItemsList({
                 <tr>
                   {/* Las columnas salen del catálogo y de la preferencia (§6.2). La de acciones no
                       está en el catálogo: no es un dato de la línea, es dónde se pulsa. */}
-                  {columnasDeLaTabla.map((c) => (
-                    <th
-                      key={c.id}
-                      data-cabecera={c.id}
-                      style={c.numerica ? { ...thStyle, textAlign: 'right' } : thStyle}
-                    >
-                      {c.etiqueta}
-                    </th>
-                  ))}
+                  {columnasDeLaTabla.map((c) => {
+                    const ordenable = ordenActivo !== null || plana || agruparPor !== undefined
+                    const puesta = ordenActivo?.campo === c.id ? ordenActivo.sentido : null
+                    return (
+                      <th
+                        key={c.id}
+                        data-cabecera={c.id}
+                        data-orden={puesta ?? 'no'}
+                        // `aria-sort` y no sólo la flechita: quien no ve la cabecera necesita saber
+                        // por dónde está ordenada la tabla tanto como quien la ve.
+                        aria-sort={puesta === 'asc' ? 'ascending' : puesta === 'desc' ? 'descending' : 'none'}
+                        style={c.numerica ? { ...thStyle, textAlign: 'right' } : thStyle}
+                      >
+                        {ordenable && onOrdenChange && sePuedeOrdenarPor(c.id) ? (
+                          <button
+                            type="button"
+                            onClick={() => onOrdenChange(alPulsarCabecera(ordenActivo, c.id))}
+                            title={`Ordenar por ${c.etiqueta}`}
+                            style={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          >
+                            {c.etiqueta}
+                            {/* La flecha sólo en la columna por la que se ordena: una en cada
+                                cabecera convierte el indicador en decoración. */}
+                            <span aria-hidden style={{ opacity: puesta ? 1 : 0.25 }}>
+                              {puesta === 'desc' ? '▾' : '▴'}
+                            </span>
+                          </button>
+                        ) : (
+                          c.etiqueta
+                        )}
+                      </th>
+                    )
+                  })}
                   <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
