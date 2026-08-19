@@ -29,6 +29,13 @@ export interface TarjetaAgrupable {
   readonly priority: string
   readonly ownerId?: string
   readonly ownerName?: string
+  /**
+   * La persona real que responde por la línea, que no es la cuenta que la importó.
+   *
+   * Quien entrega del lado del cliente casi nunca tiene usuario en la herramienta del proveedor, y
+   * el plan de referencia se importó entero con una sola cuenta.
+   */
+  readonly responsibleName?: string | null
 }
 
 /** Una columna del tablero, venga de la base o sintetizada. */
@@ -107,10 +114,18 @@ export function agruparTarjetas(
 
   // Por responsable: sólo quien tenga trabajo. Inventar una columna por cada persona de la
   // organización daría veinte vacías y tres con contenido.
+  //
+  // Manda `responsibleName` —la persona real del plan— y la cuenta del sistema queda de respaldo.
+  // Agrupando por la cuenta, el plan de referencia daba **una sola columna** con las 1243 tarjetas:
+  // las mil trescientas líneas se importaron con el mismo usuario, y los cinco responsables de
+  // verdad —Rafael, Salomón, José, Bryan y una designación pendiente— vivían en el otro campo.
+  // El criterio del §5.4 se cumplía —las columnas se reconstruían— y el resultado no servía para
+  // nada, que es la peor forma de pasar una prueba.
   const porResponsable = new Map<string, { nombre: string; ids: string[] }>()
   for (const tarjeta of tarjetas) {
-    const clave = tarjeta.ownerId ?? SIN_RESPONSABLE
-    const nombre = tarjeta.ownerName?.trim() || 'Sin responsable'
+    const persona = tarjeta.responsibleName?.trim()
+    const clave = persona || tarjeta.ownerId || SIN_RESPONSABLE
+    const nombre = persona || tarjeta.ownerName?.trim() || 'Sin responsable'
     const grupo = porResponsable.get(clave)
     if (grupo) grupo.ids.push(tarjeta.id)
     else porResponsable.set(clave, { nombre, ids: [tarjeta.id] })

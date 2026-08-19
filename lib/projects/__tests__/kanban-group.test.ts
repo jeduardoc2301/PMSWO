@@ -175,3 +175,59 @@ describe('§5.2 · qué se escribe al soltar', () => {
     }
   })
 })
+
+describe('§5.4 C1 · agrupar por responsable usa la persona, no la cuenta', () => {
+  /**
+   * El defecto que esto fija: el plan de referencia se importó entero con una sola cuenta de
+   * sistema, así que agrupar por responsable daba **una columna** con las 1243 tarjetas. Los cinco
+   * responsables de verdad vivían en `responsibleName`.
+   *
+   * El criterio del §5.4 —«reconstruye las columnas sin recargar»— se cumplía, y el resultado no
+   * servía para nada. Es la peor forma de pasar una prueba.
+   */
+  const linea = (id: string, responsibleName: string | null) => ({
+    id,
+    status: 'TODO',
+    priority: 'MEDIUM' as const,
+    ownerId: 'la-misma-cuenta',
+    ownerName: 'Admin User',
+    responsibleName,
+  })
+
+  it('una columna por persona, no una por cuenta', () => {
+    const cols = agruparTarjetas(
+      [linea('a', 'Rafael Oliva'), linea('b', 'Salomón Suárez'), linea('c', 'Rafael Oliva')] as never,
+      [],
+      'responsable',
+    )
+    expect(cols).toHaveLength(2)
+    expect(cols.map((c) => c.name).sort()).toEqual(['Rafael Oliva', 'Salomón Suárez'])
+  })
+
+  it('cada tarjeta cae en la columna de su persona', () => {
+    const cols = agruparTarjetas(
+      [linea('a', 'Rafael Oliva'), linea('b', 'Salomón Suárez')] as never,
+      [],
+      'responsable',
+    )
+    const rafael = cols.find((c) => c.name === 'Rafael Oliva')!
+    expect(rafael.workItemIds).toEqual(['a'])
+  })
+
+  it('sin persona cae a la cuenta del sistema, que es mejor que nada', () => {
+    const cols = agruparTarjetas([linea('a', null)] as never, [], 'responsable')
+    expect(cols[0]!.name).toBe('Admin User')
+  })
+
+  it('sin persona ni cuenta, «Sin responsable» y al final', () => {
+    const cols = agruparTarjetas(
+      [
+        { id: 'a', status: 'TODO', priority: 'MEDIUM' as const },
+        linea('b', 'Rafael Oliva'),
+      ] as never,
+      [],
+      'responsable',
+    )
+    expect(cols[cols.length - 1]!.name).toBe('Sin responsable')
+  })
+})
