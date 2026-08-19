@@ -17,6 +17,7 @@
 import React, { useEffect, useState } from 'react'
 
 import { type OperacionDeReprogramacion, PlanWorkspace } from '@/components/plan/plan-workspace'
+import { type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
@@ -35,6 +36,8 @@ interface PlanRemoto {
    * que tenía el Calendario: la vista se inventa el calendario que no le pasan.
    */
   readonly calendar: DefinicionDeCalendario
+  /** Cuándo no está disponible quien lleva cada línea (§12 caso 17). */
+  readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
 }
 
 type Estado =
@@ -125,6 +128,7 @@ export function PlanTab({ projectId, barraDeFiltro, idsVisibles, onReprogramado 
         onReprogramado?.(operacion)
       }}
       calendario={plan.calendar}
+      ausencias={plan.ausencias}
       barraDeFiltro={barraDeFiltro}
       idsVisibles={idsVisibles}
       tasks={plan.tasks}

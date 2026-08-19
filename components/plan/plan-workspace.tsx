@@ -46,6 +46,7 @@ import {
   calendarioDesde,
 } from '@/lib/scheduling/project-calendar'
 import { clientCommitments } from '@/lib/scheduling/client-commitments'
+import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { executiveBrief } from '@/lib/scheduling/executive-brief'
@@ -91,6 +92,8 @@ export interface PlanWorkspaceProps {
   readonly projectId?: string
   /** El calendario del proyecto. Sin él se cae en la semana genérica de lunes a viernes. */
   readonly calendario?: DefinicionDeCalendario
+  /** Cuándo no está disponible quien lleva cada línea (§12 caso 17). */
+  readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
   /**
    * Se avisa después de escribir una reprogramación.
    *
@@ -146,6 +149,7 @@ export function PlanWorkspace({
   idsVisibles,
   projectId,
   calendario,
+  ausencias,
   onReprogramado,
 }: PlanWorkspaceProps) {
   /**
@@ -181,7 +185,16 @@ export function PlanWorkspace({
     // genérica de lunes a viernes e ignoraba los festivos del proyecto. Es el mismo fallo que tenía
     // el Calendario, y se arregla igual: el calendario llega de fuera o no llega.
     const calendar = calendario ? calendarioDesde(calendario) : createWorkCalendar()
-    const schedule = schedulePlan({ tasks, dependencies, calendar, start })
+    const schedule = schedulePlan({
+      tasks,
+      dependencies,
+      calendar,
+      start,
+      // Las ausencias de quien lleva cada línea (§12 caso 17). Sin esto el Gantt cuenta como
+      // trabajados los días en que la persona asignada no está, y dibuja una barra más corta que la
+      // realidad — que es la peor manera de equivocarse, porque parece exacta.
+      noDisponible: ordinalesNoDisponibles(ausencias, calendar, toDayNumber),
+    })
     const analysis = analyzeCriticalPath(schedule)
 
     // Dos clasificaciones, y la diferencia importa. La primera incluye los resúmenes porque el

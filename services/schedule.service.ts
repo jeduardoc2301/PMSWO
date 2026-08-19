@@ -58,6 +58,16 @@ export interface ProjectPlan {
   /** Fecha comprometida del proyecto, contra la cual se mide el margen. */
   readonly deadline: string
   /**
+   * Cuándo no está disponible quien lleva cada línea (§3.1, §12 caso 17).
+   *
+   * Viaja como rangos de fecha civil por línea, no como ordinales, porque los ordinales dependen
+   * del calendario y quien recibe esto lo reconstruye por su cuenta: mandar ordinales sería mandar
+   * un número que solo significa algo con el calendario correcto al lado.
+   *
+   * Vacío cuando nadie tiene ausencias, que es el caso corriente.
+   */
+  readonly ausencias: Readonly<Record<string, readonly { readonly from: string; readonly to: string }[]>>
+  /**
    * Fecha de corte del avance, si el proyecto la congeló. Nula significa «hoy», igual que la celda
    * `FechaCorte = TODAY()` del archivo de referencia: el corte flota con el calendario hasta que
    * alguien lo fija para congelar una foto.
@@ -89,7 +99,7 @@ export async function loadProjectPlan(
   })
   if (!project) return null
 
-  const [items, links] = await Promise.all([
+  const [items, links, asignaciones] = await Promise.all([
     prisma.workItem.findMany({
       where: { projectId },
       orderBy: { templateOrder: 'asc' },
@@ -114,7 +124,24 @@ export async function loadProjectPlan(
       where: { projectId },
       select: { predecessorId: true, successorId: true, linkType: true, lagDays: true },
     }),
+    // Quién lleva cada línea y cuándo no está. Se piden juntas y en una sola consulta porque lo que
+    // hace falta es el cruce: las ausencias de alguien no asignado a nada no cambian ningún plan.
+    prisma.assignment.findMany({
+      where: { workItem: { projectId } },
+      select: {
+        workItemId: true,
+        resource: { select: { absences: { select: { startDate: true, endDate: true } } } },
+      },
+    }),
   ])
+
+  const ausencias: Record<string, { from: string; to: string }[]> = {}
+  for (const a of asignaciones) {
+    for (const ausencia of a.resource.absences) {
+      const lista = ausencias[a.workItemId] ?? (ausencias[a.workItemId] = [])
+      lista.push({ from: isoDe(ausencia.startDate), to: isoDe(ausencia.endDate) })
+    }
+  }
 
   // El calendario del proyecto, no uno pelado. Antes esto era `createWorkCalendar()` sin
   // argumentos —lunes a viernes y cero festivos—, así que un plan colombiano se programaba como
@@ -166,6 +193,7 @@ export async function loadProjectPlan(
     start: isoDe(project.startDate),
     calendar: definicionDelCalendario,
     deadline: isoDe(project.estimatedEndDate),
+    ausencias,
     progressCutoff: project.progressCutoffDate ? isoDe(project.progressCutoffDate) : null,
   }
 }

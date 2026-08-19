@@ -28,6 +28,8 @@ import {
   type DefinicionDeCalendario,
   calendarioDesde,
 } from '@/lib/scheduling/project-calendar'
+import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
+import { toDayNumber } from '@/lib/scheduling/date'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { type GanttRow, collapseToLevel, ganttLayout } from '@/lib/scheduling/gantt'
@@ -46,6 +48,8 @@ export interface WorkItemsOutlineProps {
   readonly start: string
   /** El calendario del proyecto. Sin él, el atraso se mide contra un almanaque que no es el suyo. */
   readonly calendarDef?: DefinicionDeCalendario
+  /** Cuándo no está disponible quien lleva cada línea (§12 caso 17). */
+  readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
   /** La fecha de corte YA RESUELTA (la congelada del proyecto, o hoy). */
   readonly cutoff: string
   /** Verdadero si el proyecto tiene el corte congelado. */
@@ -111,6 +115,7 @@ export function WorkItemsOutline({
   dependencies,
   start,
   calendarDef,
+  ausencias,
   cutoff,
   cutoffFrozen,
   onCutoffChange,
@@ -167,7 +172,16 @@ export function WorkItemsOutline({
   const base = useMemo(() => {
     if (tasks.length === 0) return null
     const calendar = calendarDef ? calendarioDesde(calendarDef) : createWorkCalendar()
-    const schedule = schedulePlan({ tasks, dependencies, calendar, start })
+    const schedule = schedulePlan({
+      tasks,
+      dependencies,
+      calendar,
+      start,
+      // Las ausencias de quien lleva cada línea (§12 caso 17). Sin esto el Gantt cuenta como
+      // trabajados los días en que la persona asignada no está, y dibuja una barra más corta que la
+      // realidad — que es la peor manera de equivocarse, porque parece exacta.
+      noDisponible: ordinalesNoDisponibles(ausencias, calendar, toDayNumber),
+    })
     const analysis = analyzeCriticalPath(schedule)
     return {
       calendar,

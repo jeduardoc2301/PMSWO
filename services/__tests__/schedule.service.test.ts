@@ -10,6 +10,8 @@ vi.mock('@/lib/prisma', () => ({
     projectCalendar: { findFirst: vi.fn().mockResolvedValue(null) },
     workItem: { findMany: vi.fn() },
     taskDependency: { findMany: vi.fn() },
+    // Las asignaciones traen las ausencias de quien lleva cada línea (§12 caso 17).
+    assignment: { findMany: vi.fn() },
   },
 }))
 
@@ -52,6 +54,7 @@ describe('El plan de un proyecto, leído de la base', () => {
     vi.clearAllMocks()
     vi.mocked(prisma.project.findFirst).mockResolvedValue(PROYECTO as never)
     vi.mocked(prisma.taskDependency.findMany).mockResolvedValue([] as never)
+    vi.mocked(prisma.assignment.findMany).mockResolvedValue([] as never)
   })
 
   it('un proyecto ajeno o inexistente devuelve nulo, no un plan vacío', async () => {
@@ -155,5 +158,52 @@ describe('El plan de un proyecto, leído de la base', () => {
     const plan = await loadProjectPlan('proy-1', 'org-1')
     expect(plan!.dependencies).toEqual([])
     expect(plan!.tasks).toHaveLength(1)
+  })
+})
+
+describe('§12 caso 17 · el plan lleva las ausencias de quien trabaja', () => {
+  it('sin asignaciones, el mapa de ausencias va vacío', async () => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([fila()] as never)
+    vi.mocked(prisma.assignment.findMany).mockResolvedValue([] as never)
+
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.ausencias).toEqual({})
+  })
+
+  it('las ausencias viajan por línea y en fechas civiles', async () => {
+    // En fechas y no en ordinales a propósito: un ordinal solo significa algo junto al calendario
+    // que lo produjo, y quien recibe esto reconstruye el suyo.
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([fila()] as never)
+    vi.mocked(prisma.assignment.findMany).mockResolvedValue([
+      {
+        workItemId: 'w1',
+        resource: { absences: [{ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-12T00:00:00Z') }] },
+      },
+    ] as never)
+
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.ausencias['w1']).toEqual([{ from: '2026-03-10', to: '2026-03-12' }])
+  })
+
+  it('dos personas en la misma línea suman sus ausencias', async () => {
+    // La línea no avanza si falta cualquiera de las dos, así que las dos cuentan.
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([fila()] as never)
+    vi.mocked(prisma.assignment.findMany).mockResolvedValue([
+      { workItemId: 'w1', resource: { absences: [{ startDate: new Date('2026-03-10T00:00:00Z'), endDate: new Date('2026-03-10T00:00:00Z') }] } },
+      { workItemId: 'w1', resource: { absences: [{ startDate: new Date('2026-03-20T00:00:00Z'), endDate: new Date('2026-03-20T00:00:00Z') }] } },
+    ] as never)
+
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.ausencias['w1']).toHaveLength(2)
+  })
+
+  it('quien no tiene ausencias no aparece en el mapa', async () => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([fila()] as never)
+    vi.mocked(prisma.assignment.findMany).mockResolvedValue([
+      { workItemId: 'w1', resource: { absences: [] } },
+    ] as never)
+
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.ausencias['w1']).toBeUndefined()
   })
 })

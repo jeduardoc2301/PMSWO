@@ -15,6 +15,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
+import { toDayNumber } from '@/lib/scheduling/date'
 import { calendarioDesde, type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
@@ -27,6 +29,7 @@ interface PlanRemoto {
   readonly dependencies: Dependency[]
   readonly start: string
   readonly calendar?: DefinicionDeCalendario
+  readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
 }
 
 export interface PlanParaElDetalle {
@@ -107,6 +110,10 @@ export function usarPlanParaElDetalle(projectId: string, activo: boolean): PlanP
       dependencies: plan.dependencies,
       calendar,
       start: plan.start,
+      // Las ausencias de quien lleva cada línea (§12 caso 17). Sin esto el plan cuenta como
+      // trabajados los días en que la persona asignada no está, y promete fechas que ella ya sabe
+      // que no puede cumplir.
+      noDisponible: ordinalesNoDisponibles(plan.ausencias, calendar, toDayNumber),
     })
     const analysis = analyzeCriticalPath(schedule)
     const { rows } = ganttLayout({

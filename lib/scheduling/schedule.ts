@@ -20,6 +20,12 @@
  */
 
 import { type IsoDate, toDayNumber, toIsoDate } from './date'
+import {
+  type OrdinalesNoDisponibles,
+  SIEMPRE_DISPONIBLE,
+  finConDisponibilidad,
+  primerDiaDisponible,
+} from './availability'
 import type { WorkCalendar } from './calendar'
 import { type DependencyGraph, SchedulingError, buildDependencyGraph } from './dependencies'
 import type { Dependency, PlanTask, ScheduledTask } from './types'
@@ -40,6 +46,17 @@ export interface SchedulePlanInput {
   readonly calendar: WorkCalendar
   /** Fecha en que arranca el plan. Ninguna tarea empieza antes. */
   readonly start: IsoDate
+  /**
+   * Ordinales de día hábil en que quien lleva cada tarea no está disponible (§3.1, §12 caso 17).
+   *
+   * Opcional: sin esto el motor programa exactamente como antes, contra el calendario del proyecto
+   * y nada más. Con esto, una tarea de cinco días cuya persona tiene tres de vacaciones dentro
+   * ocupa ocho días de calendario en lugar de cinco — que es lo que va a pasar de verdad.
+   *
+   * Entra ya resuelto a ordinales, y no como ausencias con nombre, porque el motor no debe saber
+   * qué es una vacación ni a quién pertenece: solo qué días no cuentan para qué tarea.
+   */
+  readonly noDisponible?: ReadonlyMap<string, OrdinalesNoDisponibles>
 }
 
 export interface Schedule {
@@ -80,6 +97,7 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
   for (const id of graph.order) {
     const task = graph.taskById.get(id)!
     const tramo = span(task.duration)
+    const fuera = input.noDisponible?.get(id) ?? SIEMPRE_DISPONIBLE
 
     let start = planStart
     let drivingDependency: Dependency | null = null
@@ -109,8 +127,19 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
       }
     }
 
+    // Si quien lleva la tarea no está el día en que le tocaba empezar, empieza cuando vuelve: una
+    // tarea que arranca sin nadie es una fecha que el plan promete y la persona ya sabe que no.
+    //
+    // Un hito no: las ausencias dicen cuándo se puede TRABAJAR, y un hito no es trabajo sino una
+    // marca. Su fecha sale de sus predecesoras y de su restricción, que es donde vive el compromiso.
+    // Deslizarlo porque alguien está de vacaciones movería una fecha pactada en silencio, y el
+    // motor no tiene forma de saber si esa persona hace falta para que el hito ocurra.
+    if (task.duration > 0) start = primerDiaDisponible(start, fuera)
+
     earlyStart.set(id, start)
-    earlyFinish.set(id, start + tramo)
+    // El fin cuenta días TRABAJADOS, no transcurridos. Sin ausencias esto es `start + tramo` y no
+    // cuesta nada; con ellas, la tarea se estira por los días en que su gente no está.
+    earlyFinish.set(id, finConDisponibilidad(start, task.duration, fuera))
     driver.set(id, drivingDependency)
   }
 

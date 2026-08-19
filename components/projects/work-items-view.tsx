@@ -36,6 +36,8 @@ import { ganttLayout } from '@/lib/scheduling/gantt'
 import { schedulePlan } from '@/lib/scheduling/schedule'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
+import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
+import { toDayNumber } from '@/lib/scheduling/date'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import {
   BaselinePicker,
@@ -54,6 +56,13 @@ interface PlanRemoto {
   readonly deadline: string
   /** El calendario del proyecto, tal como lo resolvió el servidor. */
   readonly calendar: DefinicionDeCalendario
+  /**
+   * Cuándo no está disponible quien lleva cada línea (§12 caso 17).
+   *
+   * Opcional porque una respuesta anterior a esto no lo trae, y quedarse sin plan por un campo que
+   * falta sería peor que programar como se programaba antes.
+   */
+  readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
   /** Nula significa que el corte flota con el calendario: «hoy» cada vez que alguien mira. */
   readonly progressCutoff: string | null
 }
@@ -189,6 +198,10 @@ export function WorkItemsView({
       dependencies: plan.dependencies,
       calendar,
       start: plan.start,
+      // Las ausencias de quien lleva cada línea (§12 caso 17). Sin esto el plan cuenta como
+      // trabajados los días en que la persona asignada no está, y promete fechas que ella ya sabe
+      // que no puede cumplir.
+      noDisponible: ordinalesNoDisponibles(plan.ausencias, calendar, toDayNumber),
     })
     const analysis = analyzeCriticalPath(schedule)
     return ganttLayout({
@@ -610,6 +623,7 @@ export function WorkItemsView({
             dependencies={estado.plan.dependencies}
             start={estado.plan.start}
             calendarDef={estado.plan.calendar}
+            ausencias={estado.plan.ausencias}
             cutoff={estado.plan.progressCutoff ?? hoyCivil()}
             cutoffFrozen={estado.plan.progressCutoff !== null}
             onCutoffChange={cambiarCorte}

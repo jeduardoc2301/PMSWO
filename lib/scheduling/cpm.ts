@@ -142,7 +142,12 @@ export function analyzeCriticalPath(
   for (let i = graph.order.length - 1; i >= 0; i -= 1) {
     const id = graph.order[i]
     const task = graph.taskById.get(id)!
-    const tramo = span(task.duration)
+    // El tramo sale de lo que el pase adelante PROGRAMÓ, no de la duración declarada. Sin ausencias
+    // las dos cifras coinciden; con ellas no, y usar la duración haría que el pase atrás calculara
+    // sobre una tarea más corta que la real — la holgura saldría de más y nadie lo notaría hasta
+    // que el plan se atrasara, que es exactamente el fallo contra el que este archivo advierte en
+    // su cabecera.
+    const tramo = earlyFinish.get(id)! - earlyStart.get(id)!
     const outgoing = graph.outgoing.get(id)!
 
     // El techo de todos es el cierre del plan. Sin él, una tarea cuyo único vínculo saliente es

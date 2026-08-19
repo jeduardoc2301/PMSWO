@@ -18,12 +18,14 @@ import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { CalendarView } from '@/components/projects/calendar-view'
 import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { ganttLayout } from '@/lib/scheduling/gantt'
+import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import {
   type DefinicionDeCalendario,
   calendarioDesde,
 } from '@/lib/scheduling/project-calendar'
 import { type CalendarTask } from '@/lib/scheduling/calendar-layout'
+import { toDayNumber } from '@/lib/scheduling/date'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { schedulePlan } from '@/lib/scheduling/schedule'
@@ -36,6 +38,13 @@ interface PlanRemoto {
   readonly deadline: string
   /** El calendario del proyecto, tal como lo resolvió el servidor. */
   readonly calendar: DefinicionDeCalendario
+  /**
+   * Cuándo no está disponible quien lleva cada línea (§12 caso 17).
+   *
+   * Opcional porque una respuesta anterior a esto no lo trae, y quedarse sin plan por un campo que
+   * falta sería peor que programar como se programaba antes.
+   */
+  readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
 }
 
 /**
@@ -147,6 +156,10 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
       dependencies: plan.dependencies,
       calendar,
       start: plan.start,
+      // Las ausencias de quien lleva cada línea (§12 caso 17). Sin esto el plan cuenta como
+      // trabajados los días en que la persona asignada no está, y promete fechas que ella ya sabe
+      // que no puede cumplir.
+      noDisponible: ordinalesNoDisponibles(plan.ausencias, calendar, toDayNumber),
     })
     // El análisis ya no se tira: de él salen la holgura y la criticidad que enseña el panel.
     const analysis = analyzeCriticalPath(schedule)
