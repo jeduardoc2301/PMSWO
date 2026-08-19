@@ -23,6 +23,9 @@ import {
 } from '@/lib/projects/kanban-sort'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
+import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
+import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
+import { usarPlanParaElDetalle } from '@/lib/plan/usar-plan'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
 import { estadoDeLaColumna } from '@/lib/projects/status-progress'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
@@ -102,9 +105,11 @@ interface WorkItemCardProps {
   cutoff?: string
   onEdit: (item: WorkItemSummary) => void
   onDelete: (item: WorkItemSummary) => void
+  /** Abrir el panel de detalle compartido (§10.3). */
+  onAbrirDetalle?: (id: string) => void
 }
 
-function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd, cutoff, onEdit, onDelete, edt }: WorkItemCardProps) {
+function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd, cutoff, onEdit, onDelete, onAbrirDetalle, edt }: WorkItemCardProps) {
   const isSyncing = syncingItems.has(workItem.id)
   const pb = PRIORITY_BADGE[workItem.priority] ?? PRIORITY_BADGE[WorkItemPriority.MEDIUM]
   const { urgency, daysFromDue, daysStale } = computeUrgency(workItem)
@@ -221,8 +226,22 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
         )}
       </div>
 
-      {/* Row 2: title */}
-      <h4 className="text-sm font-medium text-zinc-100 line-clamp-2 mb-2.5">{workItem.title}</h4>
+      {/* Row 2: title. El título abre el panel de detalle del §10.3 —el mismo componente que montan
+          el Gantt, el Calendario y la Lista—. `stopPropagation`: el clic no es un arrastre. */}
+      <h4 className="text-sm font-medium text-zinc-100 line-clamp-2 mb-2.5">
+        {onAbrirDetalle ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onAbrirDetalle(workItem.id) }}
+            className="text-left hover:underline"
+            title={workItem.title}
+          >
+            {workItem.title}
+          </button>
+        ) : (
+          workItem.title
+        )}
+      </h4>
 
       {/* Row 3: date + owner */}
       <div className="flex items-center justify-between">
@@ -291,6 +310,8 @@ interface KanbanColumnProps {
   cutoff?: string
   onEdit: (item: WorkItemSummary) => void
   onDelete: (item: WorkItemSummary) => void
+  /** Abrir el panel de detalle compartido (§10.3). */
+  onAbrirDetalle?: (id: string) => void
   /** El EDT de cada línea, numerado sobre el plan entero (§5.1). */
   edt?: ReadonlyMap<string, string>
 }
@@ -299,7 +320,7 @@ function KanbanColumn({
   column, workItemsInColumn, isDragTarget, noItemsLabel,
   draggedItemId, syncingItems,
   onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd,
-  cutoff, onEdit, onDelete, edt,
+  cutoff, onEdit, onDelete, onAbrirDetalle, edt,
 }: KanbanColumnProps) {
   return (
     <div
@@ -333,6 +354,7 @@ function KanbanColumn({
                 cutoff={cutoff}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onAbrirDetalle={onAbrirDetalle}
               />
             ))}
         </div>
@@ -454,6 +476,17 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   const [editando, setEditando] = useState<WorkItemSummary | null>(null)
   const [borrando, setBorrando] = useState<WorkItemSummary | null>(null)
   const [showInfo, setShowInfo] = useState(false)
+
+  /**
+   * La línea abierta en el panel de detalle (§10.3).
+   *
+   * El plan se pide la primera vez que alguien abre una tarjeta y no antes: el Tablero no lo
+   * necesita para dibujarse, y programar mil trescientas líneas para quien solo viene a arrastrar
+   * una tarjeta es pagar por algo que no va a mirar.
+   */
+  const [detalle, setDetalle] = useState<string | null>(null)
+  const plan = usarPlanParaElDetalle(projectId, detalle !== null)
+  const filaDelDetalle = detalle === null ? null : plan.filas.find((f) => f.id === detalle) ?? null
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [syncingItems, setSyncingItems] = useState<Set<string>>(new Set())
   const [localWorkItems, setLocalWorkItems] = useState<WorkItemSummary[]>(workItems)
@@ -863,6 +896,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
                             cutoff={cutoff}
                             onEdit={setEditando}
                             onDelete={setBorrando}
+                            onAbrirDetalle={setDetalle}
                           />
                         ))}
                       </div>
@@ -900,10 +934,51 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
               cutoff={cutoff}
               onEdit={setEditando}
               onDelete={setBorrando}
+              onAbrirDetalle={setDetalle}
             />
           ))}
         </div>
       )}
+
+      {/* El detalle va de cajón y no de columna: el tablero se desplaza a lo ancho y meterle una
+          columna fija le comería el sitio a las que llevan las tarjetas. */}
+      {detalle !== null ? (
+        <aside
+          data-testid="detalle-tablero"
+          aria-label="Detalle de la línea"
+          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-zinc-800 bg-[#111113] p-3 shadow-2xl"
+        >
+          {filaDelDetalle ? (
+            <PlanDetailPanel
+              row={filaDelDetalle}
+              {...vinculosDe(plan.dependencias, plan.nombres, detalle)}
+              ruta={rutaDe(plan.tareas, detalle)}
+              onNavigate={setDetalle}
+              onClose={() => setDetalle(null)}
+            />
+          ) : (
+            // Mientras llega el plan, y si no llega. Un cajón vacío haría creer que la línea no
+            // tiene nada que contar.
+            <div className="rounded-lg border border-zinc-800 bg-[#18181b] p-5">
+              <button
+                type="button"
+                aria-label="Cerrar el detalle"
+                onClick={() => setDetalle(null)}
+                className="float-right rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                ✕
+              </button>
+              <p className="text-sm text-zinc-400" data-testid="detalle-tablero-aviso">
+                {plan.error !== null
+                  ? `No se pudo cargar el plan: ${plan.error}`
+                  : plan.cargando
+                    ? 'Calculando el plan del proyecto...'
+                    : 'Esta línea no está en el plan programado.'}
+              </p>
+            </div>
+          )}
+        </aside>
+      ) : null}
 
       <CreateWorkItemDialog
         open={createDialogOpen}
