@@ -14,7 +14,8 @@ import {
 } from '@/lib/projects/list-totals'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
-import { fechaCorta } from '@/lib/formato-fecha'
+import { fechaCorta, fechaIso, hoyCivil } from '@/lib/formato-fecha'
+import { csvDeLaLista, nombreDelArchivo } from '@/lib/projects/list-csv'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
 import {
   DndContext,
@@ -439,6 +440,55 @@ export function WorkItemsList({
   const total: Totales = useMemo(() => totalizar(sumables), [sumables])
 
   /**
+   * Exportar lo que se está viendo (§6.2).
+   *
+   * Las filas son `filteredWorkItems`, o sea las que el filtro dejó pasar, y las columnas son las
+   * que esta tabla dibuja. Exportar el plan entero cuando en pantalla hay ochocientas veintidós
+   * sería un informe de otra cosa: quien lo abre no podría contrastarlo con lo que estaba mirando,
+   * y ese contraste es para lo que se exporta.
+   */
+  const exportar = (): void => {
+    const columnas = [
+      { id: 'title', etiqueta: 'Línea del plan' },
+      { id: 'status', etiqueta: 'Estado' },
+      { id: 'priority', etiqueta: 'Prioridad' },
+      { id: 'ownerName', etiqueta: 'Responsable' },
+      { id: 'phase', etiqueta: 'Fase' },
+      { id: 'startDate', etiqueta: 'Inicio' },
+      { id: 'estimatedEndDate', etiqueta: 'Fin' },
+      { id: 'estimatedHours', etiqueta: 'Horas estimadas' },
+      { id: 'progressPct', etiqueta: 'Avance' },
+    ]
+
+    const texto = csvDeLaLista({
+      columnas,
+      filas: filteredWorkItems as unknown as Record<string, unknown>[],
+      contexto: `${filteredWorkItems.length} de ${workItems.length} líneas · ${hoyCivil()}`,
+      valorDe: (fila, id) => {
+        const v = fila[id]
+        if (v === undefined || v === null || v === '') return null
+        // Las fechas van en formato civil, no en el texto de la tabla: una hoja de cálculo ordena
+        // «2026-06-12» y no sabe qué hacer con «12/06/2026».
+        if (id === 'startDate' || id === 'estimatedEndDate') return fechaIso(String(v))
+        // El avance en enteros: es como se captura y como se suma.
+        if (id === 'progressPct') return `${Math.round(Number(v) * 100)}`
+        if (id === 'status') return getStatusLabel(v as WorkItemStatus)
+        if (id === 'priority') return getPriorityLabel(v as WorkItemPriority)
+        return String(v)
+      },
+    })
+
+    const url = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }))
+    const enlace = document.createElement('a')
+    enlace.href = url
+    enlace.download = nombreDelArchivo('plan', hoyCivil())
+    enlace.click()
+    // Sin esto, cada exportación deja el archivo entero retenido en memoria hasta recargar la
+    // página. Con mil trescientas líneas son unos cientos de kilobytes cada vez.
+    URL.revokeObjectURL(url)
+  }
+
+  /**
    * Sólo se dibujan las filas que caen dentro de la caja.
    *
    * Con las 5000 líneas del proyecto de carga, dibujarlas todas daba **13,9 segundos** hasta el
@@ -556,6 +606,21 @@ export function WorkItemsList({
               style={{ ...inputStyle, paddingLeft: 36, paddingRight: 12, paddingTop: 8, paddingBottom: 8, width: '100%' }}
             />
           </div>
+
+          {/* Exportar lo que se está viendo (§6.2). Va junto al filtro a propósito: lo que se
+              exporta es el resultado del filtro, y ponerlo lejos haría creer que exporta todo. */}
+          <button
+            type="button"
+            onClick={exportar}
+            data-testid="exportar-lista"
+            disabled={filteredWorkItems.length === 0}
+            title="Descarga las líneas que se están viendo, con las columnas de esta tabla"
+            style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: filteredWorkItems.length === 0 ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: filteredWorkItems.length === 0 ? 0.5 : 1 }}
+          >
+            <span style={{ color: '#71717a', fontSize: 13 }}>
+              Exportar ({filteredWorkItems.length})
+            </span>
+          </button>
 
           {/* Status Filter */}
           <div ref={statusRef} style={{ position: 'relative' }}>
