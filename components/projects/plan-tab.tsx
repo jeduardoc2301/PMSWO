@@ -18,6 +18,7 @@ import React, { useEffect, useState } from 'react'
 
 import { type OperacionDeReprogramacion, PlanWorkspace } from '@/components/plan/plan-workspace'
 import { type RangoDeAusencia } from '@/lib/scheduling/availability'
+import { EsqueletoDeGantt } from '@/components/projects/esqueleto'
 import { type Operacion } from '@/lib/projects/undo-stack'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
@@ -128,7 +129,9 @@ export function PlanTab({
   }, [projectId, version])
 
   if (estado.fase === 'cargando') {
-    return <p className="py-12 text-center text-sm text-zinc-400">Calculando el plan del proyecto...</p>
+    // Esqueleto y no una línea de texto (§10.7): el diagrama tarda lo suyo en un plan de mil
+    // trescientas líneas, y una frase centrada no dice ni qué va a aparecer ni dónde.
+    return <EsqueletoDeGantt />
   }
 
   if (estado.fase === 'error') {

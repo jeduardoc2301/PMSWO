@@ -12,6 +12,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
+import { EsqueletoDeWidgets } from '@/components/projects/esqueleto'
 import { DashboardView } from '@/components/projects/dashboard-view'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { usarPlanParaElDetalle } from '@/lib/plan/usar-plan'
@@ -138,7 +139,8 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
   }
 
   if (estado.fase === 'cargando') {
-    return <p className="py-12 text-center text-sm text-zinc-400">Armando el panel del proyecto...</p>
+    // Seis tarjetas en rejilla, que es lo que va a aparecer (§10.7).
+    return <EsqueletoDeWidgets cuantos={6} />
   }
 
   if (estado.fase === 'error') {

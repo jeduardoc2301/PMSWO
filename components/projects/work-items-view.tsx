@@ -37,6 +37,7 @@ import { schedulePlan } from '@/lib/scheduling/schedule'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { hoyCivil } from '@/lib/formato-fecha'
+import { EsqueletoDeTabla } from '@/components/projects/esqueleto'
 import { COLUMNAS_POR_OMISION } from '@/lib/projects/list-columns'
 import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { toDayNumber } from '@/lib/scheduling/date'
@@ -610,7 +611,7 @@ export function WorkItemsView({
           ) : null}
         </div>
       ) : estado.fase === 'cargando' ? (
-        <p className="py-12 text-center text-sm text-zinc-400">Calculando el plan del proyecto...</p>
+        <EsqueletoDeTabla />
       ) : estado.fase === 'error' ? (
         <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
           <p className="text-sm text-red-300">No se pudo cargar el plan: {estado.mensaje}</p>
