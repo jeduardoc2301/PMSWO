@@ -177,14 +177,15 @@ describe('Soltar una tarjeta', () => {
 
   it('si la escritura falla, la tarjeta vuelve a su columna', async () => {
     const onWorkItemMove = vi.fn().mockRejectedValue(new Error('la red se cayó'))
-    // happy-dom no trae `alert`; se pone uno para poder esperar a que el tablero avise.
-    const avisos = vi.fn()
-    ;(window as unknown as { alert: unknown }).alert = avisos
     dibujar(onWorkItemMove)
 
     soltarEn('Done')
 
-    await waitFor(() => expect(avisos).toHaveBeenCalled())
+    // El aviso va en la página y no en un `alert`: un diálogo del navegador tapa el tablero, hay que
+    // descartarlo para poder mirar dónde quedó la tarjeta, y no deja leer el motivo dos veces.
+    const aviso = await screen.findByRole('alert')
+    expect(aviso.textContent).toContain('volvió a su sitio')
+    expect(aviso.textContent).toContain('la red se cayó')
     // La tarjeta sigue en Backlog: el tablero no se queda enseñando un movimiento que no ocurrió.
     const backlog = screen.getByText('Backlog').parentElement!.parentElement!
     expect(backlog.textContent).toContain('Migrar la red del banco')

@@ -190,6 +190,16 @@ export interface PlanTask {
   /** Avance de 0 a 1. Uno significa cumplida. */
   readonly progress?: number
   /**
+   * Estado de seguimiento de la línea.
+   *
+   * El motor no programa con él —una tarea terminada ocupó los días que ocupó— pero sí hace falta
+   * para saber qué está atrasado: una línea cerrada con la fecha pasada **no** está atrasada,
+   * terminó. Sin esto, el Gantt tenía que conformarse con «avance por debajo del 100 %», que es una
+   * frontera parecida y no la misma, y el §9.3 pide que su conmutador de atrasadas coincida
+   * **exactamente** con la cifra del Panel.
+   */
+  readonly status?: string
+  /**
    * Esfuerzo capturado, en minutos (§3.5).
    *
    * En minutos y no en horas porque el módulo entero opera en enteros: «ocho horas y media» entre

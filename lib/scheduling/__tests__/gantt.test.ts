@@ -660,3 +660,41 @@ describe('§4.6 conmutador 2 · qué línea está atrasada', () => {
     expect(porId.get('h')).toBe(true)
   })
 })
+
+describe('Atrasada quiere decir lo mismo que en el Panel (§9.3 C3)', () => {
+  // ARRANQUE es el 1 de junio; una tarea de tres días termina el 3. «Hoy» va después.
+  const HOY = '2026-07-01'
+
+  function unaLinea(extra: Partial<PlanTask>) {
+    return trazar([{ id: 'a', name: 'Una línea', duration: 3, ...extra }], [], { hoy: HOY })
+      .rows[0]!
+  }
+
+  it('una línea vencida a medias está atrasada', () => {
+    expect(unaLinea({ progress: 0.5 }).atrasada).toBe(true)
+  })
+
+  it('una línea cerrada al 50 % NO está atrasada: terminó', () => {
+    // Esta es la diferencia que el §9.3 pide cerrar. El Panel nunca la contó —descarta los estados
+    // terminales— y el Gantt sí, porque solo miraba el avance. En el plan de referencia las dos
+    // cifras coincidían igual (127 y 127) porque hoy no existe ninguna línea así; una coincidencia
+    // que depende de que los datos no cambien no es una coincidencia, es una espera.
+    for (const status of ['DONE', 'CLOSED', 'CANCELLED']) {
+      expect(unaLinea({ progress: 0.5, status }).atrasada).toBe(false)
+    }
+  })
+
+  it('un estado que no es terminal no la salva', () => {
+    expect(unaLinea({ progress: 0.5, status: 'IN_PROGRESS' }).atrasada).toBe(true)
+  })
+
+  it('sin estado se decide por el avance, como antes', () => {
+    expect(unaLinea({ progress: 0.5 }).atrasada).toBe(true)
+    expect(unaLinea({ progress: 1 }).atrasada).toBe(false)
+  })
+
+  it('y sin «hoy» no hay atrasadas: la función no inventa el calendario', () => {
+    expect(trazar([{ id: 'a', name: 'Una línea', duration: 3, progress: 0 }]).rows[0]!.atrasada)
+      .toBe(false)
+  })
+})

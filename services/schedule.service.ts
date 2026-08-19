@@ -115,6 +115,7 @@ export async function loadProjectPlan(
         dueDate: true,
         parentId: true,
         progressPct: true,
+        status: true,
         constraintType: true,
         constraintDate: true,
         estimatedHours: true,
@@ -186,6 +187,7 @@ export async function loadProjectPlan(
       ...(item.dueDate ? { dueDate: isoDe(item.dueDate) } : {}),
       ...(item.parentId ? { parentId: item.parentId } : {}),
       progress: item.progressPct,
+      status: item.status,
       ...restriccionDe(item.constraintType, item.constraintDate, start),
     }
   })

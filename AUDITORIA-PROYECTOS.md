@@ -237,3 +237,33 @@ Cada brecha cerrada actualiza aquí su fila con la fecha y el commit, como pide 
 | 18 · Panel de control (§9) | 2026-08-17 | (este commit) | Cuatro widgets con datos —información, tareas, avance temporal e hitos— y dos con estado vacío que dice qué falta del modelo, como autoriza el §9.4. Un solo cálculo en el servidor (28 pruebas contra un plan calculado a mano) y una sola consulta. Barras apiladas en vez de donas, y rampa ordinal de un tono validada con el validador del oficio contra la superficie real. Medido sobre el plan real: 1243 hojas, 127 atrasadas, 109 hitos, 38.4 % de retraso, 0 px de desborde |
 | 21 · Preferencias de vista (§10.4) | 2026-08-17 | (este commit) | Tabla `view_preferences` por usuario × proyecto × vista, con validación de forma en zod al entrar y al salir. Comprobado de extremo a extremo en navegador: apagar un widget, recargar la página entera y encontrarlo apagado |
 | 16 · Vista Calendario (§7) | 2026-08-17 | (este commit) | Motor de empaquetado en carriles con 25 pruebas, rejilla del mes con 19 pruebas. Barras que cruzan semanas con puntas ◀/▶, hitos ◆ exentos del recorte, banderas ⚑ de vencimiento y «N líneas más» desplegable. Medido en navegador sobre el plan real (1368 líneas): 0 px de desborde, 0 encimamientos, empaquetado en 19 ms |
+
+## §9.3 C3 — «Tareas atrasadas» y el conmutador del Gantt
+
+**Lo que pedía el criterio.** Que la cifra del Panel de control coincida *exactamente* con lo que
+resalta el conmutador homónimo del Gantt. Solo se volvió comprobable al existir el conmutador
+(§4.6), así que estaba esperando.
+
+**Lo que había.** Dos definiciones de la misma palabra:
+
+| | de dónde saca la fecha | qué considera terminado |
+|---|---|---|
+| Panel (`dashboard-metrics`) | la fecha **guardada** (`estimatedEndDate`) | avance al 100 % **o** estado DONE/CLOSED/CANCELLED |
+| Gantt (`gantt.ts`) | la fecha del **motor** | avance al 100 % y nada más |
+
+Medidas sobre el plan de referencia dan **127 y 127**, y comparadas línea por línea —por
+identificador, corriendo el motor de verdad, no comparando cuentas— resultan el **mismo conjunto**:
+cero líneas en una y no en la otra. Pero coincidían por los datos, no por la regla: basta una línea
+cerrada al 50 % para que el Gantt la cuente y el Panel no. Una coincidencia que depende de que los
+datos no cambien no es una coincidencia, es una espera.
+
+**Qué se hizo.** El plan pasa ahora el `status` de cada línea (`PlanTask.status`, que el servicio ya
+tenía a mano y no seleccionaba), y el Gantt pregunta con `estaTerminada` —la **misma** función que
+usa el Panel— en vez de mirar solo el avance. Es la tercera vez esta noche que dos definiciones de
+lo mismo en el mismo módulo producen un defecto; esta se cerró antes de que se notara.
+
+**Cómo se demuestra en pantalla.** El conmutador no filtra, resalta, y con 1368 líneas virtualizadas
+no hay forma de contar los anillos ámbar a ojo. La cuenta va ahora en la propia etiqueta —
+«Resaltar (127)» → «Resaltadas (127)»— calculada sobre el plan **entero** y no sobre el trazado
+plegado, que si no doblar una fase haría bajar el número. Panel: 127. Gantt: 127. Y la línea vencida
+(«Inicio: presentar y aprobar el plan de trabajo», cierra el 2026-06-19) sale con su anillo.

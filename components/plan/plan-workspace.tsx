@@ -381,10 +381,14 @@ export function PlanWorkspace({
       schedule: base.schedule,
       classified: base.classified,
       calendar: base.calendar,
+      // «Hoy» también aquí, y no solo en el trazado de abajo, porque la cuenta de atrasadas es del
+      // **plan entero**: si saliera del trazado plegado, doblar una fase cambiaría el número y el
+      // conmutador diría que hay menos tareas vencidas por haber cerrado una carpeta.
+      hoy: hoyCivil(),
     })
     const plegados = collapseToLevel(abierto.rows, level).filter((id) => !abiertosAMano.has(id))
 
-    return ganttLayout({
+    const trazado = ganttLayout({
       tasks,
       dependencies,
       schedule: base.schedule,
@@ -400,6 +404,8 @@ export function PlanWorkspace({
       // local y no con `toISOString`, que de noche en un huso negativo devuelve el día siguiente.
       hoy: hoyCivil(),
     })
+
+    return { ...trazado, atrasadasEnTodoElPlan: abierto.rows.filter((f) => f.atrasada).length }
   }, [tasks, dependencies, base, level, abiertosAMano, links, selectedId, filter, scale, fechasDeLaFoto])
 
   // El filtro unificado recorta las filas ya trazadas, conservando los ancestros de lo que
@@ -893,6 +899,7 @@ export function PlanWorkspace({
           links={links}
           onLinksChange={setLinks}
           atrasadas={atrasadas}
+          cuantasAtrasadas={layout.atrasadasEnTodoElPlan}
           onAtrasadasChange={setAtrasadas}
           seleccionando={seleccionando}
           onSeleccionandoChange={setSeleccionando}

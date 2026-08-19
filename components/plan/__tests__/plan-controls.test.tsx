@@ -22,6 +22,7 @@ function montar(cambios: Partial<PlanControlsProps> = {}): PlanControlsProps {
     onScaleChange: vi.fn(),
     visibleRows: 27,
     atrasadas: false,
+    cuantasAtrasadas: 0,
     seleccionando: false,
     onSeleccionandoChange: vi.fn(),
     onAtrasadasChange: vi.fn(),
@@ -231,5 +232,25 @@ describe('§4.6 · «Todo» significa todo', () => {
     montar({ nivelMaximo: 2 })
     const botones = grupo('Nivel de detalle').getAllByRole('button').map((b) => b.textContent)
     expect(botones).toEqual(['Bloques', 'Etapas', 'Todo'])
+  })
+})
+
+describe('El conmutador dice cuántas son (§9.3 C3)', () => {
+  it('lleva la cuenta en la etiqueta', () => {
+    // Con el diagrama virtualizado no hay forma de contarlas a ojo, y saber que son 127 antes de
+    // pulsar es justo lo que decide si vale la pena mirarlas.
+    montar({ cuantasAtrasadas: 127 })
+    expect(screen.getByText('Resaltar (127)')).toBeInTheDocument()
+  })
+
+  it('y ya resaltadas también', () => {
+    montar({ atrasadas: true, cuantasAtrasadas: 127 })
+    expect(screen.getByText('Resaltadas (127)')).toBeInTheDocument()
+  })
+
+  it('sin ninguna atrasada no pone un cero al lado', () => {
+    // «Resaltar (0)» invita a pulsar un botón que no hace nada.
+    montar({ cuantasAtrasadas: 0 })
+    expect(screen.getByText('Resaltar')).toBeInTheDocument()
   })
 })

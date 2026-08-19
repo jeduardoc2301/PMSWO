@@ -40,6 +40,7 @@ import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
 import { type Coherencia, comprobarCoherencia } from './effort'
 import { fechasDeResumen } from './summary-rollup'
+import { estaTerminada } from '@/lib/urgency'
 import { numerarPlan } from './wbs'
 import { type Dependency, type LinkType, type PlanTask, type Recoverability, type ResponsibleParty, type TaskKind } from './types'
 
@@ -416,10 +417,17 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       wbs: edt.get(task.id) ?? '',
       // Un hito vencido también cuenta: es una fecha que pasó sin ocurrir, que es peor que una
       // tarea a medias.
+      //
+      // «Terminada» se pregunta con `estaTerminada`, la **misma** función que usa el Panel: el
+      // §9.3 pide que las dos cifras coincidan exactamente, y con «avance por debajo del 100 %» a
+      // secas coincidían por casualidad —en el plan de referencia dan las mismas 127— pero se
+      // separarían en cuanto existiera una línea cerrada al 50 %. Dos definiciones de «terminada»
+      // en el mismo módulo ya costaron un defecto en este proyecto.
       atrasada:
         input.hoy !== undefined &&
         (tramo?.finish ?? scheduled?.finish ?? schedule.start) < input.hoy &&
-        clamp(task.progress ?? 0) < 1,
+        clamp(task.progress ?? 0) < 1 &&
+        !estaTerminada(task.status ?? ''),
       ...(task.dueDate ? { deadline: task.dueDate } : {}),
       ...(task.constraint ? { constraint: enPalabras(task.constraint) } : {}),
       level: level.get(task.id) ?? 0,

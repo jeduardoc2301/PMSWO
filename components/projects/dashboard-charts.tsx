@@ -233,7 +233,10 @@ export function Cifra({
     tono === 'bien' ? COLORES_DE_ESTADO.bien : tono === 'critico' ? COLORES_DE_ESTADO.critico : undefined
 
   return (
-    <div>
+    // El pie marca la cifra para poder leerla desde fuera. Sin esto, comprobar en pantalla que
+    // «atrasadas» del Panel coincide con el conmutador del Gantt (§9.3 C3) obliga a adivinar por
+    // posición en el texto, que es como se cuelan los errores de medición.
+    <div data-cifra={pie}>
       <p className="text-3xl font-semibold tabular-nums text-zinc-100" style={color ? { color } : undefined}>
         {valor}
       </p>

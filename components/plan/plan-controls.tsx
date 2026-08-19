@@ -34,6 +34,8 @@ export interface PlanControlsProps {
   readonly onLinksChange: (links: LinkVisibility) => void
   /** Resaltar las líneas vencidas y sin terminar (§4.6, conmutador 2). */
   readonly atrasadas: boolean
+  /** Cuántas líneas del plan están atrasadas ahora mismo. */
+  readonly cuantasAtrasadas: number
   readonly onAtrasadasChange: (activo: boolean) => void
   /** Selección múltiple (§4.6, conmutador 1). */
   readonly seleccionando: boolean
@@ -95,6 +97,7 @@ export function PlanControls({
   links,
   onLinksChange,
   atrasadas,
+  cuantasAtrasadas,
   onAtrasadasChange,
   seleccionando,
   onSeleccionandoChange,
@@ -162,9 +165,18 @@ export function PlanControls({
       <Grupo titulo="Atrasadas" nota="Vencidas y sin terminar.">
         {/* Resalta, no filtra. El §4.6 lo llama conmutador y no filtro por una razón: lo que importa
             de una tarea atrasada es dónde cae respecto de las demás, y sacar el resto de la pantalla
-            esconde justo eso. */}
+            esconde justo eso.
+
+            La cifra va en la etiqueta por dos motivos. El primero es para quien lo usa: saber que
+            son 127 antes de pulsar es lo que decide si vale la pena mirarlas, y con el diagrama
+            virtualizado no hay forma de contarlas a ojo. El segundo es que el §9.3 pide que esta
+            cifra coincida **exactamente** con la del Panel de control, y un número que no se puede
+            leer en pantalla no se puede comprobar en pantalla. */}
         <Boton activo={atrasadas} onClick={() => onAtrasadasChange(!atrasadas)}>
-          {atrasadas ? 'Resaltadas' : 'Resaltar'}
+          <span data-cuenta-atrasadas={cuantasAtrasadas}>
+            {atrasadas ? 'Resaltadas' : 'Resaltar'}
+            {cuantasAtrasadas > 0 ? ` (${cuantasAtrasadas})` : ''}
+          </span>
         </Boton>
       </Grupo>
 
