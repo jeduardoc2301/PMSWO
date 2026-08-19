@@ -37,6 +37,7 @@ import { schedulePlan } from '@/lib/scheduling/schedule'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { hoyCivil } from '@/lib/formato-fecha'
+import { COLUMNAS_POR_OMISION } from '@/lib/projects/list-columns'
 import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { toDayNumber } from '@/lib/scheduling/date'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
@@ -124,6 +125,8 @@ export function WorkItemsView({
 }: WorkItemsViewProps) {
   const [modo, setModo] = useState<Modo>('ESQUEMA')
   const [agruparPor, setAgruparPor] = useState<CampoDeGrupo>('status')
+  /** Las columnas encendidas de la Lista (§6.2), con preferencia propia e independiente del Gantt. */
+  const [columnas, setColumnas] = useState<readonly string[]>(COLUMNAS_POR_OMISION)
   /** Hasta que llegue lo guardado no se escribe: si no, lo por omisión pisaría lo del usuario. */
   const [preferenciaCargada, setPreferenciaCargada] = useState(false)
   const [estado, setEstado] = useState<EstadoPlan>({ fase: 'cargando' })
@@ -143,6 +146,7 @@ export function WorkItemsView({
         if (!vigente) return
         if (d?.settings?.formato) setModo(d.settings.formato as Modo)
         if (d?.settings?.agruparPor) setAgruparPor(d.settings.agruparPor as CampoDeGrupo)
+        if (Array.isArray(d?.settings?.columnas)) setColumnas(d.settings.columnas as string[])
         setPreferenciaCargada(true)
       })
       .catch(() => setPreferenciaCargada(true))
@@ -156,11 +160,11 @@ export function WorkItemsView({
     void fetch(`/api/v1/projects/${projectId}/preferences?view=LISTA`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: { formato: modo, agruparPor } }),
+      body: JSON.stringify({ settings: { formato: modo, agruparPor, columnas } }),
     }).catch(() => {
       // Que no se guarde la elección no puede tumbar la vista: se sigue con lo que hay en pantalla.
     })
-  }, [projectId, modo, agruparPor, preferenciaCargada])
+  }, [projectId, modo, agruparPor, columnas, preferenciaCargada])
 
   const [creando, setCreando] = useState(false)
   // De quién cuelga la línea que se está dando de alta. El «+» de un renglón preselecciona ese
@@ -589,6 +593,8 @@ export function WorkItemsView({
           canCreateWorkItems={canCreateWorkItems}
           onApplyTemplate={onApplyTemplate}
           onAbrirDetalle={setDetalle}
+          columnasElegidas={columnas}
+          onColumnasCambiadas={setColumnas}
         />
           </div>
           {filaDelDetalle ? (

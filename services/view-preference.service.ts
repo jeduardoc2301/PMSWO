@@ -18,6 +18,7 @@ import { GANTT_POR_OMISION } from '@/lib/plan/gantt-columns'
 import { CRITERIOS, type CriterioDeAgrupacion } from '@/lib/projects/kanban-group'
 import { CAMPOS_DE_ORDEN, type CampoDeOrden } from '@/lib/projects/kanban-sort'
 import { PANEL_POR_OMISION, WIDGETS_DEL_PANEL } from '@/lib/projects/dashboard-widgets'
+import { COLUMNAS_POR_OMISION } from '@/lib/projects/list-columns'
 
 /** Las vistas que pueden guardar preferencia. */
 export const VISTAS = ['PANEL', 'GANTT', 'TABLERO', 'LISTA', 'CALENDARIO', 'CARGA'] as const
@@ -53,6 +54,15 @@ const esquemaDelGantt = z.object({
 const esquemaDeLaLista = z.object({
   formato: z.enum(['ESQUEMA', 'LISTA', 'AGRUPADA']),
   agruparPor: z.enum(['status', 'priority', 'owner', 'phase']),
+  /**
+   * Las columnas encendidas (§6.2).
+   *
+   * Los identificadores no se validan contra el catálogo, igual que en el Gantt: lo guardado puede
+   * venir de otra versión, y rechazar la preferencia entera por un identificador retirado dejaría a
+   * alguien sin sus columnas por un cambio que no hizo él. `columnasVisiblesDeLaLista` descarta las
+   * que ya no existen al leer.
+   */
+  columnas: z.array(z.string()).max(40).optional(),
 })
 
 /**
@@ -100,7 +110,7 @@ const POR_OMISION: Partial<Record<Vista, unknown>> = {
   PANEL: PANEL_POR_OMISION,
   GANTT: GANTT_POR_OMISION,
   // El esquema es el formato por omisión que pide el §6.1: es el que enseña la forma del plan.
-  LISTA: { formato: 'ESQUEMA', agruparPor: 'status' },
+  LISTA: { formato: 'ESQUEMA', agruparPor: 'status', columnas: [...COLUMNAS_POR_OMISION] },
   // Por estado y en orden de EDT: es como llega el plan del archivo y como lo lee quien lo conoce.
   TABLERO: { agruparPor: 'estado', ordenarPor: 'wbs', sentido: 'asc' },
   CARGA: { modo: 'horas' },

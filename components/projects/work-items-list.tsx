@@ -16,6 +16,12 @@ import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
 import { fechaCorta, fechaIso, hoyCivil } from '@/lib/formato-fecha'
 import { CeldaEditable, validarNombre } from '@/components/plan/celda-editable'
+import {
+  COLUMNAS_DE_LA_LISTA,
+  COLUMNAS_POR_OMISION,
+  alternarColumnaDeLaLista,
+  columnasVisiblesDeLaLista,
+} from '@/lib/projects/list-columns'
 import { csvDeLaLista, nombreDelArchivo } from '@/lib/projects/list-csv'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
 import {
@@ -226,6 +232,13 @@ interface WorkItemsListProps {
    * no hace nada es peor que uno que no lo parece.
    */
   onAbrirDetalle?: (id: string) => void
+  /**
+   * Las columnas encendidas (§6.2). Sin ellas se usan las de por omisión, que son las que la
+   * tabla enseñaba antes de ser configurable.
+   */
+  columnasElegidas?: readonly string[]
+  /** Encender o apagar una columna. Sin esto, el panel de Campos no se dibuja. */
+  onColumnasCambiadas?: (columnas: readonly string[]) => void
   canCreateWorkItems?: boolean
   onApplyTemplate?: () => void
 }
@@ -239,6 +252,8 @@ export function WorkItemsList({
   editDatesData,
   onEditDatesDataUsed,
   onAbrirDetalle,
+  columnasElegidas = COLUMNAS_POR_OMISION,
+  onColumnasCambiadas,
   canCreateWorkItems = false,
   onApplyTemplate
 }: WorkItemsListProps) {
@@ -440,6 +455,19 @@ export function WorkItemsList({
   )
   const total: Totales = useMemo(() => totalizar(sumables), [sumables])
 
+  /**
+   * Las columnas encendidas de la Lista (§6.2), con preferencia propia.
+   *
+   * Independiente de la del Gantt, como recomienda el spec — y al mirarlo de cerca la recomendación
+   * se queda corta: no es que en la Lista se quieran más columnas, es que **son otras**. El Gantt
+   * enseña clase de línea, responde y holgura, que son preguntas del cronograma; aquí se enseñan
+   * estado, prioridad y responsable, que son de seguimiento.
+   */
+  const [camposAbierto, setCamposAbierto] = useState(false)
+  const columnasDeLaTabla = useMemo(() => columnasVisiblesDeLaLista(columnasElegidas), [columnasElegidas])
+  const encendidas = useMemo(() => new Set(columnasDeLaTabla.map((c) => c.id)), [columnasDeLaTabla])
+  const visible = (id: string) => encendidas.has(id)
+
   const renombrar = async (id: string, titulo: string): Promise<void> => {
     try {
       const r = await fetch(`/api/v1/work-items/${id}`, {
@@ -640,6 +668,57 @@ export function WorkItemsList({
               Exportar ({filteredWorkItems.length})
             </span>
           </button>
+
+          {/* El panel de Campos del §6.2, con preferencia propia. Va junto al de exportar porque
+              las dos preguntas son la misma —qué columnas hay— vista desde la pantalla y desde el
+              archivo. */}
+          {onColumnasCambiadas ? (
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setCamposAbierto((v) => !v)}
+                aria-expanded={camposAbierto}
+                data-testid="campos-lista"
+                style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                <span style={{ color: '#71717a', fontSize: 13 }}>
+                  Campos ({columnasDeLaTabla.length}) ▾
+                </span>
+              </button>
+              {camposAbierto ? (
+                <div
+                  data-testid="panel-campos-lista"
+                  className="absolute left-0 top-full z-30 mt-1 w-64 rounded-lg border border-zinc-700 bg-[#18181b] p-3 shadow-2xl"
+                >
+                  {(['Generales', 'Cronograma', 'Carga de trabajo'] as const).map((grupo) => {
+                    const delGrupo = COLUMNAS_DE_LA_LISTA.filter((c) => c.grupo === grupo)
+                    if (delGrupo.length === 0) return null
+                    return (
+                      <div key={grupo} className="mb-2 last:mb-0">
+                        <p className="mb-1 text-[10px] uppercase tracking-wide text-zinc-500">{grupo}</p>
+                        {delGrupo.map((c) => (
+                          <label key={c.id} className="flex cursor-pointer items-center gap-2 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={encendidas.has(c.id)}
+                              disabled={c.fija}
+                              // La fija va marcada y deshabilitada, con el motivo en el título: sin
+                              // el nombre, una tabla de mil trescientas filas es una lista de datos
+                              // que no se pueden atribuir a nada.
+                              title={c.fija ? 'El nombre no se puede quitar' : undefined}
+                              onChange={() => onColumnasCambiadas(alternarColumnaDeLaLista(columnasElegidas, c.id))}
+                              className="h-3.5 w-3.5 accent-[#6366f1]"
+                            />
+                            <span className="text-xs text-zinc-300">{c.etiqueta}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Status Filter */}
           <div ref={statusRef} style={{ position: 'relative' }}>
@@ -864,12 +943,17 @@ export function WorkItemsList({
             <table className="w-full">
               <thead className={plana ? 'sticky top-0 z-10 bg-[#18181b]' : ''}>
                 <tr>
-                  <th style={thStyle}>{t('workItemTitle')}</th>
-                  <th style={thStyle}>{t('workItemStatus')}</th>
-                  <th style={thStyle}>{t('workItemPriority')}</th>
-                  <th style={thStyle}>{t('owner')}</th>
-                  <th style={thStyle}>Fecha Inicio</th>
-                  <th style={thStyle}>Fecha Final</th>
+                  {/* Las columnas salen del catálogo y de la preferencia (§6.2). La de acciones no
+                      está en el catálogo: no es un dato de la línea, es dónde se pulsa. */}
+                  {columnasDeLaTabla.map((c) => (
+                    <th
+                      key={c.id}
+                      data-cabecera={c.id}
+                      style={c.numerica ? { ...thStyle, textAlign: 'right' } : thStyle}
+                    >
+                      {c.etiqueta}
+                    </th>
+                  ))}
                   <th style={{ ...thStyle, textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
@@ -986,25 +1070,50 @@ export function WorkItemsList({
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span style={{ ...STATUS_STYLE[item.status], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
-                            {getStatusLabel(item.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span style={{ ...PRIORITY_STYLE[item.priority], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
-                            {getPriorityLabel(item.priority)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
-                          {item.ownerName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
-                          {formatDate(item.startDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
-                          {formatDate(item.estimatedEndDate)}
-                        </td>
+                        {visible('status') ? (
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span style={{ ...STATUS_STYLE[item.status], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                              {getStatusLabel(item.status)}
+                            </span>
+                          </td>
+                        ) : null}
+                        {visible('priority') ? (
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span style={{ ...PRIORITY_STYLE[item.priority], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                              {getPriorityLabel(item.priority)}
+                            </span>
+                          </td>
+                        ) : null}
+                        {visible('ownerName') ? (
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                            {item.ownerName}
+                          </td>
+                        ) : null}
+                        {visible('phase') ? (
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                            {item.phase || '—'}
+                          </td>
+                        ) : null}
+                        {visible('progressPct') ? (
+                          <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                            {Math.round((item.progressPct ?? 0) * 100)} %
+                          </td>
+                        ) : null}
+                        {visible('startDate') ? (
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                            {formatDate(item.startDate)}
+                          </td>
+                        ) : null}
+                        {visible('estimatedEndDate') ? (
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                            {formatDate(item.estimatedEndDate)}
+                          </td>
+                        ) : null}
+                        {visible('estimatedHours') ? (
+                          <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                            {item.estimatedHours ?? '—'}
+                          </td>
+                        ) : null}
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
                             {/* Con nombre: los dos llevaban solo un icono, y un lector de pantalla
