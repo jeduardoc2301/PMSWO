@@ -38,6 +38,7 @@ import { type WorkCalendar } from './calendar'
 import { type ClassifiedTask } from './critical-path'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
+import { fechasDeResumen } from './summary-rollup'
 import { type Dependency, type LinkType, type PlanTask, type Recoverability, type ResponsibleParty, type TaskKind } from './types'
 
 /** De qué extremo de una barra sale o entra una flecha. */
@@ -308,11 +309,40 @@ export function ganttLayout(input: GanttInput): GanttLayout {
   const visible = tasks.filter((task) => !folded.has(task.id) && kept.has(task.id))
   const indexOf = new Map(visible.map((task, index) => [task.id, index]))
 
+  /**
+   * Lo que abarca cada resumen, calculado a partir de sus hijos ya programados (§3.6, §12 caso 11).
+   *
+   * Sin esto la barra del resumen dibujaba las fechas que traía de la base, y en cuanto alguien
+   * movía un hijo dejaba de corresponder con su rama. Medido en el plan de referencia: «Inicio:
+   * presentar y aprobar el plan de trabajo» se dibujaba terminando el 19 de junio con una rama que
+   * llega al 2 de julio — nueve días hábiles de menos, en la fila que más se mira porque es la que
+   * queda cuando el plan está plegado.
+   */
+  const abarcado = fechasDeResumen(
+    tasks,
+    new Map(
+      tasks
+        .filter((t) => !children.has(t.id))
+        .flatMap((t) => {
+          const s = schedule.byId.get(t.id)
+          return s ? [[t.id, { start: s.start, finish: s.finish }] as const] : []
+        }),
+    ),
+  )
+
   const rows: GanttRow[] = visible.map((task) => {
     const scheduled = schedule.byId.get(task.id)
+    const tramo = abarcado.get(task.id)
     const classifiedTask = analysis.get(task.id)
-    const startOrdinal = (schedule.earlyStart.get(task.id) ?? originOrdinal) - originOrdinal
-    const width = scheduled?.isMilestone ? 0 : Math.max(task.duration, 0)
+    const startOrdinal =
+      (tramo
+        ? calendar.ordinalOf(toDayNumber(tramo.start))
+        : (schedule.earlyStart.get(task.id) ?? originOrdinal)) - originOrdinal
+    // El ancho de un resumen es lo que abarca, no la duración que traía guardada: una barra que
+    // empieza donde su rama y mide otra cosa es peor que una que no se movió, porque parece exacta.
+    const width = tramo
+      ? calendar.ordinalOf(toDayNumber(tramo.finish)) - calendar.ordinalOf(toDayNumber(tramo.start)) + 1
+      : scheduled?.isMilestone ? 0 : Math.max(task.duration, 0)
     const progress = clamp(task.progress ?? 0)
     const float = classifiedTask?.totalFloat ?? 0
 
@@ -325,8 +355,8 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       isCollapsed: collapsed.has(task.id),
       kind: task.kind ?? 'ACTIVIDAD',
       party: classifiedTask?.party ?? task.party ?? 'PROVEEDOR',
-      start: scheduled?.start ?? schedule.start,
-      finish: scheduled?.finish ?? schedule.start,
+      start: tramo?.start ?? scheduled?.start ?? schedule.start,
+      finish: tramo?.finish ?? scheduled?.finish ?? schedule.start,
       isMilestone: scheduled?.isMilestone ?? task.duration === 0,
       x: startOrdinal,
       width,
