@@ -92,7 +92,7 @@ tiempo real y deshacer.
 | 27 | Calendario del proyecto: sólo lectura | **NO EXISTE** | `services/project-calendar.service.ts` (sólo `load*`) | El sombreado de festivos propios funciona —medido—, pero `ProjectCalendar` y `ProjectHoliday` sólo se pueden crear escribiendo en la base. No hay ruta `/calendar` ni pantalla. Descubierto al demostrar el criterio 2 del §7.5 | M | Medio |
 | 19 | Estados configurables (§5) | **PARCIAL** | `KanbanColumn.isInitial/isDone`, `lib/projects/status-progress.ts` | El acoplamiento funciona; falta el alta/baja de columnas desde la pantalla | M | Medio |
 | 20 | Líneas base (§3) | **PARCIAL** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | El motor y la rejilla, sí. Falta la barra bajo la barra del Gantt (§4.6) y el selector no está en el Gantt | M | Bajo |
-| 21 | Preferencias de vista (§10.4) | **PARCIAL** | `ViewPreference`, `services/view-preference.service.ts` | Sólo el panel guarda preferencia; las otras cinco vistas del §10.4 no | M | Bajo |
+| 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. Faltan los campos creador y color, y aplicarlo a la exportación | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
 | 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL** | `lib/rbac.ts`, `app/api/v1/work-items/[id]/route.ts` | Los diez permisos que nombra el §10.1 no existen como tales. **La distinción que el spec llama «el permiso más útil de todo el sistema» sí está ahora**, expresada con los permisos que hay: mover fechas exige `PROJECT_UPDATE`, el mismo que la ruta de reprogramar; estado y avance siguen bastando con `WORK_ITEM_UPDATE`. Falta lo demás: activar vistas por rol de proyecto, `view_budget` y `manage_project_settings` | M | Alto |
@@ -389,3 +389,27 @@ vueltas; queda anotado por si alguna medición futura necesita producción de ve
 **Una advertencia para la próxima vez.** `next build` borra el `.next` que el servidor de desarrollo
 está usando: si hay uno levantado, se queda sirviendo 500 hasta que se reinicia. No es un fallo del
 producto, pero cuesta veinte minutos de despiste.
+
+## §10.4 — la brecha 21 estaba desactualizada
+
+La matriz decía «sólo el panel guarda preferencia». Ya no es cierto y hacía falta comprobarlo antes
+de ponerse a implementar algo que ya estaba: las cinco vistas configurables guardan y restauran, y
+el servicio tiene esquema de zod para cada una. Comprobado en pantalla, cambiando un control,
+recargando la página entera y volviendo a mirar:
+
+| vista | se cambió | tras recargar |
+|---|---|---|
+| Gantt (pestaña Timeline) | nivel a Fases, flechas a Todas | Fases, Todas |
+| Lista | formato a Esquema | Esquema |
+| Tablero | agrupar por prioridad | prioridad |
+| Carga de trabajo | modo a Tareas | Tareas |
+| Panel de control | dos widgets apagados | apagados |
+
+**Un falso negativo que casi me cuesta una implementación entera.** La primera medición dio que el
+Gantt no restauraba nada. Era cierto —en `/es/plan`— y no significaba nada: esa ruta monta el mismo
+componente **sin `projectId`**, porque enseña el plan del archivo de referencia y no un proyecto, y
+el efecto que carga la preferencia se corta a propósito. El Gantt de un proyecto es la pestaña
+Timeline, y ahí sí persiste. Medir la superficie equivocada da un número real sobre la pregunta
+equivocada.
+
+Todo lo que se tocó para medir quedó como estaba.
