@@ -35,6 +35,14 @@ export interface DashboardViewProps {
   readonly widgets: readonly WidgetDelPanel[]
   readonly onConfigurar: () => void
   readonly onExportar?: () => void
+  /**
+   * Abrir el panel de detalle de una línea (§10.3).
+   *
+   * Solo el widget de hitos tiene de dónde llamarlo: es el único sitio del Panel donde hay líneas y
+   * no cifras agregadas. Inventarle una lista de tareas al Panel para que la cuenta diera seis
+   * sería construir otra vista, no cerrar esta.
+   */
+  readonly onAbrirDetalle?: (id: string) => void
 }
 
 /** Cuántos avatares del equipo se enseñan antes del «+N». */
@@ -51,7 +59,14 @@ function fechaLegible(iso: string): string {
   return `${Number(dia)} ${nombres[Number(mes) - 1]} ${anio}`
 }
 
-export function DashboardView({ panel, hoy, widgets, onConfigurar, onExportar }: DashboardViewProps) {
+export function DashboardView({
+  panel,
+  hoy,
+  widgets,
+  onConfigurar,
+  onExportar,
+  onAbrirDetalle,
+}: DashboardViewProps) {
   const { metricas } = panel
   const encendido = (widget: WidgetDelPanel) => widgets.includes(widget)
 
@@ -92,7 +107,7 @@ export function DashboardView({ panel, hoy, widgets, onConfigurar, onExportar }:
         {encendido('informacion') ? <WidgetInformacion panel={panel} /> : null}
         {encendido('tareas') ? <WidgetTareas metricas={metricas} /> : null}
         {encendido('calendario') ? <WidgetCalendario metricas={metricas} /> : null}
-        {encendido('hitos') ? <WidgetHitos metricas={metricas} /> : null}
+        {encendido('hitos') ? <WidgetHitos metricas={metricas} onAbrirDetalle={onAbrirDetalle} /> : null}
         {encendido('tiempo') ? <WidgetTiempo /> : null}
         {encendido('presupuesto') ? <WidgetPresupuesto /> : null}
       </div>
@@ -287,7 +302,13 @@ function WidgetCalendario({ metricas }: { readonly metricas: PanelDeProyecto['me
   )
 }
 
-function WidgetHitos({ metricas }: { readonly metricas: PanelDeProyecto['metricas'] }) {
+function WidgetHitos({
+  metricas,
+  onAbrirDetalle,
+}: {
+  readonly metricas: PanelDeProyecto['metricas']
+  readonly onAbrirDetalle?: (id: string) => void
+}) {
   const { hitos } = metricas
 
   if (hitos.total === 0) {
@@ -330,7 +351,22 @@ function WidgetHitos({ metricas }: { readonly metricas: PanelDeProyecto['metrica
                         ⚠
                       </span>
                     ) : null}
-                    {hito.nombre}
+                    {/* El hito abre el panel de detalle del §10.3 — el mismo de las otras cinco
+                        vistas. Es el único sitio del Panel donde hay líneas y no cifras agregadas,
+                        y por eso es el único donde el panel tiene de dónde abrirse: inventarle una
+                        lista de tareas al Panel para que la cuenta diera seis sería construir otra
+                        vista, no cerrar esta. */}
+                    {onAbrirDetalle ? (
+                      <button
+                        type="button"
+                        onClick={() => onAbrirDetalle(hito.id)}
+                        className="truncate text-left hover:underline"
+                      >
+                        {hito.nombre}
+                      </button>
+                    ) : (
+                      hito.nombre
+                    )}
                   </td>
                   <td className="py-1.5 pr-2 tabular-nums text-zinc-400">{fechaLegible(hito.fecha)}</td>
                   <td className="py-1.5 text-zinc-400">
