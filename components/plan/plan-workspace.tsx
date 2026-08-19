@@ -59,6 +59,8 @@ import {
   type PreferenciaDelGantt,
   alternarColumna,
   alternarReserva,
+  moverDivisor,
+  posicionDelDivisor,
   columnasVisibles,
   redimensionar,
 } from '@/lib/plan/gantt-columns'
@@ -982,6 +984,11 @@ export function PlanWorkspace({
             <GanttChart
               layout={layoutFiltrado}
               columnas={columnasVisibles(preferencia)}
+              divisor={posicionDelDivisor(preferencia)}
+              onDivisorCambiado={(posicion) =>
+                // Un 0 es el doble clic del tirador: «vuelve a lo que ocupen las columnas».
+                setPreferencia((p) => moverDivisor(p, posicion <= 0 ? null : posicion))
+              }
               anchos={preferencia.anchos}
               onAnchoCambiado={(id, ancho) => setPreferencia((prev) => redimensionar(prev, id, ancho))}
               selectedId={selectedId}

@@ -425,6 +425,18 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       // en el mismo módulo ya costaron un defecto en este proyecto.
       atrasada:
         input.hoy !== undefined &&
+        // Un resumen no se atrasa: no tiene trabajo propio, y su retraso es el de sus hijas. Con
+        // los resúmenes dentro, el mismo atraso se contaría dos veces —una en la hoja y otra en
+        // cada antepasado suyo— y en un plan de siete niveles eso multiplica la cifra.
+        //
+        // «Resumen» aquí es **tener hijas**, y no la clase declarada, que es lo que usa `isSummary`
+        // para pintarlo gris. No son lo mismo y la diferencia importa: en el plan de referencia hay
+        // catorce líneas marcadas RESUMEN de las que no cuelga nadie. No tienen hijas de las que
+        // heredar nada, así que sus fechas son suyas y su atraso es real; descartarlas por la clase
+        // las borraría de la cuenta sin que nadie las echara de menos. El Panel ya cuenta así —sus
+        // «hojas» son las que nadie nombra como madre— y dos definiciones de la misma palabra en la
+        // misma pantalla es exactamente lo que el §9.3 pide que no pase.
+        !children.has(task.id) &&
         (tramo?.finish ?? scheduled?.finish ?? schedule.start) < input.hoy &&
         clamp(task.progress ?? 0) < 1 &&
         !estaTerminada(task.status ?? ''),

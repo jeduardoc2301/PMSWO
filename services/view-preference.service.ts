@@ -51,6 +51,9 @@ const esquemaDelGantt = z.object({
   // El identificador de la foto que se compara, o null. `nullable` **y** `optional`: null es
   // «ninguna», que es una elección; ausente es «esta preferencia se guardó antes del campo».
   baseline: z.string().nullable().optional(),
+  // Dónde cae el divisor entre la rejilla y la línea de tiempo (§4.1, `splitterPosition` del
+  // §10.4). `null` es «lo que ocupen las columnas», que es una elección y no una ausencia.
+  divisor: z.number().nullable().optional(),
 })
 
 /**

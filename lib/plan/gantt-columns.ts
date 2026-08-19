@@ -113,6 +113,21 @@ export interface PreferenciaDelGantt {
    * en vez de enseñar una que nadie puede reproducir.
    */
   readonly baseline: string | null
+  /**
+   * Cuánto se ve de la rejilla, en píxeles, o `null` para «lo que ocupen las columnas» (§4.1, y
+   * `splitterPosition` en el §10.4).
+   *
+   * Es **cuánto se ve**, no cuánto miden las columnas, y la diferencia es lo que evita el problema
+   * que este archivo ya avisaba: si el divisor fijara los anchos habría dos números que mantener de
+   * acuerdo y uno de los dos acabaría mintiendo. Aquí las columnas siguen mandando sobre su propio
+   * ancho y el divisor sólo dice hasta dónde llega la ventana; si no caben, la rejilla se desplaza
+   * por dentro. Es lo que hace cualquier Gantt y es lo que permite estrechar la rejilla sin tener
+   * que estrechar seis columnas una a una.
+   *
+   * `null` y no un número por omisión: guardar «lo que midan» como una cifra congelaría la posición
+   * del divisor la primera vez que alguien encendiera una columna.
+   */
+  readonly divisor: number | null
 }
 
 export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
@@ -125,6 +140,7 @@ export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
   rutaCritica: true,
   reserva: false,
   baseline: null,
+  divisor: null,
 })
 
 /** Ancho máximo que se admite al leer. Más allá el diagrama desaparece de la pantalla. */
@@ -158,9 +174,41 @@ export function columnasVisibles(preferencia: PreferenciaDelGantt): readonly Col
   return fija ? [fija, ...pedidas] : pedidas
 }
 
-/** Ancho total de la rejilla: es la posición del divisor entre la rejilla y la línea de tiempo. */
+/** Lo que ocupan las columnas puestas, sumadas. */
 export function anchoDeLaRejilla(preferencia: PreferenciaDelGantt): number {
   return columnasVisibles(preferencia).reduce((suma, columna) => suma + anchoDe(columna, preferencia.anchos), 0)
+}
+
+/** Menos que esto y no se lee ni el nombre, que es la columna del árbol. */
+export const DIVISOR_MINIMO = 180
+/** Más que esto y la línea de tiempo desaparece de la pantalla. */
+export const DIVISOR_MAXIMO = 900
+
+/**
+ * Dónde cae el divisor: lo guardado si es razonable, si no lo que ocupen las columnas.
+ *
+ * Se acota **al leer** y no al escribir, por lo mismo que los anchos de columna: lo guardado puede
+ * venir de otra pantalla, de otra versión del catálogo o de una edición a mano, y restaurarlo tal
+ * cual dejaría la vista inservible sin que quien la abre entienda por qué.
+ *
+ * El tope de arriba respeta además lo que ocupan las columnas: no tiene sentido dejar un hueco en
+ * blanco a la derecha de la última columna.
+ */
+export function posicionDelDivisor(preferencia: PreferenciaDelGantt): number {
+  const columnas = anchoDeLaRejilla(preferencia)
+  const guardado = preferencia.divisor
+  if (typeof guardado !== 'number' || !Number.isFinite(guardado)) return columnas
+  return Math.min(DIVISOR_MAXIMO, columnas, Math.max(DIVISOR_MINIMO, Math.round(guardado)))
+}
+
+/** Mueve el divisor. `null` lo devuelve a «lo que ocupen las columnas». */
+export function moverDivisor(
+  preferencia: PreferenciaDelGantt,
+  posicion: number | null,
+): PreferenciaDelGantt {
+  if (posicion === null) return { ...preferencia, divisor: null }
+  if (!Number.isFinite(posicion)) return preferencia
+  return { ...preferencia, divisor: Math.max(DIVISOR_MINIMO, Math.round(posicion)) }
 }
 
 /** Enciende o apaga una columna, conservando el orden del catálogo. */

@@ -205,9 +205,20 @@ export function dashboardMetrics(corte: CorteDelPanel): MetricasDelPanel {
     }))
     .sort((a, b) => (a.fecha === b.fecha ? a.nombre.localeCompare(b.nombre) : a.fecha.localeCompare(b.fecha)))
 
-  const atrasadas = lineas.filter((linea) =>
+  /**
+   * Atrasadas, **sobre las hojas**.
+   *
+   * Un resumen no tiene trabajo propio —esta misma función ya lo excluye del avance ponderado por
+   * eso— y contarlo atrasado sería contar dos veces el atraso de sus hijas. Además su fecha
+   * guardada es un dato rancio: la fecha de verdad de un resumen sale de sus hijas y la calcula el
+   * motor. Se vio midiendo: «Inicio: presentar y aprobar el plan de trabajo» tenía guardado un fin
+   * del 19 de junio mientras sus hijas llegaban al 6 de octubre, así que el Panel la contaba
+   * atrasada y el Gantt —que usa la fecha del motor— no. El §9.3 pide que las dos cifras coincidan
+   * **exactamente**, y coincidir por casualidad no es coincidir.
+   */
+  const atrasadas = hojas.filter((hoja) =>
     isOverdue(
-      { estimatedEndDate: linea.estimatedEndDate, status: linea.status, progressPct: linea.progressPct },
+      { estimatedEndDate: hoja.estimatedEndDate, status: hoja.status, progressPct: hoja.progressPct },
       hoyFecha,
     ),
   ).length

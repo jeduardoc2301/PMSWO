@@ -716,3 +716,49 @@ porque la numeración sale del orden entre hermanas.
 
 Todo lo que estas mediciones escribieron quedó devuelto: 1368 líneas, 1665 vínculos, cierre el
 2026-11-30, y las dos tarjetas que se movieron, en su columna.
+
+## §4.1 — el divisor entre la rejilla y la línea de tiempo
+
+El §4.1 lo pide arrastrable y guardado. Existía la posición pero era **derivada**: la suma de los
+anchos de columna. Estrechar la rejilla obligaba a estrechar seis columnas una a una.
+
+**Lo que evita el problema que el propio archivo avisaba.** Si el divisor fijara los anchos habría
+dos números que mantener de acuerdo y uno acabaría mintiendo. Aquí el divisor dice **cuánto se ve**
+y las columnas siguen mandando sobre cuánto miden: si no caben, la rejilla se desplaza por dentro.
+Es lo que hace cualquier Gantt, y son dos preguntas distintas, no dos respuestas a la misma.
+
+Se guarda `null` y no una cifra cuando está suelto: guardar «lo que midan» como número congelaría el
+divisor la primera vez que alguien encendiera una columna. Y se acota **al leer**, por lo mismo que
+los anchos: lo guardado puede venir de otra pantalla.
+
+Comprobado en pantalla, arrastrando con el ratón de verdad: 648 px → **448 px**, la rejilla pasa a
+desplazarse por dentro, se guarda 448, y tras recargar la página entera sigue en 448. El doble clic
+lo devuelve a 648 y guarda `null` — es la salida para quien lo estrechó de más, que si no tiene que
+arrastrar hacia atrás a ciegas.
+
+**Un fallo de medición que casi lo da por roto.** El primer arrastre no hizo nada: el tirador mide
+1372 px de alto y arranca fuera de la ventana, así que los eventos de ratón caían en el vacío. Se
+veía exactamente igual que «el divisor no funciona».
+
+## §9.3 C3 — una regresión encontrada al volver a medir
+
+Al comprobar otra cosa, el conmutador del Gantt decía **126** y el Panel **127**. La diferencia era
+una sola línea: «Inicio: presentar y aprobar el plan de trabajo», un resumen con el fin **guardado**
+en el 19 de junio mientras sus hijas llegan al 6 de octubre. El Panel la contaba atrasada con la
+fecha rancia; el Gantt no, porque usa la del motor.
+
+Arreglado por donde había que arreglarlo: **un resumen no se atrasa**. No tiene trabajo propio —el
+Panel ya lo excluía del avance ponderado por eso— y contarlo cuenta dos veces el atraso de sus
+hijas; en un plan de siete niveles, el mismo día de retraso se contaría siete veces.
+
+Y al hacerlo apareció, otra vez, el mismo patrón: **dos definiciones de «resumen»**. Escribí «es de
+clase RESUMEN» y el Panel dice «tiene hijas». No son lo mismo — en el plan de referencia hay catorce
+líneas marcadas RESUMEN de las que sí cuelga gente, y la clase declarada decide el gris, no la
+cuenta. Unificado en «tener hijas», que es lo que el Panel ya usaba.
+
+Las dos cifras dan ahora **113**, mismo conjunto, comparado línea a línea con el motor de verdad. Y
+esta vez coinciden por la regla: la definición es una sola.
+
+**De paso, una lección sobre medir.** La primera comparación decía 127 contra 113 y culpaba a mi
+cambio. No era eso: el guion de comparación calculaba el lado del Panel **por su cuenta**, con la
+regla vieja. Medía el código de ayer contra el de hoy y llamaba defecto a la diferencia.

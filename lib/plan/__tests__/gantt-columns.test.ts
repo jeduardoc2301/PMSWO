@@ -11,6 +11,9 @@ import {
   columnasVisibles,
   redimensionar,
   alternarReserva,
+  DIVISOR_MINIMO,
+  moverDivisor,
+  posicionDelDivisor,
 } from '../gantt-columns'
 
 /**
@@ -175,5 +178,56 @@ describe('El conmutador 3 del §4.6: ruta crítica y reserva', () => {
     expect(GANTT_POR_OMISION.rutaCritica).toBe(true)
     expect(GANTT_POR_OMISION.reserva).toBe(false)
     expect(GANTT_POR_OMISION.columnas).not.toContain('float')
+  })
+})
+
+describe('El divisor entre la rejilla y la línea de tiempo (§4.1)', () => {
+  it('sin nada guardado, cae donde acaban las columnas', () => {
+    // Es como se comportaba antes de que el divisor existiera: quien no lo toca no nota que existe.
+    expect(posicionDelDivisor(GANTT_POR_OMISION)).toBe(anchoDeLaRejilla(GANTT_POR_OMISION))
+  })
+
+  it('guardado, manda lo guardado', () => {
+    const estrecha = moverDivisor(GANTT_POR_OMISION, 300)
+    expect(posicionDelDivisor(estrecha)).toBe(300)
+  })
+
+  it('nunca por debajo del mínimo: sin el nombre la rejilla deja de ser un esquema', () => {
+    const imposible = moverDivisor(GANTT_POR_OMISION, 20)
+    expect(posicionDelDivisor(imposible)).toBe(DIVISOR_MINIMO)
+  })
+
+  it('ni más allá de donde acaban las columnas', () => {
+    // Dejar hueco en blanco a la derecha de la última columna no es más rejilla, es menos diagrama.
+    const exagerada = moverDivisor(GANTT_POR_OMISION, 5000)
+    expect(posicionDelDivisor(exagerada)).toBe(anchoDeLaRejilla(GANTT_POR_OMISION))
+  })
+
+  it('se acota al leer, no al escribir', () => {
+    // Lo guardado puede venir de otra pantalla o de otra versión del catálogo; restaurarlo tal cual
+    // dejaría la vista inservible. Guardado queda lo que se pidió, acotado sale lo que se dibuja.
+    const exagerada = moverDivisor(GANTT_POR_OMISION, 5000)
+    expect(exagerada.divisor).toBe(5000)
+    expect(posicionDelDivisor(exagerada)).toBeLessThan(5000)
+  })
+
+  it('volver a «lo que ocupen las columnas» es una elección, no un olvido', () => {
+    const estrecha = moverDivisor(GANTT_POR_OMISION, 300)
+    expect(moverDivisor(estrecha, null).divisor).toBeNull()
+    expect(posicionDelDivisor(moverDivisor(estrecha, null))).toBe(anchoDeLaRejilla(GANTT_POR_OMISION))
+  })
+
+  it('encender una columna con el divisor suelto lo mueve; con el divisor puesto, no', () => {
+    // Es la razón de que `null` no se guarde como una cifra: congelaría la posición la primera vez
+    // que alguien encendiera una columna.
+    const conEdt = alternarColumna(GANTT_POR_OMISION, 'wbs')
+    expect(posicionDelDivisor(conEdt)).toBeGreaterThan(posicionDelDivisor(GANTT_POR_OMISION))
+
+    const fijado = moverDivisor(conEdt, 300)
+    expect(posicionDelDivisor(alternarColumna(fijado, 'kind'))).toBe(300)
+  })
+
+  it('un valor imposible no mueve nada', () => {
+    expect(moverDivisor(GANTT_POR_OMISION, Number.NaN)).toEqual(GANTT_POR_OMISION)
   })
 })

@@ -698,3 +698,32 @@ describe('Atrasada quiere decir lo mismo que en el Panel (§9.3 C3)', () => {
       .toBe(false)
   })
 })
+
+describe('Un resumen no se atrasa (§9.3 C3)', () => {
+  const HOY = '2026-07-01'
+
+  it('la madre no cuenta, la hija sí', () => {
+    // Su retraso es el de sus hijas: contarlo sería contar el mismo día dos veces, y en un plan de
+    // siete niveles, siete.
+    const filas = trazar(
+      [
+        { id: 'R', name: 'La etapa', duration: 3 },
+        { id: 'A', name: 'Su hija', duration: 3, parentId: 'R' },
+      ],
+      [],
+      { hoy: HOY },
+    ).rows
+    const atrasadas = filas.filter((f) => f.atrasada).map((f) => f.id)
+    expect(atrasadas).toEqual(['A'])
+  })
+
+  it('una marcada RESUMEN sin hijas sí se atrasa', () => {
+    // «Resumen» es tener hijas, no la clase declarada — que es lo que decide el gris. Una sin hijas
+    // no tiene de quién heredar nada: sus fechas son suyas.
+    const filas = trazar([{ id: 'R', name: 'Sin hijas', duration: 3, kind: 'RESUMEN' }], [], { hoy: HOY })
+      .rows
+    expect(filas[0]!.atrasada).toBe(true)
+    // Y sigue dibujándose como resumen, que es otra pregunta.
+    expect(filas[0]!.isSummary).toBe(true)
+  })
+})

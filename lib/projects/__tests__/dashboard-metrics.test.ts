@@ -159,13 +159,18 @@ describe('§9.1.2 · el widget de tareas', () => {
 
 describe('§9.3 · «atrasadas» sale del mismo predicado que resalta la lista', () => {
   it('cuenta las que ya vencieron y no están terminadas', () => {
-    // Al 8 de junio: R1 venció el día 5 al 0.8, y H1 venció el día 5 al 0. A venció pero está DONE.
-    expect(dashboardMetrics(corte()).tareas.atrasadas).toBe(2)
+    // Al 8 de junio: H1 venció el día 5 al 0. A venció pero está DONE. R1 también venció al 0.8,
+    // pero es el resumen de A y B: su atraso es el de sus hijas y contarlo sería contarlo dos
+    // veces. Por eso es una y no dos.
+    expect(dashboardMetrics(corte()).tareas.atrasadas).toBe(1)
   })
 
   it('es literalmente la misma función, no una copia de la regla', () => {
     const hoy = new Date('2026-06-08T00:00:00')
-    const aMano = PLAN.filter((l) =>
+    // Sobre las hojas, igual que la función: el predicado es el mismo, y el conjunto al que se
+    // aplica también tiene que serlo o la comparación no compara nada.
+    const madres = new Set(PLAN.map((l) => l.parentId).filter(Boolean))
+    const aMano = PLAN.filter((l) => !madres.has(l.id)).filter((l) =>
       isOverdue(
         { estimatedEndDate: l.estimatedEndDate, status: l.status, progressPct: l.progressPct },
         hoy,
@@ -290,5 +295,27 @@ describe('§9.3 · rendimiento', () => {
 
     expect(metricas.tareas.total).toBe(5000)
     expect(tardanza).toBeLessThan(500)
+  })
+})
+
+describe('«Atrasadas» no cuenta los resúmenes (§9.3 C3)', () => {
+  it('un resumen vencido no suma', () => {
+    // Un resumen no tiene trabajo propio —esta misma función ya lo excluye del avance ponderado— y
+    // contarlo atrasado cuenta dos veces el atraso de sus hijas. En un plan de siete niveles, el
+    // mismo día de retraso se contaría siete veces.
+    const plan = [
+      linea({ id: 'R', title: 'La etapa', kind: 'RESUMEN', estimatedEndDate: '2026-06-05' }),
+      linea({ id: 'A', title: 'Su hija', parentId: 'R', estimatedEndDate: '2026-06-05', progressPct: 0 }),
+    ]
+    const metricas = dashboardMetrics(corte({ lineas: plan, hoy: '2026-06-30' }))
+    expect(metricas.tareas.atrasadas).toBe(1)
+  })
+
+  it('y una línea marcada RESUMEN de la que no cuelga nadie sí suma', () => {
+    // «Resumen» es tener hijas, no la clase declarada. Una sin hijas no tiene de quién heredar
+    // nada: sus fechas son suyas y su atraso es real. Descartarla por la clase la borraría de la
+    // cuenta sin que nadie la echara de menos.
+    const plan = [linea({ id: 'R', title: 'Marcada resumen, sin hijas', kind: 'RESUMEN', estimatedEndDate: '2026-06-05' })]
+    expect(dashboardMetrics(corte({ lineas: plan, hoy: '2026-06-30' })).tareas.atrasadas).toBe(1)
   })
 })

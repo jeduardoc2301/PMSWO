@@ -39,6 +39,13 @@ export interface GanttChartProps {
   readonly columnas?: readonly ColumnaDelGantt[]
   /** Anchos tocados a mano, por identificador. */
   readonly anchos?: Readonly<Record<string, number>>
+  /**
+   * Dónde cae el divisor entre la rejilla y la línea de tiempo (§4.1). Si no llega, la rejilla
+   * ocupa lo que ocupen sus columnas, que es como se comportaba antes de que el divisor existiera.
+   */
+  readonly divisor?: number
+  /** Al soltar el divisor. Llega la posición nueva en píxeles. */
+  readonly onDivisorCambiado?: (posicion: number) => void
   /** Al soltar el divisor de una columna. Sin esto, las columnas no se pueden redimensionar. */
   readonly onAnchoCambiado?: (id: string, ancho: number) => void
   readonly selectedId?: string | null
@@ -188,13 +195,18 @@ export function GanttChart({
   onMarcar,
   onToggle,
   onMoverLinea,
+  divisor,
+  onDivisorCambiado,
 }: GanttChartProps) {
   const width = Math.max(layout.span, 1) * dayWidth
   const height = layout.rows.length * rowHeight
 
-  // El ancho de la rejilla es la posición del divisor: no hay dos números que mantener de acuerdo.
   const anchoPorColumna = columnas.map((columna) => anchoDe(columna, anchos))
-  const anchoDeLaRejilla = anchoPorColumna.reduce((suma, a) => suma + a, 0)
+  // Lo que ocupan las columnas y lo que se ve de ellas son dos cosas distintas: la primera la
+  // deciden las columnas, la segunda el divisor. Sin divisor puesto coinciden, que es como se
+  // comportaba esto antes.
+  const anchoDeLasColumnas = anchoPorColumna.reduce((suma, a) => suma + a, 0)
+  const anchoDeLaRejilla = Math.min(divisor ?? anchoDeLasColumnas, anchoDeLasColumnas)
 
   /**
    * Sólo se dibujan las filas que caen dentro de la caja.
@@ -245,12 +257,17 @@ export function GanttChart({
               mitad del plan las barras quedaban sin nombre. */}
           <div
             data-testid="gantt-rejilla"
-            className="sticky left-0 z-20 shrink-0 border-r border-zinc-800 bg-[#18181b]"
+            // `overflow-x-auto` sólo cuando el divisor recorta: con la rejilla entera a la vista una
+            // barra de desplazamiento que no desplaza nada es ruido, y en algunos navegadores roba
+            // altura a la última fila.
+            className={`sticky left-0 z-20 shrink-0 border-r border-zinc-800 bg-[#18181b] ${
+              anchoDeLaRejilla < anchoDeLasColumnas ? 'overflow-x-auto' : ''
+            }`}
             style={{ width: anchoDeLaRejilla }}
           >
             <div
               className="sticky top-0 z-10 flex border-b border-zinc-800 bg-[#18181b] text-xs uppercase tracking-wide text-zinc-400"
-              style={{ height: rowHeight }}
+              style={{ height: rowHeight, width: anchoDeLasColumnas }}
             >
               {marcadas !== undefined ? <div className="w-8 shrink-0" aria-hidden /> : null}
               {columnas.map((columna, i) => (
@@ -271,7 +288,10 @@ export function GanttChart({
                 </div>
               ))}
             </div>
-            <div className="relative" style={{ height }}>
+            {onDivisorCambiado ? (
+              <TiradorDelDivisor ancho={anchoDeLaRejilla} onSoltar={onDivisorCambiado} />
+            ) : null}
+            <div className="relative" style={{ height, width: anchoDeLasColumnas }}>
               {visibles.map((row, k) => (
                 <div
                   key={row.id}
@@ -316,7 +336,10 @@ export function GanttChart({
                       : undefined
                   }
                   className={`absolute left-0 flex ${row.id === selectedId ? 'bg-zinc-800/60' : ''}`}
-                  style={{ top: (primera + k) * rowHeight, width: anchoDeLaRejilla }}
+                  // Las filas miden lo que miden las columnas, no lo que se ve: si midieran la
+                  // ventana, al desplazar la rejilla por dentro el fondo de la fila seleccionada se
+                  // quedaría corto y la fila parecería partida.
+                  style={{ top: (primera + k) * rowHeight, width: anchoDeLasColumnas }}
                 >
                   {marcadas !== undefined && onMarcar !== undefined ? (
                     <div className="flex w-8 shrink-0 items-center justify-center border-b border-zinc-800">
@@ -732,6 +755,62 @@ function Bar({
  * dispararía una escritura de preferencias por movimiento de ratón. Es la misma razón por la que la
  * barra del Gantt tampoco pasa por el estado hasta que se suelta.
  */
+/**
+ * El divisor entre la rejilla y la línea de tiempo (§4.1).
+ *
+ * Va `sticky` dentro del panel de la rejilla y no `absolute`: si fuera absoluto se iría con el
+ * desplazamiento horizontal de dentro y a mitad de las columnas quedaría flotando encima de una de
+ * ellas, que es justo lo que un divisor no puede hacer.
+ *
+ * Doble clic lo devuelve a «lo que ocupen las columnas». Es la salida para quien lo arrastró
+ * demasiado: sin ella, estrechar la rejilla de más obliga a arrastrar hacia atrás a ciegas.
+ */
+function TiradorDelDivisor({
+  ancho,
+  onSoltar,
+}: {
+  ancho: number
+  onSoltar: (posicion: number) => void
+}) {
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Ancho de la rejilla"
+      data-testid="tirador-divisor"
+      title="Arrastra para estrechar la rejilla · doble clic para ajustarla a las columnas"
+      onDoubleClick={() => onSoltar(0)}
+      onPointerDown={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const tirador = e.currentTarget
+        const xInicial = e.clientX
+        let nuevo = ancho
+        tirador.setPointerCapture(e.pointerId)
+
+        const alMover = (ev: PointerEvent) => {
+          nuevo = ancho + (ev.clientX - xInicial)
+          tirador.style.transform = `translateX(${nuevo - ancho}px)`
+        }
+        const alSoltar = (ev: PointerEvent) => {
+          tirador.releasePointerCapture(ev.pointerId)
+          tirador.removeEventListener('pointermove', alMover)
+          tirador.removeEventListener('pointerup', alSoltar)
+          tirador.removeEventListener('pointercancel', alSoltar)
+          tirador.style.transform = ''
+          // Sólo al soltar, y sólo si de verdad se movió: escribir en cada `pointermove` mandaría
+          // una petición por píxel.
+          if (ev.type === 'pointerup' && Math.round(nuevo) !== Math.round(ancho)) onSoltar(nuevo)
+        }
+        tirador.addEventListener('pointermove', alMover)
+        tirador.addEventListener('pointerup', alSoltar)
+        tirador.addEventListener('pointercancel', alSoltar)
+      }}
+      className="sticky right-0 top-0 z-30 float-right h-full w-2 cursor-col-resize touch-none bg-transparent hover:bg-[#6366f1]/70"
+    />
+  )
+}
+
 function TiradorDeColumna({
   columna,
   ancho,
