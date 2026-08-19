@@ -14,6 +14,7 @@ import {
 } from '@/lib/projects/list-totals'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
+import { fechaCorta } from '@/lib/formato-fecha'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
 import {
   DndContext,
@@ -50,31 +51,30 @@ const PRIORITY_STYLE: Record<WorkItemPriority, React.CSSProperties> = {
 }
 
 /**
- * El formateador, creado una sola vez.
- *
- * `toLocaleDateString` con opciones construye un `Intl.DateTimeFormat` **en cada llamada**, y eso
- * cuesta. Con la lista virtualizada salió en el perfil de CPU como la función más cara del
- * desplazamiento: 623 ms de 2788 — más que todo React junto. Se llama dos veces por fila y una vez
- * por renderizado, y con el desplazamiento eso son miles de construcciones por segundo.
- */
-const FORMATO_DE_FECHA = new Intl.DateTimeFormat('es-ES', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-})
-
-/**
  * Lo ya formateado, por cadena de fecha.
  *
  * Las mismas fechas vuelven a pasar en cada renderizado, y una cadena ISO siempre da el mismo texto.
+ * Aquí había un `Intl.DateTimeFormat` construido una sola vez, porque `toLocaleDateString` con
+ * opciones construye uno **en cada llamada** y salió en el perfil de CPU como la función más cara
+ * del desplazamiento: 623 ms de 2788, más que todo React junto. El formateador se fue entero: partir
+ * una cadena no cuesta nada y, sobre todo, no tiene huso. La caché se queda porque sigue ahorrando
+ * miles de llamadas por segundo con la lista virtualizada.
  */
 const FECHAS_VISTAS = new Map<string, string>()
 
+/**
+ * Enseña la fecha civil que guardó la base, sin pasarla por el reloj de quien mira.
+ *
+ * Antes era `new Date(date)` formateado en local, y eso **cambiaba el día**: la misma línea decía
+ * «Del 2026-06-12 al 2026-06-18» en el panel del Gantt —fechas del motor, que trabaja en ordinales
+ * de día hábil— y «11/06/2026 — 17/06/2026» aquí, porque la medianoche UTC es la tarde anterior en
+ * Bolivia. Dos vistas del mismo proyecto, un día de diferencia, las dos verosímiles.
+ */
 const formatDate = (date?: string) => {
   if (!date) return '—'
   const recordado = FECHAS_VISTAS.get(date)
   if (recordado !== undefined) return recordado
-  const texto = FORMATO_DE_FECHA.format(new Date(date))
+  const texto = fechaCorta(date) ?? '—'
   // Un plan grande tiene unos cientos de fechas distintas; el tope evita que esto crezca sin fin
   // en una sesión larga que abra muchos proyectos.
   if (FECHAS_VISTAS.size < 4096) FECHAS_VISTAS.set(date, texto)
