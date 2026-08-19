@@ -131,6 +131,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null)
   const [tacticalMetrics, setTacticalMetrics] = useState<TacticalMetrics | null>(null)
   const [kanbanBoard, setKanbanBoard] = useState<KanbanBoardType | null>(null)
+  /** Sube cada vez que hay que volver a pedir el plan: deshacer, rehacer, un lote (§10.6). */
+  const [planRecargado, setPlanRecargado] = useState(0)
 
   // ── El filtro unificado (§10.2) ───────────────────────────────────────────────────────────────
   // Vive aquí, en el proyecto, y no dentro de cada vista: es lo que hace que filtrar en el Tablero
@@ -331,6 +333,11 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         }
       }
     }
+    // Y el Gantt también. Hasta aquí se recargaban el tablero y las métricas y el plan no: deshacer
+    // un movimiento dejaba la barra donde estaba, y había que cambiar de pestaña para verlo. Una
+    // pantalla que dice «deshecho» y no se mueve hace dudar de si se deshizo.
+    setPlanRecargado((n) => n + 1)
+
     // Se recarga desde la base y no se parchea en local: deshacer toca el acoplamiento
     // estado↔avance y la fecha de término, y un eco local se quedaría corto.
     const kanbanRes = await fetch(`/api/v1/projects/${projectId}/kanban`)
@@ -951,6 +958,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'gantt' && (
               <PlanTab
                 projectId={projectId}
+                onOperacion={undo.apuntar}
+                recargar={planRecargado}
                 onReprogramado={(operacion) =>
                   undo.apuntar({
                     etiqueta: operacion.etiqueta,

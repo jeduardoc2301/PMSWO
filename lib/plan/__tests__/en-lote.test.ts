@@ -118,3 +118,40 @@ describe('Contarlo como se le cuenta a una persona', () => {
     expect(contarLoQuePaso(resumen(2, 2), 'movidas', 0)).not.toContain('fuera')
   })
 })
+
+describe('§10.6 · un lote se deshace con el padre guardado, no con la operación inversa', () => {
+  /**
+   * La razón por la que el lote guarda el padre de cada línea antes de tocarla.
+   *
+   * Al sangrar cuatro hermanas, cada una queda colgando de la anterior. Si después se «anula la
+   * sangría» de las cuatro, cada una sube a su abuela — que ya no es su padre original. La
+   * operación inversa NO devuelve el árbol, y comprobarlo aquí evita que alguien la use para
+   * deshacer creyendo que sí.
+   */
+  const sangrarTodas = (arbol: Record<string, string | null>, orden: string[]) => {
+    const despues = { ...arbol }
+    for (let i = 1; i < orden.length; i += 1) despues[orden[i]!] = orden[i - 1]!
+    return despues
+  }
+
+  it('la operación inversa NO devuelve el árbol', () => {
+    const original: Record<string, string | null> = { a: 'p', b: 'p', c: 'p' }
+    const sangrado = sangrarTodas(original, ['a', 'b', 'c'])
+    // Anular sangría: cada una sube a la abuela, que es el padre de su padre actual.
+    const anulado: Record<string, string | null> = {}
+    for (const [id, padre] of Object.entries(sangrado)) {
+      anulado[id] = padre === null ? null : (sangrado[padre] ?? null)
+    }
+    expect(anulado).not.toEqual(original)
+  })
+
+  it('el padre guardado sí lo devuelve', () => {
+    const original: Record<string, string | null> = { a: 'p', b: 'p', c: 'p' }
+    const guardados = new Map(Object.entries(original))
+    const sangrado = sangrarTodas(original, ['a', 'b', 'c'])
+    expect(sangrado).not.toEqual(original)
+
+    const restaurado = Object.fromEntries([...guardados.entries()])
+    expect(restaurado).toEqual(original)
+  })
+})

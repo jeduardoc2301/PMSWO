@@ -33,6 +33,7 @@ import { hoyCivil } from '@/lib/formato-fecha'
 import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
 import { RowContextMenu } from '@/components/plan/row-context-menu'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
+import { type Operacion } from '@/lib/projects/undo-stack'
 import { aplicarEnLote, contarLoQuePaso } from '@/lib/plan/en-lote'
 import { nuevoPadreAlAnular, nuevoPadreAlSangrar } from '@/lib/plan/jerarquia'
 import {
@@ -121,6 +122,14 @@ export interface PlanWorkspaceProps {
    * una, se borró otra. Quien monta el Gantt vuelve a pedirlo.
    */
   readonly onPlanCambiado?: () => void
+  /**
+   * Una operación ya escrita, con lo necesario para deshacerla (§10.6).
+   *
+   * Va aparte de `onReprogramado` porque aquella habla de fechas y esta de cualquier campo. Una
+   * operación en lote que mueve doce líneas en el árbol se deshace igual que una que mueve una: con
+   * el antes y el después de cada una.
+   */
+  readonly onOperacion?: (operacion: Operacion) => void
 }
 
 /** Las cuatro columnas que una reprogramación toca en una línea. */
@@ -171,6 +180,7 @@ export function PlanWorkspace({
   ausencias,
   onReprogramado,
   onPlanCambiado,
+  onOperacion,
 }: PlanWorkspaceProps) {
   /**
    * Lo que se guarda por usuario: columnas, anchos, escala, nivel y flechas (§4.8, criterio 8).
@@ -450,6 +460,15 @@ export function PlanWorkspace({
     setResultadoDelLote(null)
     setEnCurso({ hechas: 0, total: ids.length })
 
+    // El padre de cada línea ANTES del lote. Sin esto no hay forma de deshacerlo: un sangrado en
+    // lote no se deshace con un anulado en lote, porque al sangrar cuatro hermanas cada una queda
+    // colgando de la anterior, y al anular cada una subiría a una abuela que ya no es su padre
+    // original. Lo único que devuelve el árbol es el padre de cada una, guardado.
+    const padresOriginales = new Map(
+      ids.map((id) => [id, tasks.find((t) => t.id === id)?.parentId ?? null] as const),
+    )
+    const movidas: { id: string; antes: string | null; despues: string | null }[] = []
+
     const resumen = await aplicarEnLote(
       ids,
       async (id) => {
@@ -469,9 +488,20 @@ export function PlanWorkspace({
           const cuerpo = await r.json().catch(() => ({}))
           throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
         }
+        // Solo se apunta lo que de verdad se escribió: apuntar una línea que falló haría que
+        // deshacer intentara devolver algo que nunca se movió.
+        movidas.push({ id, antes: padresOriginales.get(id) ?? null, despues: destino ?? null })
       },
       (hechas, total) => setEnCurso({ hechas, total }),
     )
+
+    if (movidas.length > 0) {
+      onOperacion?.({
+        etiqueta: `${haciaDentro ? 'Sangrar' : 'Anular sangría de'} ${movidas.length} ${movidas.length === 1 ? 'línea' : 'líneas'}`,
+        hacer: movidas.map((m) => ({ workItemId: m.id, campos: { parentId: m.despues } })),
+        deshacer: movidas.map((m) => ({ workItemId: m.id, campos: { parentId: m.antes } })),
+      })
+    }
 
     setEnCurso(null)
     setResultadoDelLote(contarLoQuePaso(resumen, haciaDentro ? 'sangradas' : 'movidas', alcance.fueraDeLaVista))

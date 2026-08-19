@@ -18,6 +18,7 @@ import React, { useEffect, useState } from 'react'
 
 import { type OperacionDeReprogramacion, PlanWorkspace } from '@/components/plan/plan-workspace'
 import { type RangoDeAusencia } from '@/lib/scheduling/availability'
+import { type Operacion } from '@/lib/projects/undo-stack'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
@@ -54,13 +55,29 @@ export interface PlanTabProps {
    * 394 líneas tiene que poder revertirse con Ctrl+Z como cualquier otra (§4.8, §10.6).
    */
   readonly onReprogramado?: (operacion: OperacionDeReprogramacion) => void
+  /** Una operación cualquiera ya escrita, para la pila de deshacer (§10.6). */
+  readonly onOperacion?: (operacion: Operacion) => void
+  /**
+   * Señal para volver a pedir el plan: cualquier número distinto del anterior lo recarga.
+   *
+   * Es un número y no un booleano porque hacen falta varias recargas seguidas —deshacer, rehacer,
+   * deshacer— y un booleano solo distingue la primera.
+   */
+  readonly recargar?: number
   /** La barra del filtro unificado (§10.2). */
   readonly barraDeFiltro?: React.ReactNode
   /** Los ids que pasan ese filtro, o `undefined` si no hay ninguno puesto. */
   readonly idsVisibles?: ReadonlySet<string>
 }
 
-export function PlanTab({ projectId, barraDeFiltro, idsVisibles, onReprogramado }: PlanTabProps) {
+export function PlanTab({
+  projectId,
+  barraDeFiltro,
+  idsVisibles,
+  onReprogramado,
+  onOperacion,
+  recargar,
+}: PlanTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   /**
    * Cambia cuando hay que volver a pedir el plan.
@@ -69,6 +86,18 @@ export function PlanTab({ projectId, barraDeFiltro, idsVisibles, onReprogramado 
    * ellas. Es un número y no un booleano porque hay que poder recargar dos veces seguidas.
    */
   const [version, setVersion] = useState(0)
+
+  /**
+   * Volver a pedir el plan cuando algo de fuera lo cambió (§10.6).
+   *
+   * Hasta aquí, tras un Ctrl+Z el tablero y las métricas se recargaban y el Gantt no: deshacer un
+   * movimiento dejaba la barra donde estaba y había que cambiar de pestaña para verlo. Una pantalla
+   * que dice «deshecho» y no se mueve hace dudar de si se deshizo.
+   */
+  useEffect(() => {
+    if (recargar === undefined || recargar === 0) return
+    setVersion((v) => v + 1)
+  }, [recargar])
 
   useEffect(() => {
     let vigente = true
@@ -124,6 +153,7 @@ export function PlanTab({ projectId, barraDeFiltro, idsVisibles, onReprogramado 
     <PlanWorkspace
       projectId={projectId}
       onPlanCambiado={() => setVersion((v) => v + 1)}
+      onOperacion={onOperacion}
       onReprogramado={(operacion) => {
         setVersion((v) => v + 1)
         onReprogramado?.(operacion)
