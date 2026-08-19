@@ -324,3 +324,68 @@ Ahora dice «1 línea más es un resumen: no tiene trabajo propio».
 **Una comprobación mía que estaba mal.** Exigía que las fracciones del reparto sumaran 1 exacto;
 4/7+1/7+2/7 en binario da 0,9999999999999999. Corregida con tolerancia: era una prueba sobre la coma
 flotante, no sobre el reparto.
+
+## §9.3 C6 — legibles en claro y oscuro, y sin depender sólo del color
+
+**La mitad que sí se cierra: no depender sólo del color.** Cada rebanada del embudo lleva su nombre
+y su cifra escritos al lado —«Por hacer 4 · 57 %», «En curso 1 · 14 %»—, `BLOQUEADA` sale siempre
+con su icono y su nombre, y cada widget de gráfico ofrece «Ver tabla». El color es un canal de
+apoyo, no el canal.
+
+**La mitad que no se cierra: el modo claro no existe.** No es un olvido del §9: la aplicación entera
+está escrita en oscuro, con los colores puestos a mano en cada componente (`zinc-800`, `#18181b`) y
+sin variables de tema. Es la brecha 28 de esta auditoría y es una decisión de producto, no una
+tarea de este criterio.
+
+Y hay una razón técnica para no fingir que se arregla con un interruptor. La rampa azul está
+comprobada contra la superficie oscura de la tarjeta; medida contra blanco se cae:
+
+| paso | sobre `#18181b` | sobre blanco |
+|---|---|---|
+| Pendiente `#b7d3f6` | 11,53:1 | **1,54:1** |
+| Por hacer `#6da7ec` | 7,08:1 | **2,50:1** |
+| En curso `#2a78d6` | 4,01:1 | 4,42:1 |
+| Terminada `#184f95` | 2,19:1 | 8,10:1 |
+
+Los dos pasos claros quedan por debajo de 3:1 sobre blanco: sobre papel blanco el «Pendiente» es
+casi invisible. Un modo claro no es dar la vuelta a los colores, son **sus propios pasos del mismo
+tono**, comprobados contra su propia superficie. Calculados ya, por si la decisión se toma:
+
+| paso | color | sobre blanco | separación con el anterior |
+|---|---|---|---|
+| Pendiente | `#5492de` | 3,21:1 | — |
+| Por hacer | `#2875d2` | 4,60:1 | 1,43:1 |
+| En curso | `#1f59a0` | 7,01:1 | 1,52:1 |
+| Terminada | `#164072` | 10,45:1 | 1,49:1 |
+
+Mismo tono (h=0,591) y misma saturación que la rampa oscura, luminosidad monótona y ningún paso por
+debajo de 3:1. Queda escrito aquí y no en el código: una segunda rampa exportada que nadie usa es
+código muerto, y el interruptor que la usaría es lo que hay que decidir primero.
+
+## §9.3 C5 — carga con 5 000 tareas
+
+`scripts/panel-cinco-mil.ts` crea 5 000 líneas de verdad en la base local —diez por resumen, una de
+cada cincuenta es hito: la misma forma que usa la prueba de unidad— y las borra cuando se le pide.
+
+Medido con la ruta ya compilada, para que el número sea el coste de las 5 000 líneas y no el de
+Turbopack compilando la pantalla la primera vez:
+
+| | dos muestras | mediana |
+|---|---|---|
+| servidor (consulta + servicio) | 459-576 ms · 513-580 ms | **516 y 534 ms** |
+| pantalla (de pulsar la pestaña a widgets dibujados) | | **1 207 y 1 166 ms** |
+
+Por debajo de los dos segundos. Y el número está medido sobre el servidor de **desarrollo**, que es
+cota superior: el React de desarrollo no está minificado y hace el doble de dibujado, así que en
+producción sale por debajo. Lo que se ve: 4 500 líneas de trabajo, 500 resúmenes, el embudo con sus
+cinco rebanadas y el avance ponderado al 55,2 %.
+
+**Por qué no se midió sobre producción, que era lo suyo.** La compilación sale bien —con
+`--use-service-ca` para el proxy TLS de la máquina, y con `localhost:3307` horneado, cero RDS
+comprobado— pero la sesión del navegador no sobrevive al cambio de servidor y `next start` deja la
+pantalla en la de entrar. Como la cota superior ya cumple el criterio, no valía la pena dar más
+vueltas; queda anotado por si alguna medición futura necesita producción de verdad.
+
+**Una advertencia para la próxima vez.** `next build` borra el `.next` que el servidor de desarrollo
+está usando: si hay uno levantado, se queda sirviendo 500 hasta que se reinicia. No es un fallo del
+producto, pero cuesta veinte minutos de despiste.
