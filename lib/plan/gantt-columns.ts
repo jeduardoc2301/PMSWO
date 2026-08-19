@@ -103,6 +103,16 @@ export interface PreferenciaDelGantt {
    * y no se podía leer. El §4.6 las trata como **una sola** elección, y aquí van juntas.
    */
   readonly reserva: boolean
+  /**
+   * Qué línea base se está comparando, o `null` si ninguna (§4.6 conmutador 4; `toggles.baseline`
+   * del §10.4, que en su ejemplo guarda un identificador: `"baseline": "bl_123"`).
+   *
+   * Se guarda el identificador y no las fechas: las fechas de una foto no cambian, pero la foto
+   * puede borrarse, y guardar una copia daría una comparación contra algo que ya no existe. Si el
+   * identificador guardado ya no está, la pantalla se queda sin comparación —que es lo correcto—
+   * en vez de enseñar una que nadie puede reproducir.
+   */
+  readonly baseline: string | null
 }
 
 export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
@@ -114,6 +124,7 @@ export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
   atrasadas: false,
   rutaCritica: true,
   reserva: false,
+  baseline: null,
 })
 
 /** Ancho máximo que se admite al leer. Más allá el diagrama desaparece de la pantalla. */

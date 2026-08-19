@@ -590,3 +590,26 @@ leer. Ahora las dos mitades arrancan de acuerdo.
 
 Comprobado en pantalla de punta a punta: estado limpio → apagar la ruta crítica → encender la
 reserva → recargar la página entera → las dos elecciones siguen puestas.
+
+## §4.6 conmutador 4 — la línea base elegida se recuerda
+
+El desplegable ya existía entero —«Tomar una foto del plan de hoy», «Ninguna», y la lista de fotos
+con radio— pero la elección arrancaba en blanco en cada visita. Quien compara contra una foto para
+leer el desvío tenía que volver a elegirla cada vez.
+
+Ahora vive en la preferencia (`toggles.baseline` del §10.4, que en su ejemplo guarda un
+identificador). Comprobado en pantalla: elegir «Plan comprometido con el banco» → recargar la página
+entera → el botón dice «Línea base: Plan comprometido con el banco» y **se dibujan las 27 barras de
+la foto** con su desvío. Restaurar el rótulo sin restaurar la comparación habría sido medio arreglo,
+y por eso se contaron las barras y no el texto.
+
+Se guarda el **identificador** y no las fechas. Las fechas de una foto no cambian, pero la foto puede
+borrarse: guardar una copia daría una comparación contra algo que ya no existe, y nadie podría
+reproducirla. Si el identificador guardado desaparece, la pantalla se queda sin comparación, que es
+lo correcto.
+
+El esquema lo declara `nullable` **y** `optional`, y no son lo mismo: `null` es «ninguna», que es una
+elección explícita que hay que poder guardar; ausente es «esta preferencia se guardó antes de que el
+campo existiera».
+
+Con esto los cuatro conmutadores del §4.6 existen y los cuatro se recuerdan.

@@ -212,7 +212,10 @@ export function PlanWorkspace({
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
   const [aplicando, setAplicando] = useState(false)
   const [fotos, setFotos] = useState<readonly LineaBaseGuardada[]>([])
-  const [fotoActiva, setFotoActiva] = useState<string | null>(null)
+  // Vive en la preferencia (§10.4): quien compara contra una foto para leer el desvío no quiere
+  // volver a elegirla en cada visita.
+  const fotoActiva = preferencia.baseline
+  const setFotoActiva = (id: string | null) => setPreferencia((p) => ({ ...p, baseline: id }))
   const [creandoFoto, setCreandoFoto] = useState(false)
   /** Las fechas que guardó la foto activa, por línea. Vacío mientras no haya ninguna puesta. */
   const [fechasDeLaFoto, setFechasDeLaFoto] = useState<ReadonlyMap<string, { start: string; finish: string }>>(new Map())

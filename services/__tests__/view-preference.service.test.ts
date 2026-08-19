@@ -195,3 +195,37 @@ describe('Las dos preferencias que el spec llama por su nombre', () => {
     ).not.toThrow()
   })
 })
+
+describe('La línea base activa (§4.6 conmutador 4, «toggles.baseline» del §10.4)', () => {
+  const GANTT_BASE = {
+    columnas: ['name'],
+    anchos: {},
+    escala: 'MES',
+    nivel: 1,
+    flechas: 'SELECCION',
+  }
+
+  it('guarda el identificador de la foto que se compara', () => {
+    const puesto = validarPreferencia('GANTT', { ...GANTT_BASE, baseline: 'bl_123' }) as {
+      baseline: string | null
+    }
+    expect(puesto.baseline).toBe('bl_123')
+  })
+
+  it('«ninguna» es una elección y se guarda como null', () => {
+    // Si `null` no valiera, quitar la comparación no se podría guardar y la foto volvería sola.
+    const ninguna = validarPreferencia('GANTT', { ...GANTT_BASE, baseline: null }) as {
+      baseline: string | null
+    }
+    expect(ninguna.baseline).toBeNull()
+  })
+
+  it('y una preferencia de antes del campo sigue valiendo', () => {
+    expect(() => validarPreferencia('GANTT', GANTT_BASE)).not.toThrow()
+  })
+
+  it('un identificador que no es texto se rechaza', () => {
+    // Guardar un número aquí daría una comparación contra una foto que no existe.
+    expect(() => validarPreferencia('GANTT', { ...GANTT_BASE, baseline: 7 })).toThrow()
+  })
+})

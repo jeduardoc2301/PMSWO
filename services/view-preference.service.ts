@@ -48,6 +48,9 @@ const esquemaDelGantt = z.object({
   atrasadas: z.boolean().optional(),
   rutaCritica: z.boolean().optional(),
   reserva: z.boolean().optional(),
+  // El identificador de la foto que se compara, o null. `nullable` **y** `optional`: null es
+  // «ninguna», que es una elección; ausente es «esta preferencia se guardó antes del campo».
+  baseline: z.string().nullable().optional(),
 })
 
 /**
