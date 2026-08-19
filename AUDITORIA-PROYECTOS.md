@@ -381,7 +381,7 @@ producción sale por debajo. Lo que se ve: 4 500 líneas de trabajo, 500 resúme
 cinco rebanadas y el avance ponderado al 55,2 %.
 
 **Por qué no se midió sobre producción, que era lo suyo.** La compilación sale bien —con
-`--use-service-ca` para el proxy TLS de la máquina, y con `localhost:3307` horneado, cero RDS
+`--use-system-ca` para el proxy TLS de la máquina, y con `localhost:3307` horneado, cero RDS
 comprobado— pero la sesión del navegador no sobrevive al cambio de servidor y `next start` deja la
 pantalla en la de entrar. Como la cota superior ya cumple el criterio, no valía la pena dar más
 vueltas; queda anotado por si alguna medición futura necesita producción de verdad.
