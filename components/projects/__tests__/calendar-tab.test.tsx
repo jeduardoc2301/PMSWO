@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CalendarTab } from '../calendar-tab'
@@ -81,5 +81,79 @@ describe('La pestaña Calendario cuando no queda nada que dibujar', () => {
 
     await waitFor(() => expect(screen.queryByText(/Armando el calendario/)).toBeNull())
     expect(screen.queryByTestId('calendario-vacio')).toBeNull()
+  })
+})
+
+describe('Arrastrar en el Calendario se deshace igual que en el Gantt (§10.6)', () => {
+  /**
+   * El Calendario escribe la reprogramación por la misma ruta que el diagrama, así que tiene que
+   * ser igual de reversible. Durante un tiempo tiraba la respuesta entera del servidor: la misma
+   * acción se deshacía desde el Gantt y era definitiva desde aquí.
+   *
+   * Lo que se comprueba es que al confirmar avise con el antes y el después de **todas** las líneas
+   * movidas, no sólo de la arrastrada: una reprogramación empuja a sus sucesoras, y deshacer sólo
+   * la arrastrada dejaría el plan a medio volver.
+   */
+  const CAMBIOS = [
+    {
+      id: 'a',
+      antes: { start: '2026-06-01', finish: '2026-06-03' },
+      despues: { start: '2026-06-08', finish: '2026-06-10' },
+    },
+    {
+      id: 'b',
+      antes: { start: '2026-06-04', finish: '2026-06-05' },
+      despues: { start: '2026-06-11', finish: '2026-06-12' },
+    },
+  ]
+
+  function servidor() {
+    return vi.fn(async (url: unknown, init?: RequestInit) => {
+      const u = String(url)
+      if (u.includes('/reschedule')) {
+        const cuerpo = JSON.parse(String(init?.body ?? '{}'))
+        return {
+          ok: true,
+          json: async () =>
+            cuerpo.confirm
+              ? { resultado: { cambios: CAMBIOS } }
+              : {
+                  previsualizacion: {
+                    cambios: CAMBIOS,
+                    empujadas: 1,
+                    cierreAntes: '2026-06-30',
+                    cierreDespues: '2026-07-07',
+                  },
+                },
+        } as unknown as Response
+      }
+      return { ok: true, json: async () => ({ plan: PLAN }) } as unknown as Response
+    })
+  }
+
+  it('al confirmar, avisa con el antes y el después de cada línea movida', async () => {
+    const avisos = vi.fn()
+    vi.stubGlobal('fetch', servidor())
+    render(<CalendarTab projectId="p1" barraDeFiltro={<div />} onReprogramado={avisos} />)
+
+    // Se suelta la primera línea en otra casilla: eso propone, no escribe. El identificador de la
+    // línea viaja en el `dataTransfer`, igual que en la pantalla.
+    const barra = await screen.findByTestId('barra-a-0', {}, { timeout: 3000 })
+    // Un lunes, no la última casilla de la rejilla: el manejador ignora los días no laborables a
+    // propósito —el motor empujaría la línea al siguiente hábil y quien la soltó la vería en otro
+    // sitio del que apuntó—, así que soltar en domingo no propone nada.
+    const destino = screen.getByTestId('dia-2026-06-15')
+    const datos = { getData: () => 'a', setData: () => {}, effectAllowed: '' }
+    fireEvent.dragStart(barra, { dataTransfer: datos })
+    fireEvent.dragOver(destino, { dataTransfer: datos })
+    fireEvent.drop(destino, { dataTransfer: datos })
+
+    const aplicar = await screen.findByText('Aplicar', {}, { timeout: 3000 })
+    fireEvent.click(aplicar)
+
+    await waitFor(() => expect(avisos).toHaveBeenCalled())
+    const operacion = avisos.mock.calls[0]![0] as { cambios: unknown[]; etiqueta: string }
+    expect(operacion.cambios).toHaveLength(2)
+    expect(operacion.etiqueta).toContain('Reprogramar')
   })
 })

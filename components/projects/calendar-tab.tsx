@@ -88,9 +88,30 @@ export interface CalendarTabProps {
    * vistas comparten el resultado. Eso es lo que hace que sea *el mismo* filtro y no seis.
    */
   readonly idsVisibles?: ReadonlySet<string>
+  /**
+   * Una reprogramación ya escrita, con el antes y el después de cada línea que se movió (§10.6).
+   *
+   * Arrastrar aquí escribe exactamente lo mismo que arrastrar en el Gantt —la misma ruta, el mismo
+   * servicio—, así que tiene que ser igual de reversible. Sin esto, la misma acción se deshacía
+   * desde una vista y era definitiva desde la otra, que es la clase de incoherencia que hace que
+   * nadie se fíe del Ctrl+Z.
+   */
+  readonly onReprogramado?: (operacion: {
+    readonly etiqueta: string
+    readonly cambios: readonly {
+      readonly id: string
+      readonly antes: { readonly start: string; readonly finish: string }
+      readonly despues: { readonly start: string; readonly finish: string }
+    }[]
+  }) => void
 }
 
-export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarTabProps) {
+export function CalendarTab({
+  projectId,
+  barraDeFiltro,
+  idsVisibles,
+  onReprogramado,
+}: CalendarTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   const [mes, setMes] = useState<string | null>(null)
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
@@ -265,6 +286,16 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
       if (!res.ok) {
         const cuerpo = await res.json().catch(() => ({}))
         throw new Error(cuerpo.message ?? 'no se pudo aplicar')
+      }
+      // La respuesta trae el antes y el después de **todas** las líneas que se movieron, no sólo de
+      // la arrastrada: una reprogramación empuja a sus sucesoras, y deshacer sólo la arrastrada
+      // dejaría el plan a medio volver.
+      const { resultado } = await res.json().catch(() => ({ resultado: null }))
+      if (resultado?.cambios?.length) {
+        onReprogramado?.({
+          etiqueta: `Reprogramar: ${propuesta.nombre} → ${propuesta.nuevoInicio}`,
+          cambios: resultado.cambios,
+        })
       }
       setPropuesta(null)
       // Se vuelve a pedir el plan: las fechas cambiaron en la base y hay que reprogramar sobre ellas.

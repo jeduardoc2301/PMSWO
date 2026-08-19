@@ -986,7 +986,24 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'calendar' && (
               <CalendarTab
                 projectId={projectId}
-                barraDeFiltro={barraDeFiltro}
+                // El deshacer va junto al filtro, como en las demás: el botón tiene que estar en la
+                // vista donde se hizo la acción. Apuntar la operación sin enseñar el botón dejaría
+                // el arreglo a medias — reversible, pero sólo si se cambia de pestaña para verlo.
+                barraDeFiltro={
+                  <div className="flex flex-wrap items-center gap-3">
+                    {barraDeFiltro}
+                    {barraDeDeshacer}
+                  </div>
+                }
+                // La misma operación que el Gantt, armada igual: arrastrar en el Calendario escribe
+                // lo mismo que arrastrar en el diagrama, así que se deshace igual.
+                onReprogramado={(operacion) =>
+                  undo.apuntar({
+                    etiqueta: operacion.etiqueta,
+                    hacer: operacion.cambios.map((c) => ({ workItemId: c.id, campos: { ...c.despues } })),
+                    deshacer: operacion.cambios.map((c) => ({ workItemId: c.id, campos: { ...c.antes } })),
+                  })
+                }
                 idsVisibles={
                   idsFiltrados.size === (kanbanBoard?.workItems.length ?? 0) ? undefined : idsFiltrados
                 }

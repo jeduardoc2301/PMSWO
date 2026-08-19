@@ -509,3 +509,30 @@ deducir de la línea entra por parámetro para poder probarlo.
 sin `parentId`, así que el conjunto habría salido vacío igual. Los dos cambios juntos son el
 arreglo; cualquiera de los dos solo no habría movido el número, que es la clase de arreglo que se da
 por bueno sin comprobarlo en pantalla.
+
+## §10.6 — arrastrar en el Calendario era definitivo
+
+El Calendario escribe la reprogramación **por la misma ruta y el mismo servicio** que el Gantt:
+`POST /reschedule` con `confirm: true`. La diferencia era que tiraba la respuesta entera sin
+leerla, así que el mismo gesto —arrastrar una línea a otro día— se deshacía desde el diagrama y era
+definitivo desde el calendario.
+
+Es literalmente la incoherencia contra la que avisa un comentario del propio código, escrito en otra
+ocasión y sobre otro gesto: «la misma acción era reversible desde la barra de selección e
+irreversible desde el menú o el teclado — que es la clase de incoherencia que hace que nadie se fíe
+del Ctrl+Z».
+
+Ahora lee `resultado.cambios` y avisa con el antes y el después de **todas** las líneas movidas, no
+sólo de la arrastrada: una reprogramación empuja a sus sucesoras, y deshacer sólo la arrastrada
+dejaría el plan a medio volver. Y la barra de deshacer se dibuja en la pestaña, junto al filtro:
+apuntar la operación sin enseñar el botón habría dejado el arreglo a medias —reversible, pero sólo
+si cambias de pestaña para verlo—.
+
+La prueba se comprobó por mutación: desconectando el aviso, falla; con él, pasa. Una prueba de un
+avisador que pasa con el avisador desconectado no prueba nada, y esta noche ya escribí una así.
+
+**De dónde salió el hallazgo.** De una revisión adversaria: un agente escribió el mapa del §10.6 y
+otro tuvo el encargo de refutarlo. El mapa no mencionaba el Calendario —enumeraba las tres vistas
+del spec— y fue el refutador quien anotó, como omisión, que el Calendario escribe la misma
+reprogramación confirmada y no apunta nada. El encargo de refutar encuentra cosas que el de mapear
+no.
