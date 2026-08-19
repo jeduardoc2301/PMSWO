@@ -14,7 +14,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 
+import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { CalendarView } from '@/components/projects/calendar-view'
+import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
+import { ganttLayout } from '@/lib/scheduling/gantt'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import {
   type DefinicionDeCalendario,
@@ -22,6 +25,7 @@ import {
 } from '@/lib/scheduling/project-calendar'
 import { type CalendarTask } from '@/lib/scheduling/calendar-layout'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
+import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { schedulePlan } from '@/lib/scheduling/schedule'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
@@ -118,14 +122,21 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
     }
   }, [projectId])
 
-  const tareas: CalendarTask[] = useMemo(() => {
-    if (estado.fase !== 'listo') return []
+  /**
+   * Lo que el motor dice del plan, en las dos formas que esta pestaña necesita.
+   *
+   * Las barras del calendario y las filas que alimentan el panel de detalle salen de la **misma**
+   * programación: calcularlas por separado es cómo dos vistas del mismo proyecto acaban enseñando
+   * fechas distintas.
+   */
+  const programado = useMemo((): { tareas: CalendarTask[]; filas: ReturnType<typeof ganttLayout>['rows'] } => {
+    if (estado.fase !== 'listo') return { tareas: [], filas: [] }
     const { plan } = estado
     // El motor se niega a programar un plan sin tareas, y con razón: no hay nada que programar. Pero
     // aquí eso no es un error sino un proyecto recién creado, y sin esta línea la excepción subía
     // hasta la frontera de error y enseñaba «Ha ocurrido un error inesperado» en lugar del aviso
     // amable de más abajo — que llevaba escrito desde el principio y al que nadie podía llegar.
-    if (plan.tasks.length === 0) return []
+    if (plan.tasks.length === 0) return { tareas: [], filas: [] }
     // El calendario del proyecto, con sus festivos. Antes era `createWorkCalendar()` sin
     // argumentos, así que esta vista sombreaba como laborables días que el plan no trabaja — justo
     // lo contrario de lo que su propio comentario de cabecera prometía.
@@ -137,15 +148,23 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
       calendar,
       start: plan.start,
     })
-    // Se recorre el análisis solo para tener los hitos ya resueltos por el motor.
-    analyzeCriticalPath(schedule)
+    // El análisis ya no se tira: de él salen la holgura y la criticidad que enseña el panel.
+    const analysis = analyzeCriticalPath(schedule)
+    const classified = classifySuperCritical(analysis, plan.tasks).tasks
+    const { rows } = ganttLayout({
+      tasks: plan.tasks,
+      dependencies: plan.dependencies,
+      schedule,
+      classified,
+      calendar,
+    })
 
     // El filtro recorta **lo que se dibuja**, no lo que se programa: las fechas de una línea
     // salen de toda la red de dependencias, y programar un trozo daría fechas que no son las
     // del plan. Es el mismo error que ya reventó una vez en el esquema.
     const visibles = idsVisibles ? plan.tasks.filter((t) => idsVisibles.has(t.id)) : plan.tasks
 
-    return visibles.map((tarea) => {
+    const tareas = visibles.map((tarea) => {
       const programada = schedule.byId.get(tarea.id)
       return {
         id: tarea.id,
@@ -156,7 +175,29 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
         ...(tarea.dueDate ? { deadline: tarea.dueDate } : {}),
       }
     })
+    return { tareas, filas: rows }
   }, [estado, idsVisibles])
+
+  const tareas = programado.tareas
+
+  /**
+   * La línea abierta en el panel de detalle (§10.3).
+   *
+   * El panel es el **mismo** componente que monta el Gantt. El spec lo pide explícitamente: dos
+   * implementaciones del detalle de una tarea son «la fuente número uno de incoherencias», y hasta
+   * hoy esta vista simplemente no abría ninguna — pulsar una barra no llevaba a ningún sitio.
+   */
+  const [abierta, setAbierta] = useState<string | null>(null)
+
+  const nombres = useMemo(
+    () => new Map(estado.fase === 'listo' ? estado.plan.tasks.map((t) => [t.id, t.name]) : []),
+    [estado],
+  )
+
+  const filaAbierta = abierta === null ? null : programado.filas.find((f) => f.id === abierta) ?? null
+
+  const dependenciasDelPlan = estado.fase === 'listo' ? estado.plan.dependencies : []
+  const tareasDelPlan = estado.fase === 'listo' ? estado.plan.tasks : []
 
   const calendario = useMemo(
     () => (estado.fase === 'listo' ? calendarioDesde(estado.plan.calendar) : createWorkCalendar()),
@@ -314,14 +355,30 @@ export function CalendarTab({ projectId, barraDeFiltro, idsVisibles }: CalendarT
       ) : null}
 
       {sinNadaQueDibujar ? null : (
-      <CalendarView
-        tasks={tareas}
-        calendar={calendario}
-        month={mes ?? hoyCivil().slice(0, 7)}
-        onMonthChange={setMes}
-        today={hoyCivil()}
-        onMoverLinea={(taskId, nuevoInicio) => void proponerMovimiento(taskId, nuevoInicio)}
-      />
+        <div className="flex gap-3">
+          <div className="min-w-0 flex-1">
+            <CalendarView
+              tasks={tareas}
+              calendar={calendario}
+              month={mes ?? hoyCivil().slice(0, 7)}
+              onMonthChange={setMes}
+              today={hoyCivil()}
+              onSelectTask={setAbierta}
+              onMoverLinea={(taskId, nuevoInicio) => void proponerMovimiento(taskId, nuevoInicio)}
+            />
+          </div>
+          {filaAbierta ? (
+            <aside className="w-80 shrink-0" data-testid="detalle-calendario">
+              <PlanDetailPanel
+                row={filaAbierta}
+                {...(abierta ? vinculosDe(dependenciasDelPlan, nombres, abierta) : SIN_VINCULOS)}
+                ruta={rutaDe(tareasDelPlan, filaAbierta.id)}
+                onNavigate={setAbierta}
+                onClose={() => setAbierta(null)}
+              />
+            </aside>
+          ) : null}
+        </div>
       )}
     </div>
   )

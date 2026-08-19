@@ -91,9 +91,26 @@ describe('El detalle dice qué línea es', () => {
 
     for (const [kind, palabras] of clases) {
       const { unmount } = dibujar({ row: fila({ kind }) })
-      expect(screen.getByText(`${palabras} · construye`)).toBeInTheDocument()
+      expect(screen.getByTestId('clase-linea')).toHaveTextContent(palabras)
       unmount()
     }
+  })
+
+  it('no enseña el identificador de la línea: es un UUID, no un dato', () => {
+    // Ocupaba el renglón de la miga de pan del §4.7 con treinta y seis caracteres que no sitúan a
+    // nadie, y es lo primero que lee quien abre el panel.
+    dibujar({ row: fila({ id: 'd16b4eaf-4ba3-4850-b219-ddb4d7b8fb36' }) })
+    expect(screen.queryByText(/d16b4eaf/i)).not.toBeInTheDocument()
+  })
+
+  it('la miga de pan sitúa la línea, de la raíz hacia abajo', () => {
+    dibujar({ row: fila(), ruta: ['Etapa Mobilize', 'Plataforma AWS'] })
+    expect(screen.getByTestId('ruta-linea')).toHaveTextContent('Etapa Mobilize › Plataforma AWS')
+  })
+
+  it('una línea de primer nivel no enseña miga de pan vacía', () => {
+    dibujar({ row: fila(), ruta: [] })
+    expect(screen.queryByTestId('ruta-linea')).not.toBeInTheDocument()
   })
 
   it('dice quién responde sin usar la sigla del motor', () => {
@@ -211,11 +228,10 @@ describe('El detalle dice cuánto lleva', () => {
 })
 
 describe('El detalle deja recorrer la cadena', () => {
-  it('lista de quién depende con identificador, nombre y el rótulo del vínculo', () => {
+  it('lista de quién depende con el nombre y el rótulo del vínculo', () => {
     dibujar()
 
     const entrega = renglon('Entrega del inventario')
-    expect(entrega).toHaveTextContent('entrega')
     expect(entrega).toHaveTextContent('Entrega del inventario')
     expect(entrega).toHaveTextContent('FS +3 días')
   })
@@ -230,7 +246,7 @@ describe('El detalle deja recorrer la cadena', () => {
     dibujar()
 
     const hito = renglon('Ambiente listo')
-    expect(hito).toHaveTextContent('hito')
+    expect(hito).toHaveTextContent('Ambiente listo')
     expect(hito).toHaveTextContent('FF -2 días')
   })
 
@@ -296,5 +312,25 @@ describe('El detalle no filtra el vocabulario del motor', () => {
     for (const codigo of codigos) {
       expect(container.textContent).not.toContain(codigo)
     }
+  })
+})
+
+describe('Los renglones de vínculo no gastan el ancho en identificadores', () => {
+  it('enseña el nombre de la línea vinculada, no su UUID', () => {
+    // En un panel de 320 px el UUID monoespaciado se comía el renglón antes del nombre, que es lo
+    // único que permite decidir si vale la pena saltar.
+    dibujar({
+      predecessors: [{ id: '9ef1d9ca-624c-4bad-87fe-33c127ac4348', name: 'Validar el plan de olas', type: 'FS', lag: 2 }],
+    })
+    const renglon = screen.getByTestId('predecesora-9ef1d9ca-624c-4bad-87fe-33c127ac4348')
+    expect(renglon).toHaveTextContent('Validar el plan de olas')
+    expect(renglon.textContent).not.toContain('9ef1d9ca')
+  })
+
+  it('conserva el tipo de vínculo y su desfase, que es lo que lo explica', () => {
+    dibujar({
+      predecessors: [{ id: 'x', name: 'Entrega', type: 'FS', lag: 3 }],
+    })
+    expect(screen.getByTestId('predecesora-x')).toHaveTextContent('FS +3')
   })
 })

@@ -28,7 +28,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
 import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
-import { PlanDetailPanel, type PlanLink } from '@/components/plan/plan-detail-panel'
+import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
+import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { FieldsPanel } from '@/components/plan/fields-panel'
 import { BaselinePicker, type LineaBaseGuardada } from '@/components/projects/baseline-picker'
 import {
@@ -373,29 +374,10 @@ export function PlanWorkspace({
 
   const nombres = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks])
 
-  const vinculosDe = (id: string): { predecessors: PlanLink[]; successors: PlanLink[] } => {
-    const predecessors: PlanLink[] = []
-    const successors: PlanLink[] = []
-    for (const v of dependencies) {
-      if (v.successorId === id) {
-        predecessors.push({
-          id: v.predecessorId,
-          name: nombres.get(v.predecessorId) ?? v.predecessorId,
-          type: v.type,
-          lag: v.lag,
-        })
-      }
-      if (v.predecessorId === id) {
-        successors.push({
-          id: v.successorId,
-          name: nombres.get(v.successorId) ?? v.successorId,
-          type: v.type,
-          lag: v.lag,
-        })
-      }
-    }
-    return { predecessors, successors }
-  }
+  // El reparto vive en `lib/plan/detail-links` desde que el panel dejó de ser solo del Gantt: el
+  // §10.3 pide un panel para las seis vistas, y calcular su alimento aquí dentro obliga a la
+  // siguiente vista que lo monte a copiar el bucle.
+  const vinculosDeLinea = (id: string) => vinculosDe(dependencies, nombres, id)
 
   /**
    * Saltar a otra línea desde el panel de detalle.
@@ -616,7 +598,8 @@ export function PlanWorkspace({
             <aside className="w-full shrink-0 xl:w-[380px]">
               <PlanDetailPanel
                 row={seleccionada}
-                {...vinculosDe(seleccionada.id)}
+                {...vinculosDeLinea(seleccionada.id)}
+                ruta={rutaDe(tasks, seleccionada.id)}
                 onNavigate={irA}
                 onClose={() => setSelectedId(null)}
               />

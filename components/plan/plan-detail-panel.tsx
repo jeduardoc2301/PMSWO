@@ -26,6 +26,13 @@ export interface PlanDetailPanelProps {
   readonly predecessors: readonly PlanLink[]
   /** Quién la está esperando. */
   readonly successors: readonly PlanLink[]
+  /**
+   * Dónde está parada esta línea, de la raíz hacia abajo (§4.7).
+   *
+   * Opcional porque una línea de primer nivel no tiene ruta. Antes aquí iba `row.id`: un UUID de
+   * treinta y seis caracteres en el sitio de la única frase que sitúa a quien abre el panel.
+   */
+  readonly ruta?: readonly string[]
   /** Saltar a otra línea del plan. */
   readonly onNavigate: (id: string) => void
   readonly onClose: () => void
@@ -61,7 +68,7 @@ const PARTE: Readonly<Record<string, string>> = Object.freeze({
   AMBOS: 'Las dos partes',
 })
 
-export function PlanDetailPanel({ row, predecessors, successors, onNavigate, onClose }: PlanDetailPanelProps) {
+export function PlanDetailPanel({ row, predecessors, successors, ruta, onNavigate, onClose }: PlanDetailPanelProps) {
   return (
     <section
       aria-labelledby="titulo-detalle-linea"
@@ -69,9 +76,16 @@ export function PlanDetailPanel({ row, predecessors, successors, onNavigate, onC
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide text-zinc-400">
-            {CLASE[row.kind]} · {row.id}
+          <p className="text-xs uppercase tracking-wide text-zinc-400" data-testid="clase-linea">
+            {CLASE[row.kind]}
           </p>
+          {ruta !== undefined && ruta.length > 0 ? (
+            <nav aria-label="Dónde está esta línea" data-testid="ruta-linea" className="mt-0.5">
+              <p className="truncate text-xs text-zinc-500" title={ruta.join(" › ")}>
+                {ruta.join(" › ")}
+              </p>
+            </nav>
+          ) : null}
           <h3 id="titulo-detalle-linea" className="mt-1 text-base font-semibold text-zinc-100">
             {row.name}
           </h3>
@@ -197,8 +211,13 @@ function Vinculos({
                 onClick={() => onNavigate(vinculo.id)}
                 className="flex w-full items-baseline gap-2 rounded px-2 py-1 text-left hover:bg-zinc-800"
               >
-                <span className="shrink-0 font-mono text-xs text-zinc-500">{vinculo.id}</span>
-                <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">{vinculo.name}</span>
+                {/* El identificador ya no se enseña: es un UUID de treinta y seis caracteres y en un
+                    panel de 320 px se comía el renglón entero antes de que empezara el nombre. El
+                    comentario de arriba —«depende de la 288»— se escribió suponiendo un código corto
+                    de plan; el modelo no tiene ninguno, así que lo que sitúa el vínculo es el nombre. */}
+                <span className="min-w-0 flex-1 truncate text-sm text-zinc-200" title={vinculo.name}>
+                  {vinculo.name}
+                </span>
                 <span className="shrink-0 text-xs text-zinc-400">{linkLabel(vinculo)}</span>
               </button>
             </li>
