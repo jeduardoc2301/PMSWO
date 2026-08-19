@@ -463,3 +463,43 @@ describe('§10.3 · la Lista abre el mismo panel de detalle que el Gantt', () =>
     expect(screen.queryByTestId('detalle-lista')).not.toBeInTheDocument()
   })
 })
+
+describe('§6.3 C4 · editar desde la Lista recalcula el plan', () => {
+  beforeEach(() => {
+    simularRed()
+  })
+
+  it('un cambio en la Lista vuelve a pedir el plan', async () => {
+    // El defecto que esto fija: se recargaba la lista de líneas y no el plan, así que el panel de
+    // detalle y los totales seguían enseñando las fechas de antes. Comprobado en pantalla —escrito
+    // el 26 de junio, el panel seguía diciendo el 22— antes de arreglarlo.
+    montar()
+    await waitFor(() => expect(screen.queryByText('Calculando el plan del proyecto...')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }))
+    await waitFor(() => expect(capturado.lista).toBeTruthy())
+
+    const pedidosDePlan = () =>
+      (global.fetch as any).mock.calls.filter((c: unknown[]) => String(c[0]).includes('/schedule')).length
+    const antes = pedidosDePlan()
+
+    await act(async () => {
+      capturado.lista.onWorkItemCreated()
+    })
+
+    await waitFor(() => expect(pedidosDePlan()).toBeGreaterThan(antes))
+  })
+
+  it('y también avisa hacia arriba, que es lo que recarga las líneas', async () => {
+    // Las dos cosas, no una: la lista trae los títulos y estados; el plan, las fechas del motor.
+    const alCambiar = vi.fn()
+    render(<WorkItemsView projectId="project-1" workItems={elementos} onWorkItemCreated={alCambiar} />)
+    await waitFor(() => expect(screen.queryByText('Calculando el plan del proyecto...')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }))
+    await waitFor(() => expect(capturado.lista).toBeTruthy())
+
+    await act(async () => {
+      capturado.lista.onWorkItemCreated()
+    })
+    expect(alCambiar).toHaveBeenCalled()
+  })
+})

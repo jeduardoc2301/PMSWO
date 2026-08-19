@@ -574,7 +574,16 @@ export function WorkItemsView({
           // se dibuja en la cabecera común a los dos modos— anunciaba «822 de 1368» encima de una
           // tabla con las 1368. No era una carencia: era la pantalla afirmando algo falso.
           workItems={idsVisibles ? workItems.filter((w) => idsVisibles.has(w.id)) : workItems}
-          onWorkItemCreated={onWorkItemCreated}
+          // El plan también, no solo la lista de líneas. Editar una fecha desde aquí escribe en la
+          // base y el servidor reprograma lo que cuelga de esa línea; sin volver a pedir
+          // `/schedule`, el panel de detalle y los totales siguen enseñando las fechas de antes.
+          // Comprobado en pantalla: escrito el 26 de junio, el panel seguía diciendo el 22.
+          // Es el criterio 4 del §6.3 —«editar una fecha en Lista dispara el mismo recálculo que en
+          // el Gantt»— y era la mitad que faltaba.
+          onWorkItemCreated={() => {
+            onWorkItemCreated?.()
+            void cargarPlan()
+          }}
           editDatesData={editDatesData}
           onEditDatesDataUsed={onEditDatesDataUsed}
           canCreateWorkItems={canCreateWorkItems}
