@@ -32,6 +32,9 @@ export interface PlanControlsProps {
   readonly onLevelChange: (level: number) => void
   readonly links: LinkVisibility
   readonly onLinksChange: (links: LinkVisibility) => void
+  /** Resaltar las líneas vencidas y sin terminar (§4.6, conmutador 2). */
+  readonly atrasadas: boolean
+  readonly onAtrasadasChange: (activo: boolean) => void
   readonly filter: GanttFilter
   readonly onFilterChange: (filter: GanttFilter) => void
   readonly scale: AxisScale
@@ -88,6 +91,8 @@ export function PlanControls({
   onLevelChange,
   links,
   onLinksChange,
+  atrasadas,
+  onAtrasadasChange,
   filter,
   onFilterChange,
   scale,
@@ -139,6 +144,15 @@ export function PlanControls({
             {opcion.label}
           </Boton>
         ))}
+      </Grupo>
+
+      <Grupo titulo="Atrasadas" nota="Vencidas y sin terminar.">
+        {/* Resalta, no filtra. El §4.6 lo llama conmutador y no filtro por una razón: lo que importa
+            de una tarea atrasada es dónde cae respecto de las demás, y sacar el resto de la pantalla
+            esconde justo eso. */}
+        <Boton activo={atrasadas} onClick={() => onAtrasadasChange(!atrasadas)}>
+          {atrasadas ? 'Resaltadas' : 'Resaltar'}
+        </Boton>
       </Grupo>
 
       <Grupo titulo="Filtro">

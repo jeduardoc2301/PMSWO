@@ -20,6 +20,8 @@ function fila(overrides: Partial<GanttRow> = {}): GanttRow {
   return {
     id: 'construye',
     name: 'Construir la red',
+    wbs: '1.1',
+    atrasada: false,
     level: 1,
     isSummary: false,
     hasChildren: false,

@@ -29,6 +29,7 @@ import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
 import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
+import { hoyCivil } from '@/lib/formato-fecha'
 import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
 import { RowContextMenu } from '@/components/plan/row-context-menu'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
@@ -368,6 +369,9 @@ export function PlanWorkspace({
       selectedId,
       filter,
       scale,
+      // El trazado no lee el reloj —es puro— así que hoy entra por aquí. Se calcula con aritmética
+      // local y no con `toISOString`, que de noche en un huso negativo devuelve el día siguiente.
+      hoy: hoyCivil(),
     })
   }, [tasks, dependencies, base, level, abiertosAMano, links, selectedId, filter, scale, fechasDeLaFoto])
 
@@ -404,6 +408,13 @@ export function PlanWorkspace({
    * cambiada a mano en el cliente y otra en el servidor divergen a la primera equivocación.
    */
   const [menuDeFila, setMenuDeFila] = useState<{ id: string; x: number; y: number } | null>(null)
+  /**
+   * Resaltar las líneas vencidas y sin terminar (§4.6, conmutador 2).
+   *
+   * Apagado por omisión: en un plan de mil trescientas líneas con más de cien vencidas, el rojo
+   * permanente deja de significar nada. Se enciende cuando se quiere mirar eso.
+   */
+  const [atrasadas, setAtrasadas] = useState(false)
   const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null } | null>(null)
   const [errorDeJerarquia, setErrorDeJerarquia] = useState<string | null>(null)
 
@@ -568,6 +579,8 @@ export function PlanWorkspace({
           onLevelChange={setLevel}
           links={links}
           onLinksChange={setLinks}
+          atrasadas={atrasadas}
+          onAtrasadasChange={setAtrasadas}
           filter={filter}
           onFilterChange={setFilter}
           scale={scale}
@@ -646,6 +659,7 @@ export function PlanWorkspace({
               onMenuDeFila={
                 projectId ? (id, x, y) => setMenuDeFila({ id, x, y }) : undefined
               }
+              resaltarAtrasadas={atrasadas}
             />
           </div>
 

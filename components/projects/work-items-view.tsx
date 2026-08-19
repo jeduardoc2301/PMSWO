@@ -36,6 +36,7 @@ import { ganttLayout } from '@/lib/scheduling/gantt'
 import { schedulePlan } from '@/lib/scheduling/schedule'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
+import { hoyCivil } from '@/lib/formato-fecha'
 import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { toDayNumber } from '@/lib/scheduling/date'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
@@ -106,12 +107,7 @@ export interface WorkItemsViewProps {
  * mañana. El corte de avance es una fecha de calendario, la misma que esta pantalla usa para no
  * correr de día las fechas del proyecto.
  */
-function hoyCivil(): string {
-  const ahora = new Date()
-  const mes = String(ahora.getMonth() + 1).padStart(2, '0')
-  const dia = String(ahora.getDate()).padStart(2, '0')
-  return `${ahora.getFullYear()}-${mes}-${dia}`
-}
+
 
 export function WorkItemsView({
   projectId,

@@ -135,6 +135,15 @@ export interface GanttRow {
    * programa: «No antes del 2026-06-12» se entiende; «NO_ANTES_DE» hay que traducirlo cada vez.
    */
   readonly constraint?: string
+  /**
+   * La línea venció y no está terminada (§4.6, conmutador 2).
+   *
+   * El spec pide además que su estado sea «Abierto» o «En progreso». El plan que llega al trazado no
+   * trae estado —lo trae avance—, así que aquí eso se dice con «avance por debajo del 100 %», que
+   * es la misma frontera dicha con lo que hay. Una línea al 100 % no está atrasada aunque su estado
+   * siga abierto: terminó.
+   */
+  readonly atrasada: boolean
   readonly isCritical: boolean
   readonly isSuperCritical: boolean
   readonly recoverability: Recoverability
@@ -235,6 +244,17 @@ export interface GanttInput {
   readonly filter?: GanttFilter
   /** Escala del eje de tiempo. */
   readonly scale?: AxisScale
+  /**
+   * Hoy, en fecha civil, para marcar lo atrasado (§4.6, conmutador 2).
+   *
+   * Entra por parámetro y no se lee el reloj aquí: esta función es pura, y una función que consulta
+   * la hora devuelve trazados distintos con los mismos datos — lo que hace imposible probarla y
+   * convierte cualquier fallo en «a mí no me pasa».
+   *
+   * Sin ella no se marca nada, que es lo correcto: no saber qué día es no es lo mismo que saber que
+   * nada está atrasado.
+   */
+  readonly hoy?: IsoDate
 }
 
 export type AxisScale = 'DIA' | 'SEMANA' | 'MES'
@@ -391,6 +411,12 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       id: task.id,
       name: task.name,
       wbs: edt.get(task.id) ?? '',
+      // Un hito vencido también cuenta: es una fecha que pasó sin ocurrir, que es peor que una
+      // tarea a medias.
+      atrasada:
+        input.hoy !== undefined &&
+        (tramo?.finish ?? scheduled?.finish ?? schedule.start) < input.hoy &&
+        clamp(task.progress ?? 0) < 1,
       ...(task.dueDate ? { deadline: task.dueDate } : {}),
       ...(task.constraint ? { constraint: enPalabras(task.constraint) } : {}),
       level: level.get(task.id) ?? 0,

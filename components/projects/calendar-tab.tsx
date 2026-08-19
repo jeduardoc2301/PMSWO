@@ -18,6 +18,7 @@ import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { CalendarView } from '@/components/projects/calendar-view'
 import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { ganttLayout } from '@/lib/scheduling/gantt'
+import { hoyCivil } from '@/lib/formato-fecha'
 import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import {
@@ -74,10 +75,7 @@ type Estado =
  * No es `toISOString().slice(0, 10)`: eso da la fecha en Londres, y de noche en México ya sería
  * mañana. El calendario marca un día del calendario de quien mira.
  */
-function hoyCivil(): string {
-  const ahora = new Date()
-  return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
-}
+
 
 export interface CalendarTabProps {
   readonly projectId: string

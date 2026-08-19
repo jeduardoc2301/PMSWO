@@ -18,6 +18,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { hoyCivil } from '@/lib/formato-fecha'
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { WorkloadView, type ModoDeCarga } from '@/components/projects/workload-view'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
@@ -57,12 +58,7 @@ function sumarMeses(iso: string, meses: number): string {
   return `${anio}-${String(mes).padStart(2, '0')}-${String(Math.min(d, ultimo)).padStart(2, '0')}`
 }
 
-function hoyCivil(): string {
-  const ahora = new Date()
-  return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(
-    ahora.getDate(),
-  ).padStart(2, '0')}`
-}
+
 
 export interface WorkloadTabProps {
   readonly projectId: string

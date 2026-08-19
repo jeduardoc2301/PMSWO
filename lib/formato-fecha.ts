@@ -51,3 +51,19 @@ export function fechaIso(iso: string | null | undefined): string | null {
   const p = partes(iso)
   return p === null ? null : `${p[0]}-${p[1]}-${p[2]}`
 }
+
+/**
+ * Hoy, en fecha civil `AAAA-MM-DD`, con la aritmética local de quien mira.
+ *
+ * **No** con `toISOString().slice(0, 10)`, que devuelve el día en UTC: de noche en cualquier huso
+ * negativo —Bolivia lo es— eso da mañana. El calendario marca un día del calendario de quien mira,
+ * y una tarea que vence hoy no puede aparecer vencida a las nueve de la noche.
+ *
+ * Estaba escrita tres veces, en tres archivos distintos, con tres comentarios que decían lo mismo.
+ * Tres copias de una regla son tres oportunidades de que una se quede atrás.
+ */
+export function hoyCivil(ahora: Date = new Date()): string {
+  const mes = String(ahora.getMonth() + 1).padStart(2, '0')
+  const dia = String(ahora.getDate()).padStart(2, '0')
+  return `${ahora.getFullYear()}-${mes}-${dia}`
+}

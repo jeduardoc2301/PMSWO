@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fechaCorta, fechaIso } from '../formato-fecha'
+import { fechaCorta, fechaIso, hoyCivil } from '../formato-fecha'
 
 /**
  * El corrimiento de un día que se vio comparando dos vistas del mismo proyecto.
@@ -51,5 +51,22 @@ describe('fechaIso', () => {
 
   it('sin fecha, nada', () => {
     expect(fechaIso(null)).toBeNull()
+  })
+})
+
+describe('hoyCivil', () => {
+  it('devuelve el día del calendario de quien mira, no el de UTC', () => {
+    // Las nueve de la noche del 17 en un huso negativo son ya el 18 en UTC. `toISOString` diría 18;
+    // el calendario de quien mira dice 17, y una tarea que vence hoy no puede aparecer vencida.
+    const nocheDelDiecisiete = new Date(2026, 7, 17, 21, 30)
+    expect(hoyCivil(nocheDelDiecisiete)).toBe('2026-08-17')
+  })
+
+  it('rellena mes y día a dos cifras', () => {
+    expect(hoyCivil(new Date(2026, 0, 5))).toBe('2026-01-05')
+  })
+
+  it('sin argumento usa el reloj', () => {
+    expect(hoyCivil()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })

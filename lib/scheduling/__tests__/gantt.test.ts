@@ -598,3 +598,65 @@ describe('§4.2 · las columnas nuevas se pueden llenar', () => {
     expect(rows[0]!.constraint).toBeUndefined()
   })
 })
+
+describe('§4.6 conmutador 2 · qué línea está atrasada', () => {
+  /**
+   * «Vencida y sin terminar». El spec pide además que su estado sea «Abierto» o «En progreso»; el
+   * plan que llega al trazado no trae estado sino avance, así que esa frontera se dice con «avance
+   * por debajo del 100 %», que es la misma dicha con lo que hay.
+   */
+  function trazarCon(hoy: string | undefined, tasks: PlanTask[]) {
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+      ...(hoy ? { hoy: hoy as never } : {}),
+    })
+  }
+
+  const PLAN: PlanTask[] = [
+    { id: 'vencida', name: 'Vencida a medias', duration: 3, progress: 0.4 },
+    { id: 'cumplida', name: 'Vencida pero hecha', duration: 3, progress: 1 },
+    { id: 'futura', name: 'Aún no vence', duration: 60, progress: 0 },
+  ]
+
+  it('una línea que venció y no está terminada sí lo está', () => {
+    const porId = new Map(trazarCon('2026-07-01', PLAN).rows.map((r) => [r.id, r.atrasada]))
+    expect(porId.get('vencida')).toBe(true)
+  })
+
+  it('una que venció pero está al 100 % NO lo está: terminó', () => {
+    const porId = new Map(trazarCon('2026-07-01', PLAN).rows.map((r) => [r.id, r.atrasada]))
+    expect(porId.get('cumplida')).toBe(false)
+  })
+
+  it('una que todavía no vence tampoco', () => {
+    // La línea ocupa del 1 al 3 de junio; el día 2 aún no ha vencido. La primera versión de esta
+    // prueba usaba el día 5, que ya es posterior al fin: comprobaba lo contrario de lo que decía.
+    const porId = new Map(trazarCon('2026-06-02', PLAN).rows.map((r) => [r.id, r.atrasada]))
+    expect(porId.get('vencida')).toBe(false)
+  })
+
+  it('sin saber qué día es no se marca nada', () => {
+    // No saber qué día es no es lo mismo que saber que nada está atrasado. Y el trazado es puro:
+    // si leyera el reloj, devolvería resultados distintos con los mismos datos.
+    for (const r of trazarCon(undefined, PLAN).rows) expect(r.atrasada).toBe(false)
+  })
+
+  it('el mismo plan da el mismo trazado: la pureza se mantiene', () => {
+    const a = trazarCon('2026-07-01', PLAN).rows.map((r) => r.atrasada)
+    const b = trazarCon('2026-07-01', PLAN).rows.map((r) => r.atrasada)
+    expect(a).toEqual(b)
+  })
+
+  it('un hito vencido también cuenta: es una fecha que pasó sin ocurrir', () => {
+    const conHito: PlanTask[] = [{ id: 'h', name: 'Entrega', duration: 0, kind: 'HITO', progress: 0 }]
+    const porId = new Map(trazarCon('2026-07-01', conHito).rows.map((r) => [r.id, r.atrasada]))
+    expect(porId.get('h')).toBe(true)
+  })
+})

@@ -48,6 +48,8 @@ export interface GanttChartProps {
    * el diagrama no tiene con qué atender las acciones.
    */
   readonly onMenuDeFila?: (id: string, x: number, y: number) => void
+  /** Conmutador «tareas atrasadas» del §4.6: resalta las vencidas y sin terminar. */
+  readonly resaltarAtrasadas?: boolean
   /** Abrir o cerrar un resumen. Sin esto, los triángulos no se dibujan. */
   readonly onToggle?: (id: string) => void
   /**
@@ -132,6 +134,7 @@ export function GanttChart({
   selectedId = null,
   onSelect,
   onMenuDeFila,
+  resaltarAtrasadas,
   onToggle,
   onMoverLinea,
 }: GanttChartProps) {
@@ -293,6 +296,7 @@ export function GanttChart({
                   dayWidth={dayWidth}
                   rowHeight={rowHeight}
                   onMoverLinea={onMoverLinea}
+                  resaltarAtrasadas={resaltarAtrasadas}
                 />
               ))}
               <Links
@@ -366,12 +370,15 @@ function Bar({
   dayWidth,
   rowHeight,
   onMoverLinea,
+  resaltarAtrasadas,
 }: {
   row: GanttRow
   index: number
   dayWidth: number
   rowHeight: number
   onMoverLinea?: (taskId: string, deltaDiasHabiles: number) => void
+  /** Conmutador de «tareas atrasadas» (§4.6). */
+  resaltarAtrasadas?: boolean
 }) {
   const top = index * rowHeight
   const alto = Math.max(8, rowHeight - 14)
@@ -462,9 +469,18 @@ function Bar({
       <div
         data-testid={`barra-${row.id}`}
         data-movible={movible ? 'sí' : 'no'}
-        title={`${row.name} · ${row.start} → ${row.finish}`}
+        data-atrasada={row.atrasada ? 'sí' : 'no'}
+        title={
+          row.atrasada
+            ? `${row.name} · ${row.start} → ${row.finish} · venció sin terminar`
+            : `${row.name} · ${row.start} → ${row.finish}`
+        }
         onPointerDown={movible ? alApretar : undefined}
-        className={`absolute overflow-hidden rounded-sm ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${barTone(row)}`}
+        className={`absolute overflow-hidden rounded-sm ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${barTone(row)} ${
+          // El resalte va como anillo y no como color de relleno: el relleno ya dice si la línea es
+          // crítica, y pisarlo cambiaría una información por otra en vez de sumarla.
+          resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-[#0e0e11]' : ''
+        }`}
         style={{ left: row.x * dayWidth, top: y, width: Math.max(row.width * dayWidth, 2), height: alto }}
       >
         {row.progressWidth > 0 ? (
