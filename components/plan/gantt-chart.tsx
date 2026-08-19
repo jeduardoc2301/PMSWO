@@ -67,6 +67,14 @@ export interface GanttChartProps {
    */
   readonly onAtajo?: (id: string, accion: 'SANGRAR' | 'ANULAR_SANGRIA' | 'ABRIR_DETALLE') => void
   /**
+   * Arrastre entre conectores para crear una dependencia (§4.4).
+   *
+   * Llegan los dos gestos por separado —agarrar en una barra, soltar en otra— porque quien monta el
+   * diagrama es quien sabe si el par forma un vínculo válido y quien tiene que confirmarlo antes de
+   * escribir.
+   */
+  readonly onConectar?: (id: string, extremo: 'INICIO' | 'FIN', gesto: 'AGARRAR' | 'SOLTAR') => void
+  /**
    * Selección múltiple (§4.6, conmutador 1). Cuando llega, cada fila estrena su casilla.
    *
    * Sin ella la columna no se dibuja: una casilla por fila en un plan de mil trescientas líneas es
@@ -161,6 +169,7 @@ export function GanttChart({
   resaltarAtrasadas,
   onEditarCelda,
   onAtajo,
+  onConectar,
   marcadas,
   onMarcar,
   onToggle,
@@ -384,6 +393,7 @@ export function GanttChart({
                   rowHeight={rowHeight}
                   onMoverLinea={onMoverLinea}
                   resaltarAtrasadas={resaltarAtrasadas}
+                  onConectar={onConectar}
                 />
               ))}
               <Links
@@ -479,6 +489,7 @@ function Bar({
   rowHeight,
   onMoverLinea,
   resaltarAtrasadas,
+  onConectar,
 }: {
   row: GanttRow
   index: number
@@ -487,6 +498,8 @@ function Bar({
   onMoverLinea?: (taskId: string, deltaDiasHabiles: number) => void
   /** Conmutador de «tareas atrasadas» (§4.6). */
   resaltarAtrasadas?: boolean
+  /** Agarrar o soltar un conector para crear una dependencia (§4.4). */
+  onConectar?: (id: string, extremo: 'INICIO' | 'FIN', gesto: 'AGARRAR' | 'SOLTAR') => void
 }) {
   const top = index * rowHeight
   const alto = Math.max(8, rowHeight - 14)
@@ -599,6 +612,35 @@ function Bar({
           />
         ) : null}
       </div>
+
+      {/* Los conectores (§4.4). Uno por extremo, porque el tipo del vínculo sale de por dónde se
+          agarra y dónde se suelta. Un resumen no los lleva: sus fechas son las de sus hijas, y
+          amarrar un resumen es amarrar algo que no se mueve por sí mismo. */}
+      {onConectar && !row.isSummary
+        ? (['INICIO', 'FIN'] as const).map((extremo) => (
+            <button
+              key={extremo}
+              type="button"
+              data-conector={`${row.id}:${extremo}`}
+              aria-label={`${extremo === 'INICIO' ? 'Inicio' : 'Fin'} de «${row.name}» · arrastra a otra barra para vincular`}
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                onConectar(row.id, extremo, 'AGARRAR')
+              }}
+              onPointerUp={(e) => {
+                e.stopPropagation()
+                onConectar(row.id, extremo, 'SOLTAR')
+              }}
+              className="absolute z-10 rounded-full border border-zinc-300 bg-[#18181b] opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100"
+              style={{
+                left: (extremo === 'INICIO' ? row.x : row.x + row.width) * dayWidth - 4,
+                top: y + alto / 2 - 4,
+                width: 8,
+                height: 8,
+              }}
+            />
+          ))
+        : null}
     </React.Fragment>
   )
 }

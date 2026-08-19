@@ -23,7 +23,7 @@
  *   funciona.
  */
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
 import { GanttChart } from '@/components/plan/gantt-chart'
@@ -34,6 +34,13 @@ import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dia
 import { RowContextMenu } from '@/components/plan/row-context-menu'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { type Operacion } from '@/lib/projects/undo-stack'
+import {
+  type ExtremoDeBarra,
+  type VinculoPropuesto,
+  comoSeLee,
+  porQueNo,
+  tipoDeVinculo,
+} from '@/lib/plan/conectores'
 import { aplicarEnLote, contarLoQuePaso } from '@/lib/plan/en-lote'
 import { nuevoPadreAlAnular, nuevoPadreAlSangrar } from '@/lib/plan/jerarquia'
 import {
@@ -553,6 +560,83 @@ export function PlanWorkspace({
     }
   }
 
+  /**
+   * El arrastre entre conectores, en dos tiempos (§4.4).
+   *
+   * Se guarda de dónde se agarró y se espera a dónde se suelta. Cuando el par forma un vínculo
+   * posible, **no se escribe**: se propone. Un vínculo cambia las fechas de todo lo que cuelgue de
+   * la sucesora, y soltar en la barra de al lado en un plan denso pasa — el arrastre horizontal ya
+   * previsualiza por la misma razón.
+   */
+  /**
+   * De dónde se agarró, en una **referencia** y no en estado.
+   *
+   * Es estado de un gesto, no de un renderizado: nadie lo dibuja. Y guardarlo en estado tenía un
+   * fallo real —visto en pantalla— porque agarrar y soltar pueden caer en el mismo ciclo de React
+   * en un arrastre rápido, y entonces «soltar» leía el valor de antes y no encontraba nada agarrado.
+   * El gesto se perdía sin decir nada.
+   */
+  const conectandoRef = useRef<{ id: string; extremo: ExtremoDeBarra } | null>(null)
+  const [vinculoPropuesto, setVinculoPropuesto] = useState<VinculoPropuesto | null>(null)
+  const [errorDeVinculo, setErrorDeVinculo] = useState<string | null>(null)
+  const [escribiendoVinculo, setEscribiendoVinculo] = useState(false)
+
+  const gestoDeConector = (
+    id: string,
+    extremo: ExtremoDeBarra,
+    gesto: 'AGARRAR' | 'SOLTAR',
+  ): void => {
+    if (gesto === 'AGARRAR') {
+      setErrorDeVinculo(null)
+      setVinculoPropuesto(null)
+      conectandoRef.current = { id, extremo }
+      return
+    }
+    const origen = conectandoRef.current
+    conectandoRef.current = null
+    // Soltar sin haber agarrado no es nada: pasa al pulsar un conector suelto.
+    if (origen === null) return
+
+    const propuesto: VinculoPropuesto = {
+      predecessorId: origen.id,
+      successorId: id,
+      type: tipoDeVinculo(origen.extremo, extremo),
+      lag: 0,
+    }
+    const motivo = porQueNo(propuesto, dependencies)
+    if (motivo !== null) {
+      // El motivo se enseña: «no se puede» a secas convierte un gesto en un misterio.
+      setErrorDeVinculo(motivo)
+      return
+    }
+    setVinculoPropuesto(propuesto)
+  }
+
+  const escribirVinculo = async () => {
+    if (vinculoPropuesto === null || !projectId) return
+    setEscribiendoVinculo(true)
+    setErrorDeVinculo(null)
+    try {
+      const r = await fetch(`/api/v1/projects/${projectId}/dependencies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vinculoPropuesto),
+      })
+      if (!r.ok) {
+        const cuerpo = await r.json().catch(() => ({}))
+        // Aquí es donde llega «esto haría un ciclo»: el servidor tiene el plan entero delante y es
+        // quien responde de la integridad.
+        throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+      }
+      setVinculoPropuesto(null)
+      onPlanCambiado?.()
+    } catch (e) {
+      setErrorDeVinculo(e instanceof Error ? e.message : 'No se pudo crear el vínculo.')
+    } finally {
+      setEscribiendoVinculo(false)
+    }
+  }
+
   const moverEnElArbol = async (id: string, padre: string | null) => {
     setErrorDeJerarquia(null)
     // El padre de antes, para poder deshacerlo. Se lee ANTES de escribir: después ya no está.
@@ -809,6 +893,7 @@ export function PlanWorkspace({
               }
               resaltarAtrasadas={atrasadas}
               onEditarCelda={projectId ? (id, campo, v) => void editarCelda(id, campo, v) : undefined}
+              onConectar={projectId ? gestoDeConector : undefined}
               onAtajo={
                 projectId
                   ? (id, accion) => {
@@ -933,6 +1018,47 @@ export function PlanWorkspace({
                 </span>
               ) : null}
             </div>
+          ) : null}
+
+          {vinculoPropuesto !== null ? (
+            <div
+              role="alertdialog"
+              aria-label="Confirmar el vínculo"
+              data-testid="propuesta-de-vinculo"
+              className="mt-2 rounded-xl border border-[#6366f1]/40 bg-[#6366f1]/10 p-3"
+            >
+              <p className="text-sm text-zinc-100">{comoSeLee(vinculoPropuesto, nombres)}</p>
+              <p className="mt-1 text-xs text-zinc-400">
+                Cambia las fechas de todo lo que dependa de la segunda.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  disabled={escribiendoVinculo}
+                  onClick={() => void escribirVinculo()}
+                  className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                >
+                  {escribiendoVinculo ? 'Creando...' : 'Crear el vínculo'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVinculoPropuesto(null)}
+                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {errorDeVinculo !== null ? (
+            <p
+              role="alert"
+              data-testid="error-de-vinculo"
+              className="mt-2 rounded border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200"
+            >
+              {errorDeVinculo}
+            </p>
           ) : null}
 
           {errorDeJerarquia !== null ? (
