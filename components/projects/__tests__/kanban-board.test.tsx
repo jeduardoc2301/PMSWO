@@ -407,3 +407,65 @@ describe('Modificaciones y bajas desde la tarjeta', () => {
     expect(screen.getByTestId('dialogo-baja')).toHaveTextContent('Levantamiento de servidores')
   })
 })
+
+describe('§5.3 · por omisión, solo hojas e hitos', () => {
+  /**
+   * «Una fase no tiene estado propio significativo», dice el spec, y es cierto: una tarjeta
+   * «Semana 3» en la columna «En progreso» no dice nada que no digan sus hijas, y ocupa el sitio de
+   * una que sí. En el plan de referencia son 125 de 1368.
+   *
+   * Los datos van aquí y no se toman de los del bloque de arriba: viven dentro de su `describe` y
+   * alcanzarlos desde fuera es lo que hace que mover una prueba rompa otra.
+   */
+  const columnas = [
+    { id: 'col-1', name: 'Backlog', order: 1, color: '#71717a', workItemIds: [] },
+  ] as never
+
+  const linea = (id: string, title: string, parentId?: string) => ({
+    id,
+    title,
+    status: 'TODO',
+    priority: 'MEDIUM',
+    kanbanColumnId: 'col-1',
+    ownerId: 'u1',
+    ownerName: 'Ana',
+    startDate: '2026-06-01',
+    estimatedEndDate: '2026-06-05',
+    progressPct: 0,
+    activeBlockers: 0,
+    ...(parentId ? { parentId } : {}),
+  })
+
+  const conJerarquia = [
+    linea('padre', 'Semana 3'),
+    linea('hija', 'Configurar la red', 'padre'),
+    linea('suelta', 'Revisar el acta'),
+  ] as never
+
+  const montar = (items: never) =>
+    render(<KanbanBoard projectId="project-1" columns={columnas} workItems={items} />)
+
+  it('las líneas con hijas no se dibujan', () => {
+    montar(conJerarquia)
+    expect(screen.queryByText('Semana 3')).not.toBeInTheDocument()
+    expect(screen.getByText('Configurar la red')).toBeInTheDocument()
+    expect(screen.getByText('Revisar el acta')).toBeInTheDocument()
+  })
+
+  it('el conmutador dice cuántas esconde, para que no sea esconder en silencio', () => {
+    montar(conJerarquia)
+    expect(screen.getByTestId('conmutador-resumenes')).toHaveTextContent('Sin resúmenes (1)')
+  })
+
+  it('encenderlo las trae de vuelta', () => {
+    montar(conJerarquia)
+    fireEvent.click(screen.getByTestId('conmutador-resumenes'))
+    expect(screen.getByText('Semana 3')).toBeInTheDocument()
+    expect(screen.getByTestId('conmutador-resumenes')).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('sin jerarquía no esconde nada', () => {
+    montar([linea('a', 'Suelta A'), linea('b', 'Suelta B')] as never)
+    expect(screen.getByTestId('conmutador-resumenes')).toHaveTextContent('Sin resúmenes (0)')
+  })
+})

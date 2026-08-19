@@ -484,12 +484,31 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
    * necesita para dibujarse, y programar mil trescientas líneas para quien solo viene a arrastrar
    * una tarjeta es pagar por algo que no va a mirar.
    */
+  /**
+   * Enseñar o no las líneas resumen (§5.3).
+   *
+   * Apagado por omisión, como pide el spec: «una fase no tiene estado propio significativo». Y es
+   * cierto — una tarjeta «Semana 3» en la columna «En progreso» no dice nada que no digan sus
+   * hijas, y ocupa el sitio de una que sí. Son 125 de las 1368 del plan de referencia.
+   *
+   * Se puede encender porque hay quien mira el tablero por etapas, y esconder algo sin dejar
+   * encenderlo es decidir por quien mira.
+   */
+  const [conResumenes, setConResumenes] = useState(false)
+
   const [detalle, setDetalle] = useState<string | null>(null)
   const plan = usarPlanParaElDetalle(projectId, detalle !== null)
   const filaDelDetalle = detalle === null ? null : plan.filas.find((f) => f.id === detalle) ?? null
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [syncingItems, setSyncingItems] = useState<Set<string>>(new Set())
   const [localWorkItems, setLocalWorkItems] = useState<WorkItemSummary[]>(workItems)
+
+  /** Las líneas de las que cuelga alguna otra. El padre viene en la tarjeta, así que sale de aquí. */
+  const esResumen = useMemo(() => {
+    const conHijas = new Set<string>()
+    for (const w of localWorkItems) if (w.parentId) conHijas.add(w.parentId)
+    return conHijas
+  }, [localWorkItems])
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
   const [activeFilter, setActiveFilter] = useState<Urgency>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -526,8 +545,11 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
       const q = searchQuery.trim().toLowerCase()
       items = items.filter(w => w.title.toLowerCase().includes(q))
     }
+    // Los resúmenes salen al final del filtrado, no al principio: si se quitaran antes, buscar el
+    // nombre de una fase no encontraría nada y parecería que la fase no existe.
+    if (!conResumenes) items = items.filter(w => !esResumen.has(w.id))
     return items
-  }, [activeFilter, filterAssignee, filterPriority, searchQuery, enriched, localWorkItems])
+  }, [activeFilter, filterAssignee, filterPriority, searchQuery, enriched, localWorkItems, conResumenes, esResumen])
 
   const groupWorkItemsByPhase = (items: WorkItemSummary[]) => {
     const grouped: Record<string, WorkItemSummary[]> = {}
@@ -753,6 +775,23 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
             ))}
           </select>
         </label>
+
+        {/* Los resúmenes, apagados por omisión (§5.3). El botón dice cuántos hay para que apagarlos
+            no sea esconder algo sin decirlo. */}
+        <button
+          type="button"
+          aria-pressed={conResumenes}
+          onClick={() => setConResumenes((v) => !v)}
+          data-testid="conmutador-resumenes"
+          className={`rounded border px-2 py-1 text-xs ${
+            conResumenes
+              ? 'border-[#6366f1] bg-[#6366f1]/15 text-indigo-200'
+              : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
+          }`}
+          title="Una fase no tiene estado propio: sus hijas sí"
+        >
+          {conResumenes ? 'Con resúmenes' : `Sin resúmenes (${esResumen.size})`}
+        </button>
 
         {/* «Ordenar por» del §5.1, con el EDT por omisión. El sentido va en su propio botón y no
             como doce entradas del desplegable: «Nombre ascendente» y «Nombre descendente» serían
