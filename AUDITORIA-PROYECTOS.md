@@ -99,7 +99,7 @@ tiempo real y deshacer.
 | 30 | Revocar un rol no surte efecto hasta volver a entrar | **EXISTE PERO MAL** | `lib/auth.ts` (sesión JWT) | Los roles viajan en el token y no se releen de la base. Cambiar el rol de alguien en la base no le quita nada hasta que su sesión caduca o vuelve a entrar. Es el comportamiento normal de una sesión JWT, y es una decisión consciente que hay que tomar —no un descuido— porque una revocación de permisos que tarda no es una revocación. Descubierto al probar la guardia del §10.1: los primeros intentos pasaron con un token viejo | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
-| 24 | Deshacer / rehacer (§10.6) | **PARCIAL** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Tablero, avance y edición. Falta el resto de operaciones | L | Bajo |
+| 24 | Deshacer / rehacer (§10.6) | **PARCIAL · casi cerrada** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Faltan tres: arrastrar fechas (excluida a propósito, pasa por la previsualización; la reprogramación ya devuelve el antes y el después de todas las líneas empujadas, así que es trabajo y no impedimento), vínculos y altas/bajas — estas dos no caben en la forma `Cambio` y piden ampliar el tipo | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
 
 **Recuento:** 15 PARCIAL · 4 EXISTE · 3 EXISTE PERO MAL · 2 NO EXISTE · 1 NO APLICA. Total 25 filas.
@@ -448,12 +448,29 @@ El Tablero cumple el criterio de punta a punta. Medido en pantalla, con los tres
 Que el rótulo nombre la operación no es un adorno: «Deshacer» a secas obliga a pulsar para averiguar
 qué va a pasar, y en una pantalla donde deshacer escribe en la base eso es un experimento.
 
-**Dónde no está.** Los botones salen en el Tablero, en la Lista y en la pestaña Timeline; no salen
-en el Gantt de `/es/plan`, ni en Calendario, Carga ni Panel. El §10.6 pide Gantt, Lista y Tablero.
+**Las tres vistas que pide el §10.6 lo tienen.** La pila vive en el armazón del proyecto
+(`project-detail-client.tsx`) y la comparten el Tablero, la Lista y el Gantt de la pestaña Timeline.
+Donde no sale es en `/es/plan`, que es el plan del archivo de referencia y no un proyecto — la misma
+superficie que ya me había dado un falso negativo con el §10.4. Anotarlo dos veces en una noche
+significa que la lección es la superficie, no el caso.
 
-**El límite de la pieza, encontrado leyendo su tipo.** `Cambio` es `{ workItemId, campos }`: sabe
-expresar *parches sobre una línea que ya existe* y nada más. Crear una línea, borrarla, o poner y
-quitar un vínculo no caben en esa forma. No es un descuido —para mover, editar y capturar avance es
-exactamente lo que hace falta— pero significa que enganchar el resto de operaciones del §10.6 no es
-llamar a `apuntar` en más sitios: para las altas, las bajas y los vínculos hay que ampliar el tipo
-primero, y esa es una decisión de diseño, no una conexión.
+Y el Gantt no solo enseña los botones: apunta **cinco** clases de operación —sangrar y anular
+sangría en lote, renombrar, capturar avance, cambiar duración y mover una línea en el árbol—, cada
+una con su etiqueta escrita para leerla en el botón. El comentario de una de ellas dice por qué se
+apunta también el movimiento suelto: si solo fuera reversible desde la barra de selección, la misma
+acción sería reversible desde un sitio e irreversible desde el menú, «que es la clase de
+incoherencia que hace que nadie se fíe del Ctrl+Z».
+
+**Lo que falta, y por qué no es enchufar más llamadas.** `Cambio` es `{ workItemId, campos }`: sabe
+expresar *parches sobre una línea que ya existe* y nada más. Quedan fuera tres cosas, cada una por su
+motivo:
+
+- **Arrastrar una fecha.** Se excluye a propósito y está escrito en el código: mover una línea puede
+  empujar quinientas, así que pasa por la previsualización, y prometerlo con un doble clic sería
+  saltarse el aviso. Lo bueno es que la reprogramación ya devuelve `cambios` con el `desde` y el
+  `hasta` de **todas** las líneas que se movieron, así que la operación de doce líneas que pide el
+  §10.6 se puede armar entera. Es trabajo, no un impedimento.
+- **Poner y quitar vínculos.** No caben en la forma: un vínculo no es un campo de una línea.
+- **Crear y borrar líneas.** Tampoco: un alta no es un parche sobre algo que ya existe.
+
+Las dos últimas piden ampliar el tipo antes de tocar nada, y eso es diseño, no conexión.
