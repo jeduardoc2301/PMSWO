@@ -83,6 +83,32 @@ This document summarizes the initial project setup completed for the PM SaaS Pla
 }
 ```
 
+### 8.1 Si `build` falla con `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`
+
+Detrás de un proxy corporativo, `next build` se cae al bajar las fuentes:
+
+```
+next/font error: Failed to fetch `Geist` from Google Fonts.
+[Error: unable to get local issuer certificate]
+```
+
+El certificado del proxy **sí** está en el almacén de Windows —`curl` a
+`fonts.googleapis.com` responde 200 con verificación— pero Node no lo mira por
+omisión. Node 22.15 en adelante tiene una bandera justo para eso:
+
+```bash
+NODE_OPTIONS=--use-system-ca npx next build
+```
+
+No se puso en el script de `package.json` porque hacerlo portable en Windows
+pediría una dependencia (`cross-env`) para un problema de entorno local, no del
+proyecto. En una máquina sin proxy, `npm run build` funciona tal cual.
+
+**Y antes de construir, para el servidor de desarrollo.** Escribe en `.next`
+mientras el build también lo hace, y el resultado arranca con un 500 y
+`Cannot read properties of undefined (reading 'call')` en `webpack-runtime`. Si
+ya pasó: `rm -rf .next` y reconstruir.
+
 ### 9. Documentation
 - ✅ Updated README.md with project information
 - ✅ Created component directory README
