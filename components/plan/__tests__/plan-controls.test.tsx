@@ -22,6 +22,8 @@ function montar(cambios: Partial<PlanControlsProps> = {}): PlanControlsProps {
     onScaleChange: vi.fn(),
     visibleRows: 27,
     atrasadas: false,
+    seleccionando: false,
+    onSeleccionandoChange: vi.fn(),
     onAtrasadasChange: vi.fn(),
     totalRows: 1368,
     ...cambios,

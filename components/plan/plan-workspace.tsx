@@ -33,7 +33,17 @@ import { hoyCivil } from '@/lib/formato-fecha'
 import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
 import { RowContextMenu } from '@/components/plan/row-context-menu'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
+import { aplicarEnLote, contarLoQuePaso } from '@/lib/plan/en-lote'
 import { nuevoPadreAlAnular, nuevoPadreAlSangrar } from '@/lib/plan/jerarquia'
+import {
+  SIN_SELECCION,
+  type Seleccion,
+  alcanceDe,
+  alternar,
+  limpiar,
+  marcarRango,
+  marcarTodas,
+} from '@/lib/plan/seleccion'
 import { FieldsPanel } from '@/components/plan/fields-panel'
 import { BaselinePicker, type LineaBaseGuardada } from '@/components/projects/baseline-picker'
 import {
@@ -415,6 +425,58 @@ export function PlanWorkspace({
    * permanente deja de significar nada. Se enciende cuando se quiere mirar eso.
    */
   const [atrasadas, setAtrasadas] = useState(false)
+
+  /**
+   * Selección múltiple y lo que se hace con ella (§4.6, conmutador 1).
+   *
+   * El conmutador va aparte de la selección a propósito: apagarlo esconde las casillas y **conserva**
+   * lo marcado. Quien apaga para ver mejor el diagrama y vuelve a encender espera sus líneas donde
+   * las dejó.
+   */
+  const [seleccionando, setSeleccionando] = useState(false)
+  const [seleccion, setSeleccion] = useState<Seleccion>(SIN_SELECCION)
+  const [enCurso, setEnCurso] = useState<{ hechas: number; total: number } | null>(null)
+  const [resultadoDelLote, setResultadoDelLote] = useState<string | null>(null)
+
+  const idsVisiblesEnPantalla = useMemo(() => layoutFiltrado.rows.map((r) => r.id), [layoutFiltrado])
+  const alcance = useMemo(
+    () => alcanceDe(seleccion, idsVisiblesEnPantalla),
+    [seleccion, idsVisiblesEnPantalla],
+  )
+
+  const sangrarEnLote = async (haciaDentro: boolean) => {
+    const ids = alcance.sobreLasQueOperar
+    if (ids.length === 0) return
+    setResultadoDelLote(null)
+    setEnCurso({ hechas: 0, total: ids.length })
+
+    const resumen = await aplicarEnLote(
+      ids,
+      async (id) => {
+        // El destino se calcula con el árbol tal como está ANTES del lote. Recalcularlo tras cada
+        // línea encadenaría los movimientos —la segunda colgaría de la primera ya movida— y el
+        // resultado dependería del orden, que es justo lo que no se quiere de una operación en lote.
+        const destino = haciaDentro
+          ? nuevoPadreAlSangrar(tasks, id)
+          : nuevoPadreAlAnular(tasks, id)?.padre ?? undefined
+        if (destino === undefined) throw new Error('No se puede mover esta línea en esa dirección.')
+        const r = await fetch(`/api/v1/work-items/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parentId: destino }),
+        })
+        if (!r.ok) {
+          const cuerpo = await r.json().catch(() => ({}))
+          throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+        }
+      },
+      (hechas, total) => setEnCurso({ hechas, total }),
+    )
+
+    setEnCurso(null)
+    setResultadoDelLote(contarLoQuePaso(resumen, haciaDentro ? 'sangradas' : 'movidas', alcance.fueraDeLaVista))
+    onPlanCambiado?.()
+  }
   const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null } | null>(null)
   const [errorDeJerarquia, setErrorDeJerarquia] = useState<string | null>(null)
 
@@ -581,6 +643,8 @@ export function PlanWorkspace({
           onLinksChange={setLinks}
           atrasadas={atrasadas}
           onAtrasadasChange={setAtrasadas}
+          seleccionando={seleccionando}
+          onSeleccionandoChange={setSeleccionando}
           filter={filter}
           onFilterChange={setFilter}
           scale={scale}
@@ -660,6 +724,17 @@ export function PlanWorkspace({
                 projectId ? (id, x, y) => setMenuDeFila({ id, x, y }) : undefined
               }
               resaltarAtrasadas={atrasadas}
+              marcadas={seleccionando ? seleccion.marcadas : undefined}
+              onMarcar={
+                seleccionando
+                  ? (id, conMayusculas) =>
+                      setSeleccion((prev) =>
+                        conMayusculas
+                          ? marcarRango(prev, idsVisiblesEnPantalla, id)
+                          : alternar(prev, id),
+                      )
+                  : undefined
+              }
             />
           </div>
 
@@ -689,6 +764,71 @@ export function PlanWorkspace({
                 )
               })()
             : null}
+
+          {seleccionando ? (
+            <div
+              data-testid="barra-de-lote"
+              className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-[#27272a] bg-[#18181b] px-3 py-2 text-xs"
+            >
+              <span className="text-zinc-300">
+                <strong className="tabular-nums">{alcance.sobreLasQueOperar.length}</strong>{' '}
+                {alcance.sobreLasQueOperar.length === 1 ? 'línea marcada' : 'líneas marcadas'}
+                {/* Lo que no se ve se dice: operar en silencio sobre menos de lo marcado deja a
+                    alguien contando por qué faltan. */}
+                {alcance.fueraDeLaVista > 0 ? (
+                  <span className="text-zinc-500">
+                    {' '}
+                    · {alcance.fueraDeLaVista} fuera de la vista
+                  </span>
+                ) : null}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setSeleccion((prev) => marcarTodas(prev, idsVisiblesEnPantalla))}
+                className="rounded border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-800"
+              >
+                Marcar lo visible
+              </button>
+              <button
+                type="button"
+                onClick={() => setSeleccion(limpiar())}
+                className="rounded border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-800"
+              >
+                Limpiar
+              </button>
+
+              <span className="mx-1 h-4 w-px bg-zinc-700" aria-hidden />
+
+              <button
+                type="button"
+                disabled={alcance.sobreLasQueOperar.length === 0 || enCurso !== null}
+                onClick={() => void sangrarEnLote(true)}
+                className="rounded bg-[#6366f1] px-2 py-1 font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+              >
+                Sangrar
+              </button>
+              <button
+                type="button"
+                disabled={alcance.sobreLasQueOperar.length === 0 || enCurso !== null}
+                onClick={() => void sangrarEnLote(false)}
+                className="rounded border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
+              >
+                Anular sangría
+              </button>
+
+              {enCurso !== null ? (
+                <span className="tabular-nums text-zinc-400" data-testid="avance-del-lote">
+                  {enCurso.hechas} de {enCurso.total}...
+                </span>
+              ) : null}
+              {resultadoDelLote !== null ? (
+                <span className="text-zinc-300" data-testid="resultado-del-lote" role="status">
+                  {resultadoDelLote}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
 
           {errorDeJerarquia !== null ? (
             <p

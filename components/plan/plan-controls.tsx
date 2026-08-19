@@ -35,6 +35,9 @@ export interface PlanControlsProps {
   /** Resaltar las líneas vencidas y sin terminar (§4.6, conmutador 2). */
   readonly atrasadas: boolean
   readonly onAtrasadasChange: (activo: boolean) => void
+  /** Selección múltiple (§4.6, conmutador 1). */
+  readonly seleccionando: boolean
+  readonly onSeleccionandoChange: (activo: boolean) => void
   readonly filter: GanttFilter
   readonly onFilterChange: (filter: GanttFilter) => void
   readonly scale: AxisScale
@@ -93,6 +96,8 @@ export function PlanControls({
   onLinksChange,
   atrasadas,
   onAtrasadasChange,
+  seleccionando,
+  onSeleccionandoChange,
   filter,
   onFilterChange,
   scale,
@@ -144,6 +149,14 @@ export function PlanControls({
             {opcion.label}
           </Boton>
         ))}
+      </Grupo>
+
+      <Grupo titulo="Selección" nota="Para operar sobre varias.">
+        {/* Apagarlo esconde las casillas y CONSERVA lo marcado: quien apaga para ver mejor el
+            diagrama y vuelve a encender espera sus líneas donde las dejó. */}
+        <Boton activo={seleccionando} onClick={() => onSeleccionandoChange(!seleccionando)}>
+          {seleccionando ? 'Activa' : 'Múltiple'}
+        </Boton>
       </Grupo>
 
       <Grupo titulo="Atrasadas" nota="Vencidas y sin terminar.">

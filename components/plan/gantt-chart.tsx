@@ -50,6 +50,14 @@ export interface GanttChartProps {
   readonly onMenuDeFila?: (id: string, x: number, y: number) => void
   /** Conmutador «tareas atrasadas» del §4.6: resalta las vencidas y sin terminar. */
   readonly resaltarAtrasadas?: boolean
+  /**
+   * Selección múltiple (§4.6, conmutador 1). Cuando llega, cada fila estrena su casilla.
+   *
+   * Sin ella la columna no se dibuja: una casilla por fila en un plan de mil trescientas líneas es
+   * ruido permanente para una operación que se hace de vez en cuando.
+   */
+  readonly marcadas?: ReadonlySet<string>
+  readonly onMarcar?: (id: string, conMayusculas: boolean) => void
   /** Abrir o cerrar un resumen. Sin esto, los triángulos no se dibujan. */
   readonly onToggle?: (id: string) => void
   /**
@@ -135,6 +143,8 @@ export function GanttChart({
   onSelect,
   onMenuDeFila,
   resaltarAtrasadas,
+  marcadas,
+  onMarcar,
   onToggle,
   onMoverLinea,
 }: GanttChartProps) {
@@ -201,6 +211,7 @@ export function GanttChart({
               className="sticky top-0 z-10 flex border-b border-zinc-800 bg-[#18181b] text-xs uppercase tracking-wide text-zinc-400"
               style={{ height: rowHeight }}
             >
+              {marcadas !== undefined ? <div className="w-8 shrink-0" aria-hidden /> : null}
               {columnas.map((columna, i) => (
                 <div
                   key={columna.id}
@@ -238,6 +249,21 @@ export function GanttChart({
                   className={`absolute left-0 flex ${row.id === selectedId ? 'bg-zinc-800/60' : ''}`}
                   style={{ top: (primera + k) * rowHeight, width: anchoDeLaRejilla }}
                 >
+                  {marcadas !== undefined && onMarcar !== undefined ? (
+                    <div className="flex w-8 shrink-0 items-center justify-center border-b border-zinc-800">
+                      <input
+                        type="checkbox"
+                        data-marca={row.id}
+                        aria-label={`Seleccionar «${row.name}»`}
+                        checked={marcadas.has(row.id)}
+                        // `onClick` y no `onChange`: hace falta saber si venía con Mayúsculas, y
+                        // el evento de cambio no lo trae.
+                        onClick={(e) => onMarcar(row.id, e.shiftKey)}
+                        onChange={() => {}}
+                        className="h-3.5 w-3.5 cursor-pointer accent-[#6366f1]"
+                      />
+                    </div>
+                  ) : null}
                   {columnas.map((columna, i) => (
                     <div
                       key={columna.id}
