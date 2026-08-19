@@ -275,7 +275,9 @@ function WidgetTareas({ metricas }: { readonly metricas: PanelDeProyecto['metric
 
         <p className="text-[11px] leading-relaxed text-zinc-600">
           {tareas.resumenes > 0
-            ? `${tareas.resumenes} líneas más son resúmenes: no tienen trabajo propio y no entran en el reparto. `
+            ? tareas.resumenes === 1
+              ? '1 línea más es un resumen: no tiene trabajo propio y no entra en el reparto. '
+              : `${tareas.resumenes} líneas más son resúmenes: no tienen trabajo propio y no entran en el reparto. `
             : ''}
           «Atrasada» es la misma regla que resalta la lista: venció, no está terminada y no llegó al
           100 %.

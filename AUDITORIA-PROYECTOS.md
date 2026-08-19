@@ -294,3 +294,33 @@ transcurridos, 49/122 = 0,4016393442622951 — el mismo número que devuelve el 
 dígito. Por almanaque serían 69/172 = 0,4011627906976744, que redondea al 40,1 % y no es lo que
 sale. La tarjeta además lo dice en voz alta: «la fracción del calendario laborable ya transcurrida
 —no del almanaque—».
+
+## §9.3 C2 — cada métrica contra una cuenta hecha a mano
+
+El criterio pide un proyecto de prueba **pequeño**, y pequeño es la parte importante: en un plan de
+1368 líneas no se puede saber si una fórmula está bien, sólo si parece razonable.
+
+`scripts/panel-ocho-lineas.ts` crea ocho líneas con duraciones de cinco días hábiles y de uno, para
+que los pesos salgan en enteros; pide el panel al servicio de verdad, no a la fórmula suelta; compara
+con quince números escritos a mano en el propio guion; y borra lo que creó. Las quince coinciden:
+
+| | sale | a mano |
+|---|---|---|
+| avance global ponderado | 0,3695652173913043 | trabajo 4×5+3×1 = 23; hecho 5×1+5×0,5+1×1 = 8,5 |
+| avance planificado | 0,65 | 3..19 ago = 5+5+3 = 13 hábiles de 20 |
+| atrasadas | 3 | T2, T3 y H2 — T1 y H1 vencieron pero están hechas |
+| hojas / resúmenes | 7 / 1 | ocho menos R1, de la que cuelga T4 |
+| hitos / atrasados | 3 / 1 | H1, H2, H3 — sólo H2 sin cumplir |
+| reparto por estado | TODO 4 · IN_PROGRESS 1 · DONE 2 | sobre las hojas, no sobre las ocho |
+| tiempo / presupuesto | null / null | no hay `TimeLog` ni `budget` (§9.4) |
+
+En pantalla: progreso global 37,0 %, 7 líneas de trabajo, 3 atrasadas, 20 días hábiles, planificado
+65,0 %, 3 hitos con 1 atrasado. Los mismos números.
+
+**Un defecto de redacción, visto al mirarlo.** Con un solo resumen el panel decía «1 líneas más son
+resúmenes: no tienen trabajo propio». Es el caso de cualquier plan pequeño, así que se ve enseguida.
+Ahora dice «1 línea más es un resumen: no tiene trabajo propio».
+
+**Una comprobación mía que estaba mal.** Exigía que las fracciones del reparto sumaran 1 exacto;
+4/7+1/7+2/7 en binario da 0,9999999999999999. Corregida con tolerancia: era una prueba sobre la coma
+flotante, no sobre el reparto.

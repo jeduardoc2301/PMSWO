@@ -77,6 +77,14 @@ function dibujar(sobre: Partial<React.ComponentProps<typeof DashboardView>> = {}
   return { ...render(<DashboardView {...props} />), props }
 }
 
+/** El mismo panel con otro número de resúmenes, que es lo único que cambia el texto de abajo. */
+function conResumenes(resumenes: number): PanelDeProyecto {
+  return {
+    ...PANEL,
+    metricas: { ...PANEL.metricas, tareas: { ...PANEL.metricas.tareas, resumenes } },
+  }
+}
+
 describe('§9.1.1 · información del proyecto', () => {
   it('enseña el progreso global calculado en el servidor, no uno propio', () => {
     dibujar()
@@ -182,6 +190,25 @@ describe('§9.1.4 · hitos', () => {
     }
     dibujar({ panel })
     expect(screen.getByText(/no tiene hitos ni puntos de control/)).toBeInTheDocument()
+  })
+})
+
+describe('Lo que dice al lado de las cifras', () => {
+  it('con un solo resumen lo dice en singular', () => {
+    // «1 líneas más son resúmenes» sale en pantalla en cuanto el proyecto tiene un único resumen,
+    // que es el caso de cualquier plan pequeño.
+    dibujar({ panel: conResumenes(1) })
+    expect(screen.getByText(/1 línea más es un resumen/)).toBeInTheDocument()
+  })
+
+  it('con varios, en plural', () => {
+    dibujar({ panel: conResumenes(4) })
+    expect(screen.getByText(/4 líneas más son resúmenes/)).toBeInTheDocument()
+  })
+
+  it('sin ninguno no dice nada de resúmenes', () => {
+    dibujar({ panel: conResumenes(0) })
+    expect(screen.queryByText(/resumen/)).not.toBeInTheDocument()
   })
 })
 
