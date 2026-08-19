@@ -17,6 +17,7 @@ import { useUndo } from '@/components/projects/use-undo'
 import { type Cambio, operacionDesde } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
+import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
 import { BlockersTab } from '@/components/projects/blockers-tab'
 import { RisksTab } from '@/components/projects/risks-tab'
 import { AgreementsTab } from '@/components/projects/agreements-tab'
@@ -950,6 +951,14 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     ))}
                   </div>
                 </div>
+
+                {/* Quién está en el proyecto y con qué papel (§10.1). Va en el Resumen y no en una
+                    pantalla aparte: es información del proyecto, y esconderla tras un ajuste hace
+                    que nadie sepa quién ve qué hasta que hay un problema. */}
+                <RepartoDePapeles
+                  projectId={projectId}
+                  puedeRepartir={(permisosDelProyecto ?? []).includes('manage_project_settings')}
+                />
               </div>
             )}
 

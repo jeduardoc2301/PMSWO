@@ -95,7 +95,7 @@ tiempo real y deshacer.
 | 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
-| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. Falta llevarlo al resto de rutas de escritura y una pantalla para repartir papeles | M | Alto |
+| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. La pantalla de reparto ya existe (`components/projects/reparto-de-papeles.tsx`, en el Resumen). Falta llevar la guardia al resto de rutas de escritura menores | M | Alto |
 | 30 | Revocar un rol no surte efecto hasta volver a entrar | **EXISTE PERO MAL** | `lib/auth.ts` (sesión JWT) | Los roles viajan en el token y no se releen de la base. Cambiar el rol de alguien en la base no le quita nada hasta que su sesión caduca o vuelve a entrar. Es el comportamiento normal de una sesión JWT, y es una decisión consciente que hay que tomar —no un descuido— porque una revocación de permisos que tarda no es una revocación. Descubierto al probar la guardia del §10.1: los primeros intentos pasaron con un token viejo | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
@@ -817,3 +817,31 @@ declarado.
 Con esto el §10.4 queda completo: columnas con su ancho, zoom, posición del divisor, los cuatro
 conmutadores, agrupación, orden y formato de lista. Las cinco vistas configurables guardan y
 restauran; el Calendario no guarda nada y está razonado.
+
+## §10.1 — la pantalla para repartir papeles
+
+Repartir papeles se hacía con un guion contra la base. Ahora hay pantalla, en el Resumen del
+proyecto y no escondida tras un ajuste: quién ve qué es información del proyecto, y esconderla hace
+que nadie lo sepa hasta que hay un problema.
+
+**Cada fila dice qué significa su papel, no sólo cómo se llama.** «Colaborador» no le dice a nadie
+que puede capturar avance y no mover fechas, y esa es justo la distinción que hay que entender para
+repartir bien. En pantalla se lee «Quien ejecuta — actualiza estado y avance de sus líneas. No mueve
+el plan de nadie».
+
+**El desplegable dice qué se gana o se pierde**, y la frase se **calcula** comparando los dos
+conjuntos de permisos. Escribirla a mano daría dieciséis frases que envejecen por separado, y la
+primera que se quedara vieja mentiría sobre permisos.
+
+**El propietario sale y no se toca.** Lo es por ser dueño del proyecto, no por una fila, así que:
+esconderlo diría que el proyecto no tiene propietario, y ofrecer cambiarlo sería ofrecer algo que el
+servidor rechaza — comprobado, devuelve **409** con el motivo. Sale con su papel y un título que
+explica que se cambia cambiando el propietario del proyecto.
+
+**Lo que escribe pide `manage_project_settings`**, que es el permiso del propietario. Repartir
+papeles es repartir permisos: quien pudiera hacerlo sin ese permiso podría dárselo a sí mismo.
+
+Comprobado en pantalla de punta a punta: los dos implícitos salen fijos, se da de alta a alguien
+como cliente por la ruta nueva (200), se cambia a «quien ejecuta» desde el desplegable, y el
+servidor confirma `Executive User=COLLABORATOR`. Después se quitó y el proyecto quedó con sus dos de
+siempre.
