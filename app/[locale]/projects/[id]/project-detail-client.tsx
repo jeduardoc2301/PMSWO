@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
@@ -22,7 +23,16 @@ import { AIReportDialog } from '@/components/ai/ai-report-dialog'
 import { AIAnalysisDialog } from '@/components/ai/ai-analysis-dialog'
 import { ExportProjectDialog } from '@/components/projects/export-project-dialog'
 import { ApplyTemplateDialog } from '@/components/templates/apply-template-dialog'
-import { ProjectBurndownChart } from '@/components/projects/project-burndown-chart'
+// La gráfica de avance va aparte y no con el resto del módulo. Arrastra `recharts`, que dibuja con
+// `React.createElement` una figura por marca —ejes, rejilla, puntos, barras—: en el perfil de CPU
+// de la carga del proyecto son ~470 ms de `createElement` más ~220 ms de la propia biblioteca, la
+// mitad de todo lo que React renderiza en esa página. Y ese trabajo ocurre ANTES de que exista la
+// barra de pestañas, así que quien viene a mirar el Panel de control paga por una gráfica que no ha
+// pedido y que ni siquiera está a la vista. Cargándola aparte, la barra aparece y luego llega ella.
+const ProjectBurndownChart = dynamic(
+  () => import('@/components/projects/project-burndown-chart').then((m) => m.ProjectBurndownChart),
+  { ssr: false, loading: () => <div className="h-[360px] rounded-xl" style={{ background: '#111113', border: '1px solid #27272a' }} /> },
+)
 // La línea de tiempo anterior inventaba las fechas que faltaban con un desplazamiento
 // pseudoaleatorio; la pestaña nueva pide el plan real del proyecto y lo pasa por el motor de
 // planeación: ruta súper crítica, holgura y vínculos de verdad.
@@ -173,23 +183,49 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     setRiskDataFromAI(data); setActiveTab('risks')
   }
 
+  /**
+   * Las cuatro peticiones de la pantalla salen juntas, pero la pantalla ya no espera a las cuatro.
+   *
+   * Hasta aquí un único `Promise.all` mantenía la rueda girando hasta que contestaba la más lenta
+   * —el tablero, que trae las mil trescientas líneas—, y sólo entonces aparecía la barra de
+   * pestañas. Quien venía a mirar el Panel de control no podía ni pulsarlo mientras tanto: medido
+   * en el navegador, el proyecto contestaba a los 867 ms y el tablero a los 1549 ms, y ese hueco lo
+   * pagaba entero antes de poder empezar a pedir su panel.
+   *
+   * La cabecera y la barra sólo necesitan el proyecto. Lo demás ya venía dibujado bajo condición
+   * —las tarjetas con `metrics &&`, el tablero con «cargando» mientras no haya líneas—, así que
+   * enseñarlo en cuanto llega el proyecto no deja ningún hueco nuevo en pantalla.
+   */
   const fetchProject = async () => {
     try {
       setLoading(true); setError(null)
-      const [projectRes, metricsRes, kanbanRes, agreementsRes] = await Promise.all([
-        fetch(`/api/v1/projects/${projectId}`),
+      const pProject = fetch(`/api/v1/projects/${projectId}`)
+      // El fallo se guarda como valor en vez de quedar en un rechazo: si el proyecto revienta
+      // primero nunca llegamos a esperar a las otras tres, y su rechazo se quedaría sin dueño —lo
+      // que en el navegador es un error suelto en consola, y en las pruebas un aviso de Vitest.
+      const pResto = Promise.all([
         fetch(`/api/v1/projects/${projectId}/metrics`),
         fetch(`/api/v1/projects/${projectId}/kanban`),
         fetch(`/api/v1/projects/${projectId}/agreements`),
-      ])
+      ]).then(
+        (respuestas) => ({ bien: true as const, respuestas }),
+        (fallo: unknown) => ({ bien: false as const, fallo }),
+      )
+
+      const projectRes = await pProject
       if (!projectRes.ok) { const d = await projectRes.json(); throw new Error(d.message || 'Failed to fetch project') }
+      const projectData = await projectRes.json()
+      setProject(projectData.project)
+      setLoading(false)
+
+      const resto = await pResto
+      if (!resto.bien) throw resto.fallo
+      const [metricsRes, kanbanRes, agreementsRes] = resto.respuestas
       if (!metricsRes.ok) { const d = await metricsRes.json(); throw new Error(d.message || 'Failed to fetch metrics') }
       if (!kanbanRes.ok)  { const d = await kanbanRes.json();  throw new Error(d.message || 'Failed to fetch Kanban') }
-      const projectData = await projectRes.json()
       const metricsData = await metricsRes.json()
       const kanbanData  = await kanbanRes.json()
       const agreementsData = agreementsRes.ok ? await agreementsRes.json() : { agreements: [] }
-      setProject(projectData.project)
       setMetrics(metricsData.metrics)
       setKanbanBoard(kanbanData.kanbanBoard)
       calculateTacticalMetrics(kanbanData.kanbanBoard, agreementsData.agreements || [])

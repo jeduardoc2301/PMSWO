@@ -31,12 +31,27 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
   useEffect(() => {
     let vigente = true
 
+    // Las dos salen a la vez, pero se recogen por separado. Con un `Promise.all` el panel no se
+    // dibujaba hasta que llegaba la más lenta de las dos, y cuál es la más lenta no lo decide lo
+    // que cada una cuesta: midiendo el clic se ve que la preferencia —una fila— tarda lo mismo que
+    // el panel entero, porque el servidor de desarrollo atiende de uno en uno y la deja esperando
+    // detrás. Los números que se enseñan no dependen de qué widgets estén encendidos, así que
+    // esperarla era regalar el retraso de la otra.
+    const promesaPanel = fetch(`/api/v1/projects/${projectId}/dashboard`)
+    const promesaPreferencia = fetch(`/api/v1/projects/${projectId}/preferences?view=PANEL`)
+
+    // Que la preferencia falle no puede tumbar el panel: se cae de pie a la de por omisión.
+    void promesaPreferencia
+      .then(async (respuesta) => {
+        if (!respuesta.ok) return
+        const { settings } = await respuesta.json()
+        if (vigente && Array.isArray(settings?.widgets)) setWidgets(settings.widgets)
+      })
+      .catch(() => {})
+
     const cargar = async () => {
       try {
-        const [respuestaPanel, respuestaPreferencia] = await Promise.all([
-          fetch(`/api/v1/projects/${projectId}/dashboard`),
-          fetch(`/api/v1/projects/${projectId}/preferences?view=PANEL`),
-        ])
+        const respuestaPanel = await promesaPanel
 
         if (!respuestaPanel.ok) {
           const cuerpo = await respuestaPanel.json().catch(() => ({}))
@@ -45,12 +60,6 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
         const { panel, hoy } = (await respuestaPanel.json()) as { panel: PanelDeProyecto; hoy: string }
         if (!vigente) return
         setEstado({ fase: 'listo', panel, hoy })
-
-        // Que la preferencia falle no puede tumbar el panel: se cae de pie a la de por omisión.
-        if (respuestaPreferencia.ok) {
-          const { settings } = await respuestaPreferencia.json()
-          if (vigente && Array.isArray(settings?.widgets)) setWidgets(settings.widgets)
-        }
       } catch (error) {
         if (vigente) {
           setEstado({

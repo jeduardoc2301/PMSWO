@@ -17,11 +17,20 @@ import { type IsoDate } from '@/lib/scheduling/date'
 import { loadProjectDashboard } from '@/services/project-dashboard.service'
 import { Permission } from '@/types'
 
-/**
- * Un panel no necesita ser exacto al segundo (§9.2). Sesenta segundos de gracia evitan que diez
- * personas mirando el mismo proyecto disparen diez recorridos del plan por minuto.
+/*
+ * Aquí vivía `export const revalidate = 60`, con un comentario que prometía sesenta segundos de
+ * gracia para que diez personas mirando el mismo proyecto no dispararan diez recorridos del plan.
+ * No cacheaba nada: `withAuth` lee la galleta de sesión, y una ruta que lee galletas es dinámica
+ * para Next —nunca entra en el caché de datos—, así que cada visita rehacía las cinco consultas.
+ * Medido: tres peticiones seguidas en un segundo dejaron tres lecturas completas de `work_items`
+ * en el registro. Se quitó porque una promesa falsa en un comentario cuesta más que lo que ahorra:
+ * manda a buscar la lentitud donde no está.
+ *
+ * Un caché de verdad —memoria del proceso, sesenta segundos— sí se puede escribir, pero cambia lo
+ * que se ve: el panel es justo la pantalla donde alguien comprueba el efecto de haber movido una
+ * fecha, y devolvérsela sin el cambio durante un minuto es peor que recorrer el plan otra vez. El
+ * recorrido entero, medido contra la base local con 1368 líneas, cuesta 25 ms.
  */
-export const revalidate = 60
 
 /** Hoy en fecha civil del servidor, sin pasar por UTC. */
 function hoyCivil(): IsoDate {
