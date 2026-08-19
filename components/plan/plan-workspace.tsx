@@ -510,6 +510,49 @@ export function PlanWorkspace({
   const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null } | null>(null)
   const [errorDeJerarquia, setErrorDeJerarquia] = useState<string | null>(null)
 
+  /**
+   * Escribe una celda editada en el grid (§4.2).
+   *
+   * Llega ya validada y distinta de lo que había: la celda descartó el resto. Aquí solo queda
+   * escribir, apuntarlo para deshacer, y volver a pedir el plan.
+   *
+   * El nombre y el avance no reprograman nada, así que se escriben directo. Las fechas y la
+   * duración sí —mover una línea puede empujar quinientas— y por eso esas celdas todavía no se
+   * editan aquí: tienen que pasar por la previsualización que ya usa el arrastre, y prometerlo con
+   * un doble clic sería saltarse el aviso.
+   */
+  const editarCelda = async (id: string, campo: 'name' | 'progress', valor: string) => {
+    const linea = tasks.find((t) => t.id === id)
+    if (!linea) return
+    setErrorDeJerarquia(null)
+
+    const antes = campo === 'name' ? { title: linea.name } : { progressPct: linea.progress ?? 0 }
+    const despues =
+      campo === 'name'
+        ? { title: valor }
+        : { progressPct: Number(valor.replace(',', '.')) / 100 }
+
+    try {
+      const r = await fetch(`/api/v1/work-items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(despues),
+      })
+      if (!r.ok) {
+        const cuerpo = await r.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+      }
+      onOperacion?.({
+        etiqueta: campo === 'name' ? `Renombrar «${linea.name}»` : `Avance de «${linea.name}»`,
+        hacer: [{ workItemId: id, campos: despues }],
+        deshacer: [{ workItemId: id, campos: antes }],
+      })
+      onPlanCambiado?.()
+    } catch (e) {
+      setErrorDeJerarquia(e instanceof Error ? e.message : 'No se pudo escribir el cambio.')
+    }
+  }
+
   const moverEnElArbol = async (id: string, padre: string | null) => {
     setErrorDeJerarquia(null)
     try {
@@ -754,6 +797,7 @@ export function PlanWorkspace({
                 projectId ? (id, x, y) => setMenuDeFila({ id, x, y }) : undefined
               }
               resaltarAtrasadas={atrasadas}
+              onEditarCelda={projectId ? (id, campo, v) => void editarCelda(id, campo, v) : undefined}
               marcadas={seleccionando ? seleccion.marcadas : undefined}
               onMarcar={
                 seleccionando

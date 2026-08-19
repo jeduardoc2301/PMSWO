@@ -20,6 +20,7 @@ import {
   anchoDe,
   columnasVisibles,
 } from '@/lib/plan/gantt-columns'
+import { CeldaEditable, validarAvance, validarNombre } from '@/components/plan/celda-editable'
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 
 export interface GanttChartProps {
@@ -50,6 +51,13 @@ export interface GanttChartProps {
   readonly onMenuDeFila?: (id: string, x: number, y: number) => void
   /** Conmutador «tareas atrasadas» del §4.6: resalta las vencidas y sin terminar. */
   readonly resaltarAtrasadas?: boolean
+  /**
+   * Escribir una celda editada en el grid (§4.2).
+   *
+   * Solo llega con un valor válido y distinto del que había: la celda ya descartó lo demás, así que
+   * quien recibe esto puede escribir sin volver a comprobar nada.
+   */
+  readonly onEditarCelda?: (id: string, campo: 'name' | 'progress', valor: string) => void
   /**
    * Selección múltiple (§4.6, conmutador 1). Cuando llega, cada fila estrena su casilla.
    *
@@ -143,6 +151,7 @@ export function GanttChart({
   onSelect,
   onMenuDeFila,
   resaltarAtrasadas,
+  onEditarCelda,
   marcadas,
   onMarcar,
   onToggle,
@@ -271,12 +280,27 @@ export function GanttChart({
                       className="shrink-0 overflow-hidden border-b border-zinc-800"
                       style={{ width: anchoPorColumna[i] }}
                     >
-                      {columna.id === 'name' ? (
+                      {columna.id === 'progress' && onEditarCelda ? (
+                        <CeldaEditable
+                          texto={contenidoDe(row, columna.id, primera + k)}
+                          valor={String(Math.round(row.progress * 100))}
+                          etiqueta={`Avance de «${row.name}»`}
+                          validar={validarAvance}
+                          alineadoALaDerecha
+                          // Un resumen no tiene avance propio: lo hereda de sus hijas pesado por el
+                          // trabajo de cada una. Dejarlo escribir daría una cifra que el siguiente
+                          // cálculo borra.
+                          deshabilitada={row.hasChildren}
+                          motivo="Un resumen hereda el avance de sus hijas"
+                          onGuardar={(v) => onEditarCelda(row.id, 'progress', v)}
+                        />
+                      ) : columna.id === 'name' ? (
                         <NameCell
                           row={row}
                           height={rowHeight}
                           onSelect={onSelect}
                           onToggle={onToggle}
+                          onEditarNombre={onEditarCelda ? (id, v) => onEditarCelda(id, 'name', v) : undefined}
                         />
                       ) : (
                         <span
@@ -347,12 +371,16 @@ function NameCell({
   height,
   onSelect,
   onToggle,
+  onEditarNombre,
 }: {
   row: GanttRow
   height: number
   onSelect?: (id: string) => void
   onToggle?: (id: string) => void
+  onEditarNombre?: (id: string, valor: string) => void
 }) {
+  const [editando, setEditando] = useState(false)
+
   return (
     <div
       className="flex items-center gap-1 px-2 text-sm"
@@ -371,14 +399,31 @@ function NameCell({
       ) : (
         <span className="w-4 shrink-0" />
       )}
-      <button
-        type="button"
-        onClick={() => onSelect?.(row.id)}
-        className={`truncate text-left ${row.isSummary ? 'font-medium text-zinc-100' : 'text-zinc-300'}`}
-        title={row.name}
-      >
-        {row.name}
-      </button>
+      {/* El clic simple sigue abriendo el detalle y el doble clic edita. Son dos gestos distintos
+          sobre el mismo elemento a propósito: el nombre es donde la gente pulsa para mirar una
+          línea, y mudar la edición a otro sitio la escondería. */}
+      {editando ? (
+        <CeldaEditable
+          texto={row.name}
+          valor={row.name}
+          etiqueta={`Nombre de «${row.name}»`}
+          validar={validarNombre}
+          onGuardar={(v) => {
+            setEditando(false)
+            onEditarNombre?.(row.id, v)
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => onSelect?.(row.id)}
+          onDoubleClick={onEditarNombre ? () => setEditando(true) : undefined}
+          className={`truncate text-left ${row.isSummary ? 'font-medium text-zinc-100' : 'text-zinc-300'}`}
+          title={onEditarNombre ? `${row.name} · doble clic para renombrar` : row.name}
+        >
+          {row.name}
+        </button>
+      )}
     </div>
   )
 }
