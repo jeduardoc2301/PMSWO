@@ -20,10 +20,11 @@ function isoDeFecha(fecha: Date): IsoDate {
 import { columnaAlCambiarProgreso, estadoDeLaColumna } from '@/lib/projects/status-progress'
 import { z } from 'zod'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
+import { hasPermission } from '@/lib/rbac'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import prisma from '@/lib/prisma'
 import { verificarPadre } from '@/services/workitem.service'
-import { Permission, WorkItemStatus, WorkItemPriority } from '@/types'
+import { Permission, UserRole, WorkItemStatus, WorkItemPriority } from '@/types'
 
 const updateWorkItemSchema = z.object({
   title: z.string().min(1).max(255).optional(),
@@ -231,6 +232,29 @@ async function updateWorkItemHandler(
      */
     let empujadas = 0
     if (updateData.startDate !== undefined || updateData.estimatedEndDate !== undefined) {
+      /**
+       * Mover fechas es tocar el plan, y el plan pide el permiso del plan (§10.1).
+       *
+       * Es la distinción `edit_schedule` / `edit_tracking` que el spec llama «el permiso más útil
+       * de todo el sistema»: quien ejecuta actualiza el estado y el avance de sus líneas sin poder
+       * alterar el cronograma. Aquí se expresa con los permisos que ya existen — el mismo que exige
+       * la ruta de reprogramar.
+       *
+       * Hacía falta desde el momento en que esta ruta empezó a reprogramar: `INTERNAL_CONSULTANT`
+       * tiene `WORK_ITEM_UPDATE` y no `PROJECT_UPDATE`, así que no puede llamar a `/reschedule`
+       * pero sí llegaba aquí — y desde aquí movía las mismas cientos de líneas. La guardia de la
+       * otra ruta se saltaba por la puerta de al lado.
+       */
+      if (!hasPermission(authContext.roles as UserRole[], Permission.PROJECT_UPDATE)) {
+        return NextResponse.json(
+          {
+            error: 'Forbidden',
+            message:
+              'Cambiar las fechas mueve el cronograma y el trabajo que depende de él. Puedes actualizar estado y avance, pero no las fechas.',
+          },
+          { status: 403 },
+        )
+      }
       const resultado = await confirmar(
         workItem.projectId,
         organizationId,
