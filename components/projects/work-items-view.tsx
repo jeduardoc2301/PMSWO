@@ -14,7 +14,7 @@
  * y este archivo se puede probar simulándolo.
  */
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   CAMPOS_DE_GRUPO,
@@ -26,7 +26,14 @@ import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dia
 import { DeleteWorkItemDialog } from '@/components/projects/delete-work-item-dialog'
 import { DependencyEditor } from '@/components/projects/dependency-editor'
 import { EditWorkItemDialog } from '@/components/projects/edit-work-item-dialog'
+import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { WorkItemsList } from '@/components/projects/work-items-list'
+import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
+import { calendarioDesde } from '@/lib/scheduling/project-calendar'
+import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
+import { classifySuperCritical } from '@/lib/scheduling/critical-path'
+import { ganttLayout } from '@/lib/scheduling/gantt'
+import { schedulePlan } from '@/lib/scheduling/schedule'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
@@ -156,6 +163,47 @@ export function WorkItemsView({
   // limpia al cerrar: si no, el alta siguiente heredaría un padre que ya nadie pidió.
   const [padreDeLaNueva, setPadreDeLaNueva] = useState<string | null>(null)
   const [editando, setEditando] = useState<WorkItemSummary | null>(null)
+
+  /**
+   * La línea abierta en el panel de detalle (§10.3).
+   *
+   * Es el **mismo** componente que montan el Gantt y el Calendario. Antes la Lista no abría
+   * ninguno: para ver de qué depende una línea había que irse al Gantt y volver a buscarla.
+   */
+  const [detalle, setDetalle] = useState<string | null>(null)
+
+  /**
+   * El trazado del motor, para alimentar el panel de detalle.
+   *
+   * Sale del **mismo** plan que ya tiene esta vista y del mismo motor que usan el Gantt y el
+   * Calendario, no de las fechas guardadas: si el panel leyera la base y el Gantt el motor, la
+   * misma línea diría dos cosas según por dónde se entrara. Es justo lo que el §10.3 llama la
+   * fuente número uno de incoherencias.
+   */
+  const filasDelPlan = useMemo(() => {
+    if (estado.fase !== 'listo' || estado.plan.tasks.length === 0) return []
+    const { plan } = estado
+    const calendar = calendarioDesde(plan.calendar)
+    const schedule = schedulePlan({
+      tasks: plan.tasks,
+      dependencies: plan.dependencies,
+      calendar,
+      start: plan.start,
+    })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks: plan.tasks,
+      dependencies: plan.dependencies,
+      schedule,
+      classified: classifySuperCritical(analysis, plan.tasks).tasks,
+      calendar,
+    }).rows
+  }, [estado])
+
+  const tareasDelPlan = estado.fase === 'listo' ? estado.plan.tasks : []
+  const dependenciasDelPlan = estado.fase === 'listo' ? estado.plan.dependencies : []
+  const nombresDelPlan = useMemo(() => new Map(tareasDelPlan.map((t) => [t.id, t.name])), [tareasDelPlan])
+  const filaDelDetalle = detalle === null ? null : filasDelPlan.find((f) => f.id === detalle) ?? null
   const [borrando, setBorrando] = useState<WorkItemSummary | null>(null)
 
   // ── Líneas base (§4.6) ────────────────────────────────────────────────────────────────────────
@@ -507,6 +555,8 @@ export function WorkItemsView({
       </div>
 
       {modo === 'LISTA' || modo === 'AGRUPADA' ? (
+        <div className="flex gap-3">
+          <div className="min-w-0 flex-1">
         <WorkItemsList
           plana
           agruparPor={modo === 'AGRUPADA' ? agruparPor : undefined}
@@ -520,7 +570,21 @@ export function WorkItemsView({
           onEditDatesDataUsed={onEditDatesDataUsed}
           canCreateWorkItems={canCreateWorkItems}
           onApplyTemplate={onApplyTemplate}
+          onAbrirDetalle={setDetalle}
         />
+          </div>
+          {filaDelDetalle ? (
+            <aside className="w-80 shrink-0" data-testid="detalle-lista">
+              <PlanDetailPanel
+                row={filaDelDetalle}
+                {...(detalle ? vinculosDe(dependenciasDelPlan, nombresDelPlan, detalle) : SIN_VINCULOS)}
+                ruta={rutaDe(tareasDelPlan, filaDelDetalle.id)}
+                onNavigate={setDetalle}
+                onClose={() => setDetalle(null)}
+              />
+            </aside>
+          ) : null}
+        </div>
       ) : estado.fase === 'cargando' ? (
         <p className="py-12 text-center text-sm text-zinc-400">Calculando el plan del proyecto...</p>
       ) : estado.fase === 'error' ? (

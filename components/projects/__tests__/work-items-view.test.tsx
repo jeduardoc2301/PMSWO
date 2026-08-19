@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 import { WorkItemsView } from '../work-items-view'
 
@@ -398,5 +398,68 @@ describe('Altas, bajas y modificaciones desde el esquema', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '+ Nueva tarea' }))
     expect(screen.getByTestId('dialogo-alta')).toHaveAttribute('data-padre', '')
+  })
+})
+
+describe('§10.3 · la Lista abre el mismo panel de detalle que el Gantt', () => {
+  beforeEach(() => {
+    simularRed()
+  })
+
+  /**
+   * `WorkItemsList` está simulado en este archivo, así que lo que se prueba es el límite del
+   * contenedor: que le pase el gesto y que, al dispararlo, monte el panel compartido con las fechas
+   * del motor. Que la celda del nombre sea un botón se comprobó en pantalla.
+   */
+  async function enLista() {
+    montar()
+    await waitFor(() => expect(screen.queryByText('Calculando el plan del proyecto...')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }))
+    await waitFor(() => expect(capturado.lista).toBeTruthy())
+  }
+
+  it('le da a la Lista la manera de abrir el detalle', async () => {
+    await enLista()
+    expect(typeof capturado.lista.onAbrirDetalle).toBe('function')
+  })
+
+  it('abrir una línea monta el panel compartido', async () => {
+    await enLista()
+    expect(screen.queryByTestId('detalle-lista')).not.toBeInTheDocument()
+
+    await act(async () => {
+      capturado.lista.onAbrirDetalle('t1')
+    })
+    await waitFor(() => expect(screen.getByTestId('detalle-lista')).toBeInTheDocument())
+  })
+
+  it('las fechas del panel salen del motor, no de las guardadas en la línea', async () => {
+    // Es la razón de ser del §10.3: si el panel leyera la base y el Gantt el motor, la misma línea
+    // diría dos cosas según por dónde se entrara.
+    await enLista()
+    await act(async () => {
+      capturado.lista.onAbrirDetalle('t1')
+    })
+    await waitFor(() => expect(screen.getByTestId('detalle-lista')).toBeInTheDocument())
+    expect(screen.getByTestId('detalle-lista')).toHaveTextContent(/días hábiles|día hábil|no consume días/)
+  })
+
+  it('cierra y la Lista queda como estaba', async () => {
+    await enLista()
+    await act(async () => {
+      capturado.lista.onAbrirDetalle('t1')
+    })
+    await waitFor(() => expect(screen.getByTestId('detalle-lista')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByLabelText('Cerrar el detalle'))
+    await waitFor(() => expect(screen.queryByTestId('detalle-lista')).not.toBeInTheDocument())
+  })
+
+  it('una línea que el motor no conoce no monta un panel a medias', async () => {
+    await enLista()
+    await act(async () => {
+      capturado.lista.onAbrirDetalle('no-existe')
+    })
+    expect(screen.queryByTestId('detalle-lista')).not.toBeInTheDocument()
   })
 })

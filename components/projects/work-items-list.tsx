@@ -97,6 +97,7 @@ function SortableRow({
   getPriorityLabel,
   onEdit,
   onDelete,
+  onAbrirDetalle,
 }: {
   item: WorkItemSummary
   isHighlighted: boolean
@@ -104,6 +105,7 @@ function SortableRow({
   getPriorityLabel: (p: WorkItemPriority) => string
   onEdit: (item: WorkItemSummary) => void
   onDelete: (item: WorkItemSummary) => void
+  onAbrirDetalle?: (id: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
@@ -120,7 +122,21 @@ function SortableRow({
         </button>
       </td>
       <td className="px-4 py-3.5">
-        <span className="text-sm font-medium text-zinc-100">{item.title}</span>
+        {/* El nombre abre el panel de detalle del §10.3 — el mismo componente que montan el Gantt y
+            el Calendario. Sin esto la Lista era la tercera vista donde pulsar una línea no llevaba
+            a ningún sitio, y la única manera de ver de qué depende una tarea era irse al Gantt. */}
+        {onAbrirDetalle ? (
+          <button
+            type="button"
+            onClick={() => onAbrirDetalle(item.id)}
+            className="text-left text-sm font-medium text-zinc-100 hover:text-white hover:underline"
+            title={item.title}
+          >
+            {item.title}
+          </button>
+        ) : (
+          <span className="text-sm font-medium text-zinc-100">{item.title}</span>
+        )}
       </td>
       <td className="px-4 py-3.5 whitespace-nowrap">
         <span style={{ ...STATUS_STYLE[item.status], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
@@ -137,10 +153,22 @@ function SortableRow({
       <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{formatDate(item.estimatedEndDate)}</td>
       <td className="px-4 py-3.5 whitespace-nowrap text-right">
         <div className="flex items-center justify-end gap-1">
-          <button onClick={() => onEdit(item)} className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all">
+          {/* Los dos llevaban solo un icono y ningún texto: un lector de pantalla anunciaba
+              «botón, botón» y no había forma de saber cuál borra. */}
+          <button
+            onClick={() => onEdit(item)}
+            aria-label={`Editar «${item.title}»`}
+            title="Editar"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+          >
             <Pencil className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => onDelete(item)} className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all">
+          <button
+            onClick={() => onDelete(item)}
+            aria-label={`Eliminar «${item.title}»`}
+            title="Eliminar"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
+          >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -189,6 +217,13 @@ interface WorkItemsListProps {
     workItemTitle: string
   } | null
   onEditDatesDataUsed?: () => void
+  /**
+   * Abrir el panel de detalle de una línea (§10.3).
+   *
+   * Opcional: sin él la celda del nombre vuelve a ser texto plano. Un nombre que parece pulsable y
+   * no hace nada es peor que uno que no lo parece.
+   */
+  onAbrirDetalle?: (id: string) => void
   canCreateWorkItems?: boolean
   onApplyTemplate?: () => void
 }
@@ -201,6 +236,7 @@ export function WorkItemsList({
   onWorkItemCreated,
   editDatesData,
   onEditDatesDataUsed,
+  onAbrirDetalle,
   canCreateWorkItems = false,
   onApplyTemplate
 }: WorkItemsListProps) {
@@ -717,6 +753,7 @@ export function WorkItemsList({
                                   getStatusLabel={getStatusLabel}
                                   getPriorityLabel={getPriorityLabel}
                                   onEdit={(i) => { setSelectedWorkItem(i); setEditDialogOpen(true) }}
+                                  onAbrirDetalle={onAbrirDetalle}
                                   onDelete={(i) => { setSelectedWorkItem(i); setDeleteDialogOpen(true) }}
                                 />
                               ))}
@@ -838,13 +875,25 @@ export function WorkItemsList({
                         <td className={plana ? 'px-6 py-0' : 'px-6 py-4'}>
                           {/* Recortado en el formato plano: con cinco mil filas, una que envuelve
                               desajusta las espaciadoras y la lista da tirones. */}
-                          <span
-                            title={item.title}
-                            className={plana ? 'block max-w-[42ch] truncate' : ''}
-                            style={{ fontSize: 14, fontWeight: 500, color: '#e4e4e7' }}
-                          >
-                            {item.title}
-                          </span>
+                          {onAbrirDetalle ? (
+                            <button
+                              type="button"
+                              onClick={() => onAbrirDetalle(item.id)}
+                              title={item.title}
+                              className={`text-left hover:underline ${plana ? 'block max-w-[42ch] truncate' : ''}`}
+                              style={{ fontSize: 14, fontWeight: 500, color: '#e4e4e7' }}
+                            >
+                              {item.title}
+                            </button>
+                          ) : (
+                            <span
+                              title={item.title}
+                              className={plana ? 'block max-w-[42ch] truncate' : ''}
+                              style={{ fontSize: 14, fontWeight: 500, color: '#e4e4e7' }}
+                            >
+                              {item.title}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span style={{ ...STATUS_STYLE[item.status], padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
@@ -867,14 +916,20 @@ export function WorkItemsList({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {/* Con nombre: los dos llevaban solo un icono, y un lector de pantalla
+                                anunciaba «botón, botón» sin manera de saber cuál borra la línea. */}
                             <button
                               onClick={() => { setSelectedWorkItem(item); setEditDialogOpen(true) }}
+                              aria-label={`Editar «${item.title}»`}
+                              title="Editar"
                               className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={() => { setSelectedWorkItem(item); setDeleteDialogOpen(true) }}
+                              aria-label={`Eliminar «${item.title}»`}
+                              title="Eliminar"
                               className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
                             >
                               <Trash2 className="h-3.5 w-3.5" />

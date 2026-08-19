@@ -120,3 +120,13 @@ describe('Los festivos del país', () => {
     expect(cal.isWorkingDay(dia('2026-07-20'))).toBe(true)
   })
 })
+
+describe('sin definición de calendario', () => {
+  it('cae al calendario por defecto en lugar de reventar', () => {
+    // Un plan puede llegar sin ella —una respuesta antigua, un proyecto recién creado—, y que la
+    // vista entera se caiga por eso es peor que suponer lunes a viernes.
+    const c = calendarioDesde(undefined)
+    expect(c.isWorkingDay(toDayNumber('2026-06-15'))).toBe(true) // lunes
+    expect(c.isWorkingDay(toDayNumber('2026-06-13'))).toBe(false) // sábado
+  })
+})

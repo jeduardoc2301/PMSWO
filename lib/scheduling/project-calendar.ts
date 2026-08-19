@@ -31,7 +31,13 @@ export interface DefinicionDeCalendario {
  * exactamente el mismo calendario. Si cada lado montara el suyo, el Gantt y el Calendario
  * dibujarían días laborables distintos para el mismo plan.
  */
-export function calendarioDesde(definicion: DefinicionDeCalendario): WorkCalendar {
+export function calendarioDesde(definicion: DefinicionDeCalendario | undefined): WorkCalendar {
+  // Sin definición se cae al calendario por defecto —lunes a viernes, sin festivos— en lugar de
+  // reventar. Un plan puede llegar sin ella: una respuesta antigua, un proyecto recién creado. Que
+  // la vista se caiga entera por no saber qué días son festivos es peor que suponer los de siempre,
+  // y suponerlos en silencio no engaña a nadie: es exactamente lo que hacía el módulo antes de que
+  // el calendario del proyecto existiera.
+  if (!definicion) return createWorkCalendar()
   if (!definicion.holidayCountry) {
     return createWorkCalendar({
       workingWeekdays: definicion.workingWeekdays,
