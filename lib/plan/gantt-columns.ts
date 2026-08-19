@@ -79,6 +79,13 @@ export interface PreferenciaDelGantt {
   readonly nivel: number
   /** Qué flechas se dibujan. */
   readonly flechas: 'NINGUNO' | 'SELECCION' | 'TODOS'
+  /**
+   * Si el conmutador de «atrasadas» está encendido (§4.6, y `toggles.overdue` en el §10.4).
+   *
+   * Arranca apagado: resaltar ciento veintisiete líneas de mil trescientas nada más entrar es
+   * ruido, no información. Pero quien lo enciende suele querer volver a encontrarlo encendido.
+   */
+  readonly atrasadas: boolean
 }
 
 export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
@@ -87,6 +94,7 @@ export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
   escala: 'MES',
   nivel: 1,
   flechas: 'SELECCION',
+  atrasadas: false,
 })
 
 /** Ancho máximo que se admite al leer. Más allá el diagrama desaparece de la pantalla. */

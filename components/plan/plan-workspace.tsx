@@ -447,7 +447,11 @@ export function PlanWorkspace({
    * Apagado por omisión: en un plan de mil trescientas líneas con más de cien vencidas, el rojo
    * permanente deja de significar nada. Se enciende cuando se quiere mirar eso.
    */
-  const [atrasadas, setAtrasadas] = useState(false)
+  // Vive en la preferencia y no en un estado suelto: el §10.4 lo nombra en su ejemplo
+  // (`toggles.overdue`), y lo que se enciende para trabajar una tarde se espera encendido al día
+  // siguiente.
+  const atrasadas = preferencia.atrasadas
+  const setAtrasadas = (v: boolean) => setPreferencia((p) => ({ ...p, atrasadas: v }))
 
   /**
    * Selección múltiple y lo que se hace con ella (§4.6, conmutador 1).

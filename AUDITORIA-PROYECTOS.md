@@ -536,3 +536,31 @@ otro tuvo el encargo de refutarlo. El mapa no mencionaba el Calendario —enumer
 del spec— y fue el refutador quien anotó, como omisión, que el Calendario escribe la misma
 reprogramación confirmada y no apunta nada. El encargo de refutar encuentra cosas que el de mapear
 no.
+
+## §10.4 — las dos preferencias que el spec llama por su nombre
+
+Cerrada la brecha 21 quedaba lo fino: campos concretos dentro de vistas ya enganchadas. Dos de ellos
+el spec los nombra con la palabra «preferencia» y sin embargo eran estado suelto que se perdía en
+cada recarga.
+
+**Los resúmenes del Tablero (§5.3).** «Las tareas resumen se muestran o no **según preferencia**;
+por omisión sólo hojas e hitos.» Ahora se guarda. Comprobado en pantalla: «Sin resúmenes (125)» →
+«Con resúmenes» → recargar la página entera → sigue en «Con resúmenes».
+
+**El conmutador de atrasadas del Gantt (§4.6, `toggles.overdue` del §10.4).** Igual: «Resaltar
+(127)» → «Resaltadas (127)» → recargar → «Resaltadas (127)».
+
+Dos detalles que no son adorno:
+
+- Los dos campos son **opcionales** en el esquema de zod. Si fueran obligatorios, estrenar la casilla
+  invalidaría todas las filas guardadas antes y cada persona perdería su agrupación por culpa de un
+  campo nuevo que no pidió.
+- El Tablero lee con `typeof d.settings.conResumenes === 'boolean'` y no con un valor blando.
+  `false` es una elección tan válida como `true`: preguntando por la verdad del valor, apagar los
+  resúmenes no se guardaría nunca y la casilla volvería sola.
+
+Lo que sigue faltando del §10.4, ya con nombre y apellido: `toggles.criticalPath` y `toggles.float`
+—que no existen como conmutadores, la ruta crítica y la sombra de holgura se pintan siempre—,
+`toggles.baseline`, `splitterPosition` —hoy la posición del divisor es derivada, la suma de los
+anchos de columna—, el ancho por columna en la Lista, y `sortBy` en la Lista. Ninguna es una
+conexión: cada una pide construir antes lo que se va a guardar.

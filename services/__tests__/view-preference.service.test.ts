@@ -138,3 +138,60 @@ describe('guardar', () => {
     expect(guardado).toEqual({ widgets: ['tareas'] })
   })
 })
+
+describe('Las dos preferencias que el spec llama por su nombre', () => {
+  it('el Tablero guarda si enseña los resúmenes (§5.3)', () => {
+    // El §5.3 usa la palabra «preferencia»: «las tareas resumen se muestran o no según
+    // preferencia». Era estado suelto y se perdía en cada recarga.
+    const puesto = validarPreferencia('TABLERO', {
+      agruparPor: 'estado',
+      ordenarPor: 'wbs',
+      sentido: 'asc',
+      conResumenes: true,
+    }) as { conResumenes: boolean }
+    expect(puesto.conResumenes).toBe(true)
+  })
+
+  it('y apagarlo también se guarda', () => {
+    // `false` es una elección tan válida como `true`. Si se leyera con un valor blando, apagar los
+    // resúmenes no se guardaría nunca y la casilla volvería sola.
+    const apagado = validarPreferencia('TABLERO', {
+      agruparPor: 'estado',
+      ordenarPor: 'wbs',
+      sentido: 'asc',
+      conResumenes: false,
+    }) as { conResumenes: boolean }
+    expect(apagado.conResumenes).toBe(false)
+  })
+
+  it('una preferencia guardada antes de que el campo existiera sigue valiendo', () => {
+    // Si el campo fuera obligatorio, estrenar la casilla le borraría a cada persona su agrupación.
+    expect(() =>
+      validarPreferencia('TABLERO', { agruparPor: 'estado', ordenarPor: 'wbs', sentido: 'asc' }),
+    ).not.toThrow()
+  })
+
+  it('el Gantt guarda el conmutador de atrasadas (§4.6, «toggles.overdue» del §10.4)', () => {
+    const puesto = validarPreferencia('GANTT', {
+      columnas: ['name'],
+      anchos: {},
+      escala: 'MES',
+      nivel: 1,
+      flechas: 'SELECCION',
+      atrasadas: true,
+    }) as { atrasadas: boolean }
+    expect(puesto.atrasadas).toBe(true)
+  })
+
+  it('y el Gantt de antes tampoco se rompe', () => {
+    expect(() =>
+      validarPreferencia('GANTT', {
+        columnas: ['name'],
+        anchos: {},
+        escala: 'MES',
+        nivel: 1,
+        flechas: 'SELECCION',
+      }),
+    ).not.toThrow()
+  })
+})

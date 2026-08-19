@@ -42,6 +42,10 @@ const esquemaDelGantt = z.object({
   escala: z.enum(['MES', 'SEMANA']),
   nivel: z.number().int().min(0).max(32),
   flechas: z.enum(['NINGUNO', 'SELECCION', 'TODOS']),
+  // El conmutador de atrasadas del §4.6, que el §10.4 nombra en su ejemplo (`toggles.overdue`).
+  // Opcional por lo mismo que `conResumenes`: una preferencia guardada antes tiene que seguir
+  // valiendo.
+  atrasadas: z.boolean().optional(),
 })
 
 /**
@@ -80,6 +84,11 @@ const esquemaDelTablero = z.object({
   agruparPor: z.enum(CRITERIOS.map((c) => c.clave) as [CriterioDeAgrupacion, ...CriterioDeAgrupacion[]]),
   ordenarPor: z.enum(CAMPOS_DE_ORDEN.map((c) => c.clave) as [CampoDeOrden, ...CampoDeOrden[]]),
   sentido: z.enum(['asc', 'desc']),
+  // El §5.3 lo llama «preferencia» con esa palabra: «las tareas resumen se muestran o no según
+  // preferencia; por omisión sólo hojas e hitos». Opcional para que una fila guardada antes de que
+  // existiera el campo siga valiendo — si no, la primera visita de cada persona perdería su
+  // agrupación por culpa de una casilla nueva.
+  conResumenes: z.boolean().optional(),
 })
 
 /**

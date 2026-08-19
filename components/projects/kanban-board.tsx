@@ -602,6 +602,9 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
         if (d?.settings?.agruparPor) setCriterioDeAgrupacion(d.settings.agruparPor as CriterioDeAgrupacion)
         if (d?.settings?.ordenarPor) setCampoDeOrden(d.settings.ordenarPor as CampoDeOrden)
         if (d?.settings?.sentido) setSentidoDeOrden(d.settings.sentido as SentidoDeOrden)
+        // `typeof` y no un valor blando: `false` es una elección tan válida como `true`, y
+        // preguntar por la verdad del valor haría que apagar los resúmenes no se guardara nunca.
+        if (typeof d?.settings?.conResumenes === 'boolean') setConResumenes(d.settings.conResumenes)
         setPreferenciaCargada(true)
       })
       .catch(() => setPreferenciaCargada(true))
@@ -616,12 +619,17 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        settings: { agruparPor: criterioDeAgrupacion, ordenarPor: campoDeOrden, sentido: sentidoDeOrden },
+        settings: {
+          agruparPor: criterioDeAgrupacion,
+          ordenarPor: campoDeOrden,
+          sentido: sentidoDeOrden,
+          conResumenes,
+        },
       }),
     }).catch(() => {
       // Que no se guarde la elección no puede tumbar el tablero: se sigue con lo que hay en pantalla.
     })
-  }, [projectId, criterioDeAgrupacion, campoDeOrden, sentidoDeOrden, preferenciaCargada])
+  }, [projectId, criterioDeAgrupacion, campoDeOrden, sentidoDeOrden, conResumenes, preferenciaCargada])
 
   // El EDT se numera sobre el plan entero, no sobre lo visible: si cambiara al filtrar, dejaría
   // de servir para nombrar una línea en una reunión.
