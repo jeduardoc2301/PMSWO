@@ -34,6 +34,12 @@ vi.mock('@/lib/prisma', () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    // Las tres que consulta la guardia del §10.1 para saber qué papel tiene quien escribe. Sin
+    // ellas, `authorize` no puede decidir y toda escritura queda en 403 — que es exactamente lo que
+    // pasó al enchufar la guardia, y por qué estas líneas no son adorno del banco de pruebas.
+    project: { findUnique: vi.fn() },
+    projectCollaborator: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
   },
 }))
 
@@ -79,6 +85,16 @@ const params = { params: Promise.resolve({ id: 'work-item-123' }) }
 describe('GET /api/v1/work-items/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Quien escribe en estas pruebas es el dueño del proyecto y tiene su cargo: es el caso normal.
+    // Los casos de permiso insuficiente se prueban aparte, con su propio papel.
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({
+      ownerId: 'user-123',
+      projectManagerId: null,
+    } as never)
+    vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      roles: [UserRole.PROJECT_MANAGER],
+    } as never)
   })
 
   const createRequest = () =>
@@ -175,10 +191,54 @@ describe('PATCH /api/v1/work-items/:id', () => {
     } as never)
     vi.mocked(prisma.workItem.findFirst).mockResolvedValue(mockWorkItem as never)
     vi.mocked(prisma.workItem.update).mockResolvedValue(mockWorkItem as never)
+    // «De su proyecto» dejó de ser «de su organización» al llegar el §10.1: hace falta estar
+    // sentado en el proyecto. Aquí está, como colaborador, que es el papel de quien ejecuta.
+    vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue({
+      role: 'COLLABORATOR',
+    } as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      roles: [UserRole.INTERNAL_CONSULTANT],
+    } as never)
 
     const response = await PATCH(createRequest({ title: 'New Title' }), params as never)
 
     expect(response.status).toBe(200)
+  })
+
+  it('but not one who is not on that project at all', async () => {
+    // Lo que el §10.1 añade sobre el RBAC de organización: pertenecer a la casa no da acceso a un
+    // proyecto al que nadie te invitó. Antes de esto, el mismo cargo abría todos los proyectos.
+    vi.mocked(auth).mockResolvedValue({
+      user: { ...mockSession.user, id: 'user-456', roles: [UserRole.INTERNAL_CONSULTANT] },
+    } as never)
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue(mockWorkItem as never)
+    vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      roles: [UserRole.INTERNAL_CONSULTANT],
+    } as never)
+
+    const response = await PATCH(createRequest({ title: 'New Title' }), params as never)
+
+    expect(response.status).toBe(403)
+    expect(prisma.workItem.update).not.toHaveBeenCalled()
+  })
+
+  it('and a project client cannot even capture progress', async () => {
+    // La otra mitad de la distinción del §10.1: un cliente mira, no escribe. Se vio midiendo en
+    // pantalla que mover la fecha daba 403 y capturar avance daba 200; esto lo fija.
+    vi.mocked(auth).mockResolvedValue({
+      user: { ...mockSession.user, id: 'user-789', roles: [UserRole.EXTERNAL_CONSULTANT] },
+    } as never)
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue(mockWorkItem as never)
+    vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue({ role: 'CLIENT' } as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      roles: [UserRole.EXTERNAL_CONSULTANT],
+    } as never)
+
+    const response = await PATCH(createRequest({ progressPct: 0.5 }), params as never)
+
+    expect(response.status).toBe(403)
+    expect(prisma.workItem.update).not.toHaveBeenCalled()
   })
 
   it('should return 400 for empty title', async () => {

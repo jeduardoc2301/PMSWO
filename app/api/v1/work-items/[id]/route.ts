@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { authorize } from '@/services/project-authorize.service'
 
 import { confirmar } from '@/services/reschedule.service'
 import { type IsoDate } from '@/lib/scheduling/date'
@@ -154,6 +155,31 @@ async function updateWorkItemHandler(
       )
     }
 
+    /**
+     * La otra mitad de la distinción del §10.1: escribir cualquier cosa en una línea pide
+     * `edit_tracking` **en este proyecto**.
+     *
+     * Va aquí, antes de cualquier escritura y después de saber de qué proyecto es la línea: la ruta
+     * recibe el identificador de la línea, no el del proyecto, así que hasta este punto no se puede
+     * preguntar. Sin esta guardia, un cliente externo con permiso de organización para editar
+     * líneas podía capturar avance en un proyecto donde sólo se le invitó a mirar — se vio midiendo:
+     * mover la fecha daba 403 y capturar avance daba 200.
+     */
+    try {
+      await authorize(authContext.userId, workItem.projectId, 'edit_tracking')
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AuthorizationError') {
+        return NextResponse.json(
+          {
+            error: 'Forbidden',
+            message: 'No puedes editar líneas de este proyecto.',
+          },
+          { status: 403 },
+        )
+      }
+      throw error
+    }
+
     // Mover en la jerarquía se juzga antes de escribir: un ciclo guardado rompe el prorrateo del
     // avance y con él todas las pantallas que recorren el árbol. Truena con ValidationError o
     // NotFoundError, que el catch traduce a 400 y 404.
@@ -244,16 +270,25 @@ async function updateWorkItemHandler(
        * tiene `WORK_ITEM_UPDATE` y no `PROJECT_UPDATE`, así que no puede llamar a `/reschedule`
        * pero sí llegaba aquí — y desde aquí movía las mismas cientos de líneas. La guardia de la
        * otra ruta se saltaba por la puerta de al lado.
+       *
+       * Empezó preguntando por el permiso de organización, que es lo que había. Ahora pregunta por
+       * el de proyecto, que es más estrecho y por tanto más seguro: el mismo cargo puede llevar el
+       * cronograma de un proyecto y ser invitado en otro, y sólo esta pregunta los distingue.
        */
-      if (!hasPermission(authContext.roles as UserRole[], Permission.PROJECT_UPDATE)) {
-        return NextResponse.json(
-          {
-            error: 'Forbidden',
-            message:
-              'Cambiar las fechas mueve el cronograma y el trabajo que depende de él. Puedes actualizar estado y avance, pero no las fechas.',
-          },
-          { status: 403 },
-        )
+      try {
+        await authorize(authContext.userId, workItem.projectId, 'edit_schedule')
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AuthorizationError') {
+          return NextResponse.json(
+            {
+              error: 'Forbidden',
+              message:
+                'Cambiar las fechas mueve el cronograma y el trabajo que depende de él. Puedes actualizar estado y avance, pero no las fechas.',
+            },
+            { status: 403 },
+          )
+        }
+        throw error
       }
       const resultado = await confirmar(
         workItem.projectId,

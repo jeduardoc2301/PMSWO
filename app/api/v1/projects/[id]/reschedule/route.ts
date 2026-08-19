@@ -15,6 +15,7 @@ import { z } from 'zod'
 
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import { type IsoDate } from '@/lib/scheduling/date'
+import { authorize } from '@/services/project-authorize.service'
 import { confirmar, previsualizar, restaurarFechas } from '@/services/reschedule.service'
 import { Permission } from '@/types'
 
@@ -52,6 +53,30 @@ async function postHandler(
 ): Promise<NextResponse> {
   try {
     const { id } = await context.params
+
+    // La guardia del §10.1, y no sólo la de organización: reprogramar mueve el plan, así que pide
+    // `edit_schedule` **en este proyecto**. El permiso de organización dice si alguien puede tocar
+    // proyectos; éste dice si puede tocar éste. Un consultor que lleva el cronograma de un proyecto
+    // y es invitado en otro necesita las dos respuestas, y sólo la segunda las distingue.
+    try {
+      await authorize(authContext.userId, id, 'edit_schedule')
+    } catch (error) {
+      const nombre = error instanceof Error ? error.name : ''
+      if (nombre === 'AuthorizationError') {
+        return NextResponse.json(
+          { error: 'Forbidden', message: (error as Error).message },
+          { status: 403 },
+        )
+      }
+      if (nombre === 'NotFoundError') {
+        return NextResponse.json(
+          { error: 'Not Found', message: 'Ese proyecto no existe' },
+          { status: 404 },
+        )
+      }
+      throw error
+    }
+
     const cuerpo = await request.json().catch(() => ({}))
 
     const restauracion = esquemaDeRestauracion.safeParse(cuerpo)
