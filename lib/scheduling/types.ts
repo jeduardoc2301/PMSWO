@@ -55,6 +55,14 @@ export type ConstraintType =
   | 'NO_ANTES_DE'
   /** Empieza exactamente en la fecha, la empujen o no sus predecesoras. */
   | 'DEBE_EMPEZAR_EL'
+  /**
+   * Debe terminar el día indicado (MFO). **No mueve la tarea**: es un compromiso, no un empujón.
+   *
+   * Si la cadena la lleva más allá, la tarea se queda donde la cadena la puso y su holgura sale
+   * negativa — que es el aviso. Adelantarla para que cuadre sería inventarse capacidad que nadie
+   * tiene, y decir que se cumple algo que no se cumple.
+   */
+  | 'DEBE_TERMINAR_EL'
 
 export interface Constraint {
   readonly type: ConstraintType

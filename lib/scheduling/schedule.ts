@@ -93,7 +93,12 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
     }
 
     // Una restricción de fecha se aplica al final, sobre lo que pidieron las predecesoras.
-    if (task.constraint) {
+    //
+    // `DEBE_TERMINAR_EL` no aparece aquí y no es un olvido: es un compromiso, no un empujón. Si la
+    // cadena lleva la tarea más allá de esa fecha, la tarea se queda donde la cadena la puso y el
+    // pase atrás la marca con holgura negativa. Adelantarla para que cuadre sería inventarse
+    // capacidad que nadie tiene y declarar cumplido algo que no lo está.
+    if (task.constraint && task.constraint.type !== 'DEBE_TERMINAR_EL') {
       const constrained = calendar.ordinalOf(calendar.next(toDayNumber(task.constraint.date)))
       if (task.constraint.type === 'DEBE_EMPEZAR_EL') {
         start = constrained

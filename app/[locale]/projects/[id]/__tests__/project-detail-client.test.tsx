@@ -171,11 +171,17 @@ describe('ProjectDetailClient', () => {
         (n) => (screen.getByRole('button', { name: n }) as HTMLElement).style.color === '#a5b4fc',
       )
 
-    expect(resaltada()).toBe('Resumen')
+    // Se espera en lugar de comprobar a secas: la pantalla se asienta en dos pasos desde que la
+    // barra aparece con el proyecto sin aguardar a las otras tres peticiones. Comprobar de forma
+    // síncrona pasaba sola y fallaba dentro de la suite completa —el segundo paso llegaba tarde por
+    // contención de CPU—, que es la peor clase de prueba: la que solo falla cuando hay prisa.
+    await waitFor(() => expect(resaltada()).toBe('Resumen'))
+
     fireEvent.click(screen.getByRole('button', { name: 'Tablero Kanban' }))
-    expect(resaltada()).toBe('Tablero Kanban')
+    await waitFor(() => expect(resaltada()).toBe('Tablero Kanban'))
+
     fireEvent.click(screen.getByRole('button', { name: 'Elementos de Trabajo' }))
-    expect(resaltada()).toBe('Elementos de Trabajo')
+    await waitFor(() => expect(resaltada()).toBe('Elementos de Trabajo'))
   })
 
   it('should have AI report generation button', async () => {

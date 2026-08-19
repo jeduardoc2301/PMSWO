@@ -159,6 +159,13 @@ export function analyzeCriticalPath(
       }
     }
 
+    // El compromiso propio de la tarea es techo de su fecha tardía, igual que lo es el cierre del
+    // plan. Sin esto, `dueDate` estaba definido en el modelo y no lo miraba nadie: una tarea con
+    // fecha límite el 1 de marzo que la cadena empuja al 5 salía con holgura positiva y en verde,
+    // porque el plan entero cerraba en noviembre. Son los casos 9 y 10 del §12.
+    const tope = topeComprometido(task, calendar)
+    if (tope !== undefined && tope < latest) latest = tope
+
     lateFinish.set(id, latest)
     lateStart.set(id, latest - tramo)
     const total = latest - earlyFinish.get(id)!
@@ -210,6 +217,37 @@ export function analyzeCriticalPath(
     zeroFloatCount,
     negativeFloatCount,
   })
+}
+
+/**
+ * Hasta cuándo se comprometió esta tarea a terminar, en ordinal de día hábil.
+ *
+ * Dos cosas dicen lo mismo por caminos distintos y las dos cuentan: `dueDate`, que es la fecha
+ * límite pactada, y la restricción `DEBE_TERMINAR_EL` (MFO), que es la misma promesa expresada
+ * como restricción. Manda la más apretada de las dos.
+ *
+ * Ninguna de las dos mueve la tarea — eso es del pase adelante y allí se ignoran a propósito. Lo
+ * único que hacen es bajar el techo de su fecha tardía, y con ello sacar la holgura negativa que
+ * avisa de que la promesa ya no se cumple.
+ *
+ * Se toma el ordinal del día **anterior** si la fecha comprometida cae en no laborable: prometer
+ * «termina el sábado» significa, en un plan que no trabaja sábados, «termina el viernes».
+ */
+function topeComprometido(
+  task: { readonly dueDate?: IsoDate; readonly constraint?: { readonly type: string; readonly date: IsoDate } },
+  calendar: Schedule['calendar'],
+): number | undefined {
+  const fechas: IsoDate[] = []
+  if (task.dueDate) fechas.push(task.dueDate)
+  if (task.constraint?.type === 'DEBE_TERMINAR_EL') fechas.push(task.constraint.date)
+  if (fechas.length === 0) return undefined
+
+  let tope: number | undefined
+  for (const fecha of fechas) {
+    const ordinal = calendar.ordinalOf(calendar.previous(toDayNumber(fecha)))
+    if (tope === undefined || ordinal < tope) tope = ordinal
+  }
+  return tope
 }
 
 /**
