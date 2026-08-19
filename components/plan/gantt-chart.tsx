@@ -41,6 +41,13 @@ export interface GanttChartProps {
   readonly onAnchoCambiado?: (id: string, ancho: number) => void
   readonly selectedId?: string | null
   readonly onSelect?: (id: string) => void
+  /**
+   * Menú contextual de una fila (§4.5). Recibe la línea y dónde se pulsó.
+   *
+   * Opcional: sin él la fila conserva el menú del navegador, que es lo correcto cuando quien monta
+   * el diagrama no tiene con qué atender las acciones.
+   */
+  readonly onMenuDeFila?: (id: string, x: number, y: number) => void
   /** Abrir o cerrar un resumen. Sin esto, los triángulos no se dibujan. */
   readonly onToggle?: (id: string) => void
   /**
@@ -124,6 +131,7 @@ export function GanttChart({
   onAnchoCambiado,
   selectedId = null,
   onSelect,
+  onMenuDeFila,
   onToggle,
   onMoverLinea,
 }: GanttChartProps) {
@@ -212,6 +220,18 @@ export function GanttChart({
               {visibles.map((row, k) => (
                 <div
                   key={row.id}
+                  data-fila={row.id}
+                  onContextMenu={
+                    onMenuDeFila
+                      ? (e) => {
+                          // Se sustituye el menú del navegador porque el del plan ofrece lo que
+                          // aquí se puede hacer; dejar los dos obligaría a elegir entre «copiar
+                          // texto» y «añadir subtarea» sin saber cuál sale.
+                          e.preventDefault()
+                          onMenuDeFila(row.id, e.clientX, e.clientY)
+                        }
+                      : undefined
+                  }
                   className={`absolute left-0 flex ${row.id === selectedId ? 'bg-zinc-800/60' : ''}`}
                   style={{ top: (primera + k) * rowHeight, width: anchoDeLaRejilla }}
                 >

@@ -29,7 +29,10 @@ import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
 import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
+import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
+import { RowContextMenu } from '@/components/plan/row-context-menu'
 import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
+import { nuevoPadreAlAnular, nuevoPadreAlSangrar } from '@/lib/plan/jerarquia'
 import { FieldsPanel } from '@/components/plan/fields-panel'
 import { BaselinePicker, type LineaBaseGuardada } from '@/components/projects/baseline-picker'
 import {
@@ -102,6 +105,11 @@ export interface PlanWorkspaceProps {
    * las que había: entre una cosa y la otra el plan pudo cambiar.
    */
   readonly onReprogramado?: (operacion: OperacionDeReprogramacion) => void
+  /**
+   * El plan cambió por algo que no es una reprogramación: se movió una línea en el árbol, se creó
+   * una, se borró otra. Quien monta el Gantt vuelve a pedirlo.
+   */
+  readonly onPlanCambiado?: () => void
 }
 
 /** Las cuatro columnas que una reprogramación toca en una línea. */
@@ -151,6 +159,7 @@ export function PlanWorkspace({
   calendario,
   ausencias,
   onReprogramado,
+  onPlanCambiado,
 }: PlanWorkspaceProps) {
   /**
    * Lo que se guarda por usuario: columnas, anchos, escala, nivel y flechas (§4.8, criterio 8).
@@ -387,6 +396,36 @@ export function PlanWorkspace({
 
   const nombres = useMemo(() => new Map(tasks.map((t) => [t.id, t.name])), [tasks])
 
+  /**
+   * El menú contextual de fila (§4.5): qué línea y dónde se pulsó.
+   *
+   * Las acciones que escriben pasan por la ruta de la línea y luego avisan hacia arriba con
+   * `onReprogramado`, que es lo que ya recarga el plan. No se toca el estado local: una jerarquía
+   * cambiada a mano en el cliente y otra en el servidor divergen a la primera equivocación.
+   */
+  const [menuDeFila, setMenuDeFila] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null } | null>(null)
+  const [errorDeJerarquia, setErrorDeJerarquia] = useState<string | null>(null)
+
+  const moverEnElArbol = async (id: string, padre: string | null) => {
+    setErrorDeJerarquia(null)
+    try {
+      const respuesta = await fetch(`/api/v1/work-items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: padre }),
+      })
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
+      }
+      onPlanCambiado?.()
+    } catch (e) {
+      // El fallo se enseña: mover una línea y que no pase nada deja a quien lo hizo creyendo que sí.
+      setErrorDeJerarquia(e instanceof Error ? e.message : 'No se pudo mover la línea.')
+    }
+  }
+
   // El reparto vive en `lib/plan/detail-links` desde que el panel dejó de ser solo del Gantt: el
   // §10.3 pide un panel para las seis vistas, y calcular su alimento aquí dentro obliga a la
   // siguiente vista que lo monte a copiar el bucle.
@@ -604,8 +643,58 @@ export function PlanWorkspace({
               onMoverLinea={
                 projectId ? (taskId, delta) => void proponerMovimiento(taskId, delta) : undefined
               }
+              onMenuDeFila={
+                projectId ? (id, x, y) => setMenuDeFila({ id, x, y }) : undefined
+              }
             />
           </div>
+
+          {menuDeFila !== null
+            ? (() => {
+                const id = menuDeFila.id
+                const sangrarA = nuevoPadreAlSangrar(tasks, id)
+                const anularA = nuevoPadreAlAnular(tasks, id)
+                return (
+                  <RowContextMenu
+                    x={menuDeFila.x}
+                    y={menuDeFila.y}
+                    nombre={nombres.get(id) ?? id}
+                    onClose={() => setMenuDeFila(null)}
+                    acciones={{
+                      abrirDetalle: () => setSelectedId(id),
+                      editar: () => setSelectedId(id),
+                      anadirSubtarea: () => setCreandoBajo({ padre: id }),
+                      anadirHermana: () =>
+                        setCreandoBajo({ padre: tasks.find((t) => t.id === id)?.parentId ?? null }),
+                      sangrar: sangrarA === null ? null : () => void moverEnElArbol(id, sangrarA),
+                      anularSangria:
+                        anularA === null ? null : () => void moverEnElArbol(id, anularA.padre),
+                      eliminar: () => setSelectedId(id),
+                    }}
+                  />
+                )
+              })()
+            : null}
+
+          {errorDeJerarquia !== null ? (
+            <p
+              role="alert"
+              data-testid="error-de-jerarquia"
+              className="mt-2 rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-xs text-red-300"
+            >
+              {errorDeJerarquia}
+            </p>
+          ) : null}
+
+          {creandoBajo !== null && projectId ? (
+            <CreateWorkItemDialog
+              open
+              onOpenChange={(abierto) => { if (!abierto) setCreandoBajo(null) }}
+              projectId={projectId}
+              defaultParentId={creandoBajo.padre}
+              onSuccess={() => { setCreandoBajo(null); onPlanCambiado?.() }}
+            />
+          ) : null}
 
           {seleccionada ? (
             <aside className="w-full shrink-0 xl:w-[380px]">

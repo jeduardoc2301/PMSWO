@@ -123,6 +123,7 @@ export function PlanTab({ projectId, barraDeFiltro, idsVisibles, onReprogramado 
   return (
     <PlanWorkspace
       projectId={projectId}
+      onPlanCambiado={() => setVersion((v) => v + 1)}
       onReprogramado={(operacion) => {
         setVersion((v) => v + 1)
         onReprogramado?.(operacion)
