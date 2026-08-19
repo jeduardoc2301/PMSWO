@@ -21,6 +21,7 @@ import {
   columnasVisibles,
 } from '@/lib/plan/gantt-columns'
 import { CeldaEditable, validarAvance, validarNombre } from '@/components/plan/celda-editable'
+import { accionDeTeclado } from '@/lib/plan/atajos'
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 
 export interface GanttChartProps {
@@ -58,6 +59,13 @@ export interface GanttChartProps {
    * quien recibe esto puede escribir sin volver a comprobar nada.
    */
   readonly onEditarCelda?: (id: string, campo: 'name' | 'progress', valor: string) => void
+  /**
+   * Atajos de teclado sobre una fila (§4.4): sangrar, anular sangría, abrir el detalle.
+   *
+   * `SOLTAR_FILA` no llega aquí: lo atiende la propia fila quitándose el foco, que es lo único que
+   * devuelve el `Tab` al navegador.
+   */
+  readonly onAtajo?: (id: string, accion: 'SANGRAR' | 'ANULAR_SANGRIA' | 'ABRIR_DETALLE') => void
   /**
    * Selección múltiple (§4.6, conmutador 1). Cuando llega, cada fila estrena su casilla.
    *
@@ -152,6 +160,7 @@ export function GanttChart({
   onMenuDeFila,
   resaltarAtrasadas,
   onEditarCelda,
+  onAtajo,
   marcadas,
   onMarcar,
   onToggle,
@@ -244,6 +253,34 @@ export function GanttChart({
                 <div
                   key={row.id}
                   data-fila={row.id}
+                  // La fila recibe el foco para que existan los atajos del §4.4. `-1` y no `0`:
+                  // con mil trescientas filas, tabular por todas para llegar al pie de la página
+                  // sería un castigo. Se entra pulsando, y desde dentro Tab sangra.
+                  tabIndex={-1}
+                  onKeyDown={
+                    onAtajo
+                      ? (e) => {
+                          const accion = accionDeTeclado({
+                            key: e.key,
+                            shiftKey: e.shiftKey,
+                            altKey: e.altKey,
+                            ctrlKey: e.ctrlKey,
+                            metaKey: e.metaKey,
+                            enUnCampo:
+                              e.target instanceof HTMLElement &&
+                              (e.target.tagName === 'INPUT' ||
+                                e.target.tagName === 'TEXTAREA' ||
+                                e.target.isContentEditable),
+                          })
+                          if (accion === null) return
+                          // Solo se cancela el evento cuando hay acción. Cancelarlo «por si acaso»
+                          // es como se pierden los atajos del navegador.
+                          e.preventDefault()
+                          if (accion.tipo === 'SOLTAR_FILA') (e.currentTarget as HTMLElement).blur()
+                          else onAtajo(row.id, accion.tipo)
+                        }
+                      : undefined
+                  }
                   onContextMenu={
                     onMenuDeFila
                       ? (e) => {

@@ -555,6 +555,9 @@ export function PlanWorkspace({
 
   const moverEnElArbol = async (id: string, padre: string | null) => {
     setErrorDeJerarquia(null)
+    // El padre de antes, para poder deshacerlo. Se lee ANTES de escribir: después ya no está.
+    const linea = tasks.find((t) => t.id === id)
+    const padreAnterior = linea?.parentId ?? null
     try {
       const respuesta = await fetch(`/api/v1/work-items/${id}`, {
         method: 'PATCH',
@@ -565,6 +568,14 @@ export function PlanWorkspace({
         const cuerpo = await respuesta.json().catch(() => ({}))
         throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
       }
+      // Un movimiento suelto se deshace igual que uno en lote. Sin esto, la misma acción era
+      // reversible desde la barra de selección e irreversible desde el menú o el teclado — que es
+      // la clase de incoherencia que hace que nadie se fíe del Ctrl+Z.
+      onOperacion?.({
+        etiqueta: `Mover «${linea?.name ?? id}» en el árbol`,
+        hacer: [{ workItemId: id, campos: { parentId: padre } }],
+        deshacer: [{ workItemId: id, campos: { parentId: padreAnterior } }],
+      })
       onPlanCambiado?.()
     } catch (e) {
       // El fallo se enseña: mover una línea y que no pase nada deja a quien lo hizo creyendo que sí.
@@ -798,6 +809,26 @@ export function PlanWorkspace({
               }
               resaltarAtrasadas={atrasadas}
               onEditarCelda={projectId ? (id, campo, v) => void editarCelda(id, campo, v) : undefined}
+              onAtajo={
+                projectId
+                  ? (id, accion) => {
+                      if (accion === 'ABRIR_DETALLE') {
+                        setSelectedId(id)
+                        return
+                      }
+                      // El destino se comprueba antes de pedir nada: pulsar Tab en la primera
+                      // hermana no puede acabar en un error del servidor por algo que aquí ya se
+                      // sabe. Y si no se puede, no pasa nada — sin aviso, porque el aviso sería
+                      // para una tecla que se pulsa de corrido.
+                      const destino =
+                        accion === 'SANGRAR'
+                          ? nuevoPadreAlSangrar(tasks, id)
+                          : nuevoPadreAlAnular(tasks, id)?.padre ?? undefined
+                      if (destino === undefined) return
+                      void moverEnElArbol(id, destino)
+                    }
+                  : undefined
+              }
               marcadas={seleccionando ? seleccion.marcadas : undefined}
               onMarcar={
                 seleccionando
