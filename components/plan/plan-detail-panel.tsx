@@ -107,6 +107,7 @@ export function PlanDetailPanel({ row, predecessors, successors, ruta, onNavigat
       {row.freeFloat !== row.totalFloat ? (
         <Dato titulo="Margen sin molestar a nadie" valor={margenLibre(row)} />
       ) : null}
+      {row.esfuerzo ? <Esfuerzo coherencia={row.esfuerzo} /> : null}
 
       {row.recoverability !== 'RECUPERABLE' ? (
         <div data-testid="no-se-recupera" className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
@@ -180,6 +181,39 @@ function margen(row: GanttRow): string {
 function margenLibre(row: GanttRow): string {
   if (row.freeFloat <= 0) return 'Ninguno: atrasarla mueve a quien va detrás'
   return row.freeFloat === 1 ? '1 día' : `${row.freeFloat} días`
+}
+
+/** Horas legibles a partir de minutos. Se convierte aquí, donde ya no se vuelve a operar. */
+function horas(minutos: number): string {
+  const h = minutos / 60
+  return Number.isInteger(h) ? `${h} h` : `${h.toFixed(1)} h`
+}
+
+/**
+ * El esfuerzo capturado, y si se sostiene con la duración y la gente asignada (§3.5).
+ *
+ * Cuando cuadra se dice y ya está. Cuando no, se dicen las dos cifras: sin las dos, «no cuadra» es
+ * una acusación sin pruebas, y quien lo lee no puede decidir cuál de las tres cosas —las horas, los
+ * días o la gente— es la que está mal. El sistema no puede saberlo; quien planifica, sí.
+ */
+function Esfuerzo({ coherencia }: { coherencia: NonNullable<GanttRow['esfuerzo']> }) {
+  if (coherencia.cuadra) return <Dato titulo="Esfuerzo" valor={horas(coherencia.capturado)} />
+
+  const sobra = coherencia.diferencia > 0
+  return (
+    <div className="flex flex-col gap-0.5" data-testid="esfuerzo-descuadra">
+      <p className="text-xs uppercase tracking-wide text-amber-300">Esfuerzo · no cuadra</p>
+      <p className="text-sm text-zinc-100">
+        {horas(coherencia.capturado)} capturadas, y en estos días con esta gente caben{' '}
+        {horas(coherencia.implicado)}.
+      </p>
+      <p className="text-xs text-zinc-400">
+        {sobra
+          ? 'Sobran horas: o la tarea dura más, o hace falta más gente, o las horas están de más.'
+          : 'Faltan horas: o la tarea dura menos, o sobra gente, o las horas se quedaron cortas.'}
+      </p>
+    </div>
+  )
 }
 
 function Dato({ titulo, valor }: { titulo: string; valor: string }) {

@@ -116,6 +116,7 @@ export async function loadProjectPlan(
         progressPct: true,
         constraintType: true,
         constraintDate: true,
+        estimatedHours: true,
         startDate: true,
         estimatedEndDate: true,
       },
@@ -130,17 +131,26 @@ export async function loadProjectPlan(
       where: { workItem: { projectId } },
       select: {
         workItemId: true,
-        resource: { select: { absences: { select: { startDate: true, endDate: true } } } },
+        unitsBp: true,
+        resource: {
+          select: { dailyMinutes: true, absences: { select: { startDate: true, endDate: true } } },
+        },
       },
     }),
   ])
 
   const ausencias: Record<string, { from: string; to: string }[]> = {}
+  // Minutos de trabajo al día que aporta el equipo de cada línea, ya con la dedicación aplicada.
+  // Sirve para comprobar si la estimación capturada se sostiene con la duración y la gente que hay
+  // (§3.5): dos personas a jornada completa no pueden hacer ochenta horas en dos días.
+  const capacidad = new Map<string, number>()
   for (const a of asignaciones) {
     for (const ausencia of a.resource.absences) {
       const lista = ausencias[a.workItemId] ?? (ausencias[a.workItemId] = [])
       lista.push({ from: isoDe(ausencia.startDate), to: isoDe(ausencia.endDate) })
     }
+    const aporte = Math.round((a.resource.dailyMinutes * a.unitsBp) / 10000)
+    capacidad.set(a.workItemId, (capacidad.get(a.workItemId) ?? 0) + aporte)
   }
 
   // El calendario del proyecto, no uno pelado. Antes esto era `createWorkCalendar()` sin
@@ -162,6 +172,8 @@ export async function loadProjectPlan(
       id: item.id,
       name: item.title,
       duration: kind === 'HITO' ? 0 : duracionHabil(calendar, item.startDate, item.estimatedEndDate),
+      ...(item.estimatedHours !== null ? { estimacionMin: item.estimatedHours * 60 } : {}),
+      ...(capacidad.has(item.id) ? { capacidadDiariaMin: capacidad.get(item.id)! } : {}),
       kind,
       party: item.party as ResponsibleParty,
       ...(item.recoverability ? { recoverability: item.recoverability as Recoverability } : {}),

@@ -155,6 +155,19 @@ export interface PlanTask {
   /** Avance de 0 a 1. Uno significa cumplida. */
   readonly progress?: number
   /**
+   * Esfuerzo capturado, en minutos (§3.5).
+   *
+   * En minutos y no en horas porque el módulo entero opera en enteros: «ocho horas y media» entre
+   * tres personas da 2,8333… en horas, y al volver a sumar no da 8,5. En minutos sí.
+   */
+  readonly estimacionMin?: number
+  /**
+   * Minutos de trabajo que aporta al día toda la gente asignada a esta línea.
+   *
+   * Ya viene con la dedicación aplicada: dos personas a media jornada de ocho horas son 480, no 960.
+   */
+  readonly capacidadDiariaMin?: number
+  /**
    * Línea de la que cuelga esta, si cuelga de alguna.
    *
    * De aquí sale el avance ponderado: un resumen no tiene avance propio, hereda el de sus hijas

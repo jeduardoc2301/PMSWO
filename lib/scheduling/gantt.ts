@@ -38,6 +38,7 @@ import { type WorkCalendar } from './calendar'
 import { type ClassifiedTask } from './critical-path'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
+import { type Coherencia, comprobarCoherencia } from './effort'
 import { fechasDeResumen } from './summary-rollup'
 import { type Dependency, type LinkType, type PlanTask, type Recoverability, type ResponsibleParty, type TaskKind } from './types'
 
@@ -108,6 +109,13 @@ export interface GanttRow {
    * pero al primer día ya empujó a quien venía detrás.
    */
   readonly freeFloat: number
+  /**
+   * Si el esfuerzo capturado se sostiene con la duración y la gente asignada (§3.5).
+   *
+   * `undefined` cuando falta alguno de los tres datos, que es distinto de «cuadra»: no se puede
+   * afirmar que algo cuadra cuando no hay con qué comprobarlo.
+   */
+  readonly esfuerzo?: Coherencia
   readonly isCritical: boolean
   readonly isSuperCritical: boolean
   readonly recoverability: Recoverability
@@ -362,6 +370,25 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       width,
       totalFloat: float,
       freeFloat: classifiedTask?.freeFloat ?? 0,
+      // El esfuerzo solo se comprueba en líneas que trabajan y que tienen los tres datos. Un hito
+      // no consume esfuerzo, y un resumen hereda el de sus hijas: en los dos, comparar sería
+      // inventarse un descuadre.
+      //
+      // Cero horas **no** es una estimación de cero: es «nadie lo dijo», igual que el nulo. Tratarlo
+      // como estimación marcaba 52 líneas del plan de referencia —casi todas entregas del cliente
+      // con alguien asignado de oficio— y ninguna era un error de planificación. Un aviso que salta
+      // 52 veces sin razón enseña a ignorar el aviso.
+      ...(task.estimacionMin !== undefined &&
+      task.estimacionMin > 0 &&
+      task.capacidadDiariaMin !== undefined &&
+      !children.has(task.id) &&
+      task.duration > 0
+        ? {
+            esfuerzo: comprobarCoherencia(task.estimacionMin, task.duration, [
+              { minutosPorDia: task.capacidadDiariaMin, unidadesBp: 10000 },
+            ]),
+          }
+        : {}),
       isCritical: classifiedTask?.isCritical ?? false,
       isSuperCritical: classifiedTask?.isSuperCritical ?? false,
       recoverability: classifiedTask?.recoverability ?? 'RECUPERABLE',

@@ -355,3 +355,38 @@ describe('Las dos holguras se enseñan cuando dicen cosas distintas', () => {
     expect(screen.queryByText('Margen sin molestar a nadie')).not.toBeInTheDocument()
   })
 })
+
+describe('El esfuerzo se comprueba contra la duración y la gente (§3.5)', () => {
+  it('cuando cuadra, dice las horas y no da la lata', () => {
+    dibujar({ row: fila({ esfuerzo: { capturado: 1920, implicado: 1920, diferencia: 0, cuadra: true } }) })
+    expect(screen.getByText('Esfuerzo')).toBeInTheDocument()
+    expect(screen.getByText('32 h')).toBeInTheDocument()
+    expect(screen.queryByTestId('esfuerzo-descuadra')).not.toBeInTheDocument()
+  })
+
+  it('cuando no cuadra, enseña LAS DOS cifras', () => {
+    // Sin las dos, «no cuadra» es una acusación sin pruebas: quien lo lee no puede decidir cuál de
+    // las tres cosas —horas, días o gente— está mal.
+    dibujar({ row: fila({ esfuerzo: { capturado: 4800, implicado: 960, diferencia: 3840, cuadra: false } }) })
+    const aviso = screen.getByTestId('esfuerzo-descuadra')
+    expect(aviso).toHaveTextContent('80 h')
+    expect(aviso).toHaveTextContent('16 h')
+  })
+
+  it('sobrar horas y faltar horas se explican distinto', () => {
+    const { unmount } = dibujar({
+      row: fila({ esfuerzo: { capturado: 4800, implicado: 960, diferencia: 3840, cuadra: false } }),
+    })
+    expect(screen.getByTestId('esfuerzo-descuadra')).toHaveTextContent('Sobran horas')
+    unmount()
+
+    dibujar({ row: fila({ esfuerzo: { capturado: 240, implicado: 960, diferencia: -720, cuadra: false } }) })
+    expect(screen.getByTestId('esfuerzo-descuadra')).toHaveTextContent('Faltan horas')
+  })
+
+  it('sin los tres datos no se afirma nada: no es lo mismo que cuadrar', () => {
+    dibujar({ row: fila() })
+    expect(screen.queryByText('Esfuerzo')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('esfuerzo-descuadra')).not.toBeInTheDocument()
+  })
+})
