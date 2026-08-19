@@ -38,7 +38,7 @@ import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { hoyCivil } from '@/lib/formato-fecha'
 import { EsqueletoDeTabla } from '@/components/projects/esqueleto'
-import { COLUMNAS_POR_OMISION } from '@/lib/projects/list-columns'
+import { COLUMNAS_POR_OMISION, redimensionarColumnaDeLaLista } from '@/lib/projects/list-columns'
 import { type OrdenDeLaLista, sePuedeOrdenarPor } from '@/lib/projects/list-sort'
 import { ordinalesNoDisponibles, type RangoDeAusencia } from '@/lib/scheduling/availability'
 import { toDayNumber } from '@/lib/scheduling/date'
@@ -131,6 +131,8 @@ export function WorkItemsView({
   const [columnas, setColumnas] = useState<readonly string[]>(COLUMNAS_POR_OMISION)
   /** Por qué columna está ordenada la tabla, o `null` para el orden del plan (§10.4). */
   const [orden, setOrden] = useState<OrdenDeLaLista | null>(null)
+  /** Anchos de columna tocados a mano (§10.4, `columns[].width`). */
+  const [anchos, setAnchos] = useState<Readonly<Record<string, number>>>({})
   /** Hasta que llegue lo guardado no se escribe: si no, lo por omisión pisaría lo del usuario. */
   const [preferenciaCargada, setPreferenciaCargada] = useState(false)
   const [estado, setEstado] = useState<EstadoPlan>({ fase: 'cargando' })
@@ -153,6 +155,9 @@ export function WorkItemsView({
         if (Array.isArray(d?.settings?.columnas)) setColumnas(d.settings.columnas as string[])
         // `null` es «el orden del plan», que es una elección: por eso se distingue de ausente y se
         // lee comprobando la forma en vez de la verdad del valor.
+        if (d?.settings?.anchos && typeof d.settings.anchos === 'object') {
+          setAnchos(d.settings.anchos as Record<string, number>)
+        }
         const guardado = d?.settings?.orden
         if (guardado === null) setOrden(null)
         else if (guardado && typeof guardado.campo === 'string' && sePuedeOrdenarPor(guardado.campo)) {
@@ -171,11 +176,11 @@ export function WorkItemsView({
     void fetch(`/api/v1/projects/${projectId}/preferences?view=LISTA`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: { formato: modo, agruparPor, columnas, orden } }),
+      body: JSON.stringify({ settings: { formato: modo, agruparPor, columnas, orden, anchos } }),
     }).catch(() => {
       // Que no se guarde la elección no puede tumbar la vista: se sigue con lo que hay en pantalla.
     })
-  }, [projectId, modo, agruparPor, columnas, orden, preferenciaCargada])
+  }, [projectId, modo, agruparPor, columnas, orden, anchos, preferenciaCargada])
 
   const [creando, setCreando] = useState(false)
   // De quién cuelga la línea que se está dando de alta. El «+» de un renglón preselecciona ese
@@ -586,6 +591,8 @@ export function WorkItemsView({
           agruparPor={modo === 'AGRUPADA' ? agruparPor : undefined}
           orden={orden}
           onOrdenChange={setOrden}
+          anchos={anchos}
+          onAnchoChange={(id, ancho) => setAnchos((a) => redimensionarColumnaDeLaLista(a, id, ancho))}
           projectId={projectId}
           // El filtro también aquí. Antes la lista recibía el array entero mientras la barra —que
           // se dibuja en la cabecera común a los dos modos— anunciaba «822 de 1368» encima de una

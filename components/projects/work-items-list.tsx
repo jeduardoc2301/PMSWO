@@ -23,7 +23,9 @@ import {
 } from '@/lib/projects/list-sort'
 import { CeldaEditable, validarNombre } from '@/components/plan/celda-editable'
 import {
+  type ColumnaDeLaLista,
   COLUMNAS_DE_LA_LISTA,
+  anchoDeLaColumna,
   COLUMNAS_POR_OMISION,
   alternarColumnaDeLaLista,
   columnasVisiblesDeLaLista,
@@ -229,6 +231,10 @@ interface WorkItemsListProps {
   orden?: OrdenDeLaLista | null
   /** Al pulsar una cabecera. Sin esto, las cabeceras no se pueden pulsar. */
   onOrdenChange?: (orden: OrdenDeLaLista | null) => void
+  /** Anchos tocados a mano, por identificador de columna (§10.4). */
+  anchos?: Readonly<Record<string, number>>
+  /** Al soltar el tirador de una columna. Sin esto, las columnas no se redimensionan. */
+  onAnchoChange?: (id: string, ancho: number) => void
   onWorkItemCreated?: () => void
   editDatesData?: {
     workItemId: string
@@ -257,6 +263,8 @@ export function WorkItemsList({
   agruparPor,
   orden,
   onOrdenChange,
+  anchos = {},
+  onAnchoChange,
   plana = false,
   projectId,
   workItems,
@@ -960,7 +968,9 @@ export function WorkItemsList({
             className="overflow-auto"
             style={plana ? { maxHeight: ALTO_VISIBLE } : undefined}
           >
-            <table className="w-full">
+            {/* `table-fixed`: sin esto el navegador reparte el ancho a su gusto y los anchos
+                guardados no se notan — la tabla se «arregla» sola y el tirador parece roto. */}
+            <table className={onAnchoChange ? 'w-full table-fixed' : 'w-full'}>
               <thead className={plana ? 'sticky top-0 z-10 bg-[#18181b]' : ''}>
                 <tr>
                   {/* Las columnas salen del catálogo y de la preferencia (§6.2). La de acciones no
@@ -973,11 +983,26 @@ export function WorkItemsList({
                         key={c.id}
                         data-cabecera={c.id}
                         data-orden={puesta ?? 'no'}
+                        data-ancho={anchoDeLaColumna(c, anchos)}
                         // `aria-sort` y no sólo la flechita: quien no ve la cabecera necesita saber
                         // por dónde está ordenada la tabla tanto como quien la ve.
                         aria-sort={puesta === 'asc' ? 'ascending' : puesta === 'desc' ? 'descending' : 'none'}
-                        style={c.numerica ? { ...thStyle, textAlign: 'right' } : thStyle}
+                        style={{
+                          ...thStyle,
+                          ...(c.numerica ? { textAlign: 'right' as const } : {}),
+                          // `position: relative` para que el tirador se cuelgue del borde de esta
+                          // celda y no de la tabla entera.
+                          position: 'relative',
+                          width: anchoDeLaColumna(c, anchos),
+                        }}
                       >
+                        {onAnchoChange ? (
+                          <TiradorDeColumnaDeLaLista
+                            columna={c}
+                            ancho={anchoDeLaColumna(c, anchos)}
+                            onSoltar={onAnchoChange}
+                          />
+                        ) : null}
                         {ordenable && onOrdenChange && sePuedeOrdenarPor(c.id) ? (
                           <button
                             type="button"
@@ -1217,5 +1242,66 @@ export function WorkItemsList({
         />
       )}
     </div>
+  )
+}
+
+/**
+ * El tirador que redimensiona una columna de la Lista (§10.4, `columns[].width`).
+ *
+ * Es el mismo gesto que el del Gantt y por eso se comporta igual: se mueve con `transform` mientras
+ * se arrastra —sin estado de React, que con mil doscientas filas costaría un renderizado por píxel—
+ * y sólo se avisa **al soltar**, que es cuando hay algo que guardar.
+ */
+function TiradorDeColumnaDeLaLista({
+  columna,
+  ancho,
+  onSoltar,
+}: {
+  columna: ColumnaDeLaLista
+  ancho: number
+  onSoltar: (id: string, ancho: number) => void
+}) {
+  return (
+    <span
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`Ancho de la columna ${columna.etiqueta}`}
+      data-testid={`tirador-lista-${columna.id}`}
+      onPointerDown={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const tirador = e.currentTarget
+        const xInicial = e.clientX
+        let nuevo = ancho
+        tirador.setPointerCapture(e.pointerId)
+
+        const alMover = (ev: PointerEvent) => {
+          nuevo = Math.max(columna.minimo, ancho + (ev.clientX - xInicial))
+          tirador.style.transform = `translateX(${nuevo - ancho}px)`
+        }
+        const alSoltar = (ev: PointerEvent) => {
+          tirador.releasePointerCapture(ev.pointerId)
+          tirador.removeEventListener('pointermove', alMover)
+          tirador.removeEventListener('pointerup', alSoltar)
+          tirador.removeEventListener('pointercancel', alSoltar)
+          tirador.style.transform = ''
+          if (ev.type === 'pointerup' && Math.round(nuevo) !== Math.round(ancho)) {
+            onSoltar(columna.id, nuevo)
+          }
+        }
+        tirador.addEventListener('pointermove', alMover)
+        tirador.addEventListener('pointerup', alSoltar)
+        tirador.addEventListener('pointercancel', alSoltar)
+      }}
+      style={{
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        height: '100%',
+        width: 6,
+        cursor: 'col-resize',
+        touchAction: 'none',
+      }}
+    />
   )
 }

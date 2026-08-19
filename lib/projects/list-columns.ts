@@ -28,6 +28,10 @@ export interface ColumnaDeLaLista {
   readonly fija?: boolean
   /** A la derecha se leen mejor los números. */
   readonly numerica?: boolean
+  /** Ancho por omisión, en píxeles (§10.4, `columns[].width`). */
+  readonly ancho: number
+  /** Ancho mínimo por debajo del cual el contenido deja de leerse. */
+  readonly minimo: number
 }
 
 /**
@@ -38,15 +42,22 @@ export interface ColumnaDeLaLista {
  * peor que no ofrecerla — parece un dato y es un hueco.
  */
 export const COLUMNAS_DE_LA_LISTA: readonly ColumnaDeLaLista[] = Object.freeze([
-  { id: 'title', etiqueta: 'Línea del plan', grupo: 'Generales', fija: true },
-  { id: 'status', etiqueta: 'Estado', grupo: 'Generales' },
-  { id: 'priority', etiqueta: 'Prioridad', grupo: 'Generales' },
-  { id: 'ownerName', etiqueta: 'Responsable', grupo: 'Generales' },
-  { id: 'phase', etiqueta: 'Fase', grupo: 'Generales' },
-  { id: 'progressPct', etiqueta: 'Avance', grupo: 'Generales', numerica: true },
-  { id: 'startDate', etiqueta: 'Inicio', grupo: 'Cronograma' },
-  { id: 'estimatedEndDate', etiqueta: 'Fin', grupo: 'Cronograma' },
-  { id: 'estimatedHours', etiqueta: 'Horas estimadas', grupo: 'Carga de trabajo', numerica: true },
+  { id: 'title', etiqueta: 'Línea del plan', grupo: 'Generales', fija: true, ancho: 360, minimo: 160 },
+  { id: 'status', etiqueta: 'Estado', grupo: 'Generales', ancho: 132, minimo: 88 },
+  { id: 'priority', etiqueta: 'Prioridad', grupo: 'Generales', ancho: 120, minimo: 80 },
+  { id: 'ownerName', etiqueta: 'Responsable', grupo: 'Generales', ancho: 160, minimo: 96 },
+  { id: 'phase', etiqueta: 'Fase', grupo: 'Generales', ancho: 140, minimo: 88 },
+  { id: 'progressPct', etiqueta: 'Avance', grupo: 'Generales', numerica: true, ancho: 92, minimo: 64 },
+  { id: 'startDate', etiqueta: 'Inicio', grupo: 'Cronograma', ancho: 116, minimo: 96 },
+  { id: 'estimatedEndDate', etiqueta: 'Fin', grupo: 'Cronograma', ancho: 116, minimo: 96 },
+  {
+    id: 'estimatedHours',
+    etiqueta: 'Horas estimadas',
+    grupo: 'Carga de trabajo',
+    numerica: true,
+    ancho: 128,
+    minimo: 88,
+  },
 ])
 
 export const COLUMNAS_DE_LA_LISTA_POR_ID: ReadonlyMap<string, ColumnaDeLaLista> = new Map(
@@ -92,6 +103,39 @@ export function columnasVisiblesDeLaLista(
     vistas.add(id)
   }
   return salida
+}
+
+/** Más allá de esto una sola columna se come la tabla. */
+const ANCHO_MAXIMO_DE_LA_LISTA = 640
+
+/**
+ * El ancho con el que se dibuja una columna: el guardado si es razonable, si no el del catálogo.
+ *
+ * Se acota **al leer** y no al guardar, igual que en el Gantt y por lo mismo: lo guardado puede
+ * venir de otra pantalla, de otra versión del catálogo o de una edición a mano, y restaurarlo tal
+ * cual dejaría la tabla inservible sin que quien la abre entienda por qué.
+ */
+export function anchoDeLaColumna(
+  columna: ColumnaDeLaLista,
+  anchos: Readonly<Record<string, number>>,
+): number {
+  const guardado = anchos[columna.id]
+  if (typeof guardado !== 'number' || !Number.isFinite(guardado)) return columna.ancho
+  return Math.min(ANCHO_MAXIMO_DE_LA_LISTA, Math.max(columna.minimo, Math.round(guardado)))
+}
+
+/** Cambia el ancho de una columna de la Lista, respetando su mínimo. */
+export function redimensionarColumnaDeLaLista(
+  anchos: Readonly<Record<string, number>>,
+  id: string,
+  ancho: number,
+): Readonly<Record<string, number>> {
+  const columna = COLUMNAS_DE_LA_LISTA_POR_ID.get(id)
+  if (!columna || !Number.isFinite(ancho)) return anchos
+  return {
+    ...anchos,
+    [id]: Math.min(ANCHO_MAXIMO_DE_LA_LISTA, Math.max(columna.minimo, Math.round(ancho))),
+  }
 }
 
 /**

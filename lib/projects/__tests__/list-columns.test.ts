@@ -6,6 +6,8 @@ import {
   COLUMNA_FIJA_DE_LA_LISTA,
   alternarColumnaDeLaLista,
   columnasVisiblesDeLaLista,
+  anchoDeLaColumna,
+  redimensionarColumnaDeLaLista,
 } from '../list-columns'
 
 /**
@@ -83,5 +85,51 @@ describe('El catálogo', () => {
 
   it('hay exactamente una columna fija', () => {
     expect(COLUMNAS_DE_LA_LISTA.filter((c) => c.fija)).toHaveLength(1)
+  })
+})
+
+describe('El ancho por columna (§10.4, «columns[].width»)', () => {
+  const del = (id: string) => COLUMNAS_DE_LA_LISTA.find((c) => c.id === id)!
+
+  it('sin nada guardado, el del catálogo', () => {
+    expect(anchoDeLaColumna(del('title'), {})).toBe(del('title').ancho)
+  })
+
+  it('guardado, el guardado', () => {
+    expect(anchoDeLaColumna(del('title'), { title: 240 })).toBe(240)
+  })
+
+  it('nunca por debajo del mínimo de la columna', () => {
+    // Un ancho guardado puede venir de una sesión donde alguien arrastró el divisor hasta el borde.
+    expect(anchoDeLaColumna(del('title'), { title: 10 })).toBe(del('title').minimo)
+  })
+
+  it('ni más allá del tope: una columna no se come la tabla', () => {
+    expect(anchoDeLaColumna(del('status'), { status: 5000 })).toBeLessThan(1000)
+  })
+
+  it('un valor que no es un número se ignora en vez de romper la tabla', () => {
+    expect(anchoDeLaColumna(del('status'), { status: Number.NaN })).toBe(del('status').ancho)
+  })
+
+  it('redimensionar respeta el mínimo y no toca las demás', () => {
+    const anchos = redimensionarColumnaDeLaLista({ status: 130 }, 'title', 10)
+    expect(anchos.title).toBe(del('title').minimo)
+    expect(anchos.status).toBe(130)
+  })
+
+  it('redimensionar una columna que no existe no cambia nada', () => {
+    const antes = { title: 300 }
+    expect(redimensionarColumnaDeLaLista(antes, 'inventada', 200)).toBe(antes)
+  })
+
+  it('todas las columnas del catálogo declaran ancho y mínimo, y el mínimo cabe', () => {
+    // Un mínimo mayor que el ancho por omisión daría una columna que arranca ya acotada, y nadie
+    // entendería por qué no se puede estrechar hasta lo que ve.
+    for (const c of COLUMNAS_DE_LA_LISTA) {
+      expect(c.ancho).toBeGreaterThan(0)
+      expect(c.minimo).toBeGreaterThan(0)
+      expect(c.minimo).toBeLessThanOrEqual(c.ancho)
+    }
   })
 })

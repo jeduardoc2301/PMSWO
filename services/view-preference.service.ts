@@ -76,6 +76,8 @@ const esquemaDeLaLista = z.object({
     .object({ campo: z.string(), sentido: z.enum(['asc', 'desc']) })
     .nullable()
     .optional(),
+  /** Anchos de columna tocados a mano (§10.4, `columns[].width`). */
+  anchos: z.record(z.string(), z.number()).optional(),
   /**
    * Las columnas encendidas (§6.2).
    *

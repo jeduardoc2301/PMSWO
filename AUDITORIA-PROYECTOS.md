@@ -92,7 +92,7 @@ tiempo real y deshacer.
 | 27 | Calendario del proyecto: sólo lectura | **NO EXISTE** | `services/project-calendar.service.ts` (sólo `load*`) | El sombreado de festivos propios funciona —medido—, pero `ProjectCalendar` y `ProjectHoliday` sólo se pueden crear escribiendo en la base. No hay ruta `/calendar` ni pantalla. Descubierto al demostrar el criterio 2 del §7.5 | M | Medio |
 | 19 | Estados configurables (§5) | **PARCIAL** | `KanbanColumn.isInitial/isDone`, `lib/projects/status-progress.ts` | El acoplamiento funciona; falta el alta/baja de columnas desde la pantalla | M | Medio |
 | 20 | Líneas base (§3) | **PARCIAL** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | El motor y la rejilla, sí. Falta la barra bajo la barra del Gantt (§4.6) y el selector no está en el Gantt | M | Bajo |
-| 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
+| 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
 | 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. Falta llevarlo al resto de rutas de escritura y una pantalla para repartir papeles | M | Alto |
@@ -798,3 +798,22 @@ propósito) y el archivo entero de `project-detail-client` (monta la pantalla co
 se iban de los cinco segundos por omisión dentro de la suite, y pasaban sueltas. Cada una se cayó ya
 dos veces en días distintos; perseguirlas de una en una es arreglar el síntoma. Margen al archivo,
 con el motivo escrito.
+
+## §10.4 — el ancho por columna en la Lista, y con eso la sección entera
+
+Era el último hueco: la Lista dibujaba anchos escritos a mano en el JSX, sin catálogo y sin tirador.
+Ahora cada columna declara su ancho y su mínimo, se redimensiona arrastrando y el ancho se guarda.
+
+**Una cosa que hay que hacer o el tirador parece roto.** La tabla necesita `table-fixed`. Sin eso el
+navegador reparte el ancho a su gusto y los anchos guardados no se notan: la tabla se «arregla» sola
+y quien arrastra ve que no pasa nada. Se comprobó midiendo las dos cosas a la vez —el ancho
+declarado y el que de verdad ocupa la celda— porque comprobar sólo uno de los dos deja pasar
+exactamente ese fallo.
+
+Comprobado en pantalla: «Estado» pasa de **132 a 222 px** arrastrando con el ratón, se guarda
+`{"status":222}`, y tras recargar la página entera sigue en 222 con el ancho real igual al
+declarado.
+
+Con esto el §10.4 queda completo: columnas con su ancho, zoom, posición del divisor, los cuatro
+conmutadores, agrupación, orden y formato de lista. Las cinco vistas configurables guardan y
+restauran; el Calendario no guarda nada y está razonado.
