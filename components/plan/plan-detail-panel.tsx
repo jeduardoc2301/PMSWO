@@ -102,6 +102,11 @@ export function PlanDetailPanel({ row, predecessors, successors, ruta, onNavigat
 
       <Dato titulo="Fechas" valor={fechas(row)} />
       <Dato titulo="Margen" valor={margen(row)} />
+      {/* La libre solo se enseña cuando dice algo distinto de la total. Repetir la misma cifra con
+          dos nombres no informa: entrena a no leerla. */}
+      {row.freeFloat !== row.totalFloat ? (
+        <Dato titulo="Margen sin molestar a nadie" valor={margenLibre(row)} />
+      ) : null}
 
       {row.recoverability !== 'RECUPERABLE' ? (
         <div data-testid="no-se-recupera" className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
@@ -164,6 +169,17 @@ function margen(row: GanttRow): string {
     return tarde === 1 ? '1 día tarde' : `${tarde} días tarde`
   }
   return row.totalFloat === 1 ? '1 día' : `${row.totalFloat} días`
+}
+
+/**
+ * La holgura libre, dicha por lo que significa y no por su nombre técnico.
+ *
+ * «Holgura libre» no se entiende sin haber estudiado el método; «cuánto puedes atrasarte antes de
+ * estropearle el día a alguien» sí. La cifra es la misma.
+ */
+function margenLibre(row: GanttRow): string {
+  if (row.freeFloat <= 0) return 'Ninguno: atrasarla mueve a quien va detrás'
+  return row.freeFloat === 1 ? '1 día' : `${row.freeFloat} días`
 }
 
 function Dato({ titulo, valor }: { titulo: string; valor: string }) {

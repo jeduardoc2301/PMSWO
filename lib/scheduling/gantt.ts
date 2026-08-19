@@ -99,6 +99,14 @@ export interface GanttRow {
   readonly baseDrift?: number
 
   readonly totalFloat: number
+  /**
+   * Holgura libre en días hábiles: cuánto se puede atrasar sin mover a ninguna sucesora.
+   *
+   * Va aparte de la total porque son dos preguntas distintas y la vista las enseña juntas: una
+   * tarea con tres días de total y cero de libre se puede atrasar tres días sin tocar la entrega,
+   * pero al primer día ya empujó a quien venía detrás.
+   */
+  readonly freeFloat: number
   readonly isCritical: boolean
   readonly isSuperCritical: boolean
   readonly recoverability: Recoverability
@@ -323,6 +331,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       x: startOrdinal,
       width,
       totalFloat: float,
+      freeFloat: classifiedTask?.freeFloat ?? 0,
       isCritical: classifiedTask?.isCritical ?? false,
       isSuperCritical: classifiedTask?.isSuperCritical ?? false,
       recoverability: classifiedTask?.recoverability ?? 'RECUPERABLE',

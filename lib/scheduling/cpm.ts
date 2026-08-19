@@ -1,5 +1,5 @@
 /**
- * Pase atrás y holgura total: el método del camino crítico.
+ * Pase atrás y las dos holguras: el método del camino crítico.
  *
  * El pase adelante contesta «¿qué tan pronto puede pasar cada cosa?». El pase atrás contesta la
  * pregunta contraria, que es la que le importa a quien dirige: «¿qué tan tarde puede pasar cada
@@ -20,6 +20,18 @@
  * No son reglas nuevas: son la misma desigualdad despejada del otro lado. Si el pase adelante y el
  * pase atrás no fueran exactamente inversos, la holgura saldría mal y nadie lo notaría hasta que el
  * plan se atrasara.
+ *
+ * ## Las dos holguras
+ *
+ * De las mismas cuatro reglas salen las dos, según con qué fechas de la sucesora se apliquen:
+ *
+ * - con las **tardías**, la holgura **total**: cuánto se puede atrasar sin mover el cierre del plan;
+ * - con las **tempranas**, la holgura **libre**: cuánto sin mover a la sucesora de donde está hoy.
+ *
+ * La distinción no es académica. Una tarea con tres días de total y cero de libre se puede atrasar
+ * tres días sin tocar la fecha de entrega, pero al primer día ya empujó a su sucesora — y quien la
+ * lleva se entera por la queja del vecino, no por el plan. La total es de quien dirige el proyecto;
+ * la libre, de quien lo ejecuta esta semana.
  */
 
 import { type IsoDate, toDayNumber, toIsoDate } from './date'
@@ -53,6 +65,24 @@ export interface AnalyzedTask extends ScheduledTask {
   readonly totalFloat: number
   /** Verdadero cuando la holgura total es cero o negativa. */
   readonly isCritical: boolean
+  /**
+   * Holgura **libre** en días hábiles: cuánto se puede atrasar esta tarea sin mover a ninguna de
+   * las que dependen de ella.
+   *
+   * No es lo mismo que la total, y la diferencia es la que le importa a quien tiene que decidir hoy.
+   * La total dice cuánto se puede atrasar sin mover el **cierre del plan**; la libre, cuánto sin
+   * molestar a **nadie**. Una tarea con tres días de total y cero de libre se puede atrasar tres
+   * días en el papel, pero al primer día ya empuja a su sucesora — y quien la lleva se entera por
+   * la queja del vecino, no por el plan.
+   *
+   * Una tarea de la que nadie depende tiene holgura libre igual a la total: no hay a quién molestar,
+   * así que su único límite es el cierre.
+   *
+   * Puede superar a la total cuando la total es negativa, y no es un error: la total mide contra una
+   * fecha de compromiso que el plan ya incumple, y la libre mide contra las sucesoras, que siguen
+   * donde estaban.
+   */
+  readonly freeFloat: number
 }
 
 export interface CriticalPathAnalysis {
@@ -63,6 +93,7 @@ export interface CriticalPathAnalysis {
   readonly lateStart: ReadonlyMap<string, number>
   readonly lateFinish: ReadonlyMap<string, number>
   readonly totalFloat: ReadonlyMap<string, number>
+  readonly freeFloat: ReadonlyMap<string, number>
   /** Fecha en que cierra el plan. */
   readonly finish: IsoDate
   /** Tareas con holgura exactamente cero. */
@@ -106,6 +137,7 @@ export function analyzeCriticalPath(
   const lateFinish = new Map<string, number>()
   const lateStart = new Map<string, number>()
   const totalFloat = new Map<string, number>()
+  const freeFloat = new Map<string, number>()
 
   for (let i = graph.order.length - 1; i >= 0; i -= 1) {
     const id = graph.order[i]
@@ -129,7 +161,23 @@ export function analyzeCriticalPath(
 
     lateFinish.set(id, latest)
     lateStart.set(id, latest - tramo)
-    totalFloat.set(id, latest - earlyFinish.get(id)!)
+    const total = latest - earlyFinish.get(id)!
+    totalFloat.set(id, total)
+
+    // La holgura libre es la misma cuenta con las fechas TEMPRANAS de las sucesoras en lugar de las
+    // tardías: hasta cuándo puede terminar esta tarea sin empujar a nadie de su sitio actual.
+    // Sin sucesoras no hay a quién empujar, así que su único límite es el cierre — y ahí coincide
+    // con la total.
+    if (outgoing.length === 0) {
+      freeFloat.set(id, total)
+    } else {
+      let libre = Infinity
+      for (const dependency of outgoing) {
+        const permitido = latestFinish(dependency, earlyStart, earlyFinish, tramo)
+        if (permitido < libre) libre = permitido
+      }
+      freeFloat.set(id, libre - earlyFinish.get(id)!)
+    }
   }
 
   let zeroFloatCount = 0
@@ -146,6 +194,7 @@ export function analyzeCriticalPath(
       lateFinish: toIsoDate(calendar.dayOfOrdinal(lateFinish.get(task.id)!)),
       totalFloat: float,
       isCritical: float <= 0,
+      freeFloat: freeFloat.get(task.id)!,
     }
   })
 
@@ -156,6 +205,7 @@ export function analyzeCriticalPath(
     lateStart,
     lateFinish,
     totalFloat,
+    freeFloat,
     finish: schedule.finish,
     zeroFloatCount,
     negativeFloatCount,
@@ -167,15 +217,21 @@ export function analyzeCriticalPath(
  *
  * `tramo` es el de la **predecesora**, y aparece en `SS` y `SF` porque esos vínculos amarran el
  * inicio: hay que avanzar desde el inicio tardío hasta el fin tardío.
+ *
+ * Sirve para las dos holguras y por eso los mapas entran por parámetro. Con las fechas **tardías**
+ * de la sucesora contesta «¿hasta cuándo sin mover el cierre?» —la holgura total—; con las
+ * **tempranas**, «¿hasta cuándo sin mover a la sucesora de donde está hoy?» —la libre—. Es la misma
+ * desigualdad, y compartirla es lo que garantiza que las dos holguras no puedan divergir: si un día
+ * alguien corrige la regla de `SF`, la corrige para las dos.
  */
 function latestFinish(
   dependency: Dependency,
-  lateStart: ReadonlyMap<string, number>,
-  lateFinish: ReadonlyMap<string, number>,
+  startOf: ReadonlyMap<string, number>,
+  finishOf: ReadonlyMap<string, number>,
   tramo: number,
 ): number {
-  const successorStart = lateStart.get(dependency.successorId)!
-  const successorFinish = lateFinish.get(dependency.successorId)!
+  const successorStart = startOf.get(dependency.successorId)!
+  const successorFinish = finishOf.get(dependency.successorId)!
 
   switch (dependency.type) {
     case 'FS':

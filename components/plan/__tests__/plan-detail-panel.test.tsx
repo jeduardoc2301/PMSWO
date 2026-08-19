@@ -32,6 +32,7 @@ function fila(overrides: Partial<GanttRow> = {}): GanttRow {
     x: 0,
     width: 5,
     totalFloat: 3,
+    freeFloat: 3,
     isCritical: false,
     isSuperCritical: false,
     recoverability: 'RECUPERABLE',
@@ -332,5 +333,25 @@ describe('Los renglones de vínculo no gastan el ancho en identificadores', () =
       predecessors: [{ id: 'x', name: 'Entrega', type: 'FS', lag: 3 }],
     })
     expect(screen.getByTestId('predecesora-x')).toHaveTextContent('FS +3')
+  })
+})
+
+describe('Las dos holguras se enseñan cuando dicen cosas distintas', () => {
+  it('la libre aparece con su significado, no con su nombre técnico', () => {
+    // «Holgura libre» no se entiende sin haber estudiado el método; la cifra sí.
+    dibujar({ row: fila({ totalFloat: 5, freeFloat: 2 }) })
+    expect(screen.getByText('Margen sin molestar a nadie')).toBeInTheDocument()
+    expect(screen.getByText('2 días')).toBeInTheDocument()
+  })
+
+  it('cero libre se dice por lo que implica: alguien se mueve', () => {
+    dibujar({ row: fila({ totalFloat: 5, freeFloat: 0 }) })
+    expect(screen.getByText('Ninguno: atrasarla mueve a quien va detrás')).toBeInTheDocument()
+  })
+
+  it('cuando coinciden no se repite la cifra con dos nombres', () => {
+    // Repetirla no informa: entrena a no leerla.
+    dibujar({ row: fila({ totalFloat: 4, freeFloat: 4 }) })
+    expect(screen.queryByText('Margen sin molestar a nadie')).not.toBeInTheDocument()
   })
 })
