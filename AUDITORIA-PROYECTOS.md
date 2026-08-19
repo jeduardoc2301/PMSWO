@@ -93,7 +93,7 @@ tiempo real y deshacer.
 | 19 | Estados configurables (§5) | **PARCIAL** | `KanbanColumn.isInitial/isDone`, `lib/projects/status-progress.ts` | El acoplamiento funciona; falta el alta/baja de columnas desde la pantalla | M | Medio |
 | 20 | Líneas base (§3) | **PARCIAL** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | El motor y la rejilla, sí. Falta la barra bajo la barra del Gantt (§4.6) y el selector no está en el Gantt | M | Bajo |
 | 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
-| 22 | Filtros unificados (§10.2) | **PARCIAL** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. Faltan los campos creador y color, y aplicarlo a la exportación | M | Bajo |
+| 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
 | 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL** | `lib/rbac.ts`, `app/api/v1/work-items/[id]/route.ts` | Los diez permisos que nombra el §10.1 no existen como tales. **La distinción que el spec llama «el permiso más útil de todo el sistema» sí está ahora**, expresada con los permisos que hay: mover fechas exige `PROJECT_UPDATE`, el mismo que la ruta de reprogramar; estado y avance siguen bastando con `WORK_ITEM_UPDATE`. Falta lo demás: activar vistas por rol de proyecto, `view_budget` y `manage_project_settings` | M | Alto |
 | 30 | Revocar un rol no surte efecto hasta volver a entrar | **EXISTE PERO MAL** | `lib/auth.ts` (sesión JWT) | Los roles viajan en el token y no se releen de la base. Cambiar el rol de alguien en la base no le quita nada hasta que su sesión caduca o vuelve a entrar. Es el comportamiento normal de una sesión JWT, y es una decisión consciente que hay que tomar —no un descuido— porque una revocación de permisos que tarda no es una revocación. Descubierto al probar la guardia del §10.1: los primeros intentos pasaron con un token viejo | M | Alto |
@@ -413,3 +413,23 @@ Timeline, y ahí sí persiste. Medir la superficie equivocada da un número real
 equivocada.
 
 Todo lo que se tocó para medir quedó como estaba.
+
+## §10.2 — lo que faltaba eran dos columnas que no existen
+
+De los tres pendientes que anotaba la matriz, uno ya estaba hecho y los otros dos no se pueden hacer
+sin tocar el modelo.
+
+**La exportación ya respeta el filtro**, y se comprobó donde importa: en la Lista, con la caja de
+búsqueda puesta, el botón pasa de «Exportar (1368)» a «Exportar (255)», y el archivo que genera
+lleva en su segunda línea «255 de 1368 líneas · 2026-08-19» —interceptando el `Blob` antes de que se
+descargue, que es la única forma de leer lo que de verdad se escribió y no lo que uno cree—. Escribir
+el «de cuántas» dentro del archivo importa más de lo que parece: un CSV de 255 filas sin ese renglón
+es indistinguible de un plan de 255 líneas.
+
+El «Exportar Proyecto» de la barra superior es otra cosa —un informe con niveles de detalle— y
+aplicarle un filtro de vista sería recortar un informe, no filtrarlo. Se queda como está.
+
+**Creador y color no existen en `WorkItem`.** El modelo tiene `createdAt` pero no `createdById`, y no
+tiene color por línea. Declarar los campos en el registro del filtro sin el dato detrás daría un
+filtro que no encuentra nada y parece roto. Son migración, y por tanto de la lista del §2 que espera
+decisión — igual que los campos personalizados.
