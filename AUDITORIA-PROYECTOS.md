@@ -684,3 +684,35 @@ prueba se actualizó y se le añadió la contraria —el mismo consultor, sin fi
 recibe 403— porque eso es exactamente lo que el §10.1 añade sobre lo que ya había.
 
 Los datos quedaron como estaban: 1368 líneas, 1665 vínculos, cierre el 2026-11-30.
+
+### §10.1 — todas las puertas que escriben, medidas una a una
+
+`lib/middleware/exigir-permiso.ts` reduce la guardia a dos líneas por ruta, que es lo que decide si
+se usa: el §10.1 pide invocarla «sin excepción», y una guardia que cuesta doce líneas de
+`try`/`catch` por ruta se olvida en la séptima. Devuelve la respuesta armada en vez de lanzar, porque
+una ruta que ya está dentro de su propio `try`/`catch` convertiría el 403 en el 500 genérico del
+final — que es exactamente lo que pasó la primera vez que se enchufó a mano.
+
+Medido con peticiones reales, cambiando el papel entre tandas:
+
+| puerta | permiso | CLIENT | COLLABORATOR | OWNER |
+|---|---|---|---|---|
+| crear una línea | `edit_schedule` | 403 | 403 | 200 |
+| poner un vínculo | `edit_schedule` | 403 | 403 | 200 |
+| quitar un vínculo | `edit_schedule` | 403 | 403 | 200 |
+| reordenar | `edit_schedule` | 403 | 403 | 200 |
+| mover una fecha | `edit_schedule` | 403 | 403 | 200 |
+| `/reschedule` | `edit_schedule` | 403 | 403 | 200 |
+| mover de columna | `edit_tracking` | 403 | **200** | 200 |
+| capturar avance | `edit_tracking` | 403 | **200** | 200 |
+
+Las dos últimas filas son el §10.1 entero: quien ejecuta actualiza lo suyo y no mueve el plan de
+nadie.
+
+**Por qué un vínculo pide el permiso del plan y no el de seguimiento.** Ponerlo o quitarlo cambia
+las fechas de la sucesora y de todo lo que cuelgue de ella; quitarlo, además, deja que la sucesora
+se adelante, que es un cambio de fechas por omisión en vez de por gesto. Y reordenar cambia el EDT,
+porque la numeración sale del orden entre hermanas.
+
+Todo lo que estas mediciones escribieron quedó devuelto: 1368 líneas, 1665 vínculos, cierre el
+2026-11-30, y las dos tarjetas que se movieron, en su columna.

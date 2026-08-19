@@ -1,13 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { PATCH } from '../route'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { workItemService } from '@/services/workitem.service'
 import { UserRole, Locale, WorkItemStatus, WorkItemPriority } from '@/types'
 import { auth } from '@/lib/auth'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 
 vi.mock('@/lib/auth', () => ({
   auth: vi.fn(),
+}))
+
+/**
+ * La guardia del §10.1 se simula permitiendo, y su denegación tiene su propia prueba abajo.
+ *
+ * Aquí no se prueba quién puede: eso son veintidós pruebas en `lib/projects/__tests__/permisos.ts`
+ * sin base de datos. Lo que sí hace falta comprobar en este archivo es que la ruta **está**
+ * enchufada, porque una guardia que existe y no se llama no guarda nada.
+ */
+vi.mock('@/lib/middleware/exigir-permiso', () => ({
+  exigirPermiso: vi.fn(async () => null),
 }))
 
 vi.mock('@/services/workitem.service', () => ({
@@ -429,5 +441,32 @@ describe('PATCH /api/v1/work-items/:id/status', () => {
       expect(data.error).toBe('INTERNAL_ERROR')
       expect(data.message).toBe('An unexpected error occurred while changing the work item status')
     })
+  })
+})
+
+describe('La guardia del §10.1 está enchufada', () => {
+  it('si el permiso falta, la ruta no escribe', async () => {
+    // El valor de esta prueba no es la tabla de permisos —eso se prueba aparte— sino que la ruta
+    // llame a la guardia y respete su respuesta. Una guardia que existe y no se llama no guarda.
+    // Se limpia aquí: este `describe` va fuera del que limpia arriba, y sin esto la cuenta de
+    // llamadas vendría arrastrada de las pruebas anteriores y el `not.toHaveBeenCalled` mentiría.
+    vi.clearAllMocks()
+    vi.mocked(auth).mockResolvedValue(mockSession as any)
+    vi.mocked(workItemService.getWorkItem).mockResolvedValue(mockWorkItem as any)
+    vi.mocked(exigirPermiso).mockResolvedValue(
+      NextResponse.json({ error: 'Forbidden', message: 'No puedes' }, { status: 403 }) as never,
+    )
+
+    const respuesta = await PATCH(
+      new NextRequest('http://localhost/api/v1/work-items/wi-1/status', {
+        method: 'PATCH',
+        body: JSON.stringify({ status: WorkItemStatus.DONE }),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+      { params: Promise.resolve({ id: 'wi-1' }) } as never,
+    )
+
+    expect(respuesta.status).toBe(403)
+    expect(workItemService.changeStatus).not.toHaveBeenCalled()
   })
 })

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { workItemService } from '@/services/workitem.service'
 import { Permission, WorkItemStatus } from '@/types'
@@ -64,6 +65,16 @@ async function changeStatusHandler(
         { status: 404 }
       )
     }
+
+    // Mover una tarjeta de columna es seguimiento, no plan: pide `edit_tracking` (§10.1). Va
+    // después de leer la línea porque la ruta recibe su identificador, no el del proyecto.
+    const negado = await exigirPermiso(
+      authContext.userId,
+      existingWorkItem.projectId,
+      'edit_tracking',
+      'No puedes mover tarjetas en este proyecto.',
+    )
+    if (negado) return negado
 
     // Parse request body
     const body = await request.json()

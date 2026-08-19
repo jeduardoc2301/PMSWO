@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { workItemService } from '@/services/workitem.service'
 import prisma from '@/lib/prisma'
@@ -92,6 +93,16 @@ async function createWorkItemHandler(
   try {
     const params = await context.params
     const projectId = params.id
+
+    // Crear una línea es plan: entra en la red de dependencias y en el prorrateo del avance de su
+    // madre. Pide `edit_schedule` (§10.1).
+    const negado = await exigirPermiso(
+      authContext.userId,
+      projectId,
+      'edit_schedule',
+      'Crear líneas cambia el plan del proyecto. Puedes actualizar estado y avance, pero no el plan.',
+    )
+    if (negado) return negado
 
     // Parse request body
     const body = await request.json()

@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { NotFoundError, ValidationError } from '@/lib/errors'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import { addDependency, removeDependency } from '@/services/dependency.service'
 import { Permission } from '@/types'
@@ -29,6 +30,17 @@ async function postHandler(
 ): Promise<NextResponse> {
   try {
     const { id } = await context.params
+
+    // Un vínculo es plan: pide `edit_schedule` (§10.1). Ponerlo o quitarlo mueve las fechas de la
+    // sucesora y de todo lo que cuelgue de ella, igual que arrastrar una barra.
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      'edit_schedule',
+      'Poner o quitar un vínculo cambia las fechas de todo lo que cuelga de él. Puedes actualizar estado y avance, pero no el plan.',
+    )
+    if (negado) return negado
+
     const cuerpo = cuerpoDeAlta.safeParse(await request.json().catch(() => null))
     if (!cuerpo.success) {
       return NextResponse.json(
@@ -55,6 +67,17 @@ async function deleteHandler(
 ): Promise<NextResponse> {
   try {
     const { id } = await context.params
+
+    // Quitar un vínculo también es plan: sin él la sucesora puede adelantarse, que es un cambio de
+    // fechas por omisión en vez de por gesto.
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      'edit_schedule',
+      'Poner o quitar un vínculo cambia las fechas de todo lo que cuelga de él. Puedes actualizar estado y avance, pero no el plan.',
+    )
+    if (negado) return negado
+
     const predecessorId = request.nextUrl.searchParams.get('predecessorId')
     const successorId = request.nextUrl.searchParams.get('successorId')
     if (!predecessorId || !successorId) {
