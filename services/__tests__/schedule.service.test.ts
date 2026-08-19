@@ -207,3 +207,43 @@ describe('§12 caso 17 · el plan lleva las ausencias de quien trabaja', () => {
     expect(plan!.ausencias['w1']).toBeUndefined()
   })
 })
+
+describe('§3.4 · la restricción guardada llega al motor', () => {
+  it('sin restricción, la línea llega anclada a su fecha', async () => {
+    // El ancla es lo que hace que el plan reproduzca las fechas negociadas del archivo en lugar de
+    // comprimirlo todo al arranque más temprano.
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([fila()] as never)
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.tasks[0]!.constraint).toEqual({ type: 'NO_ANTES_DE', date: '2026-06-01' })
+    expect(plan!.tasks[0]!.compromiso).toBeUndefined()
+  })
+
+  it('una que EMPUJA sustituye al ancla: es más específica', async () => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([
+      fila({ constraintType: 'NO_TERMINA_ANTES_DE', constraintDate: new Date('2027-01-15T00:00:00Z') }),
+    ] as never)
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.tasks[0]!.constraint).toEqual({ type: 'NO_TERMINA_ANTES_DE', date: '2027-01-15' })
+  })
+
+  it('una que solo COMPROMETE va aparte y el ancla se queda', async () => {
+    // Sin el ancla, la promesa dejaría la línea irse a su arranque más temprano — justo lo
+    // contrario de lo que una promesa significa.
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([
+      fila({ constraintType: 'DEBE_TERMINAR_EL', constraintDate: new Date('2026-07-10T00:00:00Z') }),
+    ] as never)
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.tasks[0]!.constraint!.type).toBe('NO_ANTES_DE')
+    expect(plan!.tasks[0]!.compromiso).toEqual({ type: 'DEBE_TERMINAR_EL', date: '2026-07-10' })
+  })
+
+  it('un tipo sin fecha no rompe nada: se cae al ancla', async () => {
+    // Una fila a medio capturar existe, y reventar al leer el plan por eso dejaría el proyecto
+    // entero sin pantalla.
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([
+      fila({ constraintType: 'NO_ANTES_DE', constraintDate: null }),
+    ] as never)
+    const plan = await loadProjectPlan('p1', 'org1')
+    expect(plan!.tasks[0]!.constraint!.type).toBe('NO_ANTES_DE')
+  })
+})

@@ -293,6 +293,9 @@ function enPalabras(c: { readonly type: string; readonly date: IsoDate }): strin
     c.type === 'NO_ANTES_DE' ? 'No antes del'
     : c.type === 'DEBE_EMPEZAR_EL' ? 'Empieza el'
     : c.type === 'DEBE_TERMINAR_EL' ? 'Termina el'
+    : c.type === 'NO_TERMINA_ANTES_DE' ? 'No termina antes del'
+    : c.type === 'NO_EMPIEZA_DESPUES_DE' ? 'No empieza después del'
+    : c.type === 'NO_TERMINA_DESPUES_DE' ? 'No termina después del'
     : c.type
   return `${como} ${c.date}`
 }

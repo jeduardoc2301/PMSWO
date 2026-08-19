@@ -36,6 +36,19 @@ import type { Dependency, PlanTask, ScheduledTask } from './types'
  * Una tarea de un día no ocupa ninguno más; una de cinco ocupa cuatro; un hito, ninguno. Es el
  * puente entre duración y fechas: `fin = inicio + tramo`.
  */
+/**
+ * Las restricciones que mueven la tarea hacia adelante.
+ *
+ * Las otras tres solo comprometen: bajan el techo de la fecha tardía en el pase atrás y dejan la
+ * tarea donde la cadena la puso. Tenerlas en un conjunto y no en una cadena de `if` es lo que
+ * impide que añadir la novena se olvide de uno de los dos sitios.
+ */
+const EMPUJAN: ReadonlySet<string> = new Set([
+  'NO_ANTES_DE',
+  'DEBE_EMPEZAR_EL',
+  'NO_TERMINA_ANTES_DE',
+])
+
 export function span(duration: number): number {
   return duration <= 0 ? 0 : duration - 1
 }
@@ -112,15 +125,24 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
 
     // Una restricción de fecha se aplica al final, sobre lo que pidieron las predecesoras.
     //
-    // `DEBE_TERMINAR_EL` no aparece aquí y no es un olvido: es un compromiso, no un empujón. Si la
-    // cadena lleva la tarea más allá de esa fecha, la tarea se queda donde la cadena la puso y el
-    // pase atrás la marca con holgura negativa. Adelantarla para que cuadre sería inventarse
-    // capacidad que nadie tiene y declarar cumplido algo que no lo está.
-    if (task.constraint && task.constraint.type !== 'DEBE_TERMINAR_EL') {
+    // Las tres que solo COMPROMETEN —`DEBE_TERMINAR_EL`, `NO_EMPIEZA_DESPUES_DE`,
+    // `NO_TERMINA_DESPUES_DE`— no aparecen aquí, y no es un olvido: son promesas, no empujones. Si
+    // la cadena lleva la tarea más allá, se queda donde la cadena la puso y el pase atrás la marca
+    // con holgura negativa. Adelantarla para que cuadre sería inventarse capacidad que nadie tiene
+    // y declarar cumplido algo que no lo está.
+    if (task.constraint && EMPUJAN.has(task.constraint.type)) {
       const constrained = calendar.ordinalOf(calendar.next(toDayNumber(task.constraint.date)))
       if (task.constraint.type === 'DEBE_EMPEZAR_EL') {
         start = constrained
         drivingDependency = null
+      } else if (task.constraint.type === 'NO_TERMINA_ANTES_DE') {
+        // Amarra el FIN, no el arranque: hay que retroceder el tramo para saber cuándo empezar.
+        // Una tarea de cinco días que no puede terminar antes del viernes empieza el lunes.
+        const desdeElFin = constrained - tramo
+        if (desdeElFin > start) {
+          start = desdeElFin
+          drivingDependency = null
+        }
       } else if (constrained > start) {
         start = constrained
         drivingDependency = null

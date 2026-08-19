@@ -171,6 +171,21 @@ export function analyzeCriticalPath(
     const tope = topeComprometido(task, calendar)
     if (tope !== undefined && tope < latest) latest = tope
 
+    // `NO_EMPIEZA_DESPUES_DE` (SNLT) amarra el ARRANQUE, así que su techo del fin es esa fecha más
+    // lo que dura la tarea. Se resuelve aquí y no en `topeComprometido` porque es el único sitio
+    // donde se conoce el tramo, y pasárselo obligaría a esa función a saber de programación.
+    const snlt =
+      task.constraint?.type === 'NO_EMPIEZA_DESPUES_DE'
+        ? task.constraint
+        : task.compromiso?.type === 'NO_EMPIEZA_DESPUES_DE'
+          ? task.compromiso
+          : null
+    if (snlt) {
+      const arranqueMaximo = calendar.ordinalOf(calendar.previous(toDayNumber(snlt.date)))
+      const finMaximo = arranqueMaximo + tramo
+      if (finMaximo < latest) latest = finMaximo
+    }
+
     lateFinish.set(id, latest)
     lateStart.set(id, latest - tramo)
     const total = latest - earlyFinish.get(id)!
@@ -239,12 +254,24 @@ export function analyzeCriticalPath(
  * «termina el sábado» significa, en un plan que no trabaja sábados, «termina el viernes».
  */
 function topeComprometido(
-  task: { readonly dueDate?: IsoDate; readonly constraint?: { readonly type: string; readonly date: IsoDate } },
+  task: {
+    readonly dueDate?: IsoDate
+    readonly constraint?: { readonly type: string; readonly date: IsoDate }
+    readonly compromiso?: { readonly type: string; readonly date: IsoDate }
+  },
   calendar: Schedule['calendar'],
 ): number | undefined {
   const fechas: IsoDate[] = []
   if (task.dueDate) fechas.push(task.dueDate)
-  if (task.constraint?.type === 'DEBE_TERMINAR_EL') fechas.push(task.constraint.date)
+  // La promesa puede llegar por cualquiera de los dos campos: `constraint` cuando quien arma el
+  // plan la puso ahí, `compromiso` cuando `constraint` está ocupado por el ancla del servidor.
+  for (const c of [task.constraint, task.compromiso]) {
+    if (!c) continue
+    // `DEBE_TERMINAR_EL` y `NO_TERMINA_DESPUES_DE` amarran el fin: la fecha es el techo.
+    if (c.type === 'DEBE_TERMINAR_EL' || c.type === 'NO_TERMINA_DESPUES_DE') fechas.push(c.date)
+    // `NO_EMPIEZA_DESPUES_DE` amarra el arranque, así que el techo del fin es esa fecha más el
+    // tramo. Se resuelve en quien llama, que es el único que sabe cuánto dura la tarea.
+  }
   if (fechas.length === 0) return undefined
 
   let tope: number | undefined

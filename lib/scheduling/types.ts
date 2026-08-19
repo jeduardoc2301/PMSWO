@@ -63,6 +63,24 @@ export type ConstraintType =
    * tiene, y decir que se cumple algo que no se cumple.
    */
   | 'DEBE_TERMINAR_EL'
+  /**
+   * No puede terminar antes de la fecha (FNET). Empuja hacia adelante, como `NO_ANTES_DE` pero
+   * amarrando el fin en lugar del arranque.
+   *
+   * Es la restricción de lo que no sirve antes de tiempo: una entrega que el cliente no puede
+   * recibir hasta que abra su ventana de cambios, un permiso que no se emite antes de una fecha.
+   */
+  | 'NO_TERMINA_ANTES_DE'
+  /**
+   * No puede empezar después de la fecha (SNLT). **No mueve la tarea**, igual que MFO: si la cadena
+   * la empuja más allá, sale con holgura negativa.
+   */
+  | 'NO_EMPIEZA_DESPUES_DE'
+  /**
+   * No puede terminar después de la fecha (FNLT). Es lo mismo que un `dueDate`, dicho como
+   * restricción, y se comporta igual: cota superior de la fecha tardía, sin mover nada.
+   */
+  | 'NO_TERMINA_DESPUES_DE'
 
 export interface Constraint {
   readonly type: ConstraintType
@@ -122,8 +140,25 @@ export interface PlanTask {
    * tarea de un día empieza y termina el mismo día.
    */
   readonly duration: number
-  /** Restricción de fecha, si la tiene. */
+  /**
+   * Restricción de fecha que **mueve** la tarea: `NO_ANTES_DE`, `DEBE_EMPEZAR_EL`,
+   * `NO_TERMINA_ANTES_DE`.
+   */
   readonly constraint?: Constraint
+  /**
+   * Restricción que solo **compromete**: `DEBE_TERMINAR_EL`, `NO_EMPIEZA_DESPUES_DE`,
+   * `NO_TERMINA_DESPUES_DE`.
+   *
+   * Va en su propio campo y no en `constraint` por una razón que se vio en pantalla: el plan que
+   * llega del servidor ancla cada línea en su fecha guardada —así reproduce las fechas negociadas
+   * del archivo en vez de comprimir todo al arranque más temprano— y ese ancla ocupa `constraint`.
+   * Con un solo campo, una promesa capturada por alguien desaparecía sin dejar rastro: la columna
+   * existía en la base, la pantalla la escribía, y el motor no la veía nunca.
+   *
+   * Separarlas es además lo correcto por sí mismo: son dos cosas distintas —dónde puede ocurrir
+   * algo y qué se prometió— y una tarea puede tener las dos a la vez.
+   */
+  readonly compromiso?: Constraint
   /** Clase de línea. Por omisión, actividad del proveedor. */
   readonly kind?: TaskKind
   /** Quién responde. Si se omite, se deduce de la clase de línea. */

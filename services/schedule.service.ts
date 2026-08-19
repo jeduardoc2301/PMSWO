@@ -39,6 +39,7 @@ import type {
   Recoverability,
   ResponsibleParty,
   TaskKind,
+  Constraint,
 } from '@/lib/scheduling/types'
 
 export interface ProjectPlan {
@@ -185,7 +186,7 @@ export async function loadProjectPlan(
       ...(item.dueDate ? { dueDate: isoDe(item.dueDate) } : {}),
       ...(item.parentId ? { parentId: item.parentId } : {}),
       progress: item.progressPct,
-      constraint: { type: 'NO_ANTES_DE' as const, date: start },
+      ...restriccionDe(item.constraintType, item.constraintDate, start),
     }
   })
 
@@ -208,6 +209,43 @@ export async function loadProjectPlan(
     ausencias,
     progressCutoff: project.progressCutoffDate ? isoDe(project.progressCutoffDate) : null,
   }
+}
+
+/** Las restricciones que mueven la tarea. Las otras tres solo comprometen (§3.4). */
+const EMPUJAN = new Set(['NO_ANTES_DE', 'DEBE_EMPEZAR_EL', 'NO_TERMINA_ANTES_DE'])
+
+/**
+ * Reparte la restricción guardada entre los dos campos del motor.
+ *
+ * Cada línea llega **anclada** en su fecha guardada con un `NO_ANTES_DE`: es lo que hace que el
+ * plan reproduzca las fechas negociadas del archivo en lugar de comprimirlo todo al arranque más
+ * temprano. Ese ancla ocupa `constraint`.
+ *
+ * Hasta aquí el ancla se ponía **siempre**, y con ella se perdía la restricción de verdad: la
+ * columna existía en la base, la pantalla la escribía, y el motor no la veía nunca. Se descubrió
+ * poniendo un `NO_TERMINA_ANTES_DE` a una línea y viendo que el plan no se movía.
+ *
+ * Ahora:
+ *
+ * - Una restricción que **empuja** sustituye al ancla. Es más específica que ella y quien la puso
+ *   sabe algo que la fecha guardada no dice.
+ * - Una que solo **compromete** va en `compromiso` y el ancla se queda: la promesa no debe mover
+ *   la línea, y sin ancla se iría a su arranque más temprano, que es justo lo contrario.
+ */
+function restriccionDe(
+  tipo: string | null | undefined,
+  fecha: Date | null | undefined,
+  anclaje: string,
+): { constraint: Constraint; compromiso?: Constraint } {
+  const ancla: Constraint = { type: 'NO_ANTES_DE', date: anclaje }
+  // Se admite `undefined` además de `null`: una fila sin esa columna en el corte llega así, y
+  // comprobar solo el nulo dejaba pasar un `undefined` hasta la conversión de fecha, que reventaba
+  // con «no puedo leer getTime de undefined» a trece pruebas de distancia del sitio del error.
+  if (tipo == null || fecha == null) return { constraint: ancla }
+
+  const propia: Constraint = { type: tipo as Constraint['type'], date: isoDe(fecha) }
+  if (EMPUJAN.has(tipo)) return { constraint: propia }
+  return { constraint: ancla, compromiso: propia }
 }
 
 /**
