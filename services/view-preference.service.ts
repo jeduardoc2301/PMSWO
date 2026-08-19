@@ -41,13 +41,28 @@ const esquemaDelGantt = z.object({
   flechas: z.enum(['NINGUNO', 'SELECCION', 'TODOS']),
 })
 
+/**
+ * Lo que la Lista guarda por usuario (§6.3, criterio 1: «la elección se recuerda»).
+ *
+ * Va aparte del Gantt a propósito, como recomienda el §6.2: en la Lista se suelen querer más
+ * columnas, y compartir la preferencia obligaría a elegir una sola respuesta para dos preguntas
+ * distintas.
+ */
+const esquemaDeLaLista = z.object({
+  formato: z.enum(['ESQUEMA', 'LISTA', 'AGRUPADA']),
+  agruparPor: z.enum(['status', 'priority', 'owner', 'phase']),
+})
+
 const ESQUEMAS: Partial<Record<Vista, z.ZodTypeAny>> = {
   PANEL: esquemaDelPanel,
   GANTT: esquemaDelGantt,
+  LISTA: esquemaDeLaLista,
 }
 const POR_OMISION: Partial<Record<Vista, unknown>> = {
   PANEL: PANEL_POR_OMISION,
   GANTT: GANTT_POR_OMISION,
+  // El esquema es el formato por omisión que pide el §6.1: es el que enseña la forma del plan.
+  LISTA: { formato: 'ESQUEMA', agruparPor: 'status' },
 }
 
 /**

@@ -5,6 +5,13 @@ import { useTranslations } from 'next-intl'
 import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2, GripVertical } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
+import {
+  type CampoDeGrupo,
+  type LineaSumable,
+  type Totales,
+  agrupar,
+  totalizar,
+} from '@/lib/projects/list-totals'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
@@ -119,6 +126,22 @@ function SortableRow({
 interface WorkItemsListProps {
   projectId: string
   workItems: WorkItemSummary[]
+  /**
+   * Dibuja la tabla plana en lugar de las tarjetas por fase.
+   *
+   * El §6.1 define «Lista» como «plana: todas las tareas al mismo nivel, sin jerarquía», y lo que
+   * esta vista hacía era agrupar por fase — que no es ninguno de los tres formatos del spec. La
+   * agrupación por fase no se pierde: pasa a ser una de las opciones de «Agrupada», que es donde el
+   * spec la pone.
+   */
+  plana?: boolean
+  /**
+   * Por qué campo agrupar, o `undefined` para la lista plana (§6.1).
+   *
+   * El formato agrupado es plano igual que el de lista: lo que añade son cabeceras de grupo y un
+   * subtotal por grupo, no jerarquía. La jerarquía es el otro formato, el esquema.
+   */
+  agruparPor?: CampoDeGrupo
   onWorkItemCreated?: () => void
   editDatesData?: {
     workItemId: string
@@ -130,6 +153,8 @@ interface WorkItemsListProps {
 }
 
 export function WorkItemsList({
+  agruparPor,
+  plana = false,
   projectId,
   workItems,
   onWorkItemCreated,
@@ -279,6 +304,62 @@ export function WorkItemsList({
     const matchesPriority = priorityFilters.length === 0 || priorityFilters.includes(item.priority)
     return matchesSearch && matchesStatus && matchesPriority
   })
+
+  /**
+   * Las líneas que se dibujan en los formatos planos.
+   *
+   * Sin resúmenes. Un formato plano los mezcla con sus propios hijos, y entonces ninguna cuenta
+   * significa nada: el total los excluye —sus horas son las de sus hijos, contarlos duplicaría cada
+   * rama— pero se seguían dibujando, así que una cabecera de grupo decía «312 líneas» encima de 340
+   * filas. La jerarquía es el otro formato; aquí sobran.
+   */
+  const lineasPlanas = useMemo(
+    () => (plana ? filteredWorkItems.filter((i) => i.kind !== 'RESUMEN') : filteredWorkItems),
+    [filteredWorkItems, plana],
+  )
+
+  /**
+   * Lo que la fila de totales suma: **lo filtrado**, no el plan entero.
+   *
+   * El §6.3 lo pide literal —«suma correctamente y respeta el filtro activo»—, y es lo único que
+   * evita el error clásico de una tabla que enseña doce filas y totaliza mil trescientas.
+   */
+  const sumables: LineaSumable[] = useMemo(
+    () => lineasPlanas.map((i) => ({
+      id: i.id,
+      status: i.status,
+      priority: i.priority,
+      ownerName: i.ownerName ?? null,
+      phase: i.phase ?? null,
+      estimatedHours: i.estimatedHours ?? null,
+      progressPct: i.progressPct ?? 0,
+      // La lista plana no dibuja resúmenes como tales, pero sí los trae: sumarlos duplicaría cada
+      // rama del árbol.
+      esResumen: i.kind === 'RESUMEN',
+    })),
+    [lineasPlanas],
+  )
+  const total: Totales = useMemo(() => totalizar(sumables), [sumables])
+
+  /** Las filas a dibujar: planas, o con una cabecera de grupo por medio. */
+  const filasConGrupos = useMemo(() => {
+    type Entrada =
+      | { tipo: 'grupo'; clave: string; subtotal: Totales }
+      | { tipo: 'linea'; linea: (typeof lineasPlanas)[number] }
+
+    if (!agruparPor) return lineasPlanas.map((linea): Entrada => ({ tipo: 'linea', linea }))
+
+    const porId = new Map(lineasPlanas.map((l) => [l.id, l]))
+    const salida: Entrada[] = []
+    for (const grupo of agrupar(sumables, agruparPor)) {
+      salida.push({ tipo: 'grupo', clave: grupo.clave, subtotal: grupo.subtotal })
+      for (const sumable of grupo.lineas) {
+        const linea = porId.get(sumable.id)
+        if (linea) salida.push({ tipo: 'linea', linea })
+      }
+    }
+    return salida
+  }, [lineasPlanas, sumables, agruparPor])
 
   const groupWorkItemsByPhase = () => {
     const grouped: Record<string, WorkItemSummary[]> = {}
@@ -455,7 +536,7 @@ export function WorkItemsList({
       </div>
 
       {/* Work Items - Grouped by Phase or Table View */}
-      {hasPhases ? (
+      {hasPhases && !plana ? (
         <div className="space-y-4">
           {Object.entries(workItemsByPhase)
             .sort(([phaseA], [phaseB]) => comparePhases(phaseA, phaseB))
@@ -571,7 +652,41 @@ export function WorkItemsList({
                 </tr>
               </thead>
               <tbody>
-                {filteredWorkItems.length === 0 ? (
+                {/* La fila de totales del §6.2, arriba y no al pie: con mil trescientas líneas,
+                    un total al final es un total que nadie ve. Suma lo filtrado. */}
+                {lineasPlanas.length > 0 ? (
+                  <tr data-testid="fila-total" className="border-b border-zinc-800 bg-zinc-900/40">
+                    <td className="px-6 py-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                        Todas las tareas
+                      </span>
+                      <span data-testid="total-lineas" className="ml-2 text-xs tabular-nums text-zinc-400">
+                        {total.lineas}
+                      </span>
+                    </td>
+                    <td className="px-6 py-2" colSpan={4}>
+                      <span className="text-xs text-zinc-500">
+                        {total.horas > 0
+                          ? `${total.horas} h estimadas`
+                          : 'sin horas estimadas capturadas'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-2" colSpan={2}>
+                      <span
+                        data-testid="total-avance"
+                        title={
+                          total.ponderado
+                            ? 'Avance ponderado por las horas de cada línea'
+                            : 'Promedio simple: nadie capturó horas, y sin ellas no hay con qué ponderar'
+                        }
+                        className="text-xs tabular-nums text-zinc-400"
+                      >
+                        {Math.round(total.avance * 100)} %{total.ponderado ? '' : ' (promedio)'}
+                      </span>
+                    </td>
+                  </tr>
+                ) : null}
+                {lineasPlanas.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: '#71717a', fontSize: 14 }}>
                       {searchQuery || statusFilters.length > 0 || priorityFilters.length > 0
@@ -581,7 +696,28 @@ export function WorkItemsList({
                     </td>
                   </tr>
                 ) : (
-                  filteredWorkItems.map((item) => {
+                  filasConGrupos.map((entrada) => {
+                    if (entrada.tipo === 'grupo') {
+                      return (
+                        <tr key={'g-' + entrada.clave} data-testid={`grupo-${entrada.clave}`} className="border-b border-zinc-800">
+                          <td colSpan={6} className="px-6 py-2">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                              {entrada.clave}
+                            </span>
+                            <span className="ml-2 text-xs text-zinc-500">
+                              {entrada.subtotal.lineas} {entrada.subtotal.lineas === 1 ? 'línea' : 'líneas'}
+                              {entrada.subtotal.horas > 0 ? ` · ${entrada.subtotal.horas} h` : ''}
+                            </span>
+                          </td>
+                          <td className="px-6 py-2 text-right">
+                            <span data-testid={`subtotal-${entrada.clave}`} className="text-xs tabular-nums text-zinc-400">
+                              {Math.round(entrada.subtotal.avance * 100)} %
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    }
+                    const item = entrada.linea
                     const isHighlighted = highlightedWorkItemId === item.id || highlightedWorkItemId === item.title
                     return (
                       <tr

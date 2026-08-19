@@ -16,6 +16,12 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 
+import {
+  CAMPOS_DE_GRUPO,
+  type CampoDeGrupo,
+  NOMBRES_DE_GRUPO,
+} from '@/lib/projects/list-totals'
+
 import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
 import { DeleteWorkItemDialog } from '@/components/projects/delete-work-item-dialog'
 import { DependencyEditor } from '@/components/projects/dependency-editor'
@@ -50,7 +56,7 @@ type EstadoPlan =
   | { readonly fase: 'error'; readonly mensaje: string }
   | { readonly fase: 'listo'; readonly plan: PlanRemoto }
 
-type Modo = 'ESQUEMA' | 'LISTA'
+type Modo = 'ESQUEMA' | 'LISTA' | 'AGRUPADA'
 
 export interface WorkItemsViewProps {
   readonly projectId: string
@@ -105,6 +111,9 @@ export function WorkItemsView({
   onApplyTemplate,
 }: WorkItemsViewProps) {
   const [modo, setModo] = useState<Modo>('ESQUEMA')
+  const [agruparPor, setAgruparPor] = useState<CampoDeGrupo>('status')
+  /** Hasta que llegue lo guardado no se escribe: si no, lo por omisión pisaría lo del usuario. */
+  const [preferenciaCargada, setPreferenciaCargada] = useState(false)
   const [estado, setEstado] = useState<EstadoPlan>({ fase: 'cargando' })
   const [aviso, setAviso] = useState<string | null>(null)
   // La línea cuyos vínculos se editan, y el estado del viaje en curso. El error del editor va
@@ -114,6 +123,33 @@ export function WorkItemsView({
   const [errorDeVinculo, setErrorDeVinculo] = useState<string | null>(null)
   // Altas, ediciones y bajas desde el esquema, con los mismos diálogos que la lista y el tablero:
   // una sola forma de tocar una línea, se llegue por donde se llegue.
+  useEffect(() => {
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=LISTA`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!vigente) return
+        if (d?.settings?.formato) setModo(d.settings.formato as Modo)
+        if (d?.settings?.agruparPor) setAgruparPor(d.settings.agruparPor as CampoDeGrupo)
+        setPreferenciaCargada(true)
+      })
+      .catch(() => setPreferenciaCargada(true))
+    return () => {
+      vigente = false
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    if (!preferenciaCargada) return
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=LISTA`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: { formato: modo, agruparPor } }),
+    }).catch(() => {
+      // Que no se guarde la elección no puede tumbar la vista: se sigue con lo que hay en pantalla.
+    })
+  }, [projectId, modo, agruparPor, preferenciaCargada])
+
   const [creando, setCreando] = useState(false)
   // De quién cuelga la línea que se está dando de alta. El «+» de un renglón preselecciona ese
   // renglón como padre; el botón de la barra no preselecciona nada y la nueva nace en la raíz. Se
@@ -447,11 +483,33 @@ export function WorkItemsView({
           <BotonModo activo={modo === 'LISTA'} onClick={() => setModo('LISTA')}>
             Lista
           </BotonModo>
+          <BotonModo activo={modo === 'AGRUPADA'} onClick={() => setModo('AGRUPADA')}>
+            Agrupada
+          </BotonModo>
+          {modo === 'AGRUPADA' ? (
+            <label className="ml-1 flex items-center gap-1.5 text-xs text-zinc-400">
+              Agrupar por
+              <select
+                aria-label="Agrupar la lista por"
+                value={agruparPor}
+                onChange={(e) => setAgruparPor(e.target.value as CampoDeGrupo)}
+                className="rounded border border-zinc-700 bg-[#18181b] px-2 py-1 text-xs text-zinc-100"
+              >
+                {CAMPOS_DE_GRUPO.map((campo) => (
+                  <option key={campo} value={campo}>
+                    {NOMBRES_DE_GRUPO[campo]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </div>
       </div>
 
-      {modo === 'LISTA' ? (
+      {modo === 'LISTA' || modo === 'AGRUPADA' ? (
         <WorkItemsList
+          plana
+          agruparPor={modo === 'AGRUPADA' ? agruparPor : undefined}
           projectId={projectId}
           // El filtro también aquí. Antes la lista recibía el array entero mientras la barra —que
           // se dibuja en la cabecera común a los dos modos— anunciaba «822 de 1368» encima de una
