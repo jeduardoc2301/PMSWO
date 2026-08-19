@@ -77,6 +77,15 @@ export interface LineaFiltrable {
 export interface ContextoDelFiltro {
   /** Fecha civil de corte, para «atrasadas». Entra por parámetro: un filtro que lee el reloj no se puede probar. */
   readonly hoy: IsoDate
+  /**
+   * Los identificadores de las líneas que son resumen: las que tienen al menos una hija.
+   *
+   * No se puede saber mirando una línea sola —«ser resumen» es una propiedad del conjunto— así que
+   * lo calcula `filtrar`, que sí tiene el plan entero delante, y lo pasa aquí. Quien evalúe con
+   * `cumple` línea a línea tiene que darlo; si no lo da, «es resumen» dice que no de todas, que es
+   * exactamente el defecto que este campo tenía.
+   */
+  readonly resumenes?: ReadonlySet<string>
 }
 
 type Tipo = 'texto' | 'fecha' | 'numero' | 'booleano'
@@ -117,7 +126,12 @@ export const CAMPOS: Readonly<Record<string, CampoDeclarado>> = {
         new Date(`${contexto.hoy}T00:00:00`),
       ),
   },
-  isSummary: { tipo: 'booleano', etiqueta: 'Es resumen', leer: () => false },
+  isSummary: {
+    tipo: 'booleano',
+    etiqueta: 'Es resumen',
+    // Sale del conjunto que arma `filtrar`, no de la línea: una línea no sabe si tiene hijas.
+    leer: (linea, contexto) => contexto.resumenes?.has(linea.id) ?? false,
+  },
 }
 
 /** Qué operadores admite cada tipo. Lo usa el validador y también el constructor de filtros. */
@@ -287,14 +301,29 @@ export function cumple(
     : nodo.conditions.some((hija) => cumple(linea, hija, contexto))
 }
 
-/** Aplica el filtro a un plan entero. */
+/**
+ * Aplica el filtro a un plan entero.
+ *
+ * Arma aquí el conjunto de resúmenes —quién es madre de alguien— porque es lo único que hace falta
+ * el plan entero para saberlo, y porque hacerlo aquí lo arregla para todos los que llaman a la vez.
+ * Se respeta el que venga dado: quien ya lo calculó para otra cosa no tiene que pagarlo dos veces.
+ */
 export function filtrar<T extends LineaFiltrable>(
   lineas: readonly T[],
   filtro: Filtro | null,
   contexto: ContextoDelFiltro,
 ): T[] {
   if (filtro === null) return [...lineas]
-  return lineas.filter((linea) => cumple(linea, filtro, contexto))
+  const conElConjunto: ContextoDelFiltro =
+    contexto.resumenes !== undefined ? contexto : { ...contexto, resumenes: resumenesDe(lineas) }
+  return lineas.filter((linea) => cumple(linea, filtro, conElConjunto))
+}
+
+/** Quién es madre de alguien. Una línea es resumen si otra la nombra como padre. */
+export function resumenesDe(lineas: readonly LineaFiltrable[]): ReadonlySet<string> {
+  const padres = new Set<string>()
+  for (const linea of lineas) if (linea.parentId) padres.add(linea.parentId)
+  return padres
 }
 
 /** El filtro vacío: un AND sin condiciones, que no esconde nada. */

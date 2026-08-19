@@ -9,6 +9,7 @@ import {
   cumple,
   describirFiltro,
   filtrar,
+  resumenesDe,
   tieneCondiciones,
   validarFiltro,
 } from '../filter'
@@ -371,5 +372,55 @@ describe('Rendimiento', () => {
 
     expect(resultado.length).toBeGreaterThan(0)
     expect(tardanza).toBeLessThan(100)
+  })
+})
+
+describe('«Es resumen» sabe quién tiene hijas', () => {
+  /** Tres líneas: una madre, su hija, y una suelta. */
+  const CON_JERARQUIA: LineaFiltrable[] = [
+    linea({ id: 'madre', title: 'La etapa' }),
+    linea({ id: 'hija', title: 'Una actividad', parentId: 'madre' }),
+    linea({ id: 'suelta', title: 'Otra actividad' }),
+  ]
+  const esResumen = (valor: boolean): Filtro => ({
+    op: 'AND',
+    conditions: [{ field: 'isSummary', operator: 'eq', value: valor }],
+  })
+
+  it('encuentra la que tiene hija', () => {
+    expect(filtrar(CON_JERARQUIA, esResumen(true), CONTEXTO).map((l) => l.id)).toEqual(['madre'])
+  })
+
+  it('y las que no', () => {
+    expect(filtrar(CON_JERARQUIA, esResumen(false), CONTEXTO).map((l) => l.id)).toEqual([
+      'hija',
+      'suelta',
+    ])
+  })
+
+  it('las dos mitades suman el plan entero', () => {
+    // Antes no sumaban: «no» devolvía las tres y «sí» ninguna, así que la madre salía en las dos
+    // respuestas a la misma pregunta. En el plan de referencia eran 1368 y 0 en vez de 1243 y 125.
+    const si = filtrar(CON_JERARQUIA, esResumen(true), CONTEXTO).length
+    const no = filtrar(CON_JERARQUIA, esResumen(false), CONTEXTO).length
+    expect(si + no).toBe(CON_JERARQUIA.length)
+  })
+
+  it('sin ninguna jerarquía, ninguna es resumen', () => {
+    const planas = CON_JERARQUIA.map((l) => ({ ...l, parentId: null }))
+    expect(filtrar(planas, esResumen(true), CONTEXTO)).toHaveLength(0)
+  })
+
+  it('quien ya tiene el conjunto no lo paga dos veces', () => {
+    // Se pasa uno a mano, distinto del que saldría del plan, y manda el que se pasó.
+    const aMano = new Set(['suelta'])
+    expect(
+      filtrar(CON_JERARQUIA, esResumen(true), { ...CONTEXTO, resumenes: aMano }).map((l) => l.id),
+    ).toEqual(['suelta'])
+  })
+
+  it('«resumenesDe» es quién es madre de alguien, sin repetir', () => {
+    const dosHijas = [...CON_JERARQUIA, linea({ id: 'otraHija', parentId: 'madre' })]
+    expect([...resumenesDe(dosHijas)]).toEqual(['madre'])
   })
 })

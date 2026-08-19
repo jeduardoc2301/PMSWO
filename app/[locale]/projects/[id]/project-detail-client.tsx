@@ -457,6 +457,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           // el modelo lo llama `clientOwner` y el filtro también, para que el campo se llame igual
           // en la barra que en la base.
           clientOwner: w.responsibleName ?? null,
+          // Sin esto el filtro no puede saber quién es resumen —«ser resumen» es tener hijas, y eso
+          // no se ve mirando una línea sola— y «Es resumen» respondía que no de las 1368.
+          parentId: w.parentId ?? null,
         })) as LineaFiltrable[],
         filtro,
         { hoy: hoyDelFiltro },

@@ -474,3 +474,38 @@ motivo:
 - **Crear y borrar líneas.** Tampoco: un alta no es un parche sobre algo que ya existe.
 
 Las dos últimas piden ampliar el tipo antes de tocar nada, y eso es diseño, no conexión.
+
+## §10.2 — «Es resumen» respondía que no de las 1368
+
+Un filtro que se podía elegir en pantalla y **siempre** decía que no. El campo estaba declarado así:
+
+```ts
+isSummary: { tipo: 'booleano', etiqueta: 'Es resumen', leer: () => false }
+```
+
+La cabecera de ese mismo archivo explica por qué `color` y los campos personalizados **no** están
+declarados: «declararlos aquí haría que un filtro guardado con ellos pareciera válido y no filtrara
+nada». Es exactamente lo que hacía `isSummary`, tres pantallas más abajo, en el archivo que enuncia
+la regla.
+
+Medido antes del arreglo, en la Lista del plan de referencia:
+
+| | antes | después | lo correcto |
+|---|---|---|---|
+| «Es resumen = sí» | 0 | **125** | 125 |
+| «Es resumen = no» | 1368 | **1243** | 1243 |
+| suman | 1368 y 0 | 1368 | 1368 |
+
+Que las dos mitades no sumaran el total es la señal: la misma línea salía en las dos respuestas a la
+misma pregunta.
+
+**Por qué estaba así y no era pereza.** «Ser resumen» no se puede saber mirando una línea sola: es
+tener hijas, una propiedad del conjunto. La firma `leer(linea, contexto)` no daba forma de
+averiguarlo. Ahora el conjunto lo arma `filtrar`, que sí tiene el plan entero delante, y viaja por
+el contexto — el mismo sitio por donde ya entraba `hoy`, y por la misma razón: lo que no se puede
+deducir de la línea entra por parámetro para poder probarlo.
+
+**Dos extremos, no uno.** Calcular el conjunto no bastaba: la vista construía las líneas filtrables
+sin `parentId`, así que el conjunto habría salido vacío igual. Los dos cambios juntos son el
+arreglo; cualquiera de los dos solo no habría movido el número, que es la clase de arreglo que se da
+por bueno sin comprobarlo en pantalla.
