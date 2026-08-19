@@ -247,6 +247,62 @@ describe('§7.5 · arrastrar una barra a otro día', () => {
     expect(onMoverLinea).toHaveBeenCalledWith('corta', '2026-08-12')
   })
 
+  it('soltarla ENCIMA DE OTRA BARRA también avisa, con el día que hay debajo', () => {
+    // El defecto que esto fija: las barras viven en una capa absoluta que es HERMANA de las
+    // casillas, no descendiente. Un evento que cae sobre una barra sube por la capa y no pasa por
+    // ninguna casilla, así que con los manejadores puestos en la casilla el `preventDefault` nunca
+    // se llamaba — y sin él el navegador rechaza el soltar. Medido sobre el plan de referencia:
+    // el 24 % del área de la rejilla y hasta el 56 % del alto útil de un día cargado no admitían
+    // soltar nada.
+    //
+    // La prueba de arriba no lo veía porque `fireEvent` despacha sobre el elemento que le nombras
+    // y se salta el reparto que en un navegador real decide quién recibe el evento. Aquí se nombra
+    // la barra a propósito, que es lo que el navegador habría elegido.
+    const onMoverLinea = vi.fn()
+    dibujar({ onMoverLinea })
+
+    const encima = screen.getAllByTestId(/^barra-cruzada-/)[0]!
+    const fila = encima.closest('.grid') as HTMLElement
+
+    // La columna sale de dónde cayó el puntero dentro de la fila, así que la fila necesita ancho.
+    // Este entorno devuelve ceros en `getBoundingClientRect`, y sin ancho no hay columna que
+    // calcular: se le da uno a propósito en vez de fingir que la prueba comprueba algo que no.
+    // 700 px de ancho, siete columnas de 100: soltar en x=250 cae en la tercera.
+    vi.spyOn(fila, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, right: 700, bottom: 104, width: 700, height: 104, x: 0, y: 0, toJSON: () => ({}),
+    } as DOMRect)
+
+    const dataTransfer = portapapeles()
+    fireEvent.dragStart(screen.getByTestId('barra-corta-2'), { dataTransfer })
+    fireEvent.dragOver(encima, { dataTransfer })
+    // El evento se construye a mano porque `fireEvent.drop` no transporta `clientX` en este
+    // entorno —comprobado con una sonda— y sin coordenada no hay columna que deducir.
+    const soltar = new Event('drop', { bubbles: true, cancelable: true })
+    Object.defineProperty(soltar, 'dataTransfer', { value: dataTransfer })
+    Object.defineProperty(soltar, 'clientX', { value: 250 })
+    encima.dispatchEvent(soltar)
+
+    expect(onMoverLinea).toHaveBeenCalledTimes(1)
+    expect(onMoverLinea.mock.calls[0][0]).toBe('corta')
+    // La tercera columna de ESA fila, tomada de la propia fila: la rejilla de agosto empieza en
+    // julio, y escribir la fecha a mano aquí sería fijar el error de cálculo en vez del cálculo.
+    const tercera = fila.querySelectorAll('[data-dia]')[2]!.getAttribute('data-dia')
+    expect(onMoverLinea.mock.calls[0][1]).toBe(tercera)
+  })
+
+  it('el dragOver sobre una barra llama a preventDefault, que es lo que autoriza el soltar', () => {
+    // Sin esto el navegador rechaza el drop y no hay manera de enterarse desde dentro de la página:
+    // no hay error, simplemente no pasa nada.
+    const onMoverLinea = vi.fn()
+    dibujar({ onMoverLinea })
+
+    const evento = new Event('dragover', { bubbles: true, cancelable: true })
+    Object.defineProperty(evento, 'dataTransfer', { value: portapapeles() })
+    screen.getAllByTestId(/^barra-cruzada-/)[0]!.dispatchEvent(evento)
+
+    expect(evento.defaultPrevented).toBe(true)
+  })
+
   it('soltarla en un día NO laborable no avisa', () => {
     // El motor la empujaría al siguiente hábil y quien la soltó vería la barra en otro sitio del
     // que apuntó. Mejor que no pase nada que que pase algo distinto.

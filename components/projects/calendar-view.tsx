@@ -215,6 +215,43 @@ export function CalendarView({
   )
 }
 
+/**
+ * Sobre qué día de la fila cae una coordenada horizontal.
+ *
+ * Hace falta porque el soltar se atiende en la **fila** y no en la casilla del día. Y se atiende
+ * ahí porque las barras viven en una capa absoluta que es HERMANA de las casillas, no descendiente:
+ * un `dragover` que caiga sobre una barra sube por la capa y llega a la fila sin haber pasado
+ * nunca por ninguna casilla. Con los manejadores en la casilla, ese `preventDefault` no se
+ * llamaba, y sin él el navegador rechaza el soltar.
+ *
+ * No era un caso raro: medido sobre el plan de referencia, el 24 % del área de la rejilla y hasta
+ * el **56 %** del alto útil de un día cargado eran zona muerta. Y la prueba que lo daba por bueno
+ * no lo veía, porque `fireEvent.dragOver` despacha el evento sobre el elemento que le nombras y
+ * se salta el reparto que en un navegador real decide quién lo recibe.
+ */
+function diaSoltado<T extends { readonly date: string }>(
+  e: React.DragEvent,
+  dias: readonly T[],
+): T | undefined {
+  // Camino corriente: se soltó sobre la casilla de un día, y ella misma dice cuál es. Se prefiere a
+  // la geometría porque es exacto —no depende del ancho ni del redondeo— y porque es el caso que
+  // ocurre casi siempre.
+  const casilla = (e.target as HTMLElement | null)?.closest?.('[data-dia]')
+  const fecha = casilla?.getAttribute('data-dia')
+  if (fecha) return dias.find((d) => d.date === fecha)
+
+  // Camino de rescate: se soltó sobre una barra, que vive en otra capa y no tiene casilla encima.
+  // Aquí la columna sale de dónde cayó el puntero dentro de la fila.
+  const marco = e.currentTarget.getBoundingClientRect()
+  if (marco.width <= 0) return undefined
+  // Sin coordenada no hay columna que deducir. Devolver `undefined` deja el soltar sin efecto, que
+  // es lo correcto: mover la línea a un día adivinado sería peor que no moverla.
+  if (!Number.isFinite(e.clientX)) return undefined
+  const columna = Math.floor(((e.clientX - marco.left) / marco.width) * dias.length)
+  // Soltar justo en el borde derecho da exactamente `dias.length`, que no es una columna.
+  return dias[Math.min(dias.length - 1, Math.max(0, columna))]
+}
+
 function Semana({
   semana,
   today,
@@ -242,23 +279,31 @@ function Semana({
     // La fila es el marco de referencia de las barras: una barra multi-día no cabe dentro de una
     // casilla, así que va en una capa absoluta sobre la fila entera. Dentro de la casilla queda un
     // hueco de la misma altura, y así el rótulo de «N líneas más» fluye debajo sin encimarse.
-    <div className="relative grid grid-cols-7 border-b border-zinc-800 last:border-b-0">
+    <div
+      className="relative grid grid-cols-7 border-b border-zinc-800 last:border-b-0"
+      {...(onMoverLinea
+        ? {
+            onDragOver: (e: React.DragEvent) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+            },
+            onDrop: (e: React.DragEvent) => {
+              e.preventDefault()
+              const id = e.dataTransfer.getData('text/plain')
+              if (!id) return
+              const dia = diaSoltado(e, semana.days)
+              // Un día no laborable no admite el arranque de una línea: el motor lo empujaría al
+              // siguiente hábil y quien la soltó vería la barra en otro sitio del que apuntó.
+              if (dia && dia.isWorking) onMoverLinea(id, dia.date)
+            },
+          }
+        : {})}
+    >
       {semana.days.map((dia, columna) => (
         <div
           key={dia.date}
           data-testid={`dia-${dia.date}`}
-          onDragOver={onMoverLinea ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } : undefined}
-          onDrop={
-            onMoverLinea
-              ? (e) => {
-                  e.preventDefault()
-                  const id = e.dataTransfer.getData('text/plain')
-                  // Un día no laborable no admite el arranque de una línea: el motor lo empujaría
-                  // al siguiente hábil y quien la soltó vería la barra en otro sitio del que apuntó.
-                  if (id && dia.isWorking) onMoverLinea(id, dia.date)
-                }
-              : undefined
-          }
+          data-dia={dia.date}
           className={`min-h-[104px] border-r border-zinc-800 px-1.5 pb-1.5 last:border-r-0 ${
             dia.isWorking ? '' : 'bg-[#111113]'
           } ${dia.isOutsideMonth ? 'opacity-40' : ''}`}
