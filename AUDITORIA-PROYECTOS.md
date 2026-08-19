@@ -433,3 +433,27 @@ aplicarle un filtro de vista sería recortar un informe, no filtrarlo. Se queda 
 tiene color por línea. Declarar los campos en el registro del filtro sin el dato detrás daría un
 filtro que no encuentra nada y parece roto. Son migración, y por tanto de la lista del §2 que espera
 decisión — igual que los campos personalizados.
+
+## §10.6 — lo que hace hoy, comprobado moviendo una tarjeta
+
+El Tablero cumple el criterio de punta a punta. Medido en pantalla, con los tres estados:
+
+1. Al entrar: «Deshacer» y «Rehacer» apagados, con sus motivos escritos en el `title` («No hay nada
+   que deshacer»).
+2. Tras mover una tarjeta de Backlog a To Do: «Deshacer **Mover «Aprobar el plan de trabajo por
+   parte del» a To Do**», encendido, con `Ctrl+Z` anunciado en el título.
+3. Tras pulsarlo: la tarjeta vuelve a Backlog **en la base**, «Deshacer» se apaga y «Rehacer» se
+   enciende con el mismo nombre.
+
+Que el rótulo nombre la operación no es un adorno: «Deshacer» a secas obliga a pulsar para averiguar
+qué va a pasar, y en una pantalla donde deshacer escribe en la base eso es un experimento.
+
+**Dónde no está.** Los botones salen en el Tablero, en la Lista y en la pestaña Timeline; no salen
+en el Gantt de `/es/plan`, ni en Calendario, Carga ni Panel. El §10.6 pide Gantt, Lista y Tablero.
+
+**El límite de la pieza, encontrado leyendo su tipo.** `Cambio` es `{ workItemId, campos }`: sabe
+expresar *parches sobre una línea que ya existe* y nada más. Crear una línea, borrarla, o poner y
+quitar un vínculo no caben en esa forma. No es un descuido —para mover, editar y capturar avance es
+exactamente lo que hace falta— pero significa que enganchar el resto de operaciones del §10.6 no es
+llamar a `apuntar` en más sitios: para las altas, las bajas y los vínculos hay que ampliar el tipo
+primero, y esa es una decisión de diseño, no una conexión.
