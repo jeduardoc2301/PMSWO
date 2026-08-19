@@ -99,7 +99,7 @@ tiempo real y deshacer.
 | 30 | Revocar un rol no surte efecto hasta volver a entrar | **EXISTE PERO MAL** | `lib/auth.ts` (sesión JWT) | Los roles viajan en el token y no se releen de la base. Cambiar el rol de alguien en la base no le quita nada hasta que su sesión caduca o vuelve a entrar. Es el comportamiento normal de una sesión JWT, y es una decisión consciente que hay que tomar —no un descuido— porque una revocación de permisos que tarda no es una revocación. Descubierto al probar la guardia del §10.1: los primeros intentos pasaron con un token viejo | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
-| 24 | Deshacer / rehacer (§10.6) | **PARCIAL · casi cerrada** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Faltan tres: arrastrar fechas (excluida a propósito, pasa por la previsualización; la reprogramación ya devuelve el antes y el después de todas las líneas empujadas, así que es trabajo y no impedimento), vínculos y altas/bajas — estas dos no caben en la forma `Cambio` y piden ampliar el tipo | L | Bajo |
+| 24 | Deshacer / rehacer (§10.6) | **PARCIAL · casi cerrada** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Los **vínculos** ya se deshacen: el tipo creció con un canal propio, porque un vínculo no es un campo de una línea —vive entre dos— y su inversa no es «el valor de antes» sino la operación contraria. Comprobado en pantalla: 1665 → 1666 → 1665. Faltan las altas y las bajas de línea | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
 
 **Recuento:** 15 PARCIAL · 4 EXISTE · 3 EXISTE PERO MAL · 2 NO EXISTE · 1 NO APLICA. Total 25 filas.
@@ -845,3 +845,30 @@ Comprobado en pantalla de punta a punta: los dos implícitos salen fijos, se da 
 como cliente por la ruta nueva (200), se cambia a «quien ejecuta» desde el desplegable, y el
 servidor confirma `Executive User=COLLABORATOR`. Después se quitó y el proyecto quedó con sus dos de
 siempre.
+
+## §10.6 — los vínculos ya se deshacen
+
+Era una de las tres cosas que no cabían en la forma `Cambio`. Un vínculo **no es un campo de una
+línea**: vive entre dos, y su inversa no es «escribir el valor de antes» sino la operación
+contraria. Por eso creció el tipo con un canal propio en vez de forzarlo dentro del que había.
+
+**Tres decisiones que se notan:**
+
+- **El tipo y el desfase viajan también al quitar.** Para deshacer una eliminación hay que reponer
+  el vínculo **igual** que estaba, y ese dato ya no está en la base cuando toca reponerlo. Se lee
+  antes de borrar, no después.
+- **El canal es opcional.** Las operaciones que ya existían —mover de columna, renombrar, capturar
+  avance, sangrar— no tocan vínculos, y obligarlas a declarar dos listas vacías sería ruido en cada
+  sitio que apunta una. Quien no lo trae, no toca ninguno. Y al leerlo sale lista vacía y nunca
+  `undefined`: quien la recorre no comprueba, y un `undefined` reventaría el paso entero.
+- **Los vínculos se escriben antes que las fechas.** Si se pusiera el vínculo después de devolver
+  las fechas, el motor lo aplicaría sobre unas ya escritas y podría volver a moverlas — deshacer
+  acabaría dejando el plan en un sitio distinto del que estaba.
+
+Y `aplicar` recibe ahora el **lado entero** de la operación —campos y vínculos— en una sola llamada:
+en dos, si la segunda fallara, media operación quedaría aplicada y la pila diría que se deshizo
+entera.
+
+Comprobado en pantalla con el editor de vínculos: **1665 → 1666** al capturar, el botón pasa a decir
+«Deshacer Vincular con «Aprobar el plan de trabajo por parte del banco»», y al pulsarlo **1666 →
+1665**. El plan quedó igual: 1368 líneas, 1665 vínculos, cierre el 2026-11-30.

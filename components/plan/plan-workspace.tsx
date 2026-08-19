@@ -644,6 +644,20 @@ export function PlanWorkspace({
         // quien responde de la integridad.
         throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
       }
+      // Se apunta para deshacer (§10.6). Un vínculo no cabe en un `Cambio` —no es un campo de una
+      // línea, vive entre dos— y por eso viaja por su propio canal. Su inversa no es «el valor de
+      // antes»: es quitarlo.
+      onOperacion?.({
+        etiqueta: `Vincular «${nombres.get(vinculoPropuesto.predecessorId) ?? vinculoPropuesto.predecessorId}» con «${
+          nombres.get(vinculoPropuesto.successorId) ?? vinculoPropuesto.successorId
+        }»`,
+        hacer: [],
+        deshacer: [],
+        vinculos: {
+          hacer: [{ ...vinculoPropuesto, poner: true }],
+          deshacer: [{ ...vinculoPropuesto, poner: false }],
+        },
+      })
       setVinculoPropuesto(null)
       onPlanCambiado?.()
     } catch (e) {

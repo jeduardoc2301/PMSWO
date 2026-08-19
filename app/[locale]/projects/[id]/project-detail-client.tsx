@@ -14,7 +14,7 @@ import { WorkItemsView } from '@/components/projects/work-items-view'
 import { FilterBar, type FiltroGuardadoResumen } from '@/components/projects/filter-bar'
 import { UndoBar } from '@/components/projects/undo-bar'
 import { useUndo } from '@/components/projects/use-undo'
-import { type Cambio, operacionDesde } from '@/lib/projects/undo-stack'
+import { type Cambio, type LadoDeOperacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
@@ -323,7 +323,37 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   /** Los campos que una reprogramación toca. Se reconocen para poder escribirlos de una vez. */
   const CAMPOS_DE_FECHA = ['start', 'finish', 'constraintType', 'constraintDate']
 
-  const aplicarCambios = async (cambios: readonly Cambio[]) => {
+  const aplicarCambios = async ({ cambios, vinculos }: LadoDeOperacion) => {
+    /**
+     * Los vínculos, primero.
+     *
+     * Antes que las fechas a propósito: si se pusiera el vínculo después de devolver las fechas, el
+     * motor lo aplicaría sobre unas fechas ya escritas y podría volver a moverlas — deshacer
+     * acabaría dejando el plan en un sitio distinto del que estaba. Poniendo la red primero, las
+     * fechas que se escriben después son las últimas que manda quien deshace.
+     */
+    for (const v of vinculos) {
+      const res = v.poner
+        ? await fetch(`/api/v1/projects/${projectId}/dependencies`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              predecessorId: v.predecessorId,
+              successorId: v.successorId,
+              type: v.type,
+              lag: v.lag,
+            }),
+          })
+        : await fetch(
+            `/api/v1/projects/${projectId}/dependencies?predecessorId=${v.predecessorId}&successorId=${v.successorId}`,
+            { method: 'DELETE' },
+          )
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.message || 'No se pudo devolver el vínculo')
+      }
+    }
+
     // Una reprogramación mueve cientos de líneas. Deshacerla con una petición por línea deja el
     // plan medio revertido en cuanto una falle —y quien pulsó Ctrl+Z creía estar volviendo atrás—,
     // así que van todas juntas por la ruta que las escribe en una transacción.

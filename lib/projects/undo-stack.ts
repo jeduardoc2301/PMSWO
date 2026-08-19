@@ -28,6 +28,30 @@ export interface Cambio {
   readonly campos: Readonly<Record<string, unknown>>
 }
 
+/**
+ * Poner o quitar un vínculo entre dos líneas (§10.6).
+ *
+ * Va aparte de `Cambio` y no como un campo suyo porque un vínculo **no es un campo de una línea**:
+ * vive entre dos, y su inversa no es «escribir el valor de antes» sino la operación contraria. El
+ * tipo y el desfase viajan también en el quitar, no sólo en el poner, porque para deshacer una
+ * eliminación hay que volver a crear el vínculo **igual** que estaba, y ese dato ya no está en la
+ * base cuando toca reponerlo.
+ */
+export interface CambioDeVinculo {
+  readonly predecessorId: string
+  readonly successorId: string
+  readonly type: string
+  readonly lag: number
+  /** `true` lo pone, `false` lo quita. */
+  readonly poner: boolean
+}
+
+/** Todo lo que hay que escribir para ir en una dirección: campos de líneas y vínculos. */
+export interface LadoDeOperacion {
+  readonly cambios: readonly Cambio[]
+  readonly vinculos: readonly CambioDeVinculo[]
+}
+
 export interface Operacion {
   /** Cómo se llama en pantalla: «Mover 12 líneas a Terminado». */
   readonly etiqueta: string
@@ -35,6 +59,22 @@ export interface Operacion {
   readonly hacer: readonly Cambio[]
   /** Lo que había antes. Sirve para deshacer. */
   readonly deshacer: readonly Cambio[]
+  /**
+   * Los vínculos que pone o quita esta operación, si toca alguno.
+   *
+   * Opcional a propósito: las operaciones que ya existían —mover de columna, renombrar, capturar
+   * avance, sangrar— no tocan vínculos, y obligarlas a declarar dos listas vacías sería ruido en
+   * cada sitio que apunta una. Quien no lo trae, no toca ninguno.
+   */
+  readonly vinculos?: {
+    readonly hacer: readonly CambioDeVinculo[]
+    readonly deshacer: readonly CambioDeVinculo[]
+  }
+}
+
+/** El inverso de un cambio de vínculo: poner lo que se quitó, quitar lo que se puso. */
+export function alReves(vinculo: CambioDeVinculo): CambioDeVinculo {
+  return { ...vinculo, poner: !vinculo.poner }
 }
 
 export interface PilaDeDeshacer {
@@ -66,8 +106,13 @@ export interface PasoAtras {
   readonly pila: PilaDeDeshacer
   /** Los cambios que hay que escribir, o `null` si no había nada que deshacer. */
   readonly cambios: readonly Cambio[] | null
+  /** Los vínculos que hay que poner o quitar. Vacío en las operaciones que no tocan ninguno. */
+  readonly vinculos: readonly CambioDeVinculo[]
   readonly etiqueta: string | null
 }
+
+/** Ni un vínculo. Se comparte para no crear un arreglo por paso. */
+const SIN_VINCULOS: readonly CambioDeVinculo[] = Object.freeze([])
 
 /**
  * Qué hay que escribir para deshacer lo último, y cómo queda la pila.
@@ -77,7 +122,7 @@ export interface PasoAtras {
  */
 export function deshacer(pila: PilaDeDeshacer): PasoAtras {
   const ultima = pila.hechas[pila.hechas.length - 1]
-  if (!ultima) return { pila, cambios: null, etiqueta: null }
+  if (!ultima) return { pila, cambios: null, vinculos: SIN_VINCULOS, etiqueta: null }
 
   return {
     pila: {
@@ -85,6 +130,7 @@ export function deshacer(pila: PilaDeDeshacer): PasoAtras {
       deshechas: [ultima, ...pila.deshechas],
     },
     cambios: ultima.deshacer,
+    vinculos: ultima.vinculos?.deshacer ?? SIN_VINCULOS,
     etiqueta: ultima.etiqueta,
   }
 }
@@ -92,11 +138,12 @@ export function deshacer(pila: PilaDeDeshacer): PasoAtras {
 /** Lo simétrico: qué hay que escribir para rehacer lo último que se deshizo. */
 export function rehacer(pila: PilaDeDeshacer): PasoAtras {
   const [siguiente, ...resto] = pila.deshechas
-  if (!siguiente) return { pila, cambios: null, etiqueta: null }
+  if (!siguiente) return { pila, cambios: null, vinculos: SIN_VINCULOS, etiqueta: null }
 
   return {
     pila: { hechas: [...pila.hechas, siguiente], deshechas: resto },
     cambios: siguiente.hacer,
+    vinculos: siguiente.vinculos?.hacer ?? SIN_VINCULOS,
     etiqueta: siguiente.etiqueta,
   }
 }

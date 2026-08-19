@@ -122,7 +122,13 @@ describe('El gancho', () => {
       fireEvent.click(screen.getByLabelText(/Deshacer Mover/))
     })
 
-    expect(aplicar).toHaveBeenCalledWith([{ workItemId: 'w1', campos: { kanbanColumnId: 'c1' } }])
+    // Llega el lado entero de la operación —campos y vínculos— y no sólo los campos: desde que un
+    // vínculo se puede deshacer, escribirlos en dos llamadas dejaría media operación aplicada si la
+    // segunda fallara.
+    expect(aplicar).toHaveBeenCalledWith({
+      cambios: [{ workItemId: 'w1', campos: { kanbanColumnId: 'c1' } }],
+      vinculos: [],
+    })
   })
 
   it('después de deshacer se puede rehacer', async () => {
@@ -190,7 +196,10 @@ describe('El atajo de teclado', () => {
       fireEvent.keyDown(window, { key: 'z', ctrlKey: true, shiftKey: true })
     })
 
-    expect(aplicar).toHaveBeenCalledWith([{ workItemId: 'w1', campos: { kanbanColumnId: 'c4' } }])
+    expect(aplicar).toHaveBeenCalledWith({
+      cambios: [{ workItemId: 'w1', campos: { kanbanColumnId: 'c4' } }],
+      vinculos: [],
+    })
   })
 
   it('no se roba el Ctrl+Z de un campo de texto', async () => {

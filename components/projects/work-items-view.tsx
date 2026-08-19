@@ -461,6 +461,17 @@ export function WorkItemsView({
         const cuerpo = await respuesta.json().catch(() => ({}))
         throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
       }
+      // Apuntado para deshacer (§10.6): el mismo gesto es reversible desde el Gantt, y que aquí no
+      // lo fuera es la clase de incoherencia que hace que nadie se fíe del Ctrl+Z.
+      onApuntarOperacion?.({
+        etiqueta: `Vincular con «${nombresDelPlan.get(editandoVinculos) ?? 'la línea'}»`,
+        hacer: [],
+        deshacer: [],
+        vinculos: {
+          hacer: [{ predecessorId: link.predecessorId, successorId: editandoVinculos, type: link.type, lag: link.lag, poner: true }],
+          deshacer: [{ predecessorId: link.predecessorId, successorId: editandoVinculos, type: link.type, lag: link.lag, poner: false }],
+        },
+      })
       await cargarPlan()
     } catch (error) {
       if (vigente.current) {
@@ -475,6 +486,11 @@ export function WorkItemsView({
     if (editandoVinculos === null) return
     setVinculoEnCurso(true)
     setErrorDeVinculo(null)
+    // El tipo y el desfase se leen ANTES de borrar: después ya no están, y para deshacer hay que
+    // reponer el vínculo **igual** que estaba, no uno parecido.
+    const original = (estado.fase === 'listo' ? estado.plan.dependencies : []).find(
+      (d) => d.predecessorId === predecessorId && d.successorId === editandoVinculos,
+    )
     try {
       const consulta = new URLSearchParams({ predecessorId, successorId: editandoVinculos })
       const respuesta = await fetch(`/api/v1/projects/${projectId}/dependencies?${consulta}`, {
@@ -483,6 +499,17 @@ export function WorkItemsView({
       if (!respuesta.ok) {
         const cuerpo = await respuesta.json().catch(() => ({}))
         throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
+      }
+      if (original) {
+        onApuntarOperacion?.({
+          etiqueta: `Quitar el vínculo con «${nombresDelPlan.get(editandoVinculos) ?? 'la línea'}»`,
+          hacer: [],
+          deshacer: [],
+          vinculos: {
+            hacer: [{ predecessorId, successorId: editandoVinculos, type: original.type, lag: original.lag, poner: false }],
+            deshacer: [{ predecessorId, successorId: editandoVinculos, type: original.type, lag: original.lag, poner: true }],
+          },
+        })
       }
       await cargarPlan()
     } catch (error) {

@@ -33,6 +33,7 @@ import {
   rehacer as rehacerEnPila,
   sePuedeDeshacer,
   sePuedeRehacer,
+  type LadoDeOperacion,
 } from '@/lib/projects/undo-stack'
 
 export interface UsoDeDeshacer {
@@ -56,7 +57,13 @@ function escribiendo(): boolean {
   return etiqueta === 'INPUT' || etiqueta === 'TEXTAREA' || etiqueta === 'SELECT' || activo.isContentEditable
 }
 
-export function useUndo(aplicar: (cambios: readonly Cambio[]) => Promise<void>): UsoDeDeshacer {
+/**
+ * @param aplicar Escribe un lado de la operación: los campos de las líneas y los vínculos que hay
+ *   que poner o quitar. Llegan juntos y no en dos llamadas porque son **una** operación: si los
+ *   vínculos se escribieran aparte y fallaran, la mitad de un Ctrl+Z quedaría aplicada y la pila
+ *   diría que se deshizo entero.
+ */
+export function useUndo(aplicar: (lado: LadoDeOperacion) => Promise<void>): UsoDeDeshacer {
   const [pila, setPila] = useState<PilaDeDeshacer>(PILA_VACIA)
   const [aviso, setAviso] = useState<string | null>(null)
 
@@ -73,7 +80,7 @@ export function useUndo(aplicar: (cambios: readonly Cambio[]) => Promise<void>):
       if (!resultado.cambios) return
 
       try {
-        await aplicar(resultado.cambios)
+        await aplicar({ cambios: resultado.cambios, vinculos: resultado.vinculos })
         setPila(resultado.pila)
         setAviso(
           `${direccion === 'atras' ? 'Deshecho' : 'Rehecho'}: ${resultado.etiqueta ?? 'el último cambio'}`,

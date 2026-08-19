@@ -13,6 +13,7 @@ import {
   rehacer,
   sePuedeDeshacer,
   sePuedeRehacer,
+  alReves,
 } from '../undo-stack'
 
 /**
@@ -228,5 +229,65 @@ describe('Lo que la barra necesita saber', () => {
   it('con la pila vacía no hay etiqueta que enseñar', () => {
     expect(etiquetaDeDeshacer(PILA_VACIA)).toBeNull()
     expect(etiquetaDeRehacer(PILA_VACIA)).toBeNull()
+  })
+})
+
+describe('Los vínculos también se deshacen (§10.6)', () => {
+  const VINCULO = { predecessorId: 'a', successorId: 'b', type: 'FS', lag: 0 }
+
+  const poner: Operacion = {
+    etiqueta: 'Vincular «a» con «b»',
+    hacer: [],
+    deshacer: [],
+    vinculos: {
+      hacer: [{ ...VINCULO, poner: true }],
+      deshacer: [{ ...VINCULO, poner: false }],
+    },
+  }
+
+  it('deshacer un vínculo puesto es quitarlo', () => {
+    const paso = deshacer(apuntar(PILA_VACIA, poner))
+    expect(paso.vinculos).toEqual([{ ...VINCULO, poner: false }])
+  })
+
+  it('y rehacerlo, volver a ponerlo', () => {
+    const trasDeshacer = deshacer(apuntar(PILA_VACIA, poner))
+    expect(rehacer(trasDeshacer.pila).vinculos).toEqual([{ ...VINCULO, poner: true }])
+  })
+
+  it('el tipo y el desfase viajan también al quitar', () => {
+    // Para deshacer una eliminación hay que reponer el vínculo **igual** que estaba, y ese dato ya
+    // no está en la base cuando toca reponerlo.
+    const quitar: Operacion = {
+      etiqueta: 'Quitar el vínculo',
+      hacer: [],
+      deshacer: [],
+      vinculos: {
+        hacer: [{ ...VINCULO, type: 'SS', lag: -3, poner: false }],
+        deshacer: [{ ...VINCULO, type: 'SS', lag: -3, poner: true }],
+      },
+    }
+    const paso = deshacer(apuntar(PILA_VACIA, quitar))
+    expect(paso.vinculos[0]).toMatchObject({ type: 'SS', lag: -3, poner: true })
+  })
+
+  it('una operación que no toca vínculos devuelve la lista vacía, no undefined', () => {
+    // Quien la recibe recorre la lista sin comprobar: un `undefined` reventaría el paso entero por
+    // una operación de las que ya existían.
+    const soloCampos: Operacion = {
+      etiqueta: 'Renombrar',
+      hacer: [{ workItemId: 'w1', campos: { title: 'nuevo' } }],
+      deshacer: [{ workItemId: 'w1', campos: { title: 'viejo' } }],
+    }
+    expect(deshacer(apuntar(PILA_VACIA, soloCampos)).vinculos).toEqual([])
+  })
+
+  it('sin nada que deshacer, tampoco hay vínculos', () => {
+    expect(deshacer(PILA_VACIA).vinculos).toEqual([])
+  })
+
+  it('«alReves» es exactamente la operación contraria', () => {
+    expect(alReves({ ...VINCULO, poner: true })).toEqual({ ...VINCULO, poner: false })
+    expect(alReves(alReves({ ...VINCULO, poner: true }))).toEqual({ ...VINCULO, poner: true })
   })
 })
