@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo} from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -16,6 +16,7 @@ import { UndoBar } from '@/components/projects/undo-bar'
 import { useUndo } from '@/components/projects/use-undo'
 import { type Cambio, operacionDesde } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
+import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { BlockersTab } from '@/components/projects/blockers-tab'
 import { RisksTab } from '@/components/projects/risks-tab'
 import { AgreementsTab } from '@/components/projects/agreements-tab'
@@ -70,7 +71,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; border: string; 
   ARCHIVED:  { bg: 'rgba(113,113,122,0.12)', color: '#a1a1aa', border: 'rgba(113,113,122,0.3)', label: 'Archivado'  },
 }
 
-const TABS = [
+const TABS: readonly { readonly value: string; readonly label: string }[] = [
   { value: 'overview',    label: 'Resumen'           },
   { value: 'kanban',      label: 'Tablero Kanban'    },
   { value: 'work-items',  label: 'Elementos de Trabajo' },
@@ -143,6 +144,46 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
+
+  /**
+   * Los permisos de esta persona **en este proyecto** (§10.1).
+   *
+   * `null` mientras no han llegado. Se distingue de «ninguno» a propósito: dibujar la barra vacía
+   * durante el primer instante haría parpadear las pestañas de todo el mundo, y mientras no se sabe
+   * lo honesto es no recortar todavía.
+   */
+  const [permisosDelProyecto, setPermisosDelProyecto] = useState<readonly string[] | null>(null)
+
+  useEffect(() => {
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/permissions`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (vigente && Array.isArray(d?.permisos)) setPermisosDelProyecto(d.permisos)
+      })
+      .catch(() => {
+        // Si no se pueden leer, no se recorta nada: las guardias de verdad están en el servidor, y
+        // esconder media aplicación porque falló una petición sería peor que enseñarla de más.
+      })
+    return () => {
+      vigente = false
+    }
+  }, [projectId])
+
+  const pestanasVisibles = useMemo(() => {
+    if (permisosDelProyecto === null) return TABS
+    const permisos = new Set(permisosDelProyecto as PermisoDeProyecto[])
+    const claves = new Set(vistasVisibles(permisos, TABS.map((t) => t.value)))
+    return TABS.filter((t) => claves.has(t.value))
+  }, [permisosDelProyecto])
+
+  // Si la pestaña abierta deja de estar permitida —porque los permisos llegaron después—, se pasa a
+  // la primera que sí. Dejarla abierta enseñaría justo la vista que se acaba de esconder.
+  useEffect(() => {
+    if (pestanasVisibles.some((t) => t.value === activeTab)) return
+    const primera = pestanasVisibles[0]
+    if (primera) setActiveTab(primera.value)
+  }, [pestanasVisibles, activeTab])
   const [applyTemplateDialogOpen, setApplyTemplateDialogOpen] = useState(false)
   const [blockerDataFromAI, setBlockerDataFromAI] = useState<{ workItemId: string; description: string; severity: string } | null>(null)
   const [editDatesData, setEditDatesData] = useState<{ workItemId: string; workItemTitle: string } | null>(null)
@@ -685,7 +726,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         <div className="rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
           {/* Tab bar */}
           <div className="flex overflow-x-auto" style={{ borderBottom: '1px solid #27272a' }}>
-            {TABS.map(tab => (
+            {pestanasVisibles.map(tab => (
               <button key={tab.value} onClick={() => setActiveTab(tab.value)}
                 className="px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
                 style={activeTab === tab.value

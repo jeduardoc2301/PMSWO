@@ -95,7 +95,7 @@ tiempo real y deshacer.
 | 21 | Preferencias de vista (§10.4) | **CERRADA** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
-| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL** | `lib/rbac.ts`, `app/api/v1/work-items/[id]/route.ts` | Los diez permisos que nombra el §10.1 no existen como tales. **La distinción que el spec llama «el permiso más útil de todo el sistema» sí está ahora**, expresada con los permisos que hay: mover fechas exige `PROJECT_UPDATE`, el mismo que la ruta de reprogramar; estado y avance siguen bastando con `WORK_ITEM_UPDATE`. Falta lo demás: activar vistas por rol de proyecto, `view_budget` y `manage_project_settings` | M | Alto |
+| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. Falta lo grande: llamar a `authorize()` desde **cada** ruta de escritura —hoy siguen con el RBAC de organización— y una pantalla para repartir papeles | M | Alto |
 | 30 | Revocar un rol no surte efecto hasta volver a entrar | **EXISTE PERO MAL** | `lib/auth.ts` (sesión JWT) | Los roles viajan en el token y no se releen de la base. Cambiar el rol de alguien en la base no le quita nada hasta que su sesión caduca o vuelve a entrar. Es el comportamiento normal de una sesión JWT, y es una decisión consciente que hay que tomar —no un descuido— porque una revocación de permisos que tarda no es una revocación. Descubierto al probar la guardia del §10.1: los primeros intentos pasaron con un token viejo | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
@@ -613,3 +613,47 @@ elección explícita que hay que poder guardar; ausente es «esta preferencia se
 campo existiera».
 
 Con esto los cuatro conmutadores del §4.6 existen y los cuatro se recuerdan.
+
+## §10.1 — los diez permisos de proyecto existen
+
+El spec pide como mínimo diez permisos con nombre y **una sola función de autorización**. Ahora
+están, en dos piezas: `lib/projects/permisos.ts` es aritmética pura —entra un cargo y un papel, sale
+un conjunto— y `services/project-authorize.service.ts` es quien lee la base. Separarlas permite
+probar la tabla entera sin levantar nada, que es donde de verdad se ve si una casilla quedó cruzada:
+veintidós pruebas sin base de datos.
+
+**El permiso efectivo es una intersección, no una suma.** Lo que el cargo permite, recortado por lo
+que el papel en el proyecto permite. Las dos mitades son techo:
+
+- Un **ejecutivo** nombrado propietario de un proyecto sigue sin poder editarlo. Un techo que se
+  salta nombrando a alguien no es un techo.
+- Un **administrador** invitado como cliente ve lo de un cliente. Es la mitad que más se olvida: el
+  cargo alto no abre el proyecto de par en par si allí te sentaron como invitado.
+- Y sin papel en el proyecto no hay nada. Pertenecer a la organización no da acceso a un proyecto al
+  que nadie te invitó: es la diferencia entre una lista de proyectos y una carpeta compartida.
+
+**Cuatro papeles y no dos.** `ProjectCollaborator.role` sólo contemplaba OWNER y COLLABORATOR, y con
+eso no hay dónde sentar al perfil que el §10.1 describe con nombre y apellido: «un cliente externo
+al que dar Lista y Tablero pero no el Gantt ni el presupuesto». Ahora hay CLIENT y MANAGER.
+
+**La distinción que el spec llama la más útil.** `edit_schedule` frente a `edit_tracking`, y de
+verdad independientes: un colaborador actualiza su avance y no mueve una fecha. La razón es
+concreta —mover una fecha en un plan encadenado empuja a las sucesoras, y eso es decisión de quien
+lleva el plan, no de quien lleva la tarea—.
+
+**Demostrado en pantalla**, cambiando el papel del usuario en la base y recargando:
+
+| papel | pestañas visibles | permisos |
+|---|---|---|
+| OWNER | las diez | los diez |
+| COLLABORATOR | las diez | seis vistas + `edit_tracking` |
+| CLIENT | **siete**: sin Timeline, sin Calendario, sin Carga | `view_board`, `view_list`, `view_dashboard` |
+
+Se **esconden**, no se deshabilitan: una pestaña gris que no se puede pulsar le informa a un cliente
+externo de que existe un Gantt que no le enseñan, y eso es peor que no mencionarlo.
+
+**Lo que falta, y no es poco.** Esconder una pestaña es cortesía, no seguridad — está escrito en la
+cabecera de la ruta para que nadie lo confunda. Queda llamar a `authorize()` desde cada ruta de
+escritura: hoy siguen guardadas por el RBAC de organización, que sí impide lo grave pero no
+distingue proyecto de proyecto. Y falta una pantalla para repartir papeles; hoy se hace con un guion
+(`scripts/permisos-de-proyecto.ts`).
