@@ -36,6 +36,12 @@ export interface PlanControlsProps {
   readonly atrasadas: boolean
   /** Cuántas líneas del plan están atrasadas ahora mismo. */
   readonly cuantasAtrasadas: number
+  /** Conmutador 3 del §4.6, mitad «ruta crítica»: barras críticas en rojo. */
+  readonly rutaCritica: boolean
+  readonly onRutaCriticaChange: (valor: boolean) => void
+  /** Conmutador 3 del §4.6, mitad «reserva»: columnas de holgura y sombra tras cada barra. */
+  readonly reserva: boolean
+  readonly onReservaChange: () => void
   readonly onAtrasadasChange: (activo: boolean) => void
   /** Selección múltiple (§4.6, conmutador 1). */
   readonly seleccionando: boolean
@@ -98,6 +104,10 @@ export function PlanControls({
   onLinksChange,
   atrasadas,
   cuantasAtrasadas,
+  rutaCritica,
+  onRutaCriticaChange,
+  reserva,
+  onReservaChange,
   onAtrasadasChange,
   seleccionando,
   onSeleccionandoChange,
@@ -177,6 +187,25 @@ export function PlanControls({
             {atrasadas ? 'Resaltadas' : 'Resaltar'}
             {cuantasAtrasadas > 0 ? ` (${cuantasAtrasadas})` : ''}
           </span>
+        </Boton>
+      </Grupo>
+
+      {/* El conmutador 3 del §4.6: dos casillas **independientes**. El spec las pone en un submenú;
+          aquí van sueltas porque son dos y esconderlas tras un menú cuesta un clic más que leerlas.
+
+          Están juntas porque se leen juntas: con la ruta crítica se ve qué manda la fecha de cierre
+          y con la reserva cuánto margen tiene lo demás. Y son independientes de verdad —cada una
+          hace su cosa— porque mirar el margen de un plan y mirar qué lo aprieta son dos preguntas.
+
+          La reserva mueve además sus dos columnas: el §4.6 lo dice en una frase —«añade las
+          columnas Total float y Free float, y dibuja la holgura como sombra»— y es una elección,
+          no dos. */}
+      <Grupo titulo="Ruta crítica" nota="Qué manda la fecha y cuánto margen queda.">
+        <Boton activo={rutaCritica} onClick={() => onRutaCriticaChange(!rutaCritica)}>
+          {rutaCritica ? 'En rojo' : 'Sin colorear'}
+        </Boton>
+        <Boton activo={reserva} onClick={onReservaChange}>
+          {reserva ? 'Con reserva' : 'Reserva'}
         </Boton>
       </Grupo>
 

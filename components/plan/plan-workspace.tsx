@@ -58,6 +58,7 @@ import {
   GANTT_POR_OMISION,
   type PreferenciaDelGantt,
   alternarColumna,
+  alternarReserva,
   columnasVisibles,
   redimensionar,
 } from '@/lib/plan/gantt-columns'
@@ -904,6 +905,10 @@ export function PlanWorkspace({
           onLinksChange={setLinks}
           atrasadas={atrasadas}
           cuantasAtrasadas={layout.atrasadasEnTodoElPlan}
+          rutaCritica={preferencia.rutaCritica}
+          onRutaCriticaChange={(v) => setPreferencia((p) => ({ ...p, rutaCritica: v }))}
+          reserva={preferencia.reserva}
+          onReservaChange={() => setPreferencia((p) => alternarReserva(p))}
           onAtrasadasChange={setAtrasadas}
           seleccionando={seleccionando}
           onSeleccionandoChange={setSeleccionando}
@@ -986,6 +991,8 @@ export function PlanWorkspace({
                 projectId ? (id, x, y) => setMenuDeFila({ id, x, y }) : undefined
               }
               resaltarAtrasadas={atrasadas}
+              rutaCritica={preferencia.rutaCritica}
+              reserva={preferencia.reserva}
               onEditarCelda={projectId ? (id, campo, v) => void editarCelda(id, campo, v) : undefined}
               onConectar={projectId ? gestoDeConector : undefined}
               onCambiarDuracion={projectId ? proponerDuracion : undefined}

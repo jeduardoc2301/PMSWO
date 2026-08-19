@@ -52,6 +52,10 @@ export interface GanttChartProps {
   readonly onMenuDeFila?: (id: string, x: number, y: number) => void
   /** Conmutador «tareas atrasadas» del §4.6: resalta las vencidas y sin terminar. */
   readonly resaltarAtrasadas?: boolean
+  /** Conmutador 3 del §4.6: barras críticas en rojo. Por omisión sí. */
+  readonly rutaCritica?: boolean
+  /** Conmutador 3 del §4.6: la sombra de holgura a la derecha de cada barra. Por omisión no. */
+  readonly reserva?: boolean
   /**
    * Escribir una celda editada en el grid (§4.2).
    *
@@ -174,6 +178,8 @@ export function GanttChart({
   onSelect,
   onMenuDeFila,
   resaltarAtrasadas,
+  rutaCritica = true,
+  reserva = false,
   onEditarCelda,
   onAtajo,
   onConectar,
@@ -401,6 +407,8 @@ export function GanttChart({
                   rowHeight={rowHeight}
                   onMoverLinea={onMoverLinea}
                   resaltarAtrasadas={resaltarAtrasadas}
+                  rutaCritica={rutaCritica}
+                  reserva={reserva}
                   onConectar={onConectar}
                   onCambiarDuracion={onCambiarDuracion}
                 />
@@ -496,6 +504,8 @@ function Bar({
   rowHeight,
   onMoverLinea,
   resaltarAtrasadas,
+  rutaCritica = true,
+  reserva = false,
   onConectar,
   onCambiarDuracion,
 }: {
@@ -506,6 +516,10 @@ function Bar({
   onMoverLinea?: (taskId: string, deltaDiasHabiles: number) => void
   /** Conmutador de «tareas atrasadas» (§4.6). */
   resaltarAtrasadas?: boolean
+  /** Conmutador 3 del §4.6, mitad «ruta crítica». */
+  rutaCritica?: boolean
+  /** Conmutador 3 del §4.6, mitad «reserva». */
+  reserva?: boolean
   /** Agarrar o soltar un conector para crear una dependencia (§4.4). */
   onConectar?: (id: string, extremo: 'INICIO' | 'FIN', gesto: 'AGARRAR' | 'SOLTAR') => void
   /** Cambiar la duración arrastrando el borde derecho (§4.4). Llega la duración nueva en días. */
@@ -612,7 +626,7 @@ function Bar({
 
   return (
     <React.Fragment>
-      {row.floatWidth > 0 ? (
+      {reserva && row.floatWidth > 0 ? (
         <div
           data-testid={`holgura-${row.id}`}
           title={`${row.totalFloat} días de margen`}
@@ -649,7 +663,7 @@ function Bar({
             : `${row.name} · ${row.start} → ${row.finish}`
         }
         onPointerDown={movible ? alApretar : undefined}
-        className={`absolute overflow-hidden rounded-sm ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${barTone(row)} ${
+        className={`absolute overflow-hidden rounded-sm ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${barTone(row, rutaCritica)} ${
           // El resalte va como anillo y no como color de relleno: el relleno ya dice si la línea es
           // crítica, y pisarlo cambiaría una información por otra en vez de sumarla.
           resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-[#0e0e11]' : ''
@@ -764,8 +778,17 @@ function TiradorDeColumna({
   )
 }
 
-function barTone(row: GanttRow): string {
+/**
+ * El color de una barra.
+ *
+ * Con la ruta crítica apagada todas las barras de trabajo salen del mismo color: el §4.6 pide una
+ * casilla para eso, y en un plan donde casi todo es crítico —el 90 % del de referencia no tiene
+ * días de sobra— un diagrama todo rojo no señala nada. Los resúmenes siguen en gris porque eso no
+ * es criticidad, es qué clase de línea es.
+ */
+function barTone(row: GanttRow, rutaCritica: boolean): string {
   if (row.isSummary) return 'bg-zinc-500'
+  if (!rutaCritica) return 'bg-[#6366f1]/80'
   if (row.isSuperCritical) return 'bg-red-500/80'
   if (row.isCritical) return 'bg-orange-500/80'
   return 'bg-[#6366f1]/80'

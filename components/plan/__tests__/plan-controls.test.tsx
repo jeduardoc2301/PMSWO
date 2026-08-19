@@ -23,6 +23,10 @@ function montar(cambios: Partial<PlanControlsProps> = {}): PlanControlsProps {
     visibleRows: 27,
     atrasadas: false,
     cuantasAtrasadas: 0,
+    rutaCritica: true,
+    onRutaCriticaChange: vi.fn(),
+    reserva: false,
+    onReservaChange: vi.fn(),
     seleccionando: false,
     onSeleccionandoChange: vi.fn(),
     onAtrasadasChange: vi.fn(),
@@ -252,5 +256,37 @@ describe('El conmutador dice cuántas son (§9.3 C3)', () => {
     // «Resaltar (0)» invita a pulsar un botón que no hace nada.
     montar({ cuantasAtrasadas: 0 })
     expect(screen.getByText('Resaltar')).toBeInTheDocument()
+  })
+})
+
+describe('El conmutador 3 del §4.6: dos casillas independientes', () => {
+  it('marca cada una por separado', () => {
+    montar({ rutaCritica: true, reserva: false })
+    const grupo3 = grupo('Ruta crítica')
+    expect(grupo3.getByRole('button', { name: 'En rojo' })).toHaveAttribute('aria-pressed', 'true')
+    expect(grupo3.getByRole('button', { name: 'Reserva' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('apagar la ruta crítica no toca la reserva', () => {
+    // «Independientes» es la palabra del spec: mirar el margen de un plan y mirar qué lo aprieta
+    // son dos preguntas, y una casilla que arrastrara a la otra obligaría a elegir entre ellas.
+    const props = montar({ rutaCritica: true, reserva: true })
+    fireEvent.click(grupo('Ruta crítica').getByRole('button', { name: 'En rojo' }))
+    expect(props.onRutaCriticaChange).toHaveBeenCalledWith(false)
+    expect(props.onReservaChange).not.toHaveBeenCalled()
+  })
+
+  it('y encender la reserva no toca la ruta crítica', () => {
+    const props = montar({ rutaCritica: false, reserva: false })
+    fireEvent.click(grupo('Ruta crítica').getByRole('button', { name: 'Reserva' }))
+    expect(props.onReservaChange).toHaveBeenCalled()
+    expect(props.onRutaCriticaChange).not.toHaveBeenCalled()
+  })
+
+  it('los rótulos dicen en qué estado están, no qué van a hacer', () => {
+    montar({ rutaCritica: false, reserva: true })
+    const grupo3 = grupo('Ruta crítica')
+    expect(grupo3.getByText('Sin colorear')).toBeInTheDocument()
+    expect(grupo3.getByText('Con reserva')).toBeInTheDocument()
   })
 })

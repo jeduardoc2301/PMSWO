@@ -80,9 +80,12 @@ describe('El Gantt dibuja lo que el motor calculó', () => {
           { predecessorId: 'corta', successorId: 'fin', type: 'FS', lag: 0 },
         ])}
         dayWidth={DIA}
+        reserva
       />,
     )
 
+    // Con `reserva`: desde el conmutador 3 del §4.6 la sombra dejó de dibujarse siempre. Antes se
+    // veía con las columnas de holgura apagadas, así que el margen se veía y no se podía leer.
     expect(screen.getByTestId('holgura-corta')).toBeInTheDocument()
     expect(screen.queryByTestId('holgura-larga')).not.toBeInTheDocument()
   })
@@ -262,5 +265,44 @@ describe('Lo que se está viendo se dice en números', () => {
   it('el singular se dice en singular', () => {
     render(<GanttChart layout={trazar([{ id: 'sola', name: 'Una sola tarea', duration: 1 }])} dayWidth={DIA} />)
     expect(screen.getByText(/1 línea · 1 día hábil/)).toBeInTheDocument()
+  })
+})
+
+describe('El conmutador 3 del §4.6 en el trazado', () => {
+  function conConmutadores(sobre: { rutaCritica?: boolean; reserva?: boolean }) {
+    return render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} {...sobre} />)
+  }
+
+  /** Se cuenta por nombre de clase y no con un selector: la barra de `bg-red-500/80` hay que
+   *  escaparla en CSS, y ese escape ya se ha degradado tres veces esta noche. */
+  const conClase = (container: HTMLElement, clase: string) =>
+    [...container.querySelectorAll('div')].filter((e) => e.className.includes(clase)).length
+
+  it('con la ruta crítica apagada, ninguna barra de trabajo sale roja ni naranja', () => {
+    // En el plan de referencia el 90 % no tiene días de sobra: con todo rojo el color deja de
+    // señalar nada, y por eso el §4.6 pide poder apagarlo.
+    const { container } = conConmutadores({ rutaCritica: false })
+    expect(conClase(container, 'bg-red-500/80')).toBe(0)
+    expect(conClase(container, 'bg-orange-500/80')).toBe(0)
+  })
+
+  it('encendida, las críticas sí se colorean', () => {
+    const { container } = conConmutadores({ rutaCritica: true })
+    expect(conClase(container, 'bg-red-500/80') + conClase(container, 'bg-orange-500/80'))
+      .toBeGreaterThan(0)
+  })
+
+  it('apagarla no cambia el gris de los resúmenes', () => {
+    // El gris de un resumen no es criticidad: es qué clase de línea es.
+    const encendida = conConmutadores({ rutaCritica: true })
+    const grisesAntes = conClase(encendida.container, 'bg-zinc-500')
+    encendida.unmount()
+    const apagada = conConmutadores({ rutaCritica: false })
+    expect(conClase(apagada.container, 'bg-zinc-500')).toBe(grisesAntes)
+  })
+
+  it('sin reserva no se dibuja la sombra de holgura', () => {
+    const { container } = conConmutadores({ reserva: false })
+    expect(container.querySelectorAll('[data-testid^="holgura-"]')).toHaveLength(0)
   })
 })

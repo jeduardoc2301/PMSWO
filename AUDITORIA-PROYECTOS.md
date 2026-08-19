@@ -564,3 +564,29 @@ Lo que sigue faltando del §10.4, ya con nombre y apellido: `toggles.criticalPat
 `toggles.baseline`, `splitterPosition` —hoy la posición del divisor es derivada, la suma de los
 anchos de columna—, el ancho por columna en la Lista, y `sortBy` en la Lista. Ninguna es una
 conexión: cada una pide construir antes lo que se va a guardar.
+
+## §4.6 conmutador 3 — ruta crítica y reserva, dos casillas independientes
+
+No existía: la ruta crítica se pintaba **siempre** y la sombra de holgura también. El §4.6 pide un
+submenú con dos casillas independientes —«ruta crítica: barras críticas en rojo» y «reserva: añade
+las columnas Total float y Free float, y dibuja la holgura como sombra»— y el §10.4 pide guardarlas
+(`toggles.criticalPath`, `toggles.float`).
+
+**Por qué poder apagar la ruta crítica no es un capricho.** En el plan de referencia el 95 % de las
+líneas no tiene días de sobra. Medido en pantalla, a todo el detalle: con el conmutador encendido
+salen 3 barras rojas y 18 naranjas de 21; apagado, las 21 en indigo. Un diagrama donde casi todo es
+crítico no señala nada, y el color deja de ser información para ser decoración. Los 7 resúmenes
+siguen grises en los dos casos, porque el gris de un resumen no es criticidad: es qué clase de línea
+es.
+
+**La reserva arrastra sus columnas.** El §4.6 lo dice en una frase, así que es una elección y no dos:
+encenderla añade `HOLGURA TOTAL` y `HOLGURA LIBRE` a la rejilla y dibuja la sombra —de 0 a 19
+sombras, medido—, y apagarla se las lleva. En orden de catálogo, no al final, para que la rejilla no
+cambie de forma según en qué orden se pulsó.
+
+**Y de paso se arregló una incoherencia que llevaba puesta.** La sombra de holgura se dibujaba
+siempre mientras sus dos columnas estaban apagadas por omisión: el margen se veía y no se podía
+leer. Ahora las dos mitades arrancan de acuerdo.
+
+Comprobado en pantalla de punta a punta: estado limpio → apagar la ruta crítica → encender la
+reserva → recargar la página entera → las dos elecciones siguen puestas.

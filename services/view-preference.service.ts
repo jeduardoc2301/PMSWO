@@ -42,10 +42,12 @@ const esquemaDelGantt = z.object({
   escala: z.enum(['MES', 'SEMANA']),
   nivel: z.number().int().min(0).max(32),
   flechas: z.enum(['NINGUNO', 'SELECCION', 'TODOS']),
-  // El conmutador de atrasadas del §4.6, que el §10.4 nombra en su ejemplo (`toggles.overdue`).
-  // Opcional por lo mismo que `conResumenes`: una preferencia guardada antes tiene que seguir
-  // valiendo.
+  // Los conmutadores del §4.6 que el §10.4 nombra en su ejemplo: `overdue`, `criticalPath` y
+  // `float`. Opcionales por lo mismo que `conResumenes`: una preferencia guardada antes tiene que
+  // seguir valiendo.
   atrasadas: z.boolean().optional(),
+  rutaCritica: z.boolean().optional(),
+  reserva: z.boolean().optional(),
 })
 
 /**

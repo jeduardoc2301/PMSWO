@@ -86,6 +86,23 @@ export interface PreferenciaDelGantt {
    * ruido, no información. Pero quien lo enciende suele querer volver a encontrarlo encendido.
    */
   readonly atrasadas: boolean
+  /**
+   * Si las barras críticas se pintan en rojo (§4.6, conmutador 3; `toggles.criticalPath` del §10.4).
+   *
+   * Arranca encendido porque es para lo que se mira un Gantt. Se puede apagar porque en un plan
+   * como el de referencia —donde el 90 % no tiene días de sobra— casi todo sale rojo, y un
+   * diagrama donde todo es crítico no señala nada.
+   */
+  readonly rutaCritica: boolean
+  /**
+   * Si se enseña la reserva: las dos columnas de holgura y la sombra a la derecha de cada barra
+   * (§4.6, conmutador 3; `toggles.float` del §10.4).
+   *
+   * Arranca apagado, y con eso se arregla de paso una incoherencia que llevaba puesta: la sombra se
+   * dibujaba siempre mientras sus columnas estaban apagadas por omisión, así que el margen se veía
+   * y no se podía leer. El §4.6 las trata como **una sola** elección, y aquí van juntas.
+   */
+  readonly reserva: boolean
 }
 
 export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
@@ -95,6 +112,8 @@ export const GANTT_POR_OMISION: PreferenciaDelGantt = Object.freeze({
   nivel: 1,
   flechas: 'SELECCION',
   atrasadas: false,
+  rutaCritica: true,
+  reserva: false,
 })
 
 /** Ancho máximo que se admite al leer. Más allá el diagrama desaparece de la pantalla. */
@@ -148,6 +167,31 @@ export function alternarColumna(
 
   return {
     ...preferencia,
+    columnas: COLUMNAS.filter((columna) => puestas.has(columna.id)).map((columna) => columna.id),
+  }
+}
+
+/** Las dos columnas que el §4.6 llama «reserva». Van juntas: comparar total con libre es el dato. */
+export const COLUMNAS_DE_RESERVA = Object.freeze(['float', 'freeFloat'])
+
+/**
+ * Enciende o apaga la reserva, arrastrando sus columnas.
+ *
+ * El §4.6 lo dice en una frase: la casilla «añade las columnas Total float y Free float, y dibuja
+ * la holgura como sombra». Es una elección, no dos, así que la sombra y las columnas se mueven
+ * juntas. Encenderla y tener que ir además al panel de Campos a buscar dos columnas sería pedir dos
+ * gestos para una decisión.
+ */
+export function alternarReserva(preferencia: PreferenciaDelGantt): PreferenciaDelGantt {
+  const encendida = !preferencia.reserva
+  const puestas = new Set(preferencia.columnas)
+  for (const id of COLUMNAS_DE_RESERVA) {
+    if (encendida) puestas.add(id)
+    else puestas.delete(id)
+  }
+  return {
+    ...preferencia,
+    reserva: encendida,
     columnas: COLUMNAS.filter((columna) => puestas.has(columna.id)).map((columna) => columna.id),
   }
 }

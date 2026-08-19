@@ -157,6 +157,10 @@ describe('ProjectDetailClient', () => {
     }
   })
 
+  // Con más margen que los cinco segundos de por omisión: esta prueba monta la pantalla entera y
+  // espera a que se asiente en dos pasos, y dentro de la suite completa la contención de CPU la
+  // dejaba justa. Ya se le había ido una vez por lo mismo —el comentario de más abajo lo cuenta—;
+  // ampliar el plazo es lo honesto, porque lo que falla es el reloj y no la pantalla.
   it('should switch between tabs', async () => {
     render(<ProjectDetailClient projectId="project-1" />)
 
@@ -182,7 +186,7 @@ describe('ProjectDetailClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Elementos de Trabajo' }))
     await waitFor(() => expect(resaltada()).toBe('Elementos de Trabajo'))
-  })
+  }, 20000)
 
   it('should have AI report generation button', async () => {
     render(<ProjectDetailClient projectId="project-1" />)

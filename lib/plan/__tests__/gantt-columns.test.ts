@@ -10,6 +10,7 @@ import {
   anchoDeLaRejilla,
   columnasVisibles,
   redimensionar,
+  alternarReserva,
 } from '../gantt-columns'
 
 /**
@@ -129,5 +130,50 @@ describe('§4.8 · la posición del divisor', () => {
     const antes = anchoDeLaRejilla(GANTT_POR_OMISION)
     const despues = anchoDeLaRejilla(redimensionar(GANTT_POR_OMISION, 'name', 160))
     expect(despues).toBeLessThan(antes)
+  })
+})
+
+describe('El conmutador 3 del §4.6: ruta crítica y reserva', () => {
+  it('la reserva arrastra sus dos columnas al encenderse', () => {
+    // El §4.6 lo dice en una frase: la casilla «añade las columnas Total float y Free float, y
+    // dibuja la holgura como sombra». Es una elección, no dos: encenderla y tener que ir además al
+    // panel de Campos a buscar dos columnas serían dos gestos para una decisión.
+    const con = alternarReserva(GANTT_POR_OMISION)
+    expect(con.reserva).toBe(true)
+    expect(con.columnas).toContain('float')
+    expect(con.columnas).toContain('freeFloat')
+  })
+
+  it('y se las lleva al apagarse', () => {
+    const con = alternarReserva(GANTT_POR_OMISION)
+    const sin = alternarReserva(con)
+    expect(sin.reserva).toBe(false)
+    expect(sin.columnas).not.toContain('float')
+    expect(sin.columnas).not.toContain('freeFloat')
+  })
+
+  it('encender y apagar devuelve exactamente lo de partida', () => {
+    expect(alternarReserva(alternarReserva(GANTT_POR_OMISION))).toEqual(GANTT_POR_OMISION)
+  })
+
+  it('las columnas quedan en el orden del catálogo, no al final', () => {
+    // Si se añadieran al final, la rejilla cambiaría de forma según en qué orden se pulsó.
+    const con = alternarReserva(GANTT_POR_OMISION)
+    const orden = COLUMNAS.map((c) => c.id)
+    const posiciones = con.columnas.map((id) => orden.indexOf(id))
+    expect([...posiciones].sort((a, b) => a - b)).toEqual(posiciones)
+  })
+
+  it('no pisa las columnas que ya estaban puestas', () => {
+    const conEdt = { ...GANTT_POR_OMISION, columnas: ['wbs', ...GANTT_POR_OMISION.columnas] }
+    expect(alternarReserva(conEdt).columnas).toContain('wbs')
+  })
+
+  it('por omisión la ruta crítica se pinta y la reserva no', () => {
+    // La sombra se dibujaba siempre mientras sus columnas estaban apagadas: el margen se veía y no
+    // se podía leer. Ahora las dos mitades arrancan de acuerdo.
+    expect(GANTT_POR_OMISION.rutaCritica).toBe(true)
+    expect(GANTT_POR_OMISION.reserva).toBe(false)
+    expect(GANTT_POR_OMISION.columnas).not.toContain('float')
   })
 })
