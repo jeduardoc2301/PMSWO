@@ -435,8 +435,6 @@ function NameCell({
   onToggle?: (id: string) => void
   onEditarNombre?: (id: string, valor: string) => void
 }) {
-  const [editando, setEditando] = useState(false)
-
   return (
     <div
       className="flex items-center gap-1 px-2 text-sm"
@@ -458,24 +456,24 @@ function NameCell({
       {/* El clic simple sigue abriendo el detalle y el doble clic edita. Son dos gestos distintos
           sobre el mismo elemento a propósito: el nombre es donde la gente pulsa para mirar una
           línea, y mudar la edición a otro sitio la escondería. */}
-      {editando ? (
+      {onEditarNombre ? (
+        // La celda se dibuja siempre y ella sola decide cuándo abrirse. Envolverla en un
+        // conmutador de fuera obligaba a dos dobles clics: uno para cambiar el conmutador y otro
+        // para que la celda se abriera. Se descubrió midiendo la misma pieza en la Lista.
         <CeldaEditable
           texto={row.name}
           valor={row.name}
           etiqueta={`Nombre de «${row.name}»`}
           validar={validarNombre}
-          onGuardar={(v) => {
-            setEditando(false)
-            onEditarNombre?.(row.id, v)
-          }}
+          onClick={() => onSelect?.(row.id)}
+          onGuardar={(v) => onEditarNombre(row.id, v)}
         />
       ) : (
         <button
           type="button"
           onClick={() => onSelect?.(row.id)}
-          onDoubleClick={onEditarNombre ? () => setEditando(true) : undefined}
           className={`truncate text-left ${row.isSummary ? 'font-medium text-zinc-100' : 'text-zinc-300'}`}
-          title={onEditarNombre ? `${row.name} · doble clic para renombrar` : row.name}
+          title={row.name}
         >
           {row.name}
         </button>

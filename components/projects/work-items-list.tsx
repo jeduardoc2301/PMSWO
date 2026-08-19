@@ -15,6 +15,7 @@ import {
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { EditWorkItemDialog } from './edit-work-item-dialog'
 import { fechaCorta, fechaIso, hoyCivil } from '@/lib/formato-fecha'
+import { CeldaEditable, validarNombre } from '@/components/plan/celda-editable'
 import { csvDeLaLista, nombreDelArchivo } from '@/lib/projects/list-csv'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
 import {
@@ -438,6 +439,24 @@ export function WorkItemsList({
     [lineasPlanas],
   )
   const total: Totales = useMemo(() => totalizar(sumables), [sumables])
+
+  const renombrar = async (id: string, titulo: string): Promise<void> => {
+    try {
+      const r = await fetch(`/api/v1/work-items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: titulo }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      // Lo mismo que hace el diálogo al guardar: recargar las líneas y el plan. Sin esto la celda
+      // enseñaría el nombre nuevo y el panel de detalle el viejo.
+      onWorkItemCreated?.()
+    } catch {
+      // Si no se pudo escribir, la tabla se vuelve a dibujar con lo que había: mejor que dejar en
+      // pantalla un nombre que no está en la base.
+      onWorkItemCreated?.()
+    }
+  }
 
   /**
    * Exportar lo que se está viendo (§6.2).
@@ -941,15 +960,22 @@ export function WorkItemsList({
                           {/* Recortado en el formato plano: con cinco mil filas, una que envuelve
                               desajusta las espaciadoras y la lista da tirones. */}
                           {onAbrirDetalle ? (
-                            <button
-                              type="button"
+                            // El mismo componente que el Gantt (§4.2, §6.2): la celda se comporta
+                            // igual en las dos vistas, incluidos Enter, Escape y qué pasa con lo
+                            // inválido. Dos celdas editables con reglas distintas es peor que una.
+                            //
+                            // Se dibuja SIEMPRE y ella sola decide cuándo abrirse. Envolverla en un
+                            // conmutador de fuera obligaba a dos dobles clics: uno para cambiar el
+                            // conmutador y otro para que la celda se abriera. Se vio en pantalla —el
+                            // gesto llegaba, el estado cambiaba, y no aparecía ningún campo—.
+                            <CeldaEditable
+                              texto={item.title}
+                              valor={item.title}
+                              etiqueta={`Nombre de «${item.title}»`}
+                              validar={validarNombre}
                               onClick={() => onAbrirDetalle(item.id)}
-                              title={item.title}
-                              className={`text-left hover:underline ${plana ? 'block max-w-[42ch] truncate' : ''}`}
-                              style={{ fontSize: 14, fontWeight: 500, color: '#e4e4e7' }}
-                            >
-                              {item.title}
-                            </button>
+                              onGuardar={(v) => void renombrar(item.id, v)}
+                            />
                           ) : (
                             <span
                               title={item.title}

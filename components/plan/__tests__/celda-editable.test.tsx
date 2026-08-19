@@ -197,3 +197,31 @@ describe('validarNombre', () => {
     expect(validarNombre('x'.repeat(501))).toContain('500')
   })
 })
+
+describe('El clic simple y el doble clic conviven', () => {
+  it('un clic llama a onClick y NO abre el campo', () => {
+    // En la celda del nombre el clic abre el detalle y el doble clic edita. Son dos gestos sobre el
+    // mismo elemento porque el nombre es donde la gente pulsa para mirar una línea; mudar la
+    // edición a otro sitio la escondería.
+    const onClick = vi.fn()
+    dibujar({ onClick })
+    fireEvent.click(celda())
+    expect(onClick).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('un doble clic abre el campo con UN solo gesto', () => {
+    // El fallo que esto fija: envolver esta celda en un conmutador de fuera obligaba a dos dobles
+    // clics —uno para cambiar el conmutador y otro para que la celda se abriera—. En pantalla el
+    // gesto llegaba, el estado cambiaba, y no aparecía ningún campo.
+    dibujar({ onClick: vi.fn() })
+    fireEvent.doubleClick(celda())
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+  })
+
+  it('sin onClick, el clic simple no hace nada', () => {
+    dibujar()
+    fireEvent.click(celda())
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+})

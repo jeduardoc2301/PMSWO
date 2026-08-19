@@ -35,6 +35,14 @@ export interface CeldaEditableProps {
   readonly validar?: (valor: string) => string | null
   /** Escribe. Solo se llama con un valor válido y distinto del original. */
   readonly onGuardar: (valor: string) => void
+  /**
+   * Qué hacer con un clic simple, si hay algo que hacer.
+   *
+   * En la celda del nombre el clic abre el detalle y el doble clic edita: son dos gestos sobre el
+   * mismo elemento, y separarlos en dos sitios escondería uno de los dos. Sin esta prop, el clic
+   * simple no hace nada, que es lo correcto en las demás columnas.
+   */
+  readonly onClick?: () => void
   readonly alineadoALaDerecha?: boolean
   readonly deshabilitada?: boolean
   /** Por qué no se puede editar, cuando no se puede. */
@@ -47,6 +55,7 @@ export function CeldaEditable({
   etiqueta,
   validar,
   onGuardar,
+  onClick,
   alineadoALaDerecha,
   deshabilitada,
   motivo,
@@ -96,6 +105,7 @@ export function CeldaEditable({
       <span
         role="button"
         tabIndex={deshabilitada ? -1 : 0}
+        onClick={onClick}
         onDoubleClick={abrir}
         // Con teclado no hay doble pulsación: F2 es lo que abre una celda en cualquier hoja de
         // cálculo, y sin ella esta columna sería inaccesible sin ratón.
@@ -106,7 +116,7 @@ export function CeldaEditable({
           }
         }}
         data-editable={deshabilitada ? 'no' : 'sí'}
-        title={deshabilitada ? motivo : `${etiqueta} · doble clic para editar`}
+        title={deshabilitada ? motivo : `${texto} · doble clic para editar`}
         className={`flex h-full w-full items-center truncate px-2 text-xs text-zinc-400 outline-none focus-visible:ring-1 focus-visible:ring-[#6366f1] ${
           alineadoALaDerecha ? 'justify-end tabular-nums' : ''
         } ${deshabilitada ? '' : 'hover:bg-zinc-800/60'}`}
