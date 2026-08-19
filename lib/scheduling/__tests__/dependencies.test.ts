@@ -267,3 +267,54 @@ describe('Construcción del grafo de dependencias', () => {
     })
   })
 })
+
+describe('§10.7 · un ciclo rechazado dice cuál es la cadena', () => {
+  /**
+   * El spec lo pide con un ejemplo literal: «toast con el motivo concreto ("Crearía un ciclo:
+   * A → B → C → A"), nunca un "Error" genérico».
+   *
+   * Saber que «hay un ciclo» no sirve de nada. Lo que hace falta es **cuál vínculo cortar**, y para
+   * eso hay que ver la vuelta entera con los nombres que la gente usa.
+   */
+  it('nombra las tareas del ciclo, en orden, y cierra la vuelta', () => {
+    const tasks = [
+      { id: 'a', name: 'Autorizar el apagado', duration: 1 },
+      { id: 'b', name: 'Traspasar los servidores', duration: 1 },
+      { id: 'c', name: 'Documentar las lecciones', duration: 1 },
+    ] as never
+
+    let mensaje = ''
+    try {
+      buildDependencyGraph(tasks, [
+        { predecessorId: 'a', successorId: 'b', type: 'FS', lag: 0 },
+        { predecessorId: 'b', successorId: 'c', type: 'FS', lag: 0 },
+        { predecessorId: 'c', successorId: 'a', type: 'FS', lag: 0 },
+      ])
+      expect.unreachable('debería haber rechazado el ciclo')
+    } catch (e) {
+      mensaje = (e as Error).message
+    }
+
+    for (const nombre of ['Autorizar el apagado', 'Traspasar los servidores', 'Documentar las lecciones']) {
+      expect(mensaje).toContain(nombre)
+    }
+    // La vuelta se cierra: el primero aparece también al final.
+    expect(mensaje.indexOf('Autorizar el apagado')).not.toBe(mensaje.lastIndexOf('Autorizar el apagado'))
+  })
+
+  it('dice qué hacer, no solo qué pasó', () => {
+    // Un mensaje que solo nombra el problema manda a buscar la solución a otra parte.
+    try {
+      buildDependencyGraph(
+        [{ id: 'x', name: 'X', duration: 1 }, { id: 'y', name: 'Y', duration: 1 }] as never,
+        [
+          { predecessorId: 'x', successorId: 'y', type: 'FS', lag: 0 },
+          { predecessorId: 'y', successorId: 'x', type: 'FS', lag: 0 },
+        ],
+      )
+      expect.unreachable()
+    } catch (e) {
+      expect((e as Error).message).toContain('quitar uno de esos vínculos')
+    }
+  })
+})
