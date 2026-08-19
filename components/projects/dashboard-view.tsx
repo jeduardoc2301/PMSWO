@@ -104,12 +104,43 @@ export function DashboardView({
           la más alta de su fila, y un widget corto al lado de uno largo queda con medio palmo de
           vacío debajo que se lee como «aquí falta algo». */}
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        {encendido('informacion') ? <WidgetInformacion panel={panel} /> : null}
-        {encendido('tareas') ? <WidgetTareas metricas={metricas} /> : null}
-        {encendido('calendario') ? <WidgetCalendario metricas={metricas} /> : null}
-        {encendido('hitos') ? <WidgetHitos metricas={metricas} onAbrirDetalle={onAbrirDetalle} /> : null}
-        {encendido('tiempo') ? <WidgetTiempo /> : null}
-        {encendido('presupuesto') ? <WidgetPresupuesto /> : null}
+        {/* Cada widget va envuelto en una marca con su nombre. `display: contents` hace que el
+            envoltorio no exista para la rejilla —la tarjeta sigue siendo la celda— ni para quien usa
+            un lector de pantalla, así que no cambia nada de lo que se ve ni de lo que se oye.
+
+            Está para poder comprobar en pantalla qué widgets hay puestos: el §9.3 pide demostrar que
+            la preferencia persiste, y sin nombres en el HTML eso obliga a contar tarjetas y adivinar
+            cuál es cuál por el texto de dentro, que es como se cuelan los errores de medición. */}
+        {encendido('informacion') ? (
+          <span data-widget="informacion" className="contents">
+            <WidgetInformacion panel={panel} />
+          </span>
+        ) : null}
+        {encendido('tareas') ? (
+          <span data-widget="tareas" className="contents">
+            <WidgetTareas metricas={metricas} />
+          </span>
+        ) : null}
+        {encendido('calendario') ? (
+          <span data-widget="calendario" className="contents">
+            <WidgetCalendario metricas={metricas} />
+          </span>
+        ) : null}
+        {encendido('hitos') ? (
+          <span data-widget="hitos" className="contents">
+            <WidgetHitos metricas={metricas} onAbrirDetalle={onAbrirDetalle} />
+          </span>
+        ) : null}
+        {encendido('tiempo') ? (
+          <span data-widget="tiempo" className="contents">
+            <WidgetTiempo />
+          </span>
+        ) : null}
+        {encendido('presupuesto') ? (
+          <span data-widget="presupuesto" className="contents">
+            <WidgetPresupuesto />
+          </span>
+        ) : null}
       </div>
     </div>
   )

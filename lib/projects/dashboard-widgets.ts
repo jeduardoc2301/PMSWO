@@ -7,13 +7,25 @@
  * cadenas.
  */
 
-/** Los widgets del panel de control, en el orden del §9.1. */
+/**
+ * Los widgets del panel de control, en el orden en que se dibujan y se ofrecen.
+ *
+ * No es el orden de la numeración del §9.1 —allí «tiempo» es el 9.1.3 y «avance temporal» el
+ * 9.1.5— y la diferencia es deliberada: tiempo y presupuesto son los dos que todavía no tienen
+ * modelo detrás y sólo saben enseñar el aviso de qué falta (§9.4). Puestos en su número irían
+ * intercalados entre widgets con datos, y el panel se leería como si tuviera huecos en medio. Van
+ * al final, que es donde se pone lo que aún no está.
+ *
+ * El orden vive aquí y no en cada pantalla: la vista y el diálogo lo tenían escrito por su cuenta y
+ * ya se habían separado de esta lista sin que se notara, porque nadie recorría el catálogo para
+ * dibujar. La prueba de abajo los ata.
+ */
 export const WIDGETS_DEL_PANEL = [
   'informacion',
   'tareas',
-  'tiempo',
-  'hitos',
   'calendario',
+  'hitos',
+  'tiempo',
   'presupuesto',
 ] as const
 

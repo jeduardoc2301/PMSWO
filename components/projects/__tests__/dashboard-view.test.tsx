@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { DashboardView } from '../dashboard-view'
 import { DashboardWidgetsDialog } from '../dashboard-widgets-dialog'
+import { WIDGETS_DEL_PANEL } from '@/lib/projects/dashboard-widgets'
 import type { PanelDeProyecto } from '@/services/project-dashboard.service'
 
 /**
@@ -209,6 +210,23 @@ describe('§9.3 · encender y apagar widgets', () => {
   it('apagarlos todos no deja la pantalla en blanco', () => {
     dibujar({ widgets: [] })
     expect(screen.getByText(/No hay ningún widget encendido/)).toBeInTheDocument()
+  })
+
+  it('cada widget lleva su nombre en el HTML', () => {
+    // Sin esto, comprobar en pantalla que la preferencia persiste obliga a contar tarjetas y
+    // adivinar cuál es cuál por el texto de dentro. La marca no cambia la rejilla —va con
+    // `display: contents`— ni se anuncia a los lectores de pantalla.
+    const { container } = dibujar({ widgets: [...WIDGETS_DEL_PANEL] })
+    const nombres = [...container.querySelectorAll('[data-widget]')].map((e) =>
+      e.getAttribute('data-widget'),
+    )
+    expect(nombres).toEqual([...WIDGETS_DEL_PANEL])
+  })
+
+  it('la marca no se queda cuando el widget se apaga', () => {
+    const { container } = dibujar({ widgets: ['tareas'] })
+    expect([...container.querySelectorAll('[data-widget]')].map((e) => e.getAttribute('data-widget')))
+      .toEqual(['tareas'])
   })
 
   it('«Configurar widgets» avisa a quien manda', () => {

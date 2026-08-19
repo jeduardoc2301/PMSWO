@@ -267,3 +267,30 @@ no hay forma de contar los anillos ámbar a ojo. La cuenta va ahora en la propia
 «Resaltar (127)» → «Resaltadas (127)»— calculada sobre el plan **entero** y no sobre el trazado
 plegado, que si no doblar una fase haría bajar el número. Panel: 127. Gantt: 127. Y la línea vencida
 («Inicio: presentar y aprobar el plan de trabajo», cierra el 2026-06-19) sale con su anillo.
+
+## §9.3 C1 y C4 — los widgets y el calendario laborable
+
+**C1: los seis se encienden, se apagan y la preferencia persiste.** Comprobado en pantalla en los
+tres estados: los seis puestos, los seis quitados (y en su lugar «No hay ningún widget encendido.
+Abre "Configurar widgets" y elige qué quieres ver», no una pantalla en blanco), y los cuatro de
+omisión. La preferencia sobrevive a recargar la página entera porque se guarda en el servidor
+(`PUT /preferences?view=PANEL`), no en el navegador: quien configura su panel en la oficina lo
+encuentra igual desde casa.
+
+Los widgets llevan ahora su nombre en el HTML (`data-widget`, con `display: contents` para no tocar
+la rejilla ni el árbol de accesibilidad). Sin eso, comprobar qué hay puesto obliga a contar tarjetas
+y adivinar cuál es cuál por el texto de dentro.
+
+**Un desajuste encontrado al medir.** El catálogo declaraba un orden —el de la numeración del
+§9.1— y la vista y el diálogo dibujaban otro, cada uno con su lista escrita a mano. Nadie lo notaba
+porque nada recorre el catálogo para dibujar. El orden bueno es el de la pantalla: tiempo y
+presupuesto al final, que son los dos que sólo saben enseñar el aviso de qué falta (§9.4) y en medio
+se leerían como huecos. Es la cuarta vez en esta auditoría que dos copias de la misma lista se
+separan sin que nadie se entere.
+
+**C4: el avance planificado usa el calendario laborable.** El proyecto va del 2026-06-12 al
+2026-11-30; al 2026-08-19 el panel dice **40,2 %**. A mano: 122 días hábiles de proyecto, 49
+transcurridos, 49/122 = 0,4016393442622951 — el mismo número que devuelve el servidor, dígito por
+dígito. Por almanaque serían 69/172 = 0,4011627906976744, que redondea al 40,1 % y no es lo que
+sale. La tarjeta además lo dice en voz alta: «la fracción del calendario laborable ya transcurrida
+—no del almanaque—».
