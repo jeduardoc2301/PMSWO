@@ -40,6 +40,7 @@ import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
 import { type Coherencia, comprobarCoherencia } from './effort'
 import { fechasDeResumen } from './summary-rollup'
+import { numerarPlan } from './wbs'
 import { type Dependency, type LinkType, type PlanTask, type Recoverability, type ResponsibleParty, type TaskKind } from './types'
 
 /** De qué extremo de una barra sale o entra una flecha. */
@@ -116,6 +117,24 @@ export interface GanttRow {
    * afirmar que algo cuadra cuando no hay con qué comprobarlo.
    */
   readonly esfuerzo?: Coherencia
+  /**
+   * Numeración EDT jerárquica: «2.6.1».
+   *
+   * Se calcula sobre el plan ENTERO, no sobre lo que se está viendo. El Gantt enseñaba aquí un
+   * contador de posición —1, 2, 3…— así que la misma línea tenía un número en el Gantt y otro en el
+   * esquema, y el del Gantt cambiaba al plegar una rama o al filtrar. Un identificador que cambia
+   * según cómo mires no identifica nada, y es el que la gente se dice por teléfono.
+   */
+  readonly wbs: string
+  /** Fecha comprometida, si la tiene. Es la promesa, distinta de la que calcula el plan. */
+  readonly deadline?: IsoDate
+  /**
+   * La restricción de fecha, dicha en palabras.
+   *
+   * En palabras y no con el código del motor porque esta columna la lee quien planifica, no quien
+   * programa: «No antes del 2026-06-12» se entiende; «NO_ANTES_DE» hay que traducirlo cada vez.
+   */
+  readonly constraint?: string
   readonly isCritical: boolean
   readonly isSuperCritical: boolean
   readonly recoverability: Recoverability
@@ -248,6 +267,16 @@ const MESES = [
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ] as const
 
+/** La restricción de una línea, dicha como la diría quien planifica. */
+function enPalabras(c: { readonly type: string; readonly date: IsoDate }): string {
+  const como =
+    c.type === 'NO_ANTES_DE' ? 'No antes del'
+    : c.type === 'DEBE_EMPEZAR_EL' ? 'Empieza el'
+    : c.type === 'DEBE_TERMINAR_EL' ? 'Termina el'
+    : c.type
+  return `${como} ${c.date}`
+}
+
 /**
  * Calcula el trazado completo.
  *
@@ -338,6 +367,10 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     ),
   )
 
+  // El EDT sale del plan completo y en su orden, no de las filas visibles: plegar una rama no puede
+  // renumerar el plan.
+  const edt = new Map(numerarPlan(tasks).map((n) => [n.id, n.wbs]))
+
   const rows: GanttRow[] = visible.map((task) => {
     const scheduled = schedule.byId.get(task.id)
     const tramo = abarcado.get(task.id)
@@ -357,6 +390,9 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     return {
       id: task.id,
       name: task.name,
+      wbs: edt.get(task.id) ?? '',
+      ...(task.dueDate ? { deadline: task.dueDate } : {}),
+      ...(task.constraint ? { constraint: enPalabras(task.constraint) } : {}),
       level: level.get(task.id) ?? 0,
       isSummary: task.kind === 'RESUMEN' || children.has(task.id),
       hasChildren: children.has(task.id),

@@ -506,3 +506,95 @@ describe('§4.8 · la desviación contra la línea base', () => {
     expect(b.baseX).toBe(3)
   })
 })
+
+describe('§4.2 · el EDT de la fila es el del plan, no un contador de posición', () => {
+  /**
+   * El defecto que esto fija: el Gantt numeraba las filas 1, 2, 3… por su posición dentro de lo
+   * VISIBLE. Así, la misma línea tenía un número en el Gantt y otro en el esquema, y el del Gantt
+   * cambiaba al plegar una rama. Es el número que la gente se dice por teléfono.
+   */
+  const ARBOL: PlanTask[] = [
+    { id: 'a', name: 'Etapa A', duration: 1 },
+    { id: 'a1', name: 'Bloque A1', duration: 1, parentId: 'a' },
+    { id: 'a1x', name: 'Tarea A1x', duration: 2, parentId: 'a1' },
+    { id: 'a2', name: 'Bloque A2', duration: 3, parentId: 'a' },
+    { id: 'b', name: 'Etapa B', duration: 2 },
+  ]
+
+  function trazar(collapsed: string[] = []) {
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks: ARBOL, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks: ARBOL,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, ARBOL).tasks,
+      calendar,
+      collapsed,
+    })
+  }
+
+  it('numera por jerarquía', () => {
+    const porId = new Map(trazar().rows.map((r) => [r.id, r.wbs]))
+    expect(porId.get('a')).toBe('1')
+    expect(porId.get('a1')).toBe('1.1')
+    expect(porId.get('a1x')).toBe('1.1.1')
+    expect(porId.get('a2')).toBe('1.2')
+    expect(porId.get('b')).toBe('2')
+  })
+
+  it('plegar una rama NO renumera lo que queda', () => {
+    // Con el contador de posición, plegar «a1» convertía a «b» de la quinta fila en la cuarta, y su
+    // número cambiaba. Un identificador que cambia según cómo mires no identifica nada.
+    const abierto = new Map(trazar().rows.map((r) => [r.id, r.wbs]))
+    const plegado = new Map(trazar(['a1']).rows.map((r) => [r.id, r.wbs]))
+    for (const [id, wbs] of plegado) expect(wbs).toBe(abierto.get(id))
+  })
+})
+
+describe('§4.2 · las columnas nuevas se pueden llenar', () => {
+  it('la fila lleva holgura libre, comprometida y restricción', () => {
+    const tasks: PlanTask[] = [
+      {
+        id: 'x',
+        name: 'Con promesa',
+        duration: 2,
+        dueDate: '2026-06-30',
+        constraint: { type: 'NO_ANTES_DE', date: '2026-06-03' },
+      },
+      { id: 'ancla', name: 'Ancla', duration: 20 },
+    ]
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    const { rows } = ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+    })
+    const x = rows.find((r) => r.id === 'x')!
+    expect(x.deadline).toBe('2026-06-30')
+    // En palabras, no con el código del motor: esta columna la lee quien planifica.
+    expect(x.constraint).toBe('No antes del 2026-06-03')
+    expect(typeof x.freeFloat).toBe('number')
+  })
+
+  it('una línea sin promesa ni restricción no inventa ninguna', () => {
+    const tasks: PlanTask[] = [{ id: 'y', name: 'Suelta', duration: 2 }]
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    const { rows } = ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+    })
+    expect(rows[0]!.deadline).toBeUndefined()
+    expect(rows[0]!.constraint).toBeUndefined()
+  })
+})

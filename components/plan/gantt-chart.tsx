@@ -66,11 +66,11 @@ const COLUMNAS_POR_OMISION = columnasVisibles(GANTT_POR_OMISION)
  */
 function contenidoDe(row: GanttRow, columnaId: string, indice: number): string {
   switch (columnaId) {
-    // La EDT no viene en la fila: se numera por posición dentro de lo que se está viendo, que es lo
-    // que hace una hoja de cálculo. Numerar por jerarquía completa daría «2.6.1.1» con el árbol
-    // plegado, y no habría forma de contarlo en pantalla.
+    // El EDT jerárquico del plan entero. Antes era un contador de posición dentro de lo visible, y
+    // eso daba dos números distintos para la misma línea según se mirara el Gantt o el esquema — y
+    // el del Gantt cambiaba al plegar una rama. Es el número que la gente se dice por teléfono.
     case 'wbs':
-      return String(indice + 1)
+      return row.wbs
     case 'kind':
       return row.kind === 'RESUMEN' ? 'Resumen' : row.isMilestone ? 'Hito' : 'Actividad'
     case 'party':
@@ -85,6 +85,15 @@ function contenidoDe(row: GanttRow, columnaId: string, indice: number): string {
       return row.isMilestone ? '—' : String(row.width)
     case 'float':
       return row.totalFloat === 0 ? 'sin holgura' : String(row.totalFloat)
+    case 'freeFloat':
+      return row.freeFloat === 0 ? 'sin holgura' : String(row.freeFloat)
+    case 'deadline':
+      return row.deadline ?? '—'
+    case 'constraint':
+      return row.constraint ?? '—'
+    // En horas, que es como se captura y como se habla. Los minutos son de la aritmética.
+    case 'effort':
+      return row.esfuerzo ? `${Math.round(row.esfuerzo.capturado / 60)} h` : '—'
     default:
       return ''
   }
@@ -222,6 +231,7 @@ export function GanttChart({
                         />
                       ) : (
                         <span
+                          data-celda={columna.id}
                           className={`flex h-full items-center truncate px-2 text-xs text-zinc-400 ${
                             columna.numerica ? 'justify-end tabular-nums' : ''
                           }`}

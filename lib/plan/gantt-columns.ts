@@ -50,7 +50,14 @@ export const COLUMNAS: readonly ColumnaDelGantt[] = Object.freeze([
   { id: 'start', etiqueta: 'Inicio', grupo: 'Cronograma', ancho: 100, minimo: 88 },
   { id: 'finish', etiqueta: 'Fin', grupo: 'Cronograma', ancho: 100, minimo: 88 },
   { id: 'duration', etiqueta: 'Duración', grupo: 'Cronograma', ancho: 84, minimo: 60, numerica: true },
+  { id: 'deadline', etiqueta: 'Comprometida', grupo: 'Cronograma', ancho: 108, minimo: 88 },
+  { id: 'constraint', etiqueta: 'Restricción', grupo: 'Cronograma', ancho: 132, minimo: 80 },
+  { id: 'effort', etiqueta: 'Esfuerzo', grupo: 'Cronograma', ancho: 84, minimo: 60, numerica: true },
   { id: 'float', etiqueta: 'Holgura total', grupo: 'Holgura', ancho: 100, minimo: 68, numerica: true },
+  // La libre va al lado de la total a propósito: separadas, nadie compara — y la comparación es
+  // justo lo que informa. Tres días de total con cero de libre significa que el margen existe en el
+  // papel y no en la semana de quien la ejecuta.
+  { id: 'freeFloat', etiqueta: 'Holgura libre', grupo: 'Holgura', ancho: 100, minimo: 68, numerica: true },
 ])
 
 export const COLUMNAS_POR_ID: ReadonlyMap<string, ColumnaDelGantt> = new Map(
