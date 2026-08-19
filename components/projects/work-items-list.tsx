@@ -49,10 +49,36 @@ const PRIORITY_STYLE: Record<WorkItemPriority, React.CSSProperties> = {
   [WorkItemPriority.LOW]: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' },
 }
 
+/**
+ * El formateador, creado una sola vez.
+ *
+ * `toLocaleDateString` con opciones construye un `Intl.DateTimeFormat` **en cada llamada**, y eso
+ * cuesta. Con la lista virtualizada salió en el perfil de CPU como la función más cara del
+ * desplazamiento: 623 ms de 2788 — más que todo React junto. Se llama dos veces por fila y una vez
+ * por renderizado, y con el desplazamiento eso son miles de construcciones por segundo.
+ */
+const FORMATO_DE_FECHA = new Intl.DateTimeFormat('es-ES', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
+/**
+ * Lo ya formateado, por cadena de fecha.
+ *
+ * Las mismas fechas vuelven a pasar en cada renderizado, y una cadena ISO siempre da el mismo texto.
+ */
+const FECHAS_VISTAS = new Map<string, string>()
+
 const formatDate = (date?: string) => {
   if (!date) return '—'
-  const d = new Date(date)
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const recordado = FECHAS_VISTAS.get(date)
+  if (recordado !== undefined) return recordado
+  const texto = FORMATO_DE_FECHA.format(new Date(date))
+  // Un plan grande tiene unos cientos de fechas distintas; el tope evita que esto crezca sin fin
+  // en una sesión larga que abra muchos proyectos.
+  if (FECHAS_VISTAS.size < 4096) FECHAS_VISTAS.set(date, texto)
+  return texto
 }
 
 const inputStyle: React.CSSProperties = {
@@ -288,7 +314,13 @@ export function WorkItemsList({
       [WorkItemStatus.BLOCKED]: 'blocked',
       [WorkItemStatus.DONE]: 'done',
     }
-    return t(`status.${statusMap[status]}`)
+    // Un estado que el mapa no conoce se enseña tal cual. Pedir su traducción hace que next-intl
+    // lance y escriba en consola **por cada fila y cada renderizado**: con la lista virtualizada,
+    // eso salió en el perfil como medio segundo de dos y medio, más que todo React junto. Los datos
+    // derivan —una migración, un enum nuevo, una importación— y la vista no puede castigar eso con
+    // un incendio en consola.
+    const clave = statusMap[status]
+    return clave ? t(`status.${clave}`) : String(status ?? '—')
   }
 
   const getPriorityLabel = (priority: WorkItemPriority) => {
@@ -298,7 +330,8 @@ export function WorkItemsList({
       [WorkItemPriority.HIGH]: 'high',
       [WorkItemPriority.CRITICAL]: 'critical',
     }
-    return t(`priority.${priorityMap[priority]}`)
+    const clave = priorityMap[priority]
+    return clave ? t(`priority.${clave}`) : String(priority ?? '—')
   }
 
   const toggleStatusFilter = (status: WorkItemStatus) => {
