@@ -18,7 +18,10 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { WorkloadView } from '@/components/projects/workload-view'
+import { rutaDe, vinculosDe } from '@/lib/plan/detail-links'
+import { usarPlanParaElDetalle } from '@/lib/plan/usar-plan'
 import { ResourceAbsencesDialog } from '@/components/projects/resource-absences-dialog'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import {
@@ -75,6 +78,16 @@ export interface WorkloadTabProps {
 }
 
 export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadTabProps) {
+  /**
+   * La línea abierta en el panel de detalle (§10.3).
+   *
+   * El plan se pide la primera vez que alguien abre una, no al entrar: la Carga se dibuja con su
+   * propio corte y no necesita la programación para nada más.
+   */
+  const [detalle, setDetalle] = useState<string | null>(null)
+  const plan = usarPlanParaElDetalle(projectId, detalle !== null)
+  const filaDelDetalle = detalle === null ? null : plan.filas.find((f) => f.id === detalle) ?? null
+
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   const [rango, setRango] = useState<{ from: string; to: string } | null>(null)
   const [sembrando, setSembrando] = useState(false)
@@ -213,7 +226,45 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
         onRangoChange={(from, to) => setRango({ from, to })}
         today={hoyCivil()}
         onAbrirCalendario={setCalendarioDe}
+        onAbrirDetalle={setDetalle}
       />
+      {/* El detalle va de cajón: la matriz de carga ocupa el ancho entero y noventa columnas no
+          admiten que se les quite sitio. */}
+      {detalle !== null ? (
+        <aside
+          data-testid="detalle-carga"
+          aria-label="Detalle de la línea"
+          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-zinc-800 bg-[#111113] p-3 shadow-2xl"
+        >
+          {filaDelDetalle ? (
+            <PlanDetailPanel
+              row={filaDelDetalle}
+              {...vinculosDe(plan.dependencias, plan.nombres, detalle)}
+              ruta={rutaDe(plan.tareas, detalle)}
+              onNavigate={setDetalle}
+              onClose={() => setDetalle(null)}
+            />
+          ) : (
+            <div className="rounded-lg border border-zinc-800 bg-[#18181b] p-5">
+              <button
+                type="button"
+                aria-label="Cerrar el detalle"
+                onClick={() => setDetalle(null)}
+                className="float-right rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              >
+                ✕
+              </button>
+              <p className="text-sm text-zinc-400" data-testid="detalle-carga-aviso">
+                {plan.error !== null
+                  ? `No se pudo cargar el plan: ${plan.error}`
+                  : plan.cargando
+                    ? 'Calculando el plan del proyecto...'
+                    : 'Esta línea no está en el plan programado.'}
+              </p>
+            </div>
+          )}
+        </aside>
+      ) : null}
       {calendarioDe !== null ? (
         <ResourceAbsencesDialog
           abierto

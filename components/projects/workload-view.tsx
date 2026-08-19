@@ -52,6 +52,13 @@ export interface WorkloadViewProps {
   readonly today?: string
   /** Abrir el calendario individual de un recurso: sus días libres (§8.1). */
   readonly onAbrirCalendario?: (resourceId: string) => void
+  /**
+   * Abrir el panel de detalle de una línea (§10.3).
+   *
+   * Aquí importa más que en ninguna otra vista: quien mira la carga ve que alguien está al 140 % y
+   * lo siguiente que necesita saber es de qué depende la línea que lo satura.
+   */
+  readonly onAbrirDetalle?: (id: string) => void
 }
 
 /**
@@ -111,6 +118,7 @@ export function WorkloadView({
   onRangoChange,
   today,
   onAbrirCalendario,
+  onAbrirDetalle,
 }: WorkloadViewProps) {
   const [modo, setModo] = useState<ModoDeCarga>('horas')
   const [desplegado, setDesplegado] = useState<string | null>(null)
@@ -313,6 +321,7 @@ export function WorkloadView({
                             dias={matriz.days}
                             modo={modo}
                             jornadaMin={fila.resource!.dailyMinutes}
+                            onAbrirDetalle={onAbrirDetalle}
                           />
                         ))
                       ))
@@ -530,11 +539,14 @@ function FilaDeDesgloseDeTarea({
   dias,
   modo,
   jornadaMin,
+  onAbrirDetalle,
 }: {
   readonly linea: FilaDeDesglose
   readonly dias: readonly { readonly date: string; readonly isWorking: boolean }[]
   readonly modo: ModoDeCarga
   readonly jornadaMin: number
+  /** Abrir el panel de detalle compartido (§10.3). */
+  readonly onAbrirDetalle?: (id: string) => void
 }) {
   return (
     <tr data-testid={`desglose-${linea.taskId}`} className="bg-[#141416]">
@@ -542,9 +554,23 @@ function FilaDeDesgloseDeTarea({
         scope="row"
         className="sticky left-0 z-10 w-56 min-w-56 border-b border-r border-zinc-800 bg-[#141416] py-1 pl-9 pr-3 text-left font-normal"
       >
-        <span className="block truncate text-[12px] text-zinc-400" title={linea.name}>
-          {linea.name}
-        </span>
+        {/* El nombre abre el panel de detalle del §10.3 — el mismo de las otras cinco vistas.
+            Aquí importa más que en ninguna: quien mira la carga ve que alguien está al 140 % y lo
+            siguiente que necesita saber es de qué depende la línea que lo satura. */}
+        {onAbrirDetalle ? (
+          <button
+            type="button"
+            onClick={() => onAbrirDetalle(linea.taskId)}
+            className="block max-w-full truncate text-left text-[12px] text-zinc-400 hover:text-zinc-100 hover:underline"
+            title={linea.name}
+          >
+            {linea.name}
+          </button>
+        ) : (
+          <span className="block truncate text-[12px] text-zinc-400" title={linea.name}>
+            {linea.name}
+          </span>
+        )}
         <span className="block text-[11px] tabular-nums text-zinc-600">
           {Math.round(linea.unitsBp / 100)} % · {minutosLegibles(linea.total)} en el periodo
         </span>
