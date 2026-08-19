@@ -7,6 +7,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+
+import { confirmar } from '@/services/reschedule.service'
+import { type IsoDate } from '@/lib/scheduling/date'
+
+/** La fecha civil de una fecha guardada. En UTC, que es como se guardan. */
+function isoDeFecha(fecha: Date): IsoDate {
+  return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    fecha.getUTCDate(),
+  ).padStart(2, '0')}` as IsoDate
+}
 import { columnaAlCambiarProgreso, estadoDeLaColumna } from '@/lib/projects/status-progress'
 import { z } from 'zod'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
@@ -208,9 +218,36 @@ async function updateWorkItemHandler(
       },
     })
 
+    /**
+     * Mover una fecha aquí tiene que significar lo mismo que moverla en el Gantt (§6.3, criterio 4).
+     *
+     * Antes esta ruta escribía la fecha **y nada más**: las sucesoras se quedaban donde estaban y el
+     * plan salía con vínculos incumplidos, en silencio. Dos vistas con dos ideas distintas de qué es
+     * mover una fecha, y la de aquí dejaba el cronograma peor de lo que lo encontró.
+     *
+     * Se llama al mismo motor que usa el arrastre —no a una copia de sus reglas— y **después** de
+     * escribir, para que un cambio de duración (mover el fin) también empuje lo que dependa de ella.
+     * Sólo empuja: una sucesora con holgura se queda donde está.
+     */
+    let empujadas = 0
+    if (updateData.startDate !== undefined || updateData.estimatedEndDate !== undefined) {
+      const resultado = await confirmar(
+        workItem.projectId,
+        organizationId,
+        id,
+        isoDeFecha(updatedWorkItem.startDate),
+      )
+      // `null` sólo puede venir de que el proyecto o la línea no sean de esta organización, y eso
+      // ya se comprobó arriba: si pasara, es mejor devolver la línea escrita que fingir un 404.
+      empujadas = resultado ? Math.max(0, resultado.escritas - 1) : 0
+    }
+
     return NextResponse.json(
       {
         workItem: updatedWorkItem,
+        // Cuántas sucesoras se movieron detrás. Quien edite desde una tabla merece saber que su
+        // cambio de una celda movió otras doce líneas.
+        empujadas,
       },
       { status: 200 }
     )
