@@ -1,5 +1,13 @@
 ﻿import { PrismaClient } from '@prisma/client'
 
+import { comprobarLaBase } from './guardia-de-base'
+
+// Antes de abrir ninguna conexión: fuera de producción, este proceso no habla con la base de
+// producción. Levantar el servidor sin exportar la URL local hace que mande la de `.env.local`,
+// que apunta a RDS — y desde una máquina que no la alcanza eso no da un error, da una pantalla que
+// tarda minutos. Desde una que sí la alcance, escribe donde no debe.
+comprobarLaBase()
+
 /**
  * Configuración de Connection Pooling para MySQL
  * 
