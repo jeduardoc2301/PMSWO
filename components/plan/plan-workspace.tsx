@@ -637,6 +637,89 @@ export function PlanWorkspace({
     }
   }
 
+  /**
+   * Cambiar la duración arrastrando el borde (§4.4), previsualizando antes de escribir.
+   *
+   * La previsualización se calcula **aquí**, con el mismo motor que corre el servidor y el mismo
+   * plan que ya está cargado: se cambia la duración de esa línea en memoria, se vuelve a programar,
+   * y se compara. No hace falta una ruta nueva, y sobre todo no hace falta escribir para saber qué
+   * pasaría — que es justo lo que se quiere evitar cuando alargar una tarea puede empujar
+   * quinientas.
+   */
+  const [duracionPropuesta, setDuracionPropuesta] = useState<{
+    id: string
+    nombre: string
+    dias: number
+    diasAntes: number
+    nuevoFin: string
+    movidas: number
+    cierreAntes: string
+    cierreDespues: string
+  } | null>(null)
+  const [escribiendoDuracion, setEscribiendoDuracion] = useState(false)
+
+  const proponerDuracion = (id: string, dias: number): void => {
+    const linea = tasks.find((t) => t.id === id)
+    if (!linea) return
+
+    const conNuevaDuracion = tasks.map((t) => (t.id === id ? { ...t, duration: dias } : t))
+    const despues = schedulePlan({
+      tasks: conNuevaDuracion,
+      dependencies,
+      calendar: base.calendar,
+      start,
+      noDisponible: ordinalesNoDisponibles(ausencias, base.calendar, toDayNumber),
+    })
+
+    let movidas = 0
+    for (const t of despues.tasks) {
+      const antes = base.schedule.byId.get(t.id)
+      if (antes && (antes.start !== t.start || antes.finish !== t.finish)) movidas += 1
+    }
+
+    setDuracionPropuesta({
+      id,
+      nombre: linea.name,
+      dias,
+      diasAntes: linea.duration,
+      nuevoFin: despues.byId.get(id)?.finish ?? '',
+      movidas,
+      cierreAntes: base.schedule.finish,
+      cierreDespues: despues.finish,
+    })
+  }
+
+  const escribirDuracion = async () => {
+    if (duracionPropuesta === null || !projectId) return
+    setEscribiendoDuracion(true)
+    setErrorDeJerarquia(null)
+    const linea = base.schedule.byId.get(duracionPropuesta.id)
+    try {
+      const r = await fetch(`/api/v1/work-items/${duracionPropuesta.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estimatedEndDate: duracionPropuesta.nuevoFin }),
+      })
+      if (!r.ok) {
+        const cuerpo = await r.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+      }
+      if (linea) {
+        onOperacion?.({
+          etiqueta: `Duración de «${duracionPropuesta.nombre}»`,
+          hacer: [{ workItemId: duracionPropuesta.id, campos: { estimatedEndDate: duracionPropuesta.nuevoFin } }],
+          deshacer: [{ workItemId: duracionPropuesta.id, campos: { estimatedEndDate: linea.finish } }],
+        })
+      }
+      setDuracionPropuesta(null)
+      onPlanCambiado?.()
+    } catch (e) {
+      setErrorDeJerarquia(e instanceof Error ? e.message : 'No se pudo cambiar la duración.')
+    } finally {
+      setEscribiendoDuracion(false)
+    }
+  }
+
   const moverEnElArbol = async (id: string, padre: string | null) => {
     setErrorDeJerarquia(null)
     // El padre de antes, para poder deshacerlo. Se lee ANTES de escribir: después ya no está.
@@ -894,6 +977,7 @@ export function PlanWorkspace({
               resaltarAtrasadas={atrasadas}
               onEditarCelda={projectId ? (id, campo, v) => void editarCelda(id, campo, v) : undefined}
               onConectar={projectId ? gestoDeConector : undefined}
+              onCambiarDuracion={projectId ? proponerDuracion : undefined}
               onAtajo={
                 projectId
                   ? (id, accion) => {
@@ -1017,6 +1101,57 @@ export function PlanWorkspace({
                   {resultadoDelLote}
                 </span>
               ) : null}
+            </div>
+          ) : null}
+
+          {duracionPropuesta !== null ? (
+            <div
+              role="alertdialog"
+              aria-label="Confirmar el cambio de duración"
+              data-testid="propuesta-de-duracion"
+              className="mt-2 rounded-xl border border-amber-900/50 bg-amber-950/20 p-3"
+            >
+              <p className="text-sm text-amber-100">
+                «{duracionPropuesta.nombre}» pasa de{' '}
+                <strong className="tabular-nums">{duracionPropuesta.diasAntes}</strong> a{' '}
+                <strong className="tabular-nums">{duracionPropuesta.dias}</strong> días hábiles, y
+                termina el {duracionPropuesta.nuevoFin}.
+              </p>
+              <p className="mt-1 text-xs text-amber-200/80">
+                Mueve <strong className="tabular-nums">{duracionPropuesta.movidas}</strong>{' '}
+                {duracionPropuesta.movidas === 1 ? 'línea' : 'líneas'} del plan.
+              </p>
+              {/* El cierre del proyecto es la cifra que decide si esto es un ajuste o un problema.
+                  Alargar dentro de la holgura no lo mueve, y decirlo evita el susto. */}
+              <p className="mt-1 text-xs">
+                {duracionPropuesta.cierreDespues === duracionPropuesta.cierreAntes ? (
+                  <span className="text-emerald-300">
+                    El cierre del proyecto no se mueve: sigue el {duracionPropuesta.cierreAntes}.
+                  </span>
+                ) : (
+                  <span className="text-red-300">
+                    El cierre del proyecto pasa del {duracionPropuesta.cierreAntes} al{' '}
+                    {duracionPropuesta.cierreDespues}.
+                  </span>
+                )}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  disabled={escribiendoDuracion}
+                  onClick={() => void escribirDuracion()}
+                  className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                >
+                  {escribiendoDuracion ? 'Aplicando...' : 'Aplicar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDuracionPropuesta(null)}
+                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           ) : null}
 

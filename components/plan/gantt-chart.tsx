@@ -75,6 +75,13 @@ export interface GanttChartProps {
    */
   readonly onConectar?: (id: string, extremo: 'INICIO' | 'FIN', gesto: 'AGARRAR' | 'SOLTAR') => void
   /**
+   * Cambiar la duración arrastrando el borde derecho (§4.4).
+   *
+   * Llega la duración nueva en días hábiles, no el desplazamiento: quien recibe esto no tiene por
+   * qué recordar cuánto duraba antes.
+   */
+  readonly onCambiarDuracion?: (id: string, dias: number) => void
+  /**
    * Selección múltiple (§4.6, conmutador 1). Cuando llega, cada fila estrena su casilla.
    *
    * Sin ella la columna no se dibuja: una casilla por fila en un plan de mil trescientas líneas es
@@ -170,6 +177,7 @@ export function GanttChart({
   onEditarCelda,
   onAtajo,
   onConectar,
+  onCambiarDuracion,
   marcadas,
   onMarcar,
   onToggle,
@@ -394,6 +402,7 @@ export function GanttChart({
                   onMoverLinea={onMoverLinea}
                   resaltarAtrasadas={resaltarAtrasadas}
                   onConectar={onConectar}
+                  onCambiarDuracion={onCambiarDuracion}
                 />
               ))}
               <Links
@@ -490,6 +499,7 @@ function Bar({
   onMoverLinea,
   resaltarAtrasadas,
   onConectar,
+  onCambiarDuracion,
 }: {
   row: GanttRow
   index: number
@@ -500,6 +510,8 @@ function Bar({
   resaltarAtrasadas?: boolean
   /** Agarrar o soltar un conector para crear una dependencia (§4.4). */
   onConectar?: (id: string, extremo: 'INICIO' | 'FIN', gesto: 'AGARRAR' | 'SOLTAR') => void
+  /** Cambiar la duración arrastrando el borde derecho (§4.4). Llega la duración nueva en días. */
+  onCambiarDuracion?: (id: string, dias: number) => void
 }) {
   const top = index * rowHeight
   const alto = Math.max(8, rowHeight - 14)
@@ -543,6 +555,48 @@ function Bar({
     elemento.addEventListener('pointermove', alMover)
     elemento.addEventListener('pointerup', alSoltar)
     elemento.addEventListener('pointercancel', alSoltar)
+  }
+
+  /**
+   * Arrastrar el borde derecho: cambia la duración sin mover el arranque (§4.4).
+   *
+   * Solo el derecho. El izquierdo cambiaría la fecha de inicio, y eso ya lo hace arrastrar la barra
+   * entera; tener dos gestos para lo mismo con distinto efecto sobre la duración es la clase de
+   * ambigüedad que hace que la gente deje de arrastrar nada.
+   *
+   * La barra se estira mientras se arrastra pero **vuelve** al soltar: sólo se queda estirada si el
+   * plan lo confirma, y eso se decide después. Dejarla estirada sería prometer una escritura que
+   * todavía no ocurrió.
+   */
+  const alApretarElBorde = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!onCambiarDuracion) return
+    e.stopPropagation()
+    const tirador = e.currentTarget
+    const barra = tirador.parentElement
+    if (!barra) return
+    const xInicial = e.clientX
+    const anchoInicial = Math.max(row.width * dayWidth, 2)
+    let dias = 0
+    tirador.setPointerCapture(e.pointerId)
+
+    const alMover = (ev: PointerEvent) => {
+      dias = Math.round((ev.clientX - xInicial) / dayWidth)
+      // Una tarea no puede durar menos de un día: la duración cero es de los hitos, y convertir una
+      // actividad en hito arrastrando sería una sorpresa, no un gesto.
+      if (row.width + dias < 1) dias = 1 - row.width
+      barra.style.width = `${Math.max(anchoInicial + dias * dayWidth, 2)}px`
+    }
+    const alSoltar = (ev: PointerEvent) => {
+      tirador.releasePointerCapture(ev.pointerId)
+      tirador.removeEventListener('pointermove', alMover)
+      tirador.removeEventListener('pointerup', alSoltar)
+      tirador.removeEventListener('pointercancel', alSoltar)
+      barra.style.width = ''
+      if (dias !== 0 && ev.type === 'pointerup') onCambiarDuracion(row.id, row.width + dias)
+    }
+    tirador.addEventListener('pointermove', alMover)
+    tirador.addEventListener('pointerup', alSoltar)
+    tirador.addEventListener('pointercancel', alSoltar)
   }
 
   if (row.isMilestone) {
@@ -609,6 +663,20 @@ function Bar({
             data-testid={`avance-${row.id}`}
             className="h-full bg-zinc-100/40"
             style={{ width: row.progressWidth * dayWidth }}
+          />
+        ) : null}
+
+        {/* El tirador del borde derecho. Va dentro de la barra y no encima para que estirarla mueva
+            el tirador con ella; ocho píxeles de ancho, que es lo mínimo que se acierta con el ratón
+            sin que estorbe a los conectores. Un resumen no lo lleva: su duración es la de sus
+            hijas. */}
+        {onCambiarDuracion && !row.isSummary ? (
+          <div
+            data-tirador-duracion={row.id}
+            role="separator"
+            aria-label={`Cambiar la duración de «${row.name}», ahora ${row.width} días`}
+            onPointerDown={alApretarElBorde}
+            className="absolute right-0 top-0 h-full w-2 cursor-ew-resize opacity-0 hover:bg-zinc-100/40 hover:opacity-100"
           />
         ) : null}
       </div>
