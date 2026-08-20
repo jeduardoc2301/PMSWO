@@ -21,7 +21,14 @@ interface CreateWorkItemDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   projectId: string
-  onSuccess: () => void
+  /**
+   * Avisa del alta con el identificador y el título de la línea creada (§10.6).
+   *
+   * Hacen falta para poder deshacerla: la inversa de un alta es una baja, y para borrar hay que
+   * saber qué. El título es sólo para el rótulo del botón — «Deshacer Crear «X»» dice qué va a
+   * pasar; «Deshacer» a secas obliga a pulsar para averiguarlo.
+   */
+  onSuccess: (creada?: { id: string; title: string; foto: Record<string, unknown> }) => void
   /** La línea de la que cuelga la nueva, cuando se crea desde un lugar que ya sabe el padre. */
   defaultParentId?: string | null
 }
@@ -327,8 +334,33 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess,
         throw new Error(errorData.message || 'Failed to create work item')
       }
 
-      // Success
-      onSuccess()
+      // La línea recién creada, entera, para poder deshacerla **y rehacerla**. Deshacer sólo
+      // necesita el identificador; rehacer necesita la foto, porque rehacer un alta es volver a
+      // crear la misma línea con el mismo identificador y no una parecida.
+      const creada = await response.json().catch(() => null)
+      const w = creada?.workItem
+      onSuccess(
+        w?.id
+          ? {
+              id: w.id,
+              title: w.title ?? formData.title,
+              foto: {
+                title: w.title,
+                description: w.description ?? '',
+                status: w.status,
+                priority: w.priority,
+                phase: w.phase ?? null,
+                ownerId: w.ownerId,
+                kanbanColumnId: w.kanbanColumnId,
+                parentId: w.parentId ?? null,
+                startDate: String(w.startDate).slice(0, 10),
+                estimatedEndDate: String(w.estimatedEndDate).slice(0, 10),
+                estimatedHours: w.estimatedHours ?? null,
+                progressPct: w.progressPct ?? 0,
+              },
+            }
+          : undefined,
+      )
       onOpenChange(false)
     } catch (error) {
       console.error('Error creating work item:', error)

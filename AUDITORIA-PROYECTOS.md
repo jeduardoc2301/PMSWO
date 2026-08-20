@@ -99,7 +99,7 @@ tiempo real y deshacer.
 | 30 | Revocar un rol no surte efecto hasta volver a entrar | **EXISTE PERO MAL** | `lib/auth.ts` (sesión JWT) | Los roles viajan en el token y no se releen de la base. Cambiar el rol de alguien en la base no le quita nada hasta que su sesión caduca o vuelve a entrar. Es el comportamiento normal de una sesión JWT, y es una decisión consciente que hay que tomar —no un descuido— porque una revocación de permisos que tarda no es una revocación. Descubierto al probar la guardia del §10.1: los primeros intentos pasaron con un token viejo | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
-| 24 | Deshacer / rehacer (§10.6) | **PARCIAL · casi cerrada** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Los **vínculos** ya se deshacen: el tipo creció con un canal propio, porque un vínculo no es un campo de una línea —vive entre dos— y su inversa no es «el valor de antes» sino la operación contraria. Comprobado en pantalla: 1665 → 1666 → 1665. Faltan las altas y las bajas de línea | L | Bajo |
+| 24 | Deshacer / rehacer (§10.6) | **CERRADA** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Los **vínculos** ya se deshacen: el tipo creció con un canal propio, porque un vínculo no es un campo de una línea —vive entre dos— y su inversa no es «el valor de antes» sino la operación contraria. Comprobado en pantalla: 1665 → 1666 → 1665. Las altas y las bajas también: crear una línea la deja en 4 y deshacer la devuelve a 3; borrar una con vínculo baja a 2 líneas y 0 vínculos, y deshacer devuelve las dos cosas. Lo único fuera es arrastrar fechas, excluido a propósito porque pasa por la previsualización | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
 
 **Recuento:** 15 PARCIAL · 4 EXISTE · 3 EXISTE PERO MAL · 2 NO EXISTE · 1 NO APLICA. Total 25 filas.
@@ -872,3 +872,36 @@ entera.
 Comprobado en pantalla con el editor de vínculos: **1665 → 1666** al capturar, el botón pasa a decir
 «Deshacer Vincular con «Aprobar el plan de trabajo por parte del banco»», y al pulsarlo **1666 →
 1665**. El plan quedó igual: 1368 líneas, 1665 vínculos, cierre el 2026-11-30.
+
+## §10.6 — las altas y las bajas de línea, y con eso la sección
+
+Era lo último que no cabía en el tipo. Un alta no es un parche sobre algo que ya existe y una baja
+no deja nada que parchear, así que las dos comparten un canal propio.
+
+**La foto es lo que hace posible deshacer una baja.** Se toma **antes** de borrar —después no hay a
+quién preguntarle— y conserva el identificador, porque las hijas y los vínculos apuntan a él:
+reponerla con otro dejaría todo eso señalando a una línea que nadie conoce. Por eso hay una ruta
+aparte, `work-items/restore`: crear y reponer no son lo mismo, y dejar que el alta normal aceptara
+un identificador cualquiera permitiría escribir sobre el hueco de una línea ajena. La ruta comprueba
+que **no exista** antes de reponer.
+
+**Los vínculos van en la misma operación.** El borrado se los lleva en cascada, así que reponer la
+línea sin ellos devolvería una línea suelta y diría que se deshizo. Medido: borrar una línea con un
+vínculo deja el proyecto en **2 líneas y 0 vínculos**; deshacer lo devuelve a **3 y 1**.
+
+**Y la madre sólo se repone si sigue viva.** Si se borró la rama entera y esta línea vuelve primero,
+colgarla de una madre que ya no está reventaría la clave foránea y dejaría el deshacer a medias. Sin
+madre queda en la raíz: visible, y se arregla a mano.
+
+**El alta lleva su foto en el lado de rehacer**, no en el de deshacer. Deshacer un alta sólo necesita
+saber a quién borrar; rehacerla es volver a crear **la misma** línea con el mismo identificador, no
+una parecida. Medido: crear deja el proyecto en **4 líneas** con el botón diciendo «Deshacer Crear
+«Línea de prueba del deshacer»», y deshacer lo devuelve a **3**.
+
+**Un fallo de mi banco de pruebas, no del producto.** El primer intento de alta devolvía 400 con «No
+Kanban column found for status: BACKLOG»: había creado el proyecto de prueba prestándole una columna
+del proyecto de referencia, que es de otro proyecto. El síntoma parecía un defecto del alta.
+
+Con esto el §10.6 queda cerrado salvo arrastrar fechas, que está fuera **a propósito**: pasa por la
+previsualización, y prometer con un doble clic lo que la previsualización avisa sería saltarse el
+aviso.

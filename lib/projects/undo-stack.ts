@@ -46,10 +46,34 @@ export interface CambioDeVinculo {
   readonly poner: boolean
 }
 
-/** Todo lo que hay que escribir para ir en una dirección: campos de líneas y vínculos. */
+/**
+ * Dar de alta o de baja una línea entera (§10.6).
+ *
+ * Tampoco cabe en `Cambio`: un alta no es un parche sobre algo que ya existe, y una baja no deja
+ * nada que parchear. La inversa de un alta es una baja y viceversa, así que las dos comparten forma.
+ *
+ * La **foto** es lo que hace posible deshacer una baja. Se toma antes de borrar —después ya no está—
+ * y lleva el identificador, porque los vínculos de esa línea apuntan a él: reponerla con otro
+ * identificador dejaría los vínculos colgando de una línea que nadie conoce.
+ */
+export interface CambioDeLinea {
+  /** `true` la crea, `false` la borra. */
+  readonly poner: boolean
+  /** El identificador. Se conserva al reponer para que sus vínculos vuelvan a encajar. */
+  readonly workItemId: string
+  /**
+   * Todo lo que hay que saber para reponerla. Sólo hace falta cuando `poner` es `true`; al borrar,
+   * el identificador basta. Va igualmente en las dos direcciones para que la operación se pueda
+   * rehacer sin volver a leer la base.
+   */
+  readonly foto?: Readonly<Record<string, unknown>>
+}
+
+/** Todo lo que hay que escribir para ir en una dirección: campos, vínculos y altas o bajas. */
 export interface LadoDeOperacion {
   readonly cambios: readonly Cambio[]
   readonly vinculos: readonly CambioDeVinculo[]
+  readonly lineas: readonly CambioDeLinea[]
 }
 
 export interface Operacion {
@@ -69,6 +93,16 @@ export interface Operacion {
   readonly vinculos?: {
     readonly hacer: readonly CambioDeVinculo[]
     readonly deshacer: readonly CambioDeVinculo[]
+  }
+  /**
+   * Las líneas que esta operación da de alta o de baja, si toca alguna.
+   *
+   * Opcional por lo mismo que los vínculos: casi ninguna operación crea ni borra líneas, y
+   * obligarlas a declarar dos listas vacías sería ruido en cada sitio que apunta una.
+   */
+  readonly lineas?: {
+    readonly hacer: readonly CambioDeLinea[]
+    readonly deshacer: readonly CambioDeLinea[]
   }
 }
 
@@ -108,11 +142,14 @@ export interface PasoAtras {
   readonly cambios: readonly Cambio[] | null
   /** Los vínculos que hay que poner o quitar. Vacío en las operaciones que no tocan ninguno. */
   readonly vinculos: readonly CambioDeVinculo[]
+  /** Las líneas que hay que reponer o borrar. Vacío en las que no tocan ninguna. */
+  readonly lineas: readonly CambioDeLinea[]
   readonly etiqueta: string | null
 }
 
-/** Ni un vínculo. Se comparte para no crear un arreglo por paso. */
+/** Nada. Se comparten para no crear arreglos por paso. */
 const SIN_VINCULOS: readonly CambioDeVinculo[] = Object.freeze([])
+const SIN_LINEAS: readonly CambioDeLinea[] = Object.freeze([])
 
 /**
  * Qué hay que escribir para deshacer lo último, y cómo queda la pila.
@@ -122,7 +159,9 @@ const SIN_VINCULOS: readonly CambioDeVinculo[] = Object.freeze([])
  */
 export function deshacer(pila: PilaDeDeshacer): PasoAtras {
   const ultima = pila.hechas[pila.hechas.length - 1]
-  if (!ultima) return { pila, cambios: null, vinculos: SIN_VINCULOS, etiqueta: null }
+  if (!ultima) {
+    return { pila, cambios: null, vinculos: SIN_VINCULOS, lineas: SIN_LINEAS, etiqueta: null }
+  }
 
   return {
     pila: {
@@ -131,6 +170,7 @@ export function deshacer(pila: PilaDeDeshacer): PasoAtras {
     },
     cambios: ultima.deshacer,
     vinculos: ultima.vinculos?.deshacer ?? SIN_VINCULOS,
+    lineas: ultima.lineas?.deshacer ?? SIN_LINEAS,
     etiqueta: ultima.etiqueta,
   }
 }
@@ -138,12 +178,15 @@ export function deshacer(pila: PilaDeDeshacer): PasoAtras {
 /** Lo simétrico: qué hay que escribir para rehacer lo último que se deshizo. */
 export function rehacer(pila: PilaDeDeshacer): PasoAtras {
   const [siguiente, ...resto] = pila.deshechas
-  if (!siguiente) return { pila, cambios: null, vinculos: SIN_VINCULOS, etiqueta: null }
+  if (!siguiente) {
+    return { pila, cambios: null, vinculos: SIN_VINCULOS, lineas: SIN_LINEAS, etiqueta: null }
+  }
 
   return {
     pila: { hechas: [...pila.hechas, siguiente], deshechas: resto },
     cambios: siguiente.hacer,
     vinculos: siguiente.vinculos?.hacer ?? SIN_VINCULOS,
+    lineas: siguiente.lineas?.hacer ?? SIN_LINEAS,
     etiqueta: siguiente.etiqueta,
   }
 }

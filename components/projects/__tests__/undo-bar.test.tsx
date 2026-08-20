@@ -128,6 +128,7 @@ describe('El gancho', () => {
     expect(aplicar).toHaveBeenCalledWith({
       cambios: [{ workItemId: 'w1', campos: { kanbanColumnId: 'c1' } }],
       vinculos: [],
+      lineas: [],
     })
   })
 
@@ -199,6 +200,7 @@ describe('El atajo de teclado', () => {
     expect(aplicar).toHaveBeenCalledWith({
       cambios: [{ workItemId: 'w1', campos: { kanbanColumnId: 'c4' } }],
       vinculos: [],
+      lineas: [],
     })
   })
 

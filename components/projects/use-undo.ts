@@ -80,7 +80,11 @@ export function useUndo(aplicar: (lado: LadoDeOperacion) => Promise<void>): UsoD
       if (!resultado.cambios) return
 
       try {
-        await aplicar({ cambios: resultado.cambios, vinculos: resultado.vinculos })
+        await aplicar({
+          cambios: resultado.cambios,
+          vinculos: resultado.vinculos,
+          lineas: resultado.lineas,
+        })
         setPila(resultado.pila)
         setAviso(
           `${direccion === 'atras' ? 'Deshecho' : 'Rehecho'}: ${resultado.etiqueta ?? 'el último cambio'}`,

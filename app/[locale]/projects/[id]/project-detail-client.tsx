@@ -323,7 +323,29 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   /** Los campos que una reprogramación toca. Se reconocen para poder escribirlos de una vez. */
   const CAMPOS_DE_FECHA = ['start', 'finish', 'constraintType', 'constraintDate']
 
-  const aplicarCambios = async ({ cambios, vinculos }: LadoDeOperacion) => {
+  const aplicarCambios = async ({ cambios, vinculos, lineas }: LadoDeOperacion) => {
+    /**
+     * Las líneas, antes que nada.
+     *
+     * Reponer va primero porque los vínculos y los campos que vengan después pueden apuntar a ellas:
+     * poner un vínculo hacia una línea que todavía no existe falla, y falla a mitad de un Ctrl+Z.
+     * Y borrar también va aquí, no al final, porque lo que se borra no necesita que le escriban
+     * campos después.
+     */
+    for (const l of lineas) {
+      const res = l.poner
+        ? await fetch(`/api/v1/projects/${projectId}/work-items/restore`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ linea: { ...l.foto, id: l.workItemId } }),
+          })
+        : await fetch(`/api/v1/work-items/${l.workItemId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.message || (l.poner ? 'No se pudo reponer la línea' : 'No se pudo borrar la línea'))
+      }
+    }
+
     /**
      * Los vínculos, primero.
      *

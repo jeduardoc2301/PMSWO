@@ -291,3 +291,72 @@ describe('Los vínculos también se deshacen (§10.6)', () => {
     expect(alReves(alReves({ ...VINCULO, poner: true }))).toEqual({ ...VINCULO, poner: true })
   })
 })
+
+describe('Las altas y las bajas de línea (§10.6)', () => {
+  const FOTO = { title: 'Una línea', ownerId: 'u1', startDate: '2026-06-01' }
+
+  it('deshacer un alta es borrarla, y basta el identificador', () => {
+    const alta: Operacion = {
+      etiqueta: 'Crear «Una línea»',
+      hacer: [],
+      deshacer: [],
+      lineas: {
+        hacer: [{ poner: true, workItemId: 'w9', foto: FOTO }],
+        deshacer: [{ poner: false, workItemId: 'w9' }],
+      },
+    }
+    expect(deshacer(apuntar(PILA_VACIA, alta)).lineas).toEqual([{ poner: false, workItemId: 'w9' }])
+  })
+
+  it('y rehacerla la vuelve a crear con la misma foto y el mismo identificador', () => {
+    // Rehacer un alta es volver a crear **la misma** línea, no una parecida: sus vínculos y sus
+    // hijas apuntan a ese identificador.
+    const alta: Operacion = {
+      etiqueta: 'Crear',
+      hacer: [],
+      deshacer: [],
+      lineas: {
+        hacer: [{ poner: true, workItemId: 'w9', foto: FOTO }],
+        deshacer: [{ poner: false, workItemId: 'w9' }],
+      },
+    }
+    const tras = deshacer(apuntar(PILA_VACIA, alta))
+    expect(rehacer(tras.pila).lineas).toEqual([{ poner: true, workItemId: 'w9', foto: FOTO }])
+  })
+
+  it('deshacer una baja repone la línea y sus vínculos en la misma operación', () => {
+    // Reponer la línea sin sus vínculos devolvería una línea suelta y diría que se deshizo.
+    const baja: Operacion = {
+      etiqueta: 'Borrar «Una línea»',
+      hacer: [],
+      deshacer: [],
+      lineas: {
+        hacer: [{ poner: false, workItemId: 'w9' }],
+        deshacer: [{ poner: true, workItemId: 'w9', foto: FOTO }],
+      },
+      vinculos: {
+        hacer: [{ predecessorId: 'a', successorId: 'w9', type: 'FS', lag: 0, poner: false }],
+        deshacer: [{ predecessorId: 'a', successorId: 'w9', type: 'FS', lag: 0, poner: true }],
+      },
+    }
+    const paso = deshacer(apuntar(PILA_VACIA, baja))
+    expect(paso.lineas).toEqual([{ poner: true, workItemId: 'w9', foto: FOTO }])
+    expect(paso.vinculos).toEqual([
+      { predecessorId: 'a', successorId: 'w9', type: 'FS', lag: 0, poner: true },
+    ])
+  })
+
+  it('una operación que no toca líneas devuelve la lista vacía, no undefined', () => {
+    const soloCampos: Operacion = {
+      etiqueta: 'Renombrar',
+      hacer: [{ workItemId: 'w1', campos: { title: 'nuevo' } }],
+      deshacer: [{ workItemId: 'w1', campos: { title: 'viejo' } }],
+    }
+    expect(deshacer(apuntar(PILA_VACIA, soloCampos)).lineas).toEqual([])
+  })
+
+  it('sin nada que deshacer, tampoco hay líneas', () => {
+    expect(deshacer(PILA_VACIA).lineas).toEqual([])
+    expect(rehacer(PILA_VACIA).lineas).toEqual([])
+  })
+})

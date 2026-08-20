@@ -812,7 +812,25 @@ function DialogosDeLinea({
         onOpenChange={(abierto) => { if (!abierto) onCerrarAlta() }}
         projectId={projectId}
         defaultParentId={padreDeLaNueva}
-        onSuccess={() => { onCerrarAlta(); onCambio() }}
+        onSuccess={(creada) => {
+          // La inversa de un alta es una baja: para deshacerla basta el identificador. La foto va
+          // en el lado de rehacer, que es el que vuelve a crearla.
+          if (creada) {
+            onApuntarOperacion?.({
+              etiqueta: `Crear «${creada.title.slice(0, 40)}»`,
+              hacer: [],
+              deshacer: [],
+              lineas: {
+                // Rehacer lleva la foto porque vuelve a crearla; deshacer sólo necesita a quién
+                // borrar.
+                hacer: [{ poner: true, workItemId: creada.id, foto: creada.foto }],
+                deshacer: [{ poner: false, workItemId: creada.id }],
+              },
+            })
+          }
+          onCerrarAlta()
+          onCambio()
+        }}
       />
       {editando && (
         <EditWorkItemDialog
@@ -842,7 +860,36 @@ function DialogosDeLinea({
           open
           onOpenChange={(abierto) => { if (!abierto) onCerrarBaja() }}
           workItem={borrando}
-          onSuccess={() => { onCerrarBaja(); onCambio() }}
+          projectId={projectId}
+          onSuccess={(foto, vinculos) => {
+            /**
+             * Borrar se apunta con la **foto** de la línea y sus vínculos (§10.6).
+             *
+             * La foto se toma antes de borrar —después ya no está— y conserva el identificador,
+             * porque las hijas y los vínculos apuntan a él: reponerla con otro dejaría todo eso
+             * señalando a una línea que nadie conoce.
+             *
+             * Los vínculos van en la misma operación porque el borrado se los lleva en cascada:
+             * reponer la línea sin ellos devolvería una línea suelta y diría que se deshizo.
+             */
+            if (foto) {
+              onApuntarOperacion?.({
+                etiqueta: `Borrar «${borrando.title.slice(0, 40)}»`,
+                hacer: [],
+                deshacer: [],
+                lineas: {
+                  hacer: [{ poner: false, workItemId: borrando.id }],
+                  deshacer: [{ poner: true, workItemId: borrando.id, foto }],
+                },
+                vinculos: {
+                  hacer: (vinculos ?? []).map((v) => ({ ...v, poner: false })),
+                  deshacer: (vinculos ?? []).map((v) => ({ ...v, poner: true })),
+                },
+              })
+            }
+            onCerrarBaja()
+            onCambio()
+          }}
         />
       )}
     </React.Fragment>
