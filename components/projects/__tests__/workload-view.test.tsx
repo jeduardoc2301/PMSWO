@@ -287,3 +287,44 @@ describe('§8.5.4 · desplegar un recurso muestra el desglose, y las horas cuadr
     expect(screen.getByText(/no tiene ninguna línea activa en el periodo/)).toBeInTheDocument()
   })
 })
+
+describe('§8.1 · la fila del trabajo huérfano cuando NO hay ninguna asignación', () => {
+  /**
+   * Es el caso donde la fila importa, y era el único donde no se veía.
+   *
+   * La pestaña cortaba antes de dibujar la matriz cuando `assignments` venía vacío: enseñaba el
+   * ofrecimiento de sembrar asignaciones y nada más. La vista decía «no hay asignaciones» y callaba
+   * **cuánto** trabajo hay sin dueño y en qué días, que es justo la pregunta que trae a alguien
+   * aquí.
+   *
+   * Esta prueba mira la vista, que es donde vive la fila; el arreglo está en la pestaña, que ahora
+   * dibuja las dos cosas.
+   */
+  it('la matriz se dibuja igual, y todo el trabajo cae en «Sin asignar»', () => {
+    dibujar({ assignments: [] })
+
+    const fila = screen.getByText('Sin asignar').closest('tr')
+    expect(fila).not.toBeNull()
+
+    // La fila trae números, no sólo su rótulo: el trabajo huérfano está contado. Se comprueba así
+    // y no contra una cifra concreta porque lo que la celda enseña —tareas, horas o porcentaje—
+    // depende del modo, y el modo no es lo que esta prueba mira.
+    const celdas = [...fila!.querySelectorAll('td')].slice(1)
+    const conCifra = celdas.filter((c) => /[1-9]/.test(c.textContent ?? ''))
+    expect(conCifra.length, 'la fila de trabajo huérfano salió vacía').toBeGreaterThan(0)
+  })
+
+  it('y no sale en rojo: el problema no es que alguien esté saturado', () => {
+    // Que saliera en rojo diría «esta persona está saturada», y es lo contrario: no hay persona.
+    dibujar({ assignments: [] })
+    const fila = screen.getByText('Sin asignar').closest('tr')!
+    expect(within(fila).queryAllByTestId(/^sobrecarga-/)).toHaveLength(0)
+  })
+
+  it('las filas de los recursos siguen ahí, vacías', () => {
+    // Quién está libre es la mitad de la respuesta a «¿a quién le paso esto?».
+    dibujar({ assignments: [] })
+    expect(screen.getByText('Ana Gómez')).toBeInTheDocument()
+    expect(screen.getByText('Luis Pérez')).toBeInTheDocument()
+  })
+})

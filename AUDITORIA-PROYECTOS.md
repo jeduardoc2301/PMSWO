@@ -2088,3 +2088,29 @@ pide permiso.
 Esa uniformidad es lo que hace la regla comprobable. La versión con excepción —«escribe sin
 preguntar porque su llamador pregunta»— exige seguir llamadas para verificarla, y lo que no se puede
 comprobar se pudre: con ese hueco abierto se coló el `DELETE`.
+
+---
+
+## §8.1 — la fila «Sin asignar» no se veía justo cuando importa
+
+`MatrizDeCarga` tiene una fila para el trabajo huérfano desde el principio, con su comentario y su
+regla —nunca sale en rojo, porque «rojo» significaría «esta persona está saturada» y el problema es
+el contrario: no hay ninguna persona—.
+
+Pero la pestaña cortaba antes de dibujar la matriz cuando no había **ninguna** asignación:
+
+```ts
+if (corte.assignments.length === 0) {
+  return ( …el ofrecimiento de sembrarlas… )
+}
+```
+
+Es decir: en el único caso donde toda la carga es huérfana, la vista decía «este plan todavía no
+tiene asignaciones» y callaba **cuánto** trabajo hay sin dueño y en qué días — que es exactamente la
+pregunta que trae a alguien a esa pantalla.
+
+Ahora se dibujan las dos cosas: el ofrecimiento arriba, porque sigue siendo lo primero que hay que
+leer, y la matriz debajo con su fila de huérfanos y las filas de los recursos vacías. Quién está
+libre es la mitad de la respuesta a «¿a quién le paso esto?».
+
+Tres pruebas nuevas sobre la vista con `assignments: []`.

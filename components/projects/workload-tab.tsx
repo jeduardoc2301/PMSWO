@@ -208,9 +208,21 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
 
   const { corte } = estado
 
-  if (corte.assignments.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
+  /**
+   * Sin asignaciones se ofrece sembrarlas, **y además se dibuja la matriz**.
+   *
+   * Antes esto devolvía sólo el ofrecimiento y no pintaba nada más, con lo que la fila «Sin
+   * asignar» —que existe desde el principio en `MatrizDeCarga`— no se veía **justo en el único
+   * caso donde importa**: cuando todo el trabajo está huérfano. La vista decía «no hay
+   * asignaciones» y callaba **cuánto** trabajo hay sin dueño y en qué días, que es la pregunta que
+   * trae a alguien a esta pantalla.
+   *
+   * El aviso se queda arriba, encima de la matriz: sigue siendo lo primero que hay que leer.
+   */
+  const sinAsignaciones = corte.assignments.length === 0
+
+  const ofrecerSembrar = sinAsignaciones ? (
+    <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
         <p className="mx-auto max-w-lg text-sm leading-relaxed text-zinc-400">
           Esta vista reparte la carga entre los recursos del proyecto, y este plan todavía no tiene
           asignaciones. Se pueden crear a partir de lo que ya hay: el responsable de cada línea y el
@@ -225,9 +237,8 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
         >
           {sembrando ? 'Creando asignaciones...' : 'Crear las asignaciones desde el plan'}
         </button>
-      </div>
-    )
-  }
+    </div>
+  ) : null
 
   const recargar = () => {
     void (async () => {
@@ -248,6 +259,7 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
 
   return (
     <div className="flex flex-col gap-3">
+      {ofrecerSembrar}
       {barraDeFiltro}
       <WorkloadView
         resources={corte.resources}
