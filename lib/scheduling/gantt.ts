@@ -313,6 +313,18 @@ export interface GanttLayout {
   readonly ticksSuperiores: readonly AxisTick[]
   /** Ancho total del lienzo, en días hábiles. */
   readonly span: number
+  /**
+   * Dónde cae hoy en el eje, en días hábiles desde el arranque. `null` si no se dijo qué día es o
+   * si hoy queda fuera del plan (§4.3).
+   *
+   * Un Gantt sin marca de hoy se lee a ciegas: la pregunta que trae a alguien a mirarlo es «¿vamos
+   * bien?», y sin saber dónde está el presente no hay forma de contestarla mirando las barras.
+   *
+   * Fuera del plan devuelve `null` y no un valor recortado al borde: una raya pegada al principio
+   * diría «hoy es el primer día» en un plan que empieza el mes que viene, que es peor que no
+   * dibujar nada.
+   */
+  readonly hoyX: number | null
   readonly start: IsoDate
   readonly finish: IsoDate
   /** Cuántas filas quedaron ocultas por el plegado o por el filtro. */
@@ -586,6 +598,15 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     // La fila de arriba de la cabecera: la escala inmediatamente más gruesa, o vacía si no la hay.
     // Se calcula aquí y no en el componente porque es el mismo recorrido del calendario y hacerlo
     // dos veces en el trazado costaría otra pasada por 122 días en cada gesto.
+    hoyX: (() => {
+      if (input.hoy === undefined) return null
+      const dia = toDayNumber(input.hoy)
+      if (input.hoy < schedule.start || input.hoy > schedule.finish) return null
+      // Se cuenta en ordinales hábiles como todo lo demás del eje. Un fin de semana cae en el mismo
+      // ordinal que el viernes anterior, y ahí es exactamente donde debe verse la raya: el lunes por
+      // la mañana, «hoy» sigue estando después de lo que se cerró el viernes.
+      return calendar.ordinalOf(calendar.next(dia)) - calendar.ordinalOf(toDayNumber(schedule.start))
+    })(),
     ticksSuperiores: Object.freeze(
       (() => {
         const arriba = escalaSuperior(input.scale ?? 'MES')

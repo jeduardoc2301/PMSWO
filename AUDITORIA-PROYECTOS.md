@@ -2165,3 +2165,35 @@ Esta medición costó tres intentos, los tres míos:
 
 Van **seis** veces esta sesión que una sonda «encuentra» algo que es suyo. Las seis, la reacción
 correcta fue ir a leer el componente.
+
+---
+
+## §4.3 — el Gantt no decía dónde está hoy
+
+Tercera casilla del §13 que salía del barrido: «6 escalas de zoom, **marcador de hoy**, días no
+laborables sombreados». El marcador no existía — `hoy` entraba al trazado sólo para contar atrasadas.
+
+Un Gantt sin marca de hoy se lee a ciegas: la pregunta que trae a alguien a mirarlo es «¿vamos
+bien?», y sin saber dónde está el presente no hay forma de contestarla mirando las barras.
+
+Tres decisiones:
+
+**Se cuenta en ordinales hábiles**, como todo el eje. Un sábado cae en el mismo sitio que el lunes
+siguiente, y ahí es donde debe verse: el lunes por la mañana, «hoy» sigue estando después de lo que
+se cerró el viernes.
+
+**Fuera del plan devuelve `null`**, no un valor recortado al borde. Una raya pegada al principio
+diría «hoy es el primer día» en un plan que empieza el mes que viene, que es peor que no dibujar
+nada. Y sin decir qué día es tampoco se marca: no saberlo no es lo mismo que saber que hoy no cae
+aquí.
+
+**Va debajo de las barras**, porque es una referencia y no un dato: encima taparía el borde de la
+barra que justo cae ahí, que es la que interesa.
+
+Medido en pantalla en escala de año: la raya cae a **144 px de un lienzo de 366**, o sea a unos 48
+días hábiles del arranque — mediados de agosto sobre un plan que va del 12 de junio al 30 de
+noviembre.
+
+De esa casilla queda el **sombreado de días no laborables**, y no es barato: el eje son ordinales
+hábiles, así que los fines de semana y los festivos **ni se dibujan**. Sombrearlos exige pasar el
+eje a días civiles, que es rehacer el trazado entero.

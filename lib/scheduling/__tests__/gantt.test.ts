@@ -928,3 +928,50 @@ describe('§4.2 · la columna de restricción enseña la elegida, no el ancla', 
     expect(asap[0].constraint).toBe('Lo antes posible')
   })
 })
+
+describe('§4.3 · la marca de hoy', () => {
+  const cal = createWorkCalendar()
+  const trazarCon = (hoy?: string) => {
+    const tasks: PlanTask[] = [{ id: 'a', name: 'Larga', duration: 40 }]
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar: cal, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar: cal,
+      ...(hoy ? { hoy } : {}),
+    })
+  }
+
+  it('sin decir qué día es, no se marca nada', () => {
+    // No saber qué día es no es lo mismo que saber que hoy no cae aquí.
+    expect(trazarCon().hoyX).toBeNull()
+  })
+
+  it('el primer día del plan cae en cero', () => {
+    expect(trazarCon('2026-06-01').hoyX).toBe(0)
+  })
+
+  it('cuenta en días hábiles, no en días de calendario', () => {
+    // Del lunes 1 al lunes 8 hay siete días de calendario y CINCO hábiles.
+    expect(trazarCon('2026-06-08').hoyX).toBe(5)
+  })
+
+  it('un sábado cae en el mismo sitio que el lunes siguiente', () => {
+    /**
+     * El eje son ordinales hábiles: el fin de semana no ocupa. La raya se pone donde empieza el
+     * siguiente día de trabajo, que es donde de verdad está el presente para un plan — el lunes por
+     * la mañana, «hoy» sigue estando después de lo que se cerró el viernes.
+     */
+    expect(trazarCon('2026-06-06').hoyX).toBe(trazarCon('2026-06-08').hoyX)
+  })
+
+  it('hoy fuera del plan devuelve null, no un valor pegado al borde', () => {
+    // Una raya pegada al principio diría «hoy es el primer día» en un plan que empieza el mes que
+    // viene, que es peor que no dibujar nada.
+    expect(trazarCon('2026-01-15').hoyX).toBeNull()
+    expect(trazarCon('2027-01-15').hoyX).toBeNull()
+  })
+})

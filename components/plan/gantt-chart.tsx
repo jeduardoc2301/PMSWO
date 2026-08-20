@@ -486,6 +486,18 @@ export function GanttChart({
               </div>
             </div>
 
+            {/* La raya de hoy (§4.3). Va debajo de las barras —`z-0`— porque es una referencia, no un
+                dato: encima taparía el borde de la barra que justo cae ahí, que es la que interesa. */}
+            {layout.hoyX !== null ? (
+              <div
+                data-testid="marca-de-hoy"
+                aria-hidden="true"
+                title="Hoy"
+                className="pointer-events-none absolute top-0 z-0 w-px bg-amber-400/70"
+                style={{ left: layout.hoyX * dayWidth, height }}
+              />
+            ) : null}
+
             <div className="relative" style={{ height }}>
               {visibles.map((row, k) => (
                 <Bar
