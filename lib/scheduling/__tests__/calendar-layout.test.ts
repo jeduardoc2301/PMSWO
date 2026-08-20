@@ -717,3 +717,56 @@ describe('§7 · el repartidor de carriles necesita el orden por inicio', () => 
     expect(l.weeks[0].segments[0].taskId).toBe('h')
   })
 })
+
+describe('§7 · una tarea que no se dibuja no ocupa carril', () => {
+  /**
+   * El carril se reservaba **antes** de decidir el recorte, así que una tarea destinada al «N más»
+   * dejaba ocupado un carril que nadie ocupa — no se dibuja, luego no estorba a nadie. Con tres
+   * carriles visibles, el reparto llegaba a **setenta y cuatro** en el plan real.
+   *
+   * Y eso rompía justo el caso que la exención de los hitos existe para resolver: un hito pedía
+   * carril, le tocaba el 40 —porque los cuarenta anteriores estaban «ocupados» por tareas
+   * invisibles— y como está exento **se dibujaba ahí**. La fila de esa semana medía 902 px, con una
+   * casilla que mide 104.
+   */
+  const cal = createWorkCalendar()
+  const barra = (id: string, start: string, finish: string) => ({ id, name: id, start, finish }) as never
+  const hito = (id: string, dia: string) => ({ id, name: id, start: dia, finish: dia, isMilestone: true }) as never
+
+  const semana = (tasks: unknown[], maxLanes = 3) =>
+    calendarLayout({
+      tasks: tasks as never,
+      from: '2026-06-01' as never,
+      to: '2026-06-07' as never,
+      calendar: cal,
+      weekStartsOn: 1,
+      maxLanes,
+    }).weeks[0]
+
+  /** Diez barras que se solapan todas: sólo caben tres. */
+  const diezSolapadas = Array.from({ length: 10 }, (_, i) => barra(`b${i}`, '2026-06-01', '2026-06-05'))
+
+  it('el reparto no crece más allá de los carriles visibles', () => {
+    expect(semana(diezSolapadas).laneCount).toBe(3)
+  })
+
+  it('las que no caben cuentan como «N más», no como carriles', () => {
+    const s = semana(diezSolapadas)
+    expect(s.segments).toHaveLength(3)
+    // Siete escondidas en cada uno de los cinco días que habrían ocupado.
+    expect(s.overflowByColumn[0]).toBe(7)
+  })
+
+  it('un hito exento cae en un carril bajo, no detrás de las invisibles', () => {
+    // Es lo que hacía la fila de 902 px: el hito se dibujaba en el carril 40.
+    const s = semana([...diezSolapadas, hito('h', '2026-06-03')])
+    const suyo = s.segments.find((x) => x.taskId === 'h')
+    expect(suyo).toBeDefined()
+    expect(suyo!.lane).toBeLessThanOrEqual(3)
+  })
+
+  it('y el alto de la fila sale de lo que de verdad lleva dentro', () => {
+    const s = semana([...diezSolapadas, hito('h', '2026-06-03')])
+    expect(carrilesDibujados(s)).toBeLessThanOrEqual(4)
+  })
+})

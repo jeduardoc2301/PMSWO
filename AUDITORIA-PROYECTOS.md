@@ -3478,3 +3478,41 @@ Es el segundo plazo de reloj que se rompe hoy en esta suite. El primero fue el c
 acabó dejando de cronometrar. La lección se repite: **en una máquina compartida, un límite de tiempo
 mide la máquina.**
 
+---
+
+## §7 — una tarea que no se dibuja reservaba carril igual
+
+El informe culpaba a la exención de los hitos: «los hitos están exentos del recorte y nada los
+acota». La exención no era el problema. El problema estaba una línea antes.
+
+El carril se reservaba **antes** de decidir el recorte:
+
+```
+carril = primer carril libre     ← y lo ocupa
+…
+if (carril >= maxLanes && no es hito) { cuenta como «N más»; continue }
+```
+
+Así que una tarea destinada a quedar detrás del «N más» dejaba ocupado un carril que **nadie
+ocupa** — no se dibuja, luego no estorba a nadie. Con **tres** carriles visibles, el reparto llegaba
+a **setenta y cuatro** en el plan real.
+
+Y eso rompía justo el caso que la exención existe para resolver: un hito pedía carril, le tocaba el
+40 —porque los cuarenta anteriores estaban «ocupados» por tareas invisibles— y como está exento **se
+dibujaba ahí**.
+
+| la fila de semana más alta del plan | |
+|---|---:|
+| antes | **902 px** |
+| ahora | **198 px** |
+| una casilla vacía mide | 104 px |
+
+Y en pantalla, las cinco filas de septiembre: **204 · 138 · 248 · 182 · 137**. La más alta, 248 — la
+fila del DOM lleva además el mínimo de la casilla y su relleno.
+
+Lo dibujado y lo escondido no cambian: 44 y 1 473 en septiembre, igual que antes del arreglo. Lo que
+cambia es que caben en pantalla.
+
+Vale la pena anotar que el informe señaló el síntoma correcto y la causa equivocada. Arreglar lo que
+decía —acotar los hitos— habría escondido hitos para tapar un carril fantasma.
+

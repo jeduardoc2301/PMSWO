@@ -282,23 +282,34 @@ function colocarSemana(
     const desde = Math.max(inicio, inicioSemana)
     const hasta = Math.min(fin, finSemana)
 
+    /**
+     * El carril **se reserva sólo si la tarea se dibuja**.
+     *
+     * Antes se reservaba primero y se decidía el recorte después, así que una tarea que iba a
+     * quedar detrás del «N más» dejaba un carril ocupado que **nadie ocupa** — no se dibuja, luego
+     * no estorba a nadie. Con tres carriles visibles, el reparto llegaba a **setenta y cuatro**.
+     *
+     * Y eso rompía el único caso que la exención de los hitos tenía que resolver: un hito llegaba,
+     * pedía carril, le tocaba el 40 —porque los 40 anteriores estaban «ocupados» por tareas
+     * invisibles— y como está exento **se dibujaba ahí**. Medido en el plan de referencia: una fila
+     * de semana de **902 px**, con una casilla que mide 104.
+     */
     let carril = ocupadoHasta.findIndex((ultimo) => ultimo < desde)
-    if (carril === -1) {
-      carril = ocupadoHasta.length
-      ocupadoHasta.push(hasta)
-    } else {
-      ocupadoHasta[carril] = hasta
-    }
+    const abreCarril = carril === -1
+    if (abreCarril) carril = ocupadoHasta.length
 
     // Un hito nunca se recorta: es un compromiso, no trabajo, y esconderlo tras un «N tareas más»
     // es esconder justo lo que alguien vino a buscar. **Esta línea es lo que lo garantiza** — no el
     // orden, que ahora es el que el repartidor necesita.
     if (carril >= maxLanes && tarea.isMilestone !== true) {
       // No cabe: cuenta como «una más» en cada día que habría ocupado, que es lo que la casilla
-      // necesita saber para decir «N tareas más».
+      // necesita saber para decir «N tareas más». Y **no reserva carril**: ver arriba.
       for (let d = desde; d <= hasta; d += 1) overflowByColumn[d - inicioSemana] += 1
       continue
     }
+
+    if (abreCarril) ocupadoHasta.push(hasta)
+    else ocupadoHasta[carril] = hasta
 
     segments.push({
       taskId: tarea.id,
