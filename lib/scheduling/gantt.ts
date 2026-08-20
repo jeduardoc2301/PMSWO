@@ -39,6 +39,7 @@ import { type ClassifiedTask } from './critical-path'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
 import { type Coherencia, comprobarCoherencia } from './effort'
+import { rollUpProgress } from './progress'
 import { fechasDeResumen } from './summary-rollup'
 import { estaTerminada } from '@/lib/urgency'
 import { numerarPlan } from './wbs'
@@ -446,6 +447,28 @@ export function ganttLayout(input: GanttInput): GanttLayout {
    * llega al 2 de julio — nueve días hábiles de menos, en la fila que más se mira porque es la que
    * queda cuando el plan está plegado.
    */
+  /**
+   * El avance acumulado de cada línea, para que la barra de un resumen se llene.
+   *
+   * Un resumen **no tiene avance capturado** —nadie lo escribe, sale de sus hijas—, así que
+   * `task.progress` vale cero en las 125 líneas con descendencia del plan de referencia y sus barras
+   * salían vacías. La fila que más se mira es justamente la que queda cuando el plan está plegado.
+   *
+   * Se toma de `rollUpProgress`, que es donde vive la ponderación —y el caso del bloque que sólo
+   * agrupa hitos, que no pesa nada y se resuelve por promedio simple—. Escribir aquí la fórmula
+   * otra vez es justo lo que ya dio dos números distintos en el Esquema.
+   *
+   * Si la jerarquía viene rota, se cae al avance propio en vez de propagar el error: esto se
+   * ejecuta **al dibujar**, y la regla de este módulo ya está escrita en `fechasDeResumen` — colgar
+   * la vista es peor que devolver una rama corta.
+   */
+  let acumulado: ReadonlyMap<string, { readonly progress: number }> | null = null
+  try {
+    acumulado = rollUpProgress(tasks).byId
+  } catch {
+    acumulado = null
+  }
+
   const abarcado = fechasDeResumen(
     tasks,
     new Map(
@@ -475,7 +498,8 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     const width = tramo
       ? calendar.ordinalOf(toDayNumber(tramo.finish)) - calendar.ordinalOf(toDayNumber(tramo.start)) + 1
       : scheduled?.isMilestone ? 0 : Math.max(task.duration, 0)
-    const progress = clamp(task.progress ?? 0)
+    const esResumen = task.kind === 'RESUMEN' || children.has(task.id)
+    const progress = clamp(esResumen ? (acumulado?.get(task.id)?.progress ?? task.progress ?? 0) : (task.progress ?? 0))
     const float = classifiedTask?.totalFloat ?? 0
 
     return {
@@ -531,7 +555,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
           }
         : {}),
       level: level.get(task.id) ?? 0,
-      isSummary: task.kind === 'RESUMEN' || children.has(task.id),
+      isSummary: esResumen,
       hasChildren: children.has(task.id),
       isCollapsed: collapsed.has(task.id),
       kind: task.kind ?? 'ACTIVIDAD',

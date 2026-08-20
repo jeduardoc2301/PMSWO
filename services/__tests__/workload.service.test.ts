@@ -84,3 +84,66 @@ describe('§8 · el corte de carga excluye los resúmenes', () => {
     )
   })
 })
+
+describe('§8 · lo que el corte devuelve, no sólo lo que pregunta', () => {
+  /**
+   * Las pruebas de arriba fijan **la consulta** —que es donde estaba el defecto— y ninguna miraba el
+   * resultado: `findMany` devolvía `[]` siempre, así que el mapeo no lo comprobaba nadie. Un
+   * `isMilestone` mal puesto habría pasado limpio.
+   */
+  const CON_DATOS = [
+    {
+      id: 't1', title: 'Migrar los datos', kind: 'ACTIVIDAD',
+      startDate: new Date('2026-06-02T00:00:00Z'), estimatedEndDate: new Date('2026-06-04T00:00:00Z'),
+      assignments: [{ resourceId: 'r1', unitsBp: 10_000 }],
+    },
+    {
+      id: 't2', title: 'Cierre de la ola', kind: 'HITO',
+      startDate: new Date('2026-06-04T00:00:00Z'), estimatedEndDate: new Date('2026-06-04T00:00:00Z'),
+      assignments: [{ resourceId: 'r1', unitsBp: 10_000 }],
+    },
+    {
+      id: 't3', title: 'Sin dueño', kind: 'ACTIVIDAD',
+      startDate: new Date('2026-06-02T00:00:00Z'), estimatedEndDate: new Date('2026-06-02T00:00:00Z'),
+      assignments: [],
+    },
+  ]
+  const RECURSOS = [
+    { id: 'r1', name: 'Ana', kind: 'PERSONA', dailyMinutes: 480, absences: [] },
+    { id: 'r2', name: 'Nadie la usa', kind: 'PERSONA', dailyMinutes: 480, absences: [] },
+  ]
+
+  beforeEach(() => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue(CON_DATOS as never)
+    vi.mocked(prisma.resource.findMany).mockResolvedValue(RECURSOS as never)
+  })
+
+  it('marca el hito como hito: no se puede deducir de las fechas', async () => {
+    // t2 y t3 tienen las mismas fechas de un solo día, y sólo uno es un hito.
+    const carga = await loadProjectWorkload('p1', 'org1')
+    const porId = new Map(carga!.tasks.map((t) => [t.id, t]))
+    expect(porId.get('t2')!.isMilestone).toBe(true)
+    expect(porId.get('t3')!.isMilestone).toBe(false)
+  })
+
+  it('las fechas salen como fecha civil, sin la hora que trae la base', async () => {
+    const carga = await loadProjectWorkload('p1', 'org1')
+    const t1 = carga!.tasks.find((t) => t.id === 't1')!
+    expect(t1.start).toBe('2026-06-02')
+    expect(t1.finish).toBe('2026-06-04')
+  })
+
+  it('las asignaciones viajan aplanadas, con su línea', async () => {
+    const carga = await loadProjectWorkload('p1', 'org1')
+    expect(carga!.assignments).toEqual([
+      { taskId: 't1', resourceId: 'r1', unitsBp: 10_000 },
+      { taskId: 't2', resourceId: 'r1', unitsBp: 10_000 },
+    ])
+  })
+
+  it('sólo trae los recursos que este proyecto usa', async () => {
+    // Un directorio de cincuenta personas con tres en el plan daría cuarenta y siete filas a cero.
+    const carga = await loadProjectWorkload('p1', 'org1')
+    expect(carga!.resources.map((r) => r.id)).toEqual(['r1'])
+  })
+})

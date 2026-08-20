@@ -347,9 +347,12 @@ export function WorkItemsOutline({
  */
 function avanceEfectivo(row: GanttRow, rollup: ReturnType<typeof rollUpProgress>): number {
   if (!row.isSummary) return row.progress
-  const acumulado = rollup.byId.get(row.id)
-  if (!acumulado || acumulado.weight === 0) return 0
-  return acumulado.earnedDays / acumulado.weight
+  // Se toma el avance ya calculado, no se rehace la división. Rehacerla obligaba a decidir qué
+  // hacer con peso cero, y aquí se decía **cero** — justo el caso que `rollUpProgress` resuelve a
+  // propósito: un bloque que sólo agrupa hitos no pesa nada, y su avance es el promedio simple de
+  // las hijas. Un bloque de cinco hitos con tres cumplidos va por el 60 %, y esta pantalla decía
+  // 0 %. La misma fórmula escrita dos veces siempre acaba dando dos números.
+  return rollup.byId.get(row.id)?.progress ?? 0
 }
 
 function Linea({

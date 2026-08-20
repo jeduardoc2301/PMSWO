@@ -2635,3 +2635,60 @@ arranque no es el más temprano *posible* — empezar el 12 también valdría �
 invariante roto sino una elección discutible: adelantar el arranque hace que la persona trabaje
 antes y espere después.
 
+---
+
+## §4.1, §6 — el avance de un resumen no subía, y sus fechas dependían de la pestaña
+
+Tres hallazgos de la auditoría del motor que son la misma familia: **un resumen no se captura, se
+acumula**, y había tres sitios que no lo hacían.
+
+### La barra de un resumen salía siempre vacía
+
+`gantt.ts` leía `task.progress`, que en un resumen vale **cero** porque nadie lo escribe. Las 125
+líneas con descendencia del plan salían al 0 % — y es la fila que más se mira, porque es la que
+queda cuando el plan está plegado.
+
+Medido sobre el plan de referencia, marcando 400 hojas al 100 %:
+
+| resúmenes con la barra llenándose | |
+|---|---:|
+| antes | **0** de 125 |
+| ahora | **80** de 125 |
+
+### El Esquema tiraba el promedio simple
+
+`avanceEfectivo` rehacía la división `ganado / peso` en vez de tomar el avance ya calculado, y con
+peso cero devolvía **0**. Peso cero es exactamente el caso que `rollUpProgress` resuelve a propósito:
+un bloque que sólo agrupa **hitos** no pesa nada, y su avance es el promedio simple. Un bloque de
+cinco hitos con tres cumplidos va por el **60 %**, y esa pantalla decía 0 %.
+
+La misma fórmula escrita dos veces siempre acaba dando dos números.
+
+### El mismo resumen, dos fechas según la pestaña
+
+El Gantt acumula el tramo en vivo; la Lista enseñaba `estimatedEndDate` tal como vino de la base. Y
+el `PATCH` de una línea escribe **esa fila y ninguna más**.
+
+| en el plan de referencia | resúmenes en desacuerdo |
+|---|---:|
+| hoy, sin tocar nada | **0** de 125 |
+| tras mover **una** hoja al 2026-12-15 | **3** |
+
+Los tres son la cadena de ascendientes de esa hoja, y el de arriba es la etapa cuyo fin **es el
+cierre del proyecto**: la Lista habría seguido diciendo `2026-11-30` mientras el Gantt decía
+`2026-12-15`. Quien mira no tiene forma de saber cuál de las dos es la buena.
+
+Se calcula **al leer**, en `conFechasDeResumen`, y no guardando los ascendientes en cada edición:
+una línea profunda escribiría toda su rama en cada guardado, y el número volvería a desacoplarse en
+cuanto algo entrara por otra puerta —una importación, una reprogramación, un `DELETE` en cascada—.
+Derivarlo al leer no puede quedar viejo. Va antes de filtrar, ordenar, totalizar y exportar, así que
+el CSV también sale con la fecha buena.
+
+### Y una cuarta que no era un defecto
+
+`rollup-modos.ts` no tiene quien lo llame en producción, sólo pruebas. Es correcto y está dicho en
+su propia cabecera: implementa los **dos** modos que pide el §12 —ponderado por duración y promedio
+simple— y elegir entre ellos necesita `Project.progressRollup`, que es una de las migraciones del
+§2 que esperan decisión. Mientras tanto la aplicación usa el ponderado. Borrarlo costaría volver a
+escribir la fórmula el día que exista el campo.
+

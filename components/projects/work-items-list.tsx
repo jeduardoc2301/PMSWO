@@ -6,6 +6,7 @@ import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
+import { conFechasDeResumen } from '@/lib/projects/fechas-de-resumen'
 import {
   type CampoDeGrupo,
   type LineaSumable,
@@ -278,7 +279,7 @@ export function WorkItemsList({
   onAnchoChange,
   plana = false,
   projectId,
-  workItems,
+  workItems: lineasComoVienen,
   onWorkItemCreated,
   onApuntarOperacion,
   editDatesData,
@@ -289,6 +290,16 @@ export function WorkItemsList({
   canCreateWorkItems = false,
   onApplyTemplate
 }: WorkItemsListProps) {
+  /**
+   * Las fechas de un resumen se acumulan de su rama antes de nada, para que todo lo que sigue
+   * —filtrar, ordenar, totalizar, exportar— vea el mismo número que el Gantt.
+   *
+   * El `PATCH` de una línea escribe esa fila y ninguna más, así que en cuanto alguien mueve una
+   * hoja el fin guardado de su madre se queda viejo. En el plan de referencia los 125 resúmenes
+   * tenían hoy el fin guardado **igual** al acumulado: el desacuerdo no se ve hasta la primera
+   * edición, y entonces la misma línea tiene una fecha en el Gantt y otra aquí.
+   */
+  const workItems = useMemo(() => conFechasDeResumen(lineasComoVienen) as WorkItemSummary[], [lineasComoVienen])
   const t = useTranslations('workItems')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)

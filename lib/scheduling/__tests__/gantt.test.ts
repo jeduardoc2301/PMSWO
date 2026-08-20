@@ -975,3 +975,60 @@ describe('§4.3 · la marca de hoy', () => {
     expect(trazarCon('2027-01-15').hoyX).toBeNull()
   })
 })
+
+describe('§4.1 · la barra de un resumen se llena con el avance de sus hijas', () => {
+  /**
+   * Un resumen **no tiene avance capturado** — nadie lo escribe, sale de sus hijas —, así que
+   * `task.progress` vale cero y su barra salía vacía. Es la fila que más se mira: la que queda
+   * cuando el plan está plegado.
+   */
+  const bloque = (hijas: PlanTask[]): PlanTask[] => [
+    { id: 'P', name: 'Bloque', duration: 0, parentId: undefined },
+    ...hijas,
+  ]
+
+  it('ponderado por duración, no promedio de las hijas', () => {
+    // 4 días al 100 % y cuatro de 1 día al 0 %: ocho días de trabajo, cuatro hechos → 50 %.
+    const { rows } = trazar(
+      bloque([
+        { id: 'h1', name: 'Larga', duration: 4, parentId: 'P', progress: 1 },
+        { id: 'h2', name: 'a', duration: 1, parentId: 'P', progress: 0 },
+        { id: 'h3', name: 'b', duration: 1, parentId: 'P', progress: 0 },
+        { id: 'h4', name: 'c', duration: 1, parentId: 'P', progress: 0 },
+        { id: 'h5', name: 'd', duration: 1, parentId: 'P', progress: 0 },
+      ]),
+    )
+    const P = rows.find((r) => r.id === 'P')!
+    expect(P.isSummary).toBe(true)
+    expect(P.progress).toBe(0.5)
+    expect(P.progressWidth).toBeCloseTo(P.width * 0.5, 6)
+  })
+
+  it('un bloque de puros hitos no pesa nada, y va por el promedio simple', () => {
+    // Tres de cinco cumplidos: 60 %. Decir 0 % sería mentir en la única lectura que ese bloque admite.
+    const hitos = [1, 2, 3, 4, 5].map((n) => ({
+      id: `m${n}`,
+      name: `Hito ${n}`,
+      duration: 0,
+      kind: 'HITO' as const,
+      parentId: 'P',
+      progress: n <= 3 ? 1 : 0,
+    }))
+    const { rows } = trazar(bloque(hitos))
+    expect(rows.find((r) => r.id === 'P')!.progress).toBeCloseTo(0.6, 6)
+  })
+
+  it('una hoja sigue enseñando el suyo, no el de nadie', () => {
+    const { rows } = trazar([{ id: 'sola', name: 'Sola', duration: 4, progress: 0.25 }])
+    expect(rows.find((r) => r.id === 'sola')!.progress).toBe(0.25)
+  })
+
+  it('con la jerarquía rota no se cae: dibuja lo que puede', () => {
+    // La regla del módulo: colgar la vista es peor que devolver una rama corta.
+    const rotas: PlanTask[] = [
+      { id: 'x', name: 'Cuelga de nadie', duration: 2, parentId: 'no-existe', progress: 0.5 },
+    ]
+    expect(() => trazar(rotas)).not.toThrow()
+    expect(trazar(rotas).rows.find((r) => r.id === 'x')!.progress).toBe(0.5)
+  })
+})
