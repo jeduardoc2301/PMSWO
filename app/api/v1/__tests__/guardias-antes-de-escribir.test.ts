@@ -141,6 +141,22 @@ describe('§10.1 · el permiso se pregunta antes de escribir, en todas las puert
        * Dicho por manejador, dice lo que de verdad se quiere: **cuando este manejador escribe, ya no
        * le queda nada por preguntar**.
        */
+      /**
+       * Y **antes del orden, la existencia**.
+       *
+       * Esta prueba sólo comprobaba el orden, así que un manejador que escribe y **no pregunta nada**
+       * pasaba tan campante: sin preguntas no hay preguntas tardías. Con ese hueco se colaba
+       * `deleteWorkItemHandler`, que borra una línea —y sus vínculos en cascada— sin pedir asiento
+       * en el proyecto. Lo encontró un agente refutando otro informe, no esta prueba.
+       *
+       * Un manejador que escribe y no pregunta no es un caso de orden: es una puerta abierta.
+       */
+      expect(
+        preguntas.length,
+        `${ruta} · ${m.nombre}: escribe en la línea ${escritura + m.desde} y no pregunta por ningún ` +
+          'permiso de proyecto. Una puerta que escribe sin preguntar no tiene guardia que ordenar.',
+      ).toBeGreaterThan(0)
+
       const tardias = preguntas.filter((p) => p > escritura + m.desde)
       expect(
         tardias,

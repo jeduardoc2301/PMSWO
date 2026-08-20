@@ -159,7 +159,7 @@ async function patchHandler(
   // mezclarlo con el cambio de campos haría un manejador que hace dos cosas distintas según qué
   // llaves trae, y esa clase de rama es la que acaba escribiendo lo que no toca.
   const queRecoloca = reorden.safeParse(cuerpo)
-  if (queRecoloca.success) return await recolocar(id, queRecoloca.data.orden)
+  if (queRecoloca.success) return await recolocar(authContext.userId, id, queRecoloca.data.orden)
 
   const datos = cambio.safeParse(cuerpo)
   if (!datos.success) {
@@ -214,7 +214,24 @@ async function patchHandler(
  * enviadas encima. O choca la clave única a mitad, o —peor— una columna se queda abandonada en un
  * puesto negativo y el tablero la dibuja antes que todas para siempre.
  */
-async function recolocar(projectId: string, orden: readonly string[]): Promise<NextResponse> {
+async function recolocar(
+  userId: string,
+  projectId: string,
+  orden: readonly string[],
+): Promise<NextResponse> {
+  /**
+   * Pregunta otra vez, aunque `patchHandler` ya haya preguntado antes de delegar aquí.
+   *
+   * No es desconfianza del que llama: es que **una función que escribe tiene que pedir permiso, sin
+   * excepciones**. La regla con excepciones —«escribe sin preguntar porque su llamador pregunta»—
+   * no se puede comprobar sin seguir llamadas, y lo que no se puede comprobar se pudre: con ese
+   * hueco abierto se coló el `DELETE` de una línea, que borraba sin pedir asiento en el proyecto.
+   *
+   * La comprobación de más cuesta una consulta en una operación que se hace una vez cada mucho.
+   */
+  const negado = await exigirPermiso(userId, projectId, 'manage_project_settings', MOTIVO)
+  if (negado) return negado
+
   /**
    * La comprobación va **dentro** de la transacción, con las columnas leídas dentro.
    *

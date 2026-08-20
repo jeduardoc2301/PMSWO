@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { authorize } from '@/services/project-authorize.service'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 
 import { confirmar } from '@/services/reschedule.service'
 import { type IsoDate } from '@/lib/scheduling/date'
@@ -442,6 +443,25 @@ async function deleteWorkItemHandler(
         { status: 404 }
       )
     }
+
+    /**
+     * Borrar una línea es tocar el plan, y es lo más destructivo que se puede hacer con una sola
+     * (§10.1).
+     *
+     * Se lleva por delante sus vínculos en cascada, así que deshacerlo pide reponer la línea **y** la
+     * red que colgaba de ella — por eso el deshacer del §10.6 tiene un canal propio para las bajas.
+     *
+     * Esta puerta se quedó sin guardia cuando se pusieron las demás: `withAuth` exige
+     * `WORK_ITEM_DELETE`, que es el cargo de organización, y ese cargo no dice **en qué proyecto**.
+     * La encontró un agente refutando el informe de otro sobre la lista del §13.
+     */
+    const negado = await exigirPermiso(
+      authContext.userId,
+      workItem.projectId,
+      'edit_schedule',
+      'Borrar una línea cambia el plan del proyecto y se lleva sus vínculos con ella.',
+    )
+    if (negado) return negado
 
     // Delete work item (cascade will handle related records)
     await prisma.workItem.delete({

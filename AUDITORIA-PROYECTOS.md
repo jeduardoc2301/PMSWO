@@ -2050,3 +2050,41 @@ La que lo caza es una prueba de componente que agrupa por responsable y comprueb
 sigue en pantalla. Con el defecto puesto se pone roja; sin él, verde. Es la tercera vez esta sesión
 que hace falta romper el arreglo a propósito para saber si la prueba servía, y la tercera que la
 primera versión no servía.
+
+---
+
+## §10.1 — borrar una línea no pedía asiento en el proyecto, y mi prueba no lo veía
+
+La quinta puerta sin guardia, y la más destructiva de todas: `DELETE /api/v1/work-items/[id]` borra
+la línea **y sus vínculos en cascada**. `withAuth` exigía `WORK_ITEM_DELETE`, que es el cargo de
+organización, y ese cargo no dice en qué proyecto.
+
+Se quedó sin guardia cuando se pusieron las demás. La encontró un agente refutando el informe de
+otro; no la encontró mi prueba de guardias, y ese es el segundo hallazgo.
+
+### La prueba comprobaba el orden y no la existencia
+
+`guardias-antes-de-escribir.test.ts` compara **dónde** están las preguntas contra dónde está la
+primera escritura. Un manejador que escribe y **no pregunta nada** pasaba tan campante: sin preguntas
+no hay preguntas tardías.
+
+Ahora exige primero que **haya** pregunta. Reponiendo el defecto, la prueba lo nombra:
+
+```
+work-items/[id]/route.ts · deleteWorkItemHandler: escribe en la línea 460 y no pregunta
+por ningún permiso de proyecto.
+```
+
+### Y al reforzarla, cayó mi propio punto ciego
+
+Lo primero que se puso rojo no fue el `DELETE`: fue `recolocar`, la función de reordenar columnas que
+escribí anoche y de la que dejé escrito en esta misma bitácora que la prueba «no la comprueba: no
+sigue llamadas. Es un punto ciego conocido, no una cobertura».
+
+Documentar un hueco no lo cierra. Ahora `recolocar` pregunta también, aunque `patchHandler` ya haya
+preguntado antes de delegar en ella, y la regla queda **sin excepciones**: una función que escribe
+pide permiso.
+
+Esa uniformidad es lo que hace la regla comprobable. La versión con excepción —«escribe sin
+preguntar porque su llamador pregunta»— exige seguir llamadas para verificarla, y lo que no se puede
+comprobar se pudre: con ese hueco abierto se coló el `DELETE`.
