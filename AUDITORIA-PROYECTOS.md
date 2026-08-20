@@ -3166,3 +3166,25 @@ bien.
 - **La lista vacía pasa «no es ninguno de»**, igual que el valor ausente pasa «no es»: una línea sin
   etiquetas **no está** etiquetada como riesgo.
 
+### Demostrado en pantalla, sobre el plan de 1 368 líneas
+
+Con un campo `TAGS` sembrado desde los propios títulos del plan — así el número que salga se puede
+comprobar contra la siembra:
+
+| | |
+|---|---|
+| el campo aparece en la barra | **«Etiquetas»**, junto a los trece de siempre |
+| operadores que ofrece para una lista | `contiene` · `es alguno de` · `no es ninguno de` · `está vacío` · `tiene valor` |
+| filtrando «contiene banco» | **189 de 1 368** |
+
+Los cinco operadores son exactamente los que significan algo: **no aparece «es igual a»** — sobre una
+lista no le sirve a nadie — **ni ninguno de orden**.
+
+Y 189 es justo lo que el sembrador etiquetó con `banco`, así que el dato llega entero desde la tabla
+`custom_field_values` hasta el conteo de la barra.
+
+Una nota de la medición, que casi me lleva a un defecto que no existía: el primer intento leía
+«0 de 1368» y parecía que el filtro no encontraba nada. Ese número era el **contador de completadas**
+del panel, que dice lo mismo con otras palabras en la misma página. El conteo del filtro tiene su
+propio `data-testid` — buscar por texto en `document.body` es la séptima vez que engaña.
+
