@@ -36,7 +36,7 @@ export function PageHeader({
   const locale = useLocale()
 
   return (
-    <div className="bg-[#18181b]" style={{ borderBottom: '1px solid #27272a' }}>
+    <div className="bg-superficie" style={{ borderBottom: '1px solid var(--borde)' }}>
       <div className="px-4 sm:px-6 lg:px-8 py-4">
         {/* Breadcrumbs */}
         {breadcrumbs.length > 0 && (
@@ -45,17 +45,17 @@ export function PageHeader({
               {breadcrumbs.map((item, index) => (
                 <li key={index} className="flex items-center">
                   {index > 0 && (
-                    <ChevronRight className="h-4 w-4 text-zinc-500 mx-2" />
+                    <ChevronRight className="h-4 w-4 text-tinta-3 mx-2" />
                   )}
                   {item.href ? (
                     <Link
                       href={item.href}
-                      className="text-zinc-400 hover:text-zinc-200 transition-colors"
+                      className="text-tinta-2 hover:text-tinta transition-colors"
                     >
                       {item.label}
                     </Link>
                   ) : (
-                    <span className="text-zinc-100 font-medium">{item.label}</span>
+                    <span className="text-tinta font-medium">{item.label}</span>
                   )}
                 </li>
               ))}
@@ -66,9 +66,9 @@ export function PageHeader({
         {/* Title and Actions Row */}
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-zinc-100 truncate">{title}</h1>
+            <h1 className="text-2xl font-bold text-tinta truncate">{title}</h1>
             {description && (
-              <p className="mt-1 text-sm text-zinc-400">{description}</p>
+              <p className="mt-1 text-sm text-tinta-2">{description}</p>
             )}
           </div>
 
@@ -87,9 +87,9 @@ export function PageHeader({
                       'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#18181b]',
                       quickAction.variant === 'primary'
                         ? 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500'
-                        : 'bg-transparent text-zinc-300 hover:bg-zinc-800 focus:ring-indigo-500'
+                        : 'bg-transparent text-tinta-2 hover:bg-superficie-3 focus:ring-indigo-500'
                     )}
-                    style={quickAction.variant !== 'primary' ? { border: '1px solid #27272a' } : undefined}
+                    style={quickAction.variant !== 'primary' ? { border: '1px solid var(--borde)' } : undefined}
                   >
                     {quickAction.icon && <span className="mr-2">{quickAction.icon}</span>}
                     {quickAction.label}

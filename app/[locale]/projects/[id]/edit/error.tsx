@@ -18,12 +18,12 @@ export default function EditProjectError({ error, reset }: EditProjectErrorProps
   }, [error])
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
-      <div className="max-w-md w-full rounded-lg shadow p-8 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+    <div className="min-h-screen bg-fondo flex items-center justify-center">
+      <div className="max-w-md w-full rounded-lg shadow p-8 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
         <h2 className="text-xl font-semibold text-red-400 mb-2">Error al cargar la página</h2>
-        <p className="text-zinc-400 mb-1 text-sm">{error.message}</p>
+        <p className="text-tinta-2 mb-1 text-sm">{error.message}</p>
         {error.digest && (
-          <p className="text-zinc-500 text-xs mb-4">Código: {error.digest}</p>
+          <p className="text-tinta-3 text-xs mb-4">Código: {error.digest}</p>
         )}
         <div className="flex gap-3 justify-center mt-4">
           <button
@@ -34,8 +34,8 @@ export default function EditProjectError({ error, reset }: EditProjectErrorProps
           </button>
           <button
             onClick={() => router.push(`/${locale}/projects`)}
-            className="px-4 py-2 rounded-md text-zinc-300 hover:bg-zinc-800 text-sm transition-colors"
-            style={{ border: '1px solid #27272a' }}
+            className="px-4 py-2 rounded-md text-tinta-2 hover:bg-superficie-3 text-sm transition-colors"
+            style={{ border: '1px solid var(--borde)' }}
           >
             Volver a Proyectos
           </button>

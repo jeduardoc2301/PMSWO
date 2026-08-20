@@ -16,13 +16,13 @@ export function MetricCard({ title, value, subtitle, variant = 'default' }: Metr
   }
 
   return (
-    <div className="bg-[#18181b] rounded-lg p-6" style={{ border: '1px solid #27272a' }}>
-      <h3 className="text-sm font-medium text-[#a1a1aa] mb-2">{title}</h3>
+    <div className="bg-superficie rounded-lg p-6" style={{ border: '1px solid var(--borde)' }}>
+      <h3 className="text-sm font-medium text-tinta-2 mb-2">{title}</h3>
       <p className={`text-3xl font-bold ${variantStyles[variant]}`}>
         {value}
       </p>
       {subtitle && (
-        <p className="text-sm text-[#71717a] mt-2">{subtitle}</p>
+        <p className="text-sm text-tinta-3 mt-2">{subtitle}</p>
       )}
     </div>
   )

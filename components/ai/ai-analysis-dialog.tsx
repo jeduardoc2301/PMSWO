@@ -102,9 +102,9 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
       case 'MEDIUM':
         return 'bg-yellow-900/40 text-yellow-300'
       case 'LOW':
-        return 'bg-[rgba(99,102,241,0.15)] text-[#a5b4fc]'
+        return 'bg-[rgba(99,102,241,0.15)] text-acento-tinta'
       default:
-        return 'bg-zinc-800 text-zinc-400'
+        return 'bg-superficie-3 text-tinta-2'
     }
   }
 
@@ -203,12 +203,12 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
           {t('analyzeProject')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
           <DialogTitle className="text-[#e4e4e7]">{t('analysis.title')}</DialogTitle>
           <DialogDescription>
             {analysis && (
-              <span className="text-sm text-[#a1a1aa]">
+              <span className="text-sm text-tinta-2">
                 {t('report.generatedAt')}: {new Date(analysis.analyzedAt).toLocaleString()}
               </span>
             )}
@@ -219,22 +219,22 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
           {analyzing && (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
-              <p className="text-sm text-[#a1a1aa]">{t('loading.analyzingProject')}</p>
+              <p className="text-sm text-tinta-2">{t('loading.analyzingProject')}</p>
             </div>
           )}
 
           {analysis && !analyzing && (
             <div className="space-y-6">
-              <Card style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <Card style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <CardHeader>
                   <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.suggestions')}</CardTitle>
-                  <CardDescription className="text-[#71717a]">
+                  <CardDescription className="text-tinta-3">
                     {analysis.suggestions.length} {t('analysis.suggestions').toLowerCase()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analysis.suggestions.length === 0 ? (
-                    <p className="text-sm text-[#a1a1aa] text-center py-4">
+                    <p className="text-sm text-tinta-2 text-center py-4">
                       {t('analysis.noSuggestions')}
                     </p>
                   ) : (
@@ -243,15 +243,15 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                         <div
                           key={index}
                           className="flex items-start gap-3 p-3 rounded-lg"
-                          style={{ background: '#18181b', border: '1px solid #27272a' }}
+                          style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}
                         >
-                          <div className="mt-1 text-[#a1a1aa]">{getSuggestionIcon(suggestion.type)}</div>
+                          <div className="mt-1 text-tinta-2">{getSuggestionIcon(suggestion.type)}</div>
                           <div className="flex-1 space-y-2">
                             <div className="flex items-center gap-2">
                               <Badge className={getPriorityColor(suggestion.priority)}>
                                 {t(`analysis.priority.${suggestion.priority.toLowerCase()}`)}
                               </Badge>
-                              <span className="text-xs text-[#71717a]">
+                              <span className="text-xs text-tinta-3">
                                 {t(`analysis.suggestionTypes.${getSuggestionTypeKey(suggestion.type)}`)}
                               </span>
                             </div>
@@ -276,16 +276,16 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                 </CardContent>
               </Card>
 
-              <Card style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <Card style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <CardHeader>
                   <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.detectedRisks')}</CardTitle>
-                  <CardDescription className="text-[#71717a]">
+                  <CardDescription className="text-tinta-3">
                     {analysis.detectedRisks.length} {t('analysis.detectedRisks').toLowerCase()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analysis.detectedRisks.length === 0 ? (
-                    <p className="text-sm text-[#a1a1aa] text-center py-4">
+                    <p className="text-sm text-tinta-2 text-center py-4">
                       {t('analysis.noRisks')}
                     </p>
                   ) : (
@@ -294,7 +294,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                         <div
                           key={index}
                           className="flex items-start gap-3 p-3 rounded-lg"
-                          style={{ background: '#18181b', border: '1px solid #27272a' }}
+                          style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}
                         >
                           <AlertTriangle className="h-5 w-5 text-orange-400 mt-1" />
                           <div className="flex-1">
@@ -325,16 +325,16 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                 </CardContent>
               </Card>
 
-              <Card style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <Card style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <CardHeader>
                   <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.overdueItems')}</CardTitle>
-                  <CardDescription className="text-[#71717a]">
+                  <CardDescription className="text-tinta-3">
                     {analysis.overdueItems.length} {t('analysis.overdueItems').toLowerCase()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {analysis.overdueItems.length === 0 ? (
-                    <p className="text-sm text-[#a1a1aa] text-center py-4">
+                    <p className="text-sm text-tinta-2 text-center py-4">
                       {t('analysis.noOverdueItems')}
                     </p>
                   ) : (
@@ -343,7 +343,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                         <div
                           key={index}
                           className="flex items-start gap-3 p-3 rounded-lg"
-                          style={{ background: '#18181b', border: '1px solid #27272a' }}
+                          style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}
                         >
                           <Clock className="h-5 w-5 text-red-400 mt-1" />
                           <div className="flex-1 space-y-2">
@@ -355,7 +355,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                                 {item.daysOverdue} días de retraso
                               </p>
                             </div>
-                            <p className="text-sm text-[#a1a1aa]">{item.suggestedAction}</p>
+                            <p className="text-sm text-tinta-2">{item.suggestedAction}</p>
                             <div className="flex gap-2">
                               <Button
                                 size="sm"

@@ -63,7 +63,7 @@ interface KpiPanelData {
 function KpiPanel({ data, locale, onClose }: { data: KpiPanelData; locale: string; onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const toneColor = {
-    indigo: '#6366f1', rose: '#f43f5e', emerald: '#10b981', amber: '#f59e0b',
+    indigo: 'var(--acento)', rose: '#f43f5e', emerald: '#10b981', amber: '#f59e0b',
   }[data.tone]
 
   useEffect(() => {
@@ -77,44 +77,44 @@ function KpiPanel({ data, locale, onClose }: { data: KpiPanelData; locale: strin
       style={{ background: 'rgba(0,0,0,0.55)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}>
       <div className="h-full w-full max-w-sm flex flex-col"
-        style={{ background: '#18181b', borderLeft: '1px solid #27272a' }}>
+        style={{ background: 'var(--superficie)', borderLeft: '1px solid var(--borde)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #27272a' }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--borde)' }}>
           <div className="flex items-center gap-3">
             <span className="text-3xl font-bold tabular-nums" style={{ color: toneColor }}>{data.value}</span>
             <span className="text-base font-semibold text-white">{data.label}</span>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-tinta-3 hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {/* Rule explanation */}
-        <div className="px-5 py-4" style={{ borderBottom: '1px solid #27272a' }}>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Criterio de clasificación</div>
-          <p className="text-sm text-zinc-300 leading-relaxed">{data.rule}</p>
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--borde)' }}>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-tinta-3 mb-2">Criterio de clasificación</div>
+          <p className="text-sm text-tinta-2 leading-relaxed">{data.rule}</p>
         </div>
 
         {/* Project list */}
         <div className="flex-1 overflow-y-auto">
           <div className="px-5 pt-4 pb-2">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-tinta-3">
               Proyectos ({data.projects.length})
             </div>
           </div>
           {data.projects.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-zinc-600">Sin proyectos en esta categoría</div>
+            <div className="px-5 py-8 text-center text-sm text-tinta-3">Sin proyectos en esta categoría</div>
           ) : (
             <div className="px-3 pb-4 space-y-1">
               {data.projects.map((p) => (
                 <a key={p.id} href={`/${locale}/projects/${p.id}`}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800/60 transition-all group">
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-superficie-3/60 transition-all group">
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: toneColor }} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-zinc-100 truncate group-hover:text-white">{p.name}</div>
-                    <div className="text-xs text-zinc-500 truncate">{p.client}</div>
+                    <div className="text-sm font-medium text-tinta truncate group-hover:text-white">{p.name}</div>
+                    <div className="text-xs text-tinta-3 truncate">{p.client}</div>
                   </div>
-                  <ArrowRight size={12} className="text-zinc-700 group-hover:text-zinc-400 flex-shrink-0 transition-colors" />
+                  <ArrowRight size={12} className="text-tinta-3 group-hover:text-tinta-2 flex-shrink-0 transition-colors" />
                 </a>
               ))}
             </div>
@@ -146,12 +146,12 @@ function KpiCard({ icon, label, value, delta, trend, tone = 'indigo', onClick }:
   }[tone]
 
   const badgeClass = trend === 'up' ? 'bg-emerald-900/40 text-emerald-300' :
-    trend === 'down' ? 'bg-rose-900/40 text-rose-300' : 'bg-zinc-800 text-zinc-400'
+    trend === 'down' ? 'bg-rose-900/40 text-rose-300' : 'bg-superficie-3 text-tinta-2'
 
   return (
     <div
       className={`rounded-xl p-5 transition-all ${onClick ? 'cursor-pointer hover:ring-1' : ''}`}
-      style={{ background: '#18181b', border: '1px solid #27272a', ...(onClick ? { ['--tw-ring-color' as any]: colors.bd } : {}) }}
+      style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', ...(onClick ? { ['--tw-ring-color' as any]: colors.bd } : {}) }}
       onClick={onClick}>
       <div className="flex items-start justify-between">
         <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -165,8 +165,8 @@ function KpiCard({ icon, label, value, delta, trend, tone = 'indigo', onClick }:
         </span>
       </div>
       <div className="mt-4 text-3xl font-bold text-white tabular-nums tracking-tight">{value}</div>
-      <div className="text-xs text-zinc-500 mt-1">{label}</div>
-      {onClick && <div className="text-[10px] text-zinc-600 mt-2">Clic para ver proyectos →</div>}
+      <div className="text-xs text-tinta-3 mt-1">{label}</div>
+      {onClick && <div className="text-[10px] text-tinta-3 mt-2">Clic para ver proyectos →</div>}
     </div>
   )
 }
@@ -215,14 +215,14 @@ function HealthGauge({ value }: { value: number }) {
   return (
     <div className="relative flex-shrink-0" style={{ width: 140, height: 140 }}>
       <svg width="140" height="140" viewBox="0 0 140 140">
-        <circle cx="70" cy="70" r={r} fill="none" stroke="#27272a" strokeWidth="10" />
+        <circle cx="70" cy="70" r={r} fill="none" stroke="var(--borde)" strokeWidth="10" />
         <circle cx="70" cy="70" r={r} fill="none" stroke={healthHex(value)} strokeWidth="10"
           strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
           transform="rotate(-90 70 70)" style={{ transition: 'stroke-dashoffset 800ms ease' }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <div className="text-3xl font-bold text-white tabular-nums">{value}</div>
-        <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Health</div>
+        <div className="text-[10px] text-tinta-3 uppercase tracking-wider">Health</div>
       </div>
     </div>
   )
@@ -290,13 +290,13 @@ function ProjectQuickRow({ project, onStatusUpdate, locale }: {
 
   return (
     <a href={`/${locale}/projects/${project.id}`}
-      className="flex items-center gap-3 px-5 py-3 hover:bg-zinc-900/50 transition-all border-t border-zinc-900 cursor-pointer">
+      className="flex items-center gap-3 px-5 py-3 hover:bg-superficie/50 transition-all border-t border-borde cursor-pointer">
       <div className={`pms-priority-bar pms-priority-HIGH`} style={{ height: 30 }} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-zinc-100 truncate">{project.name}</span>
+          <span className="text-sm font-medium text-tinta truncate">{project.name}</span>
         </div>
-        <div className="text-xs text-zinc-500 mt-0.5 flex items-center gap-2">
+        <div className="text-xs text-tinta-3 mt-0.5 flex items-center gap-2">
           <span>{project.client}</span>
           {(project.workItemsCount ?? 0) > 0 && (
             <><span>·</span><span>{project.completedWorkItemsCount ?? 0}/{project.workItemsCount} tareas</span></>
@@ -306,14 +306,14 @@ function ProjectQuickRow({ project, onStatusUpdate, locale }: {
 
       <div className="w-28 flex-shrink-0">
         <div className="pms-progress"><div style={{ width: `${progress}%`, background: healthHex(health) }} /></div>
-        <div className="text-[10px] text-zinc-500 mt-1 text-right">{progress.toFixed(0)}%</div>
+        <div className="text-[10px] text-tinta-3 mt-1 text-right">{progress.toFixed(0)}%</div>
       </div>
 
       <div onClick={(e) => e.preventDefault()}>
         <StatusPill projectId={project.id} status={project.status} onUpdate={onStatusUpdate} />
       </div>
 
-      <ArrowRight size={14} className="text-zinc-700 flex-shrink-0" />
+      <ArrowRight size={14} className="text-tinta-3 flex-shrink-0" />
     </a>
   )
 }
@@ -430,8 +430,8 @@ export function DashboardClient() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center h-64">
-        <div className="flex items-center gap-3 text-zinc-500">
-          <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+        <div className="flex items-center gap-3 text-tinta-3">
+          <div className="w-5 h-5 border-2 border-borde-fuerte border-t-indigo-500 rounded-full animate-spin" />
           Cargando dashboard...
         </div>
       </div>
@@ -501,7 +501,7 @@ export function DashboardClient() {
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: '#09090b' }}>
+    <div className="min-h-screen" style={{ background: 'var(--fondo)' }}>
       {selectedKpi && (
         <KpiPanel data={selectedKpi} locale={locale} onClose={() => setSelectedKpi(null)} />
       )}
@@ -510,11 +510,11 @@ export function DashboardClient() {
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div className="flex items-baseline gap-3">
           <h1 className="text-lg font-semibold text-white">Buen día, {firstName} 👋</h1>
-          <span className="text-sm text-zinc-500">Esto es lo que necesita tu atención hoy.</span>
+          <span className="text-sm text-tinta-3">Esto es lo que necesita tu atención hoy.</span>
         </div>
         <a href={`/${locale}/projects/new`}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: '#6366f1' }}>
+          style={{ background: 'var(--acento)' }}>
           + Nuevo proyecto
         </a>
       </div>
@@ -541,18 +541,18 @@ export function DashboardClient() {
         {/* Portfolio health + AI card */}
         <div className="grid grid-cols-3 gap-4 mt-4">
           {/* Health card */}
-          <div className="col-span-2 rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+          <div className="col-span-2 rounded-xl p-6" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <div className="text-xs text-zinc-500 uppercase tracking-wider">Salud del portafolio</div>
+                <div className="text-xs text-tinta-3 uppercase tracking-wider">Salud del portafolio</div>
                 <div className="text-lg font-semibold text-white mt-1">
                   Vista general · {inProgressCount} proyectos en curso
                 </div>
               </div>
-              <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
+              <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
                 {([7, 30, 90] as const).map((d) => (
                   <button key={d} onClick={() => handlePeriodChange(d)}
-                    className={`px-3 py-1.5 text-xs font-medium transition-all ${period === d ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                    className={`px-3 py-1.5 text-xs font-medium transition-all ${period === d ? 'bg-superficie-3 text-white' : 'text-tinta-3 hover:text-tinta-2'}`}>
                     {d} días
                   </button>
                 ))}
@@ -566,11 +566,11 @@ export function DashboardClient() {
                   { label: 'A tiempo',    color: '#10b981', n: aTiempo },
                   { label: 'En riesgo',   color: '#f59e0b', n: enRiesgo },
                   { label: 'Crítico',     color: '#ef4444', n: critico },
-                  { label: 'Sin alertas', color: '#6366f1', n: sinAlerta },
+                  { label: 'Sin alertas', color: 'var(--acento)', n: sinAlerta },
                 ].map((s) => (
                   <div key={s.label} className="flex items-center gap-1.5">
                     <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
-                    <span className="text-xs text-zinc-400">{s.label}</span>
+                    <span className="text-xs text-tinta-2">{s.label}</span>
                     <span className="text-sm font-semibold text-white ml-1">{s.n}</span>
                   </div>
                 ))}
@@ -582,23 +582,23 @@ export function DashboardClient() {
                     { label: 'A tiempo',    color: '#10b981', value: aTiempo },
                     { label: 'En riesgo',   color: '#f59e0b', value: enRiesgo },
                     { label: 'Crítico',     color: '#ef4444', value: critico },
-                    { label: 'Sin alertas', color: '#6366f1', value: sinAlerta },
+                    { label: 'Sin alertas', color: 'var(--acento)', value: sinAlerta },
                   ]}
                 />
-                <span className="text-[10px] text-zinc-600 mt-1">Distribución de estatus</span>
+                <span className="text-[10px] text-tinta-3 mt-1">Distribución de estatus</span>
               </div>
             </div>
 
             {/* Bar chart — real snapshots */}
-            <div className="mt-6 pt-5" style={{ borderTop: '1px solid #27272a' }}>
+            <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--borde)' }}>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-zinc-400">
+                <span className="text-xs font-medium text-tinta-2">
                   Tendencia de salud · últimos {period} días
                 </span>
-                <span className="text-[10px] text-zinc-600">Índice promedio de avance diario del portafolio</span>
+                <span className="text-[10px] text-tinta-3">Índice promedio de avance diario del portafolio</span>
               </div>
               {snapshots.length === 0 ? (
-                <div className="h-16 flex items-center justify-center text-xs text-zinc-600">
+                <div className="h-16 flex items-center justify-center text-xs text-tinta-3">
                   Sin datos históricos aún — se irán acumulando con el uso diario
                 </div>
               ) : (
@@ -608,14 +608,14 @@ export function DashboardClient() {
                     const label = new Date(s.date + 'T00:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
                     return (
                       <div key={s.date} className="flex flex-col items-center gap-1 group flex-1 min-w-[24px]">
-                        <div className="text-[10px] text-zinc-600 group-hover:text-zinc-400 whitespace-nowrap">{s.healthScore}%</div>
+                        <div className="text-[10px] text-tinta-3 group-hover:text-tinta-2 whitespace-nowrap">{s.healthScore}%</div>
                         <div className="w-full rounded-sm" style={{
                           height: `${Math.max(6, (s.healthScore / 100) * 44)}px`,
                           background: isLast
                             ? 'linear-gradient(180deg,#10b981,#065f46)'
                             : 'linear-gradient(180deg,#6366f1,#3730a3)',
                         }} />
-                        <div className="text-[10px] text-zinc-600 whitespace-nowrap">{label}</div>
+                        <div className="text-[10px] text-tinta-3 whitespace-nowrap">{label}</div>
                       </div>
                     )
                   })}
@@ -637,7 +637,7 @@ export function DashboardClient() {
               </div>
               <div>
                 <div className="text-sm font-semibold text-white">Asistente IA</div>
-                <div className="text-[11px] text-zinc-500">Análisis del portafolio</div>
+                <div className="text-[11px] text-tinta-3">Análisis del portafolio</div>
               </div>
             </div>
 
@@ -646,10 +646,10 @@ export function DashboardClient() {
                 style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)' }}>
                 <Sparkles size={20} className="text-violet-400 opacity-60" />
               </div>
-              <p className="text-sm text-zinc-400 leading-snug">
+              <p className="text-sm text-tinta-2 leading-snug">
                 Aún no hay análisis generado para este portafolio.
               </p>
-              <p className="text-xs text-zinc-600 mt-2 leading-relaxed">
+              <p className="text-xs text-tinta-3 mt-2 leading-relaxed">
                 Explora tus proyectos, revisa los riesgos y bloqueadores para que el asistente pueda generar recomendaciones.
               </p>
             </div>
@@ -666,16 +666,16 @@ export function DashboardClient() {
         {/* My projects + quick actions */}
         <div className="grid grid-cols-3 gap-4 mt-4">
           {/* Projects list */}
-          <div className="col-span-2 rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #27272a' }}>
+          <div className="col-span-2 rounded-xl overflow-hidden" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--borde)' }}>
               <div className="flex items-center gap-3">
                 <h3 className="text-base font-semibold text-white">Proyectos en curso</h3>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-superficie-3 text-tinta-2">
                   {inProgressCount}
                 </span>
               </div>
               <a href={`/${locale}/projects`}
-                className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-all">
+                className="inline-flex items-center gap-1.5 text-xs text-tinta-2 hover:text-white transition-all">
                 Ver todos <ArrowUpRight size={12} />
               </a>
             </div>
@@ -684,7 +684,7 @@ export function DashboardClient() {
                 <ProjectQuickRow key={p.id} project={p} onStatusUpdate={handleStatusUpdate} locale={locale} />
               ))}
               {inProgressProjects.length === 0 && (
-                <div className="px-5 py-8 text-center text-sm text-zinc-500">
+                <div className="px-5 py-8 text-center text-sm text-tinta-3">
                   Sin proyectos en curso por el momento.
                 </div>
               )}
@@ -693,7 +693,7 @@ export function DashboardClient() {
 
           {/* Quick actions */}
           <div className="space-y-3">
-            <div className="rounded-xl p-5" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+            <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
               <h3 className="text-sm font-semibold text-white mb-4">Acciones rápidas</h3>
               <div className="space-y-2">
                 {[
@@ -702,38 +702,38 @@ export function DashboardClient() {
                   { icon: <ShieldAlert size={14} />, label: 'Bloqueadores', sub: `${dashboard.criticalBlockers ?? 0} críticos`, href: `/${locale}/projects` },
                 ].map((a) => (
                   <a key={a.label} href={a.href}
-                    className="flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-zinc-900/70 cursor-pointer">
+                    className="flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-superficie/70 cursor-pointer">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
                       <span className="text-indigo-400">{a.icon}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-200">{a.label}</div>
-                      <div className="text-xs text-zinc-500">{a.sub}</div>
+                      <div className="text-sm font-medium text-tinta">{a.label}</div>
+                      <div className="text-xs text-tinta-3">{a.sub}</div>
                     </div>
-                    <ArrowRight size={12} className="text-zinc-600" />
+                    <ArrowRight size={12} className="text-tinta-3" />
                   </a>
                 ))}
               </div>
             </div>
 
             {/* Stats summary */}
-            <div className="rounded-xl p-5" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+            <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
               <h3 className="text-sm font-semibold text-white mb-4">Resumen</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500">Tasa de completitud</span>
+                  <span className="text-xs text-tinta-3">Tasa de completitud</span>
                   <span className="text-sm font-semibold text-white">{(dashboard.completionRate ?? 0).toFixed(1)}%</span>
                 </div>
                 <div className="pms-progress">
                   <div style={{ width: `${dashboard.completionRate ?? 0}%`, background: healthHex(dashboard.completionRate ?? 0) }} />
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-zinc-500">Riesgos altos</span>
+                  <span className="text-xs text-tinta-3">Riesgos altos</span>
                   <span className="text-sm font-semibold text-amber-300">{dashboard.highRisks ?? 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500">Total proyectos</span>
+                  <span className="text-xs text-tinta-3">Total proyectos</span>
                   <span className="text-sm font-semibold text-white">{projects.length}</span>
                 </div>
               </div>

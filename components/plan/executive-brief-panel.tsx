@@ -24,7 +24,7 @@ const MARGIN_TONE: Readonly<Record<MarginState, { label: string; className: stri
   HOLGADO: { label: 'Con margen', className: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
   JUSTO: { label: 'Sin margen', className: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
   EN_DEUDA: { label: 'Después de la fecha', className: 'text-red-400 border-red-500/30 bg-red-500/10' },
-  SIN_COMPROMISO: { label: 'Sin fecha comprometida', className: 'text-zinc-400 border-zinc-600/40 bg-zinc-500/10' },
+  SIN_COMPROMISO: { label: 'Sin fecha comprometida', className: 'text-tinta-2 border-borde-fuerte/40 bg-zinc-500/10' },
 }
 
 export function ExecutiveBriefPanel({ brief, projectName }: ExecutiveBriefPanelProps) {
@@ -33,10 +33,10 @@ export function ExecutiveBriefPanel({ brief, projectName }: ExecutiveBriefPanelP
   return (
     <section aria-labelledby="titulo-vista-ejecutiva" className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 id="titulo-vista-ejecutiva" className="text-2xl font-semibold text-zinc-100">
+        <h1 id="titulo-vista-ejecutiva" className="text-2xl font-semibold text-tinta">
           {projectName}
         </h1>
-        <p className="text-sm text-zinc-400">Al {brief.asOf}</p>
+        <p className="text-sm text-tinta-2">Al {brief.asOf}</p>
       </header>
 
       {/* 1 y 2 · La fecha y el margen, juntos porque se leen juntos. */}
@@ -57,9 +57,9 @@ export function ExecutiveBriefPanel({ brief, projectName }: ExecutiveBriefPanelP
       </div>
 
       {/* El informe en prosa: es lo que se lee en voz alta en el comité. */}
-      <div className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-[#18181b] p-5">
+      <div className="flex flex-col gap-3 rounded-lg border border-borde bg-superficie p-5">
         {brief.paragraphs.map((parrafo) => (
-          <p key={parrafo.slice(0, 48)} className="text-sm leading-relaxed text-zinc-300">
+          <p key={parrafo.slice(0, 48)} className="text-sm leading-relaxed text-tinta-2">
             {parrafo}
           </p>
         ))}
@@ -67,9 +67,9 @@ export function ExecutiveBriefPanel({ brief, projectName }: ExecutiveBriefPanelP
 
       {/* 3 · Qué lo puede mover. */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium text-zinc-100">Qué puede mover la fecha</h2>
+        <h2 className="text-lg font-medium text-tinta">Qué puede mover la fecha</h2>
         {brief.whatCanMoveIt.length === 0 ? (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-tinta-2">
             Hoy no hay compromisos pendientes que detengan otras tareas.
           </p>
         ) : (
@@ -83,7 +83,7 @@ export function ExecutiveBriefPanel({ brief, projectName }: ExecutiveBriefPanelP
 
       {/* 4 · Qué depende del cliente. */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium text-zinc-100">Cómo se reparte</h2>
+        <h2 className="text-lg font-medium text-tinta">Cómo se reparte</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Tarjeta
             titulo="En manos del cliente"
@@ -115,24 +115,24 @@ function Tarjeta({
   etiqueta?: string
 }) {
   return (
-    <div className={`flex flex-col gap-1 rounded-lg border p-4 ${className ?? 'border-zinc-800 bg-[#18181b]'}`}>
-      <p className="text-xs uppercase tracking-wide text-zinc-400">{titulo}</p>
+    <div className={`flex flex-col gap-1 rounded-lg border p-4 ${className ?? 'border-borde bg-superficie'}`}>
+      <p className="text-xs uppercase tracking-wide text-tinta-2">{titulo}</p>
       <p className="text-xl font-semibold">{valor}</p>
       {etiqueta ? <p className="text-xs font-medium">{etiqueta}</p> : null}
-      <p className="text-xs text-zinc-400">{detalle}</p>
+      <p className="text-xs text-tinta-2">{detalle}</p>
     </div>
   )
 }
 
 function Riesgo({ riesgo }: { riesgo: RiskItem }) {
   return (
-    <li className="flex flex-col gap-1 rounded-lg border border-zinc-800 bg-[#18181b] p-4">
+    <li className="flex flex-col gap-1 rounded-lg border border-borde bg-superficie p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="font-medium text-zinc-100">{riesgo.name}</span>
-        <span className="text-xs text-zinc-400">Para el {riesgo.dueDate}</span>
+        <span className="font-medium text-tinta">{riesgo.name}</span>
+        <span className="text-xs text-tinta-2">Para el {riesgo.dueDate}</span>
       </div>
-      <p className="text-sm text-zinc-300">{riesgo.why}</p>
-      <div className="flex flex-wrap gap-3 text-xs text-zinc-400">
+      <p className="text-sm text-tinta-2">{riesgo.why}</p>
+      <div className="flex flex-wrap gap-3 text-xs text-tinta-2">
         <span>{riesgo.owner ?? 'Sin responsable nombrado'}</span>
         <span>·</span>
         <span>

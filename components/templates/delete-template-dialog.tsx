@@ -95,8 +95,8 @@ export function DeleteTemplateDialog({
           </div>
         </DialogHeader>
 
-        <div id="delete-template-description" className="pt-4 space-y-3 text-sm text-[#a1a1aa]">
-          <div className="text-[#a1a1aa]">
+        <div id="delete-template-description" className="pt-4 space-y-3 text-sm text-tinta-2">
+          <div className="text-tinta-2">
             {t('confirmations.deleteTemplate')}
           </div>
           {templateName && (

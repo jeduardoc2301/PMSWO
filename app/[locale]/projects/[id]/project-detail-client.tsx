@@ -36,7 +36,7 @@ import { ApplyTemplateDialog } from '@/components/templates/apply-template-dialo
 // pedido y que ni siquiera está a la vista. Cargándola aparte, la barra aparece y luego llega ella.
 const ProjectBurndownChart = dynamic(
   () => import('@/components/projects/project-burndown-chart').then((m) => m.ProjectBurndownChart),
-  { ssr: false, loading: () => <div className="h-[360px] rounded-xl" style={{ background: '#111113', border: '1px solid #27272a' }} /> },
+  { ssr: false, loading: () => <div className="h-[360px] rounded-xl" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }} /> },
 )
 // La línea de tiempo anterior inventaba las fechas que faltaban con un desplazamiento
 // pseudoaleatorio; la pestaña nueva pide el plan real del proyecto y lo pasa por el motor de
@@ -71,8 +71,8 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; border: string; 
   ACTIVE:    { bg: 'rgba(16,185,129,0.12)',  color: '#6ee7b7', border: 'rgba(16,185,129,0.3)',  label: 'Activo'     },
   PLANNING:  { bg: 'rgba(139,92,246,0.12)',  color: '#c4b5fd', border: 'rgba(139,92,246,0.3)',  label: 'Planeación' },
   ON_HOLD:   { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)',  label: 'En pausa'   },
-  COMPLETED: { bg: 'rgba(99,102,241,0.12)',  color: '#a5b4fc', border: 'rgba(99,102,241,0.3)',  label: 'Completado' },
-  ARCHIVED:  { bg: 'rgba(113,113,122,0.12)', color: '#a1a1aa', border: 'rgba(113,113,122,0.3)', label: 'Archivado'  },
+  COMPLETED: { bg: 'rgba(99,102,241,0.12)',  color: 'var(--acento-tinta)', border: 'rgba(99,102,241,0.3)',  label: 'Completado' },
+  ARCHIVED:  { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)', label: 'Archivado'  },
 }
 
 const TABS: readonly { readonly value: string; readonly label: string }[] = [
@@ -94,12 +94,12 @@ function DarkCard({ title, value, valueColor = '#fff', subtitle, accentColor }: 
 }) {
   return (
     <div className="rounded-xl p-5" style={{
-      background: '#18181b', border: '1px solid #27272a',
+      background: 'var(--superficie)', border: '1px solid var(--borde)',
       ...(accentColor ? { borderLeft: `3px solid ${accentColor}` } : {})
     }}>
-      <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">{title}</p>
+      <p className="text-xs text-tinta-3 uppercase tracking-wider mb-2">{title}</p>
       <p className="text-3xl font-bold tabular-nums" style={{ color: valueColor }}>{value}</p>
-      {subtitle && <p className="text-xs text-zinc-500 mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-tinta-3 mt-1">{subtitle}</p>}
     </div>
   )
 }
@@ -107,7 +107,7 @@ function DarkCard({ title, value, valueColor = '#fff', subtitle, accentColor }: 
 // Small status badge
 function StatusBadge({ value, positive, neutral }: { value: string | number; positive?: boolean; neutral?: boolean }) {
   const bg = positive ? 'rgba(16,185,129,0.12)' : neutral ? 'rgba(113,113,122,0.12)' : 'rgba(245,158,11,0.12)'
-  const color = positive ? '#6ee7b7' : neutral ? '#a1a1aa' : '#fcd34d'
+  const color = positive ? '#6ee7b7' : neutral ? 'var(--tinta-2)' : '#fcd34d'
   const border = positive ? 'rgba(16,185,129,0.3)' : neutral ? 'rgba(113,113,122,0.3)' : 'rgba(245,158,11,0.3)'
   return (
     <span className="text-[11px] px-2 py-0.5 rounded-full font-medium"
@@ -120,8 +120,8 @@ function StatusBadge({ value, positive, neutral }: { value: string | number; pos
 // Executive/Tactical question card
 function QuestionCard({ title, accentColor, children }: { title: string; accentColor: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl p-5" style={{ background: '#111113', border: '1px solid #27272a', borderLeft: `3px solid ${accentColor}` }}>
-      <h3 className="text-sm font-semibold text-zinc-300 mb-4">{title}</h3>
+    <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', borderLeft: `3px solid ${accentColor}` }}>
+      <h3 className="text-sm font-semibold text-tinta-2 mb-4">{title}</h3>
       {children}
     </div>
   )
@@ -681,21 +681,21 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     })
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center gap-3 text-zinc-500" style={{ background: '#09090b' }}>
-      <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center gap-3 text-tinta-3" style={{ background: 'var(--fondo)' }}>
+      <div className="w-5 h-5 border-2 border-borde-fuerte border-t-indigo-500 rounded-full animate-spin" />
       {t('loadingProject')}
     </div>
   )
 
   if (error || !project) return (
-    <div className="p-8 min-h-screen" style={{ background: '#09090b' }}>
+    <div className="p-8 min-h-screen" style={{ background: 'var(--fondo)' }}>
       <div className="rounded-xl p-4 text-sm text-rose-400 mb-4"
         style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
         {error || t('projectNotFound')}
       </div>
       <button onClick={() => router.push(`/${locale}/projects`)}
-        className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
-        style={{ border: '1px solid #27272a' }}>
+        className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+        style={{ border: '1px solid var(--borde)' }}>
         {t('backToProjects')}
       </button>
     </div>
@@ -705,15 +705,15 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const completionPct = metrics ? Math.round(metrics.completionRate) : 0
 
   return (
-    <div className="min-h-screen" style={{ background: '#09090b' }}>
+    <div className="min-h-screen" style={{ background: 'var(--fondo)' }}>
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div className="flex items-center gap-4 min-w-0">
           <button onClick={() => router.push(`/${locale}/projects`)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all flex-shrink-0">
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all flex-shrink-0">
             <ArrowLeft size={16} />
           </button>
-          <div className="text-sm text-zinc-500 flex-shrink-0">Proyectos /</div>
+          <div className="text-sm text-tinta-3 flex-shrink-0">Proyectos /</div>
           <h1 className="text-base font-semibold text-white truncate">{project.name}</h1>
           <span className="text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
             style={{ background: statusStyle.bg, color: statusStyle.color, border: `1px solid ${statusStyle.border}` }}>
@@ -727,7 +727,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           <AIReportDialog projectId={projectId} />
           <button onClick={() => router.push(`/${locale}/projects/${projectId}/edit`)}
             className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: '#6366f1' }}>
+            style={{ background: 'var(--acento)' }}>
             <Pencil size={14} /> {t('editProject')}
           </button>
           {canArchive && !project.archived && (
@@ -755,7 +755,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
               </div>
               <div>
                 <h2 className="text-base font-semibold text-white">Eliminar proyecto</h2>
-                <p className="text-sm text-zinc-400 mt-1">
+                <p className="text-sm text-tinta-2 mt-1">
                   ¿Estás seguro que deseas eliminar <span className="text-white font-medium">{project.name}</span>?
                   El proyecto quedará inactivo y no aparecerá en la lista. Esta acción se puede revertir.
                 </p>
@@ -765,8 +765,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-zinc-400 hover:text-white transition-all"
-                style={{ border: '1px solid #27272a' }}
+                className="h-9 px-4 rounded-lg text-sm font-medium text-tinta-2 hover:text-white transition-all"
+                style={{ border: '1px solid var(--borde)' }}
               >
                 Cancelar
               </button>
@@ -789,11 +789,11 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
       <div className="p-8 space-y-5">
         {/* Project info strip */}
-        <div className="rounded-xl p-5" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h2 className="text-xl font-bold text-white tracking-tight truncate">{project.name}</h2>
-              {project.description && <p className="text-sm text-zinc-400 mt-1 line-clamp-2">{project.description}</p>}
+              {project.description && <p className="text-sm text-tinta-2 mt-1 line-clamp-2">{project.description}</p>}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 mt-4">
@@ -802,9 +802,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
               { l: t('startDate'),       v: formatDate(project.startDate) },
               { l: t('estimatedEndDate'), v: formatDate(project.estimatedEndDate) },
             ].map(s => (
-              <div key={s.l} className="rounded-lg p-3" style={{ background: '#111113', border: '1px solid #27272a' }}>
-                <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{s.l}</p>
-                <p className="text-sm font-semibold text-zinc-100 mt-1">{s.v}</p>
+              <div key={s.l} className="rounded-lg p-3" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+                <p className="text-[11px] text-tinta-3 uppercase tracking-wider">{s.l}</p>
+                <p className="text-sm font-semibold text-tinta mt-1">{s.v}</p>
               </div>
             ))}
           </div>
@@ -824,21 +824,21 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
               subtitle={t('highPriority')} />
             <DarkCard title={t('averageBlockerResolutionTime')}
               value={`${Math.round(metrics.averageBlockerResolutionTimeHours)}h`}
-              valueColor="#6366f1" subtitle={t('averageTime')} />
+              valueColor="var(--acento)" subtitle={t('averageTime')} />
           </div>
         )}
 
         {/* Tabs */}
-        <div className="rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           {/* Tab bar. El refresco va aquí —y no dentro de cada pestaña— porque recarga el
               proyecto entero: las seis vistas leen del mismo plan (§10.5). */}
-          <div className="flex items-center overflow-x-auto" style={{ borderBottom: '1px solid #27272a' }}>
+          <div className="flex items-center overflow-x-auto" style={{ borderBottom: '1px solid var(--borde)' }}>
             {pestanasVisibles.map(tab => (
               <button key={tab.value} onClick={() => setActiveTab(tab.value)}
                 className="px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
                 style={activeTab === tab.value
-                  ? { color: '#a5b4fc', borderBottom: '2px solid #6366f1' }
-                  : { color: '#71717a', borderBottom: '2px solid transparent' }}>
+                  ? { color: 'var(--acento-tinta)', borderBottom: '2px solid var(--acento)' }
+                  : { color: 'var(--tinta-3)', borderBottom: '2px solid transparent' }}>
                 {tab.label}
               </button>
             ))}
@@ -873,9 +873,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                               value={isOnTrack ? t('executiveDashboard.status.onTime') : daysRemaining > 0 ? t('executiveDashboard.status.atRisk') : t('executiveDashboard.status.delayed')}
                               positive={!!isOnTrack} neutral={!isOnTrack && daysRemaining <= 0} />
                           </div>
-                          <p className="text-xs text-zinc-500">{t('executiveDashboard.labels.deadline')}: {formatDate(project.estimatedEndDate)}</p>
+                          <p className="text-xs text-tinta-3">{t('executiveDashboard.labels.deadline')}: {formatDate(project.estimatedEndDate)}</p>
                           {metrics && (
-                            <p className="text-sm text-zinc-400">
+                            <p className="text-sm text-tinta-2">
                               {isOnTrack
                                 ? t('executiveDashboard.messages.onTrack', { completion: metrics.completionRate.toFixed(0) })
                                 : t('executiveDashboard.messages.needAcceleration', { completion: metrics.completionRate.toFixed(0) })}
@@ -892,12 +892,12 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-2xl font-bold text-white">{metrics.completionRate.toFixed(0)}%</span>
-                          <span className="text-xs text-zinc-500">{metrics.completedWorkItems}/{metrics.totalWorkItems} {t('executiveDashboard.labels.tasks')}</span>
+                          <span className="text-xs text-tinta-3">{metrics.completedWorkItems}/{metrics.totalWorkItems} {t('executiveDashboard.labels.tasks')}</span>
                         </div>
                         <div className="pms-progress">
                           <div style={{ width: `${metrics.completionRate}%`, background: '#10b981' }} />
                         </div>
-                        <p className="text-sm text-zinc-400">{metrics.totalWorkItems - metrics.completedWorkItems} {t('executiveDashboard.labels.pendingTasks')}</p>
+                        <p className="text-sm text-tinta-2">{metrics.totalWorkItems - metrics.completedWorkItems} {t('executiveDashboard.labels.pendingTasks')}</p>
                       </div>
                     )}
                   </QuestionCard>
@@ -912,13 +912,13 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                             value={metrics.activeBlockers === 0 ? t('executiveDashboard.status.noBlockers') : metrics.activeBlockers <= 2 ? t('executiveDashboard.status.underControl') : t('critical')}
                             positive={metrics.activeBlockers === 0} neutral={metrics.activeBlockers > 2} />
                         </div>
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-tinta-2">
                           {metrics.activeBlockers === 0
                             ? t('executiveDashboard.messages.noImpediments')
                             : `${metrics.activeBlockers} ${metrics.activeBlockers > 1 ? t('executiveDashboard.labels.impedimentsPlural') : t('executiveDashboard.labels.impediments')} ${metrics.activeBlockers > 1 ? t('executiveDashboard.labels.requiresAttentionPlural') : t('executiveDashboard.labels.requiresAttention')}.`}
                         </p>
                         {metrics.averageBlockerResolutionTimeHours > 0 && (
-                          <p className="text-xs text-zinc-500">{t('executiveDashboard.labels.averageResolutionTime')}: {Math.round(metrics.averageBlockerResolutionTimeHours)}h</p>
+                          <p className="text-xs text-tinta-3">{t('executiveDashboard.labels.averageResolutionTime')}: {Math.round(metrics.averageBlockerResolutionTimeHours)}h</p>
                         )}
                       </div>
                     )}
@@ -929,12 +929,12 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     {metrics && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-2xl font-bold" style={{ color: metrics.highPriorityRisks > 0 ? '#fbbf24' : '#10b981' }}>{metrics.highPriorityRisks}</span>
+                          <span className="text-2xl font-bold" style={{ color: metrics.highPriorityRisks > 0 ? 'var(--aviso)' : '#10b981' }}>{metrics.highPriorityRisks}</span>
                           <StatusBadge
                             value={metrics.highPriorityRisks === 0 ? t('executiveDashboard.status.lowRisk') : metrics.highPriorityRisks <= 2 ? t('executiveDashboard.status.moderateRisk') : t('executiveDashboard.status.highRisk')}
                             positive={metrics.highPriorityRisks === 0} neutral={metrics.highPriorityRisks > 2} />
                         </div>
-                        <p className="text-sm text-zinc-400">
+                        <p className="text-sm text-tinta-2">
                           {metrics.highPriorityRisks === 0
                             ? t('executiveDashboard.messages.noHighPriorityRisks')
                             : `${metrics.highPriorityRisks} ${metrics.highPriorityRisks > 1 ? t('executiveDashboard.labels.highPriorityRisksPlural') : t('executiveDashboard.labels.highPriorityRisk')}.`}
@@ -953,12 +953,12 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     ((metrics.highPriorityRisks === 0 ? 100 : Math.max(0, 100 - metrics.highPriorityRisks * 15)) * 0.2) +
                     ((daysRemaining > 0 ? 100 : 0) * 0.1)
                   )
-                  const hColor = healthScore >= 80 ? '#10b981' : healthScore >= 60 ? '#6366f1' : healthScore >= 40 ? '#f59e0b' : '#ef4444'
+                  const hColor = healthScore >= 80 ? '#10b981' : healthScore >= 60 ? 'var(--acento)' : healthScore >= 40 ? '#f59e0b' : '#ef4444'
                   const hLabel = healthScore >= 80 ? t('executiveDashboard.health.excellent') : healthScore >= 60 ? t('executiveDashboard.health.good') : healthScore >= 40 ? t('executiveDashboard.health.fair') : t('executiveDashboard.health.critical')
                   const hMsg = healthScore >= 80 ? t('executiveDashboard.health.excellentMessage') : healthScore >= 60 ? t('executiveDashboard.health.goodMessage') : healthScore >= 40 ? t('executiveDashboard.health.fairMessage') : t('executiveDashboard.health.criticalMessage')
                   return (
                     <div className="rounded-xl p-5" style={{ background: 'linear-gradient(135deg,#0f0e1a,#13101f)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                      <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-4">{t('executiveDashboard.health.title')}</h3>
+                      <h3 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider mb-4">{t('executiveDashboard.health.title')}</h3>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-3xl font-bold" style={{ color: hColor }}>{healthScore.toFixed(0)}/100</span>
                         <span className="text-lg font-semibold" style={{ color: hColor }}>{hLabel}</span>
@@ -966,7 +966,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       <div className="pms-progress mb-3" style={{ height: 8 }}>
                         <div style={{ width: `${healthScore}%`, background: hColor }} />
                       </div>
-                      <p className="text-sm text-zinc-400">{hMsg}</p>
+                      <p className="text-sm text-tinta-2">{hMsg}</p>
                     </div>
                   )
                 })()}
@@ -998,7 +998,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                         sub: t('tacticalDashboard.labels.lastSevenDays'),
                       },
                       {
-                        title: t('tacticalDashboard.questions.upcomingTasks'), color: '#6366f1',
+                        title: t('tacticalDashboard.questions.upcomingTasks'), color: 'var(--acento)',
                         value: tacticalMetrics?.upcomingTasks ?? 0,
                         badge: (tacticalMetrics?.upcomingTasks ?? 0) === 0 ? t('tacticalDashboard.status.nothingUpcoming') : (tacticalMetrics?.upcomingTasks ?? 0) <= 5 ? t('tacticalDashboard.status.fewUpcoming') : t('tacticalDashboard.status.manyUpcoming'),
                         ok: true,
@@ -1025,7 +1025,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                             <span className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</span>
                             <StatusBadge value={item.badge} positive={item.ok} />
                           </div>
-                          <p className="text-xs text-zinc-400">{item.sub}</p>
+                          <p className="text-xs text-tinta-2">{item.sub}</p>
                         </div>
                       </QuestionCard>
                     ))}
@@ -1044,8 +1044,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                 )}
 
                 {/* Quick actions */}
-                <div className="rounded-xl p-5" style={{ background: '#111113', border: '1px solid #27272a' }}>
-                  <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-4">{t('executiveDashboard.quickActions.title')}</h3>
+                <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+                  <h3 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider mb-4">{t('executiveDashboard.quickActions.title')}</h3>
                   <div className="grid grid-cols-4 gap-3">
                     {[
                       { label: t('executiveDashboard.quickActions.viewTasks'),    tab: 'work-items' },
@@ -1054,8 +1054,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       { label: t('executiveDashboard.quickActions.viewKanban'),   tab: 'kanban'     },
                     ].map(a => (
                       <button key={a.tab} onClick={() => setActiveTab(a.tab)}
-                        className="h-9 rounded-lg text-sm text-zinc-300 hover:text-white hover:border-zinc-600 transition-all"
-                        style={{ border: '1px solid #27272a' }}>
+                        className="h-9 rounded-lg text-sm text-tinta-2 hover:text-white hover:border-borde-fuerte transition-all"
+                        style={{ border: '1px solid var(--borde)' }}>
                         {a.label}
                       </button>
                     ))}
@@ -1094,7 +1094,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       onCambio={handleWorkItemCreated}
                     />
                   </div>
-                : <div className="text-center py-12 text-zinc-500">{t('loadingKanbanBoard')}</div>
+                : <div className="text-center py-12 text-tinta-3">{t('loadingKanbanBoard')}</div>
             )}
 
             {/* ── WORK ITEMS ── */}
@@ -1109,7 +1109,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     onWorkItemCreated={handleWorkItemCreated} editDatesData={editDatesData}
                     onEditDatesDataUsed={() => setEditDatesData(null)} canCreateWorkItems={canCreateWorkItems}
                     onApplyTemplate={() => setApplyTemplateDialogOpen(true)} />
-                : <div className="text-center py-12 text-zinc-500">{t('loadingWorkItems', { defaultValue: 'Cargando elementos de trabajo...' })}</div>
+                : <div className="text-center py-12 text-tinta-3">{t('loadingWorkItems', { defaultValue: 'Cargando elementos de trabajo...' })}</div>
             )}
 
             {/* ── BLOCKERS ── */}

@@ -76,13 +76,13 @@ export function ParentPicker({
 
   return (
     <div role="group" aria-labelledby={idEtiqueta} className="flex flex-col gap-1.5">
-      <p id={idEtiqueta} className="text-xs uppercase tracking-wide text-zinc-400">
+      <p id={idEtiqueta} className="text-xs uppercase tracking-wide text-tinta-2">
         {label}
       </p>
 
       {value !== null ? (
-        <div className="flex items-center gap-2 rounded border border-[#6366f1]/40 bg-[#6366f1]/10 px-2 py-1.5">
-          <span className="min-w-0 flex-1 truncate text-sm text-zinc-100">
+        <div className="flex items-center gap-2 rounded border border-acento/40 bg-acento/10 px-2 py-1.5">
+          <span className="min-w-0 flex-1 truncate text-sm text-tinta">
             {/* El padre puede no estar en la lista —se dio de baja, o el tablero todavía no llega—;
                 decirlo con palabras deja soltarlo, que es la única salida útil. */}
             {elegido ? elegido.title : 'La línea padre no está en la lista'}
@@ -92,7 +92,7 @@ export function ParentPicker({
             aria-label="Soltar el padre elegido"
             disabled={disabled}
             onClick={() => elegir(null)}
-            className="shrink-0 text-zinc-400 hover:text-zinc-100 disabled:opacity-50"
+            className="shrink-0 text-tinta-2 hover:text-tinta disabled:opacity-50"
           >
             ✕
           </button>
@@ -106,11 +106,11 @@ export function ParentPicker({
             disabled={disabled}
             placeholder="Buscar la línea por nombre (mínimo 2 letras)..."
             aria-label="Buscar la línea padre"
-            className="rounded border border-zinc-700 bg-[#18181b] px-2 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 focus:border-[#6366f1] focus:outline-none disabled:opacity-50"
+            className="rounded border border-borde-fuerte bg-superficie px-2 py-1.5 text-sm text-tinta placeholder-zinc-600 focus:border-acento focus:outline-none disabled:opacity-50"
           />
 
           {coincidencias.length > 0 ? (
-            <ul className="flex max-h-44 flex-col overflow-y-auto rounded border border-zinc-800">
+            <ul className="flex max-h-44 flex-col overflow-y-auto rounded border border-borde">
               {coincidencias.map((opcion) => (
                 <li key={opcion.id}>
                   <button
@@ -118,7 +118,7 @@ export function ParentPicker({
                     disabled={disabled}
                     onClick={() => elegir(opcion.id)}
                     style={{ paddingLeft: SANGRIA_BASE + opcion.level * SANGRIA_POR_NIVEL }}
-                    className="flex w-full items-baseline gap-2 py-1.5 pr-2 text-left text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50"
+                    className="flex w-full items-baseline gap-2 py-1.5 pr-2 text-left text-sm text-tinta-2 hover:bg-superficie-3 hover:text-tinta disabled:opacity-50"
                   >
                     <span className="min-w-0 flex-1 truncate">{opcion.title}</span>
                   </button>
@@ -126,14 +126,14 @@ export function ParentPicker({
               ))}
             </ul>
           ) : busqueda.trim().length >= MINIMO_LETRAS ? (
-            <p className="text-xs text-zinc-500">Ninguna línea coincide.</p>
+            <p className="text-xs text-tinta-3">Ninguna línea coincide.</p>
           ) : null}
 
           <button
             type="button"
             disabled={disabled}
             onClick={() => elegir(null)}
-            className="self-start rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50"
+            className="self-start rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3 hover:text-tinta disabled:opacity-50"
           >
             Sin padre (nivel superior)
           </button>

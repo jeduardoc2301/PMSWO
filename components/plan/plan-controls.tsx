@@ -155,7 +155,7 @@ export function PlanControls({
     onFilterChange(armarFiltro(naturaleza, parte === valor ? null : valor))
 
   return (
-    <div className="flex flex-wrap items-end gap-x-6 gap-y-4 rounded-lg border border-[#27272a] bg-[#18181b] px-4 py-3">
+    <div className="flex flex-wrap items-end gap-x-6 gap-y-4 rounded-lg border border-borde bg-superficie px-4 py-3">
       <Grupo titulo="Nivel de detalle">
         {nivelesDe(nivelMaximo).map((opcion) => (
           // El nivel nunca se apaga: siempre hay una profundidad puesta, aunque sea la máxima.
@@ -245,7 +245,7 @@ export function PlanControls({
       </Grupo>
 
       {/* Sin este rótulo, un filtro encendido se ve igual que un plan corto. */}
-      <p className="ml-auto text-xs text-zinc-400">{rotuloDeConteo(visibleRows, totalRows)}</p>
+      <p className="ml-auto text-xs text-tinta-2">{rotuloDeConteo(visibleRows, totalRows)}</p>
     </div>
   )
 }
@@ -267,10 +267,10 @@ function Grupo({
 }) {
   return (
     <fieldset className="m-0 min-w-0 border-0 p-0">
-      <legend className="mb-1 p-0 text-[11px] uppercase tracking-wide text-zinc-400">{titulo}</legend>
+      <legend className="mb-1 p-0 text-[11px] uppercase tracking-wide text-tinta-2">{titulo}</legend>
       <div className="flex flex-wrap items-center gap-1">
         {children}
-        {nota ? <span className="text-xs text-zinc-400">{nota}</span> : null}
+        {nota ? <span className="text-xs text-tinta-2">{nota}</span> : null}
       </div>
     </fieldset>
   )
@@ -299,8 +299,8 @@ function Boton({
       onClick={onClick}
       className={`rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:ring-offset-[#18181b] ${
         activo
-          ? 'border-[#6366f1] bg-[#6366f1] text-zinc-100'
-          : 'border-[#27272a] bg-[#111113] text-zinc-300 hover:border-[#6366f1] hover:text-zinc-100'
+          ? 'border-acento bg-acento text-tinta'
+          : 'border-borde bg-superficie text-tinta-2 hover:border-acento hover:text-tinta'
       }`}
     >
       {children}

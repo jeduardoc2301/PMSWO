@@ -55,9 +55,9 @@ import { CSS } from '@dnd-kit/utilities'
 import React from 'react'
 
 const STATUS_STYLE: Record<WorkItemStatus, React.CSSProperties> = {
-  [WorkItemStatus.BACKLOG]: { background: 'rgba(113,113,122,0.2)', color: '#a1a1aa', border: '1px solid rgba(113,113,122,0.35)' },
-  [WorkItemStatus.TODO]: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' },
-  [WorkItemStatus.IN_PROGRESS]: { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' },
+  [WorkItemStatus.BACKLOG]: { background: 'rgba(113,113,122,0.2)', color: 'var(--tinta-2)', border: '1px solid rgba(113,113,122,0.35)' },
+  [WorkItemStatus.TODO]: { background: 'rgba(99,102,241,0.15)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' },
+  [WorkItemStatus.IN_PROGRESS]: { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(245,158,11,0.3)' },
   [WorkItemStatus.BLOCKED]: { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' },
   [WorkItemStatus.DONE]: { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' },
 }
@@ -65,8 +65,8 @@ const STATUS_STYLE: Record<WorkItemStatus, React.CSSProperties> = {
 const PRIORITY_STYLE: Record<WorkItemPriority, React.CSSProperties> = {
   [WorkItemPriority.CRITICAL]: { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' },
   [WorkItemPriority.HIGH]: { background: 'rgba(249,115,22,0.15)', color: '#fb923c', border: '1px solid rgba(249,115,22,0.3)' },
-  [WorkItemPriority.MEDIUM]: { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' },
-  [WorkItemPriority.LOW]: { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' },
+  [WorkItemPriority.MEDIUM]: { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(245,158,11,0.3)' },
+  [WorkItemPriority.LOW]: { background: 'rgba(99,102,241,0.15)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' },
 }
 
 /**
@@ -101,8 +101,8 @@ const formatDate = (date?: string) => {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#111113',
-  border: '1px solid #27272a',
+  background: 'var(--superficie)',
+  border: '1px solid var(--borde)',
   color: '#e4e4e7',
   borderRadius: 8,
   fontSize: 13,
@@ -133,10 +133,10 @@ function SortableRow({
     <tr
       ref={setNodeRef}
       style={{ ...style, ...(isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid #6366f1' } : {}) }}
-      className="border-b border-zinc-800/60 hover:bg-zinc-900/30 transition-all"
+      className="border-b border-borde/60 hover:bg-superficie/30 transition-all"
     >
       <td className="px-2 py-3.5 w-8">
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-tinta-3 hover:text-tinta-2">
           <GripVertical className="h-4 w-4" />
         </button>
       </td>
@@ -148,13 +148,13 @@ function SortableRow({
           <button
             type="button"
             onClick={() => onAbrirDetalle(item.id)}
-            className="text-left text-sm font-medium text-zinc-100 hover:text-white hover:underline"
+            className="text-left text-sm font-medium text-tinta hover:text-white hover:underline"
             title={item.title}
           >
             {item.title}
           </button>
         ) : (
-          <span className="text-sm font-medium text-zinc-100">{item.title}</span>
+          <span className="text-sm font-medium text-tinta">{item.title}</span>
         )}
       </td>
       <td className="px-4 py-3.5 whitespace-nowrap">
@@ -167,9 +167,9 @@ function SortableRow({
           {getPriorityLabel(item.priority)}
         </span>
       </td>
-      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{item.ownerName}</td>
-      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{formatDate(item.startDate)}</td>
-      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-400">{formatDate(item.estimatedEndDate)}</td>
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-tinta-2">{item.ownerName}</td>
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-tinta-2">{formatDate(item.startDate)}</td>
+      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-tinta-2">{formatDate(item.estimatedEndDate)}</td>
       <td className="px-4 py-3.5 whitespace-nowrap text-right">
         <div className="flex items-center justify-end gap-1">
           {/* Los dos llevaban solo un icono y ningún texto: un lector de pantalla anunciaba
@@ -178,7 +178,7 @@ function SortableRow({
             onClick={() => onEdit(item)}
             aria-label={`Editar «${item.title}»`}
             title="Editar"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
@@ -186,7 +186,7 @@ function SortableRow({
             onClick={() => onDelete(item)}
             aria-label={`Eliminar «${item.title}»`}
             title="Eliminar"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -771,11 +771,11 @@ export function WorkItemsList({
     textAlign: 'left',
     fontSize: 11,
     fontWeight: 600,
-    color: '#71717a',
+    color: 'var(--tinta-3)',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
-    background: '#111113',
-    borderBottom: '1px solid #27272a',
+    background: 'var(--superficie)',
+    borderBottom: '1px solid var(--borde)',
   }
 
   return (
@@ -785,7 +785,7 @@ export function WorkItemsList({
         <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3 w-4 h-4" />
             <input
               placeholder={t('searchPlaceholder', { defaultValue: 'Buscar por título...' })}
               value={searchQuery}
@@ -804,7 +804,7 @@ export function WorkItemsList({
             title="Descarga las líneas que se están viendo, con las columnas de esta tabla"
             style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: lineasPlanas.length === 0 ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: lineasPlanas.length === 0 ? 0.5 : 1 }}
           >
-            <span style={{ color: '#71717a', fontSize: 13 }}>
+            <span style={{ color: 'var(--tinta-3)', fontSize: 13 }}>
               Exportar ({lineasPlanas.length})
             </span>
           </button>
@@ -821,21 +821,21 @@ export function WorkItemsList({
                 data-testid="campos-lista"
                 style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
-                <span style={{ color: '#71717a', fontSize: 13 }}>
+                <span style={{ color: 'var(--tinta-3)', fontSize: 13 }}>
                   Campos ({columnasDeLaTabla.length}) ▾
                 </span>
               </button>
               {camposAbierto ? (
                 <div
                   data-testid="panel-campos-lista"
-                  className="absolute left-0 top-full z-30 mt-1 w-64 rounded-lg border border-zinc-700 bg-[#18181b] p-3 shadow-2xl"
+                  className="absolute left-0 top-full z-30 mt-1 w-64 rounded-lg border border-borde-fuerte bg-superficie p-3 shadow-2xl"
                 >
                   {(['Generales', 'Cronograma', 'Carga de trabajo'] as const).map((grupo) => {
                     const delGrupo = COLUMNAS_DE_LA_LISTA.filter((c) => c.grupo === grupo)
                     if (delGrupo.length === 0) return null
                     return (
                       <div key={grupo} className="mb-2 last:mb-0">
-                        <p className="mb-1 text-[10px] uppercase tracking-wide text-zinc-500">{grupo}</p>
+                        <p className="mb-1 text-[10px] uppercase tracking-wide text-tinta-3">{grupo}</p>
                         {delGrupo.map((c) => (
                           <label key={c.id} className="flex cursor-pointer items-center gap-2 py-0.5">
                             <input
@@ -849,7 +849,7 @@ export function WorkItemsList({
                               onChange={() => onColumnasCambiadas(alternarColumnaDeLaLista(columnasElegidas, c.id))}
                               className="h-3.5 w-3.5 accent-[#6366f1]"
                             />
-                            <span className="text-xs text-zinc-300">{c.etiqueta}</span>
+                            <span className="text-xs text-tinta-2">{c.etiqueta}</span>
                           </label>
                         ))}
                       </div>
@@ -866,31 +866,31 @@ export function WorkItemsList({
               onClick={() => { setStatusDropdownOpen(p => !p); setPriorityDropdownOpen(false) }}
               style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer', minWidth: 160, whiteSpace: 'nowrap' }}
             >
-              <Filter className="h-4 w-4 text-zinc-500" />
-              <span style={{ color: statusFilters.length > 0 ? '#a5b4fc' : '#71717a', fontSize: 13 }}>
+              <Filter className="h-4 w-4 text-tinta-3" />
+              <span style={{ color: statusFilters.length > 0 ? 'var(--acento-tinta)' : 'var(--tinta-3)', fontSize: 13 }}>
                 {t('filterByStatus', { defaultValue: 'Estado' })}
                 {statusFilters.length > 0 && ` (${statusFilters.length})`}
               </span>
-              <ChevronDown className="h-3.5 w-3.5 text-zinc-600 ml-auto" />
+              <ChevronDown className="h-3.5 w-3.5 text-tinta-3 ml-auto" />
             </button>
             {statusDropdownOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: '#18181b', border: '1px solid #27272a', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: 'var(--superficie)', border: '1px solid var(--borde)', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#a1a1aa' }}>{t('filterByStatus', { defaultValue: 'Estado' })}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tinta-2)' }}>{t('filterByStatus', { defaultValue: 'Estado' })}</span>
                   {statusFilters.length > 0 && (
-                    <button onClick={() => setStatusFilters([])} style={{ fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => setStatusFilters([])} style={{ fontSize: 11, color: 'var(--acento)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {t('clearFilters', { defaultValue: 'Limpiar' })}
                     </button>
                   )}
                 </div>
                 {[WorkItemStatus.BACKLOG, WorkItemStatus.TODO, WorkItemStatus.IN_PROGRESS, WorkItemStatus.BLOCKED, WorkItemStatus.DONE].map(status => (
                   <label key={status} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}
-                    className="hover:bg-zinc-800/50">
+                    className="hover:bg-superficie-3/50">
                     <input
                       type="checkbox"
                       checked={statusFilters.includes(status)}
                       onChange={() => toggleStatusFilter(status)}
-                      style={{ accentColor: '#6366f1', width: 14, height: 14 }}
+                      style={{ accentColor: 'var(--acento)', width: 14, height: 14 }}
                     />
                     <span style={{ fontSize: 13, color: '#d4d4d8' }}>{getStatusLabel(status)}</span>
                   </label>
@@ -905,31 +905,31 @@ export function WorkItemsList({
               onClick={() => { setPriorityDropdownOpen(p => !p); setStatusDropdownOpen(false) }}
               style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: 'pointer', minWidth: 160, whiteSpace: 'nowrap' }}
             >
-              <Filter className="h-4 w-4 text-zinc-500" />
-              <span style={{ color: priorityFilters.length > 0 ? '#a5b4fc' : '#71717a', fontSize: 13 }}>
+              <Filter className="h-4 w-4 text-tinta-3" />
+              <span style={{ color: priorityFilters.length > 0 ? 'var(--acento-tinta)' : 'var(--tinta-3)', fontSize: 13 }}>
                 {t('filterByPriority', { defaultValue: 'Prioridad' })}
                 {priorityFilters.length > 0 && ` (${priorityFilters.length})`}
               </span>
-              <ChevronDown className="h-3.5 w-3.5 text-zinc-600 ml-auto" />
+              <ChevronDown className="h-3.5 w-3.5 text-tinta-3 ml-auto" />
             </button>
             {priorityDropdownOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: '#18181b', border: '1px solid #27272a', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50, background: 'var(--superficie)', border: '1px solid var(--borde)', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#a1a1aa' }}>{t('filterByPriority', { defaultValue: 'Prioridad' })}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tinta-2)' }}>{t('filterByPriority', { defaultValue: 'Prioridad' })}</span>
                   {priorityFilters.length > 0 && (
-                    <button onClick={() => setPriorityFilters([])} style={{ fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => setPriorityFilters([])} style={{ fontSize: 11, color: 'var(--acento)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {t('clearFilters', { defaultValue: 'Limpiar' })}
                     </button>
                   )}
                 </div>
                 {[WorkItemPriority.CRITICAL, WorkItemPriority.HIGH, WorkItemPriority.MEDIUM, WorkItemPriority.LOW].map(priority => (
                   <label key={priority} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}
-                    className="hover:bg-zinc-800/50">
+                    className="hover:bg-superficie-3/50">
                     <input
                       type="checkbox"
                       checked={priorityFilters.includes(priority)}
                       onChange={() => togglePriorityFilter(priority)}
-                      style={{ accentColor: '#6366f1', width: 14, height: 14 }}
+                      style={{ accentColor: 'var(--acento)', width: 14, height: 14 }}
                     />
                     <span style={{ fontSize: 13, color: '#d4d4d8' }}>{getPriorityLabel(priority)}</span>
                   </label>
@@ -943,15 +943,15 @@ export function WorkItemsList({
           {canCreateWorkItems && onApplyTemplate && (
             <button
               onClick={onApplyTemplate}
-              style={{ background: 'transparent', border: '1px solid #27272a', color: '#a1a1aa', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-              className="hover:border-zinc-600 hover:text-zinc-200 transition-all"
+              style={{ background: 'transparent', border: '1px solid var(--borde)', color: 'var(--tinta-2)', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              className="hover:border-borde-fuerte hover:text-tinta transition-all"
             >
               {t('applyTemplate', { defaultValue: 'Aplicar Plantilla' })}
             </button>
           )}
           <button
             onClick={() => setCreateDialogOpen(true)}
-            style={{ background: '#6366f1', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ background: 'var(--acento)', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
             className="hover:bg-indigo-500 transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -961,7 +961,7 @@ export function WorkItemsList({
       </div>
 
       {/* Results count */}
-      <div style={{ fontSize: 13, color: '#71717a' }}>
+      <div style={{ fontSize: 13, color: 'var(--tinta-3)' }}>
         {t('showingResults', {
           count: filteredWorkItems.length,
           total: workItems.length,
@@ -983,12 +983,12 @@ export function WorkItemsList({
               const pendingCount = items.filter(i => [WorkItemStatus.BACKLOG, WorkItemStatus.TODO].includes(i.status)).length
 
               return (
-                <div key={phaseName} style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}>
+                <div key={phaseName} style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', borderRadius: 12, overflow: 'hidden' }}>
                   {/* Phase Header */}
                   <button
                     onClick={() => togglePhase(phaseName)}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', background: 'transparent', border: 'none', cursor: 'pointer' }}
-                    className="hover:bg-zinc-800/30 transition-colors"
+                    className="hover:bg-superficie-3/30 transition-colors"
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{
@@ -996,32 +996,32 @@ export function WorkItemsList({
                         background: isNoPhase ? 'rgba(113,113,122,0.2)' : 'rgba(99,102,241,0.2)',
                         border: `1px solid ${isNoPhase ? 'rgba(113,113,122,0.3)' : 'rgba(99,102,241,0.3)'}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: isNoPhase ? '#71717a' : '#a5b4fc',
+                        color: isNoPhase ? 'var(--tinta-3)' : 'var(--acento-tinta)',
                       }}>
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </div>
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {!isNoPhase && <Layers className="h-4 w-4" style={{ color: '#6366f1' }} />}
+                          {!isNoPhase && <Layers className="h-4 w-4" style={{ color: 'var(--acento)' }} />}
                           <span style={{ fontSize: 15, fontWeight: 600, color: '#e4e4e7' }}>{displayName}</span>
                         </div>
-                        <span style={{ fontSize: 12, color: '#71717a' }}>
+                        <span style={{ fontSize: 12, color: 'var(--tinta-3)' }}>
                           {items.length} {items.length === 1 ? 'elemento' : 'elementos'}
                         </span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#71717a' }}>Completados</div>
+                        <div style={{ fontSize: 11, color: 'var(--tinta-3)' }}>Completados</div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: '#34d399' }}>{doneCount}</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#71717a' }}>En Progreso</div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#fbbf24' }}>{inProgressCount}</div>
+                        <div style={{ fontSize: 11, color: 'var(--tinta-3)' }}>En Progreso</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--aviso)' }}>{inProgressCount}</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#71717a' }}>Pendientes</div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#a5b4fc' }}>{pendingCount}</div>
+                        <div style={{ fontSize: 11, color: 'var(--tinta-3)' }}>Pendientes</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--acento-tinta)' }}>{pendingCount}</div>
                       </div>
                     </div>
                   </button>
@@ -1032,7 +1032,7 @@ export function WorkItemsList({
                     // junto a sus hijos, y un div dentro de <table> es HTML inválido que rompe la
                     // hidratación. SortableContext sí puede abrazar al tbody: no pinta DOM propio.
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, phaseName)}>
-                      <div style={{ borderTop: '1px solid #27272a' }}>
+                      <div style={{ borderTop: '1px solid var(--borde)' }}>
                         <table className="w-full">
                           <thead>
                             <tr>
@@ -1072,7 +1072,7 @@ export function WorkItemsList({
         </div>
       ) : (
         /* Flat table view when no phases */
-        <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', borderRadius: 12, overflow: 'hidden' }}>
           <div
             ref={cajaDeFilas}
             data-testid="lista-desplazable"
@@ -1095,7 +1095,7 @@ export function WorkItemsList({
             {/* `table-fixed`: sin esto el navegador reparte el ancho a su gusto y los anchos
                 guardados no se notan — la tabla se «arregla» sola y el tirador parece roto. */}
             <table className={onAnchoChange ? 'w-full table-fixed' : 'w-full'}>
-              <thead className={plana ? 'sticky top-0 z-10 bg-[#18181b]' : ''}>
+              <thead className={plana ? 'sticky top-0 z-10 bg-superficie' : ''}>
                 <tr>
                   {/* Las columnas salen del catálogo y de la preferencia (§6.2). La de acciones no
                       está en el catálogo: no es un dato de la línea, es dónde se pulsa. */}
@@ -1154,18 +1154,18 @@ export function WorkItemsList({
                 {/* La fila de totales del §6.2, arriba y no al pie: con mil trescientas líneas,
                     un total al final es un total que nadie ve. Suma lo filtrado. */}
                 {lineasPlanas.length > 0 ? (
-                  <tr data-testid="fila-total" className="border-b border-zinc-800 bg-zinc-900/40">
+                  <tr data-testid="fila-total" className="border-b border-borde bg-superficie/40">
                     <td className="px-6 py-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-tinta-2">
                         Todas las tareas
                       </span>
-                      <span data-testid="total-lineas" className="ml-2 text-xs tabular-nums text-zinc-400">
+                      <span data-testid="total-lineas" className="ml-2 text-xs tabular-nums text-tinta-2">
                         {total.lineas}
                       </span>
                     </td>
                     {tramoDelMedio > 0 ? (
                     <td className="px-6 py-2" colSpan={tramoDelMedio}>
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-tinta-3">
                         {total.horas > 0
                           ? `${total.horas} h estimadas`
                           : 'sin horas estimadas capturadas'}
@@ -1180,7 +1180,7 @@ export function WorkItemsList({
                             ? 'Avance ponderado por las horas de cada línea'
                             : 'Promedio simple: nadie capturó horas, y sin ellas no hay con qué ponderar'
                         }
-                        className="text-xs tabular-nums text-zinc-400"
+                        className="text-xs tabular-nums text-tinta-2"
                       >
                         {Math.round(total.avance * 100)} %{total.ponderado ? '' : ' (promedio)'}
                       </span>
@@ -1190,7 +1190,7 @@ export function WorkItemsList({
                 {huecoArriba > 0 ? <tr aria-hidden style={{ height: huecoArriba }} /> : null}
                 {lineasPlanas.length === 0 ? (
                   <tr>
-                    <td colSpan={columnasDeLaFila} style={{ padding: '48px 24px', textAlign: 'center', color: '#71717a', fontSize: 14 }}>
+                    <td colSpan={columnasDeLaFila} style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--tinta-3)', fontSize: 14 }}>
                       {searchQuery || statusFilters.length > 0 || priorityFilters.length > 0
                         ? t('noResultsFound', { defaultValue: 'No se encontraron resultados' })
                         : t('noWorkItems')
@@ -1205,19 +1205,19 @@ export function WorkItemsList({
                           key={'g-' + entrada.clave}
                           data-testid={`grupo-${entrada.clave}`}
                           style={{ height: ALTO_DE_FILA }}
-                          className="border-b border-zinc-800 bg-zinc-900/30"
+                          className="border-b border-borde bg-superficie/30"
                         >
                           <td colSpan={columnasDeLaFila} className="px-6 py-0">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-tinta-2">
                               {entrada.clave}
                             </span>
-                            <span className="ml-2 text-xs text-zinc-500">
+                            <span className="ml-2 text-xs text-tinta-3">
                               {entrada.subtotal.lineas} {entrada.subtotal.lineas === 1 ? 'línea' : 'líneas'}
                               {entrada.subtotal.horas > 0 ? ` · ${entrada.subtotal.horas} h` : ''}
                             </span>
                           </td>
                           <td className="px-6 py-2 text-right">
-                            <span data-testid={`subtotal-${entrada.clave}`} className="text-xs tabular-nums text-zinc-400">
+                            <span data-testid={`subtotal-${entrada.clave}`} className="text-xs tabular-nums text-tinta-2">
                               {Math.round(entrada.subtotal.avance * 100)} %
                             </span>
                           </td>
@@ -1233,7 +1233,7 @@ export function WorkItemsList({
                           ...(isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid #6366f1' } : {}),
                           ...(plana ? { height: ALTO_DE_FILA } : {}),
                         }}
-                        className="border-b border-zinc-800/60 hover:bg-zinc-900/30 transition-all"
+                        className="border-b border-borde/60 hover:bg-superficie/30 transition-all"
                       >
                         <td className={plana ? 'px-6 py-0' : 'px-6 py-4'}>
                           {/* Recortado en el formato plano: con cinco mil filas, una que envuelve
@@ -1280,32 +1280,32 @@ export function WorkItemsList({
                           </td>
                         ) : null}
                         {visible('ownerName') ? (
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
                             {item.ownerName}
                           </td>
                         ) : null}
                         {visible('phase') ? (
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
                             {item.phase || '—'}
                           </td>
                         ) : null}
                         {visible('progressPct') ? (
-                          <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
                             {Math.round((item.progressPct ?? 0) * 100)} %
                           </td>
                         ) : null}
                         {visible('startDate') ? (
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
                             {formatDate(item.startDate)}
                           </td>
                         ) : null}
                         {visible('estimatedEndDate') ? (
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
                             {formatDate(item.estimatedEndDate)}
                           </td>
                         ) : null}
                         {visible('estimatedHours') ? (
-                          <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums" style={{ fontSize: 14, color: '#a1a1aa' }}>
+                          <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
                             {item.estimatedHours ?? '—'}
                           </td>
                         ) : null}
@@ -1317,7 +1317,7 @@ export function WorkItemsList({
                               onClick={() => { setSelectedWorkItem(item); setEditDialogOpen(true) }}
                               aria-label={`Editar «${item.title}»`}
                               title="Editar"
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
@@ -1325,7 +1325,7 @@ export function WorkItemsList({
                               onClick={() => { setSelectedWorkItem(item); setDeleteDialogOpen(true) }}
                               aria-label={`Eliminar «${item.title}»`}
                               title="Eliminar"
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

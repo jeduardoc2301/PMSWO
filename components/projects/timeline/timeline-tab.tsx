@@ -15,7 +15,7 @@ interface TimelineTabProps {
 
 type Granularity = 'week' | 'month' | 'quarter'
 
-const PHASE_COLORS = ['#6366f1', '#a78bfa', '#22d3ee', '#10b981', '#f59e0b', '#ef4444']
+const PHASE_COLORS = ['var(--acento)', '#a78bfa', '#22d3ee', '#10b981', '#f59e0b', '#ef4444']
 const PRIORITY_COLOR: Record<string, string> = {
   CRITICAL: '#ef4444', HIGH: '#f97316', MEDIUM: '#f59e0b', LOW: '#22d3ee',
 }
@@ -200,7 +200,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
               <GanttChart size={15} className="text-violet-300" />
               Timeline · {startLabel} → {endLabel}
             </h3>
-            <div className="text-xs text-zinc-500 mt-1">
+            <div className="text-xs text-tinta-3 mt-1">
               {Math.round(projDays)} días · {workItems.length} tareas · {phases.length} fases
             </div>
           </div>
@@ -208,19 +208,19 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
           {/* Right controls */}
           <div className="flex items-center gap-3 flex-wrap">
             {/* Legend */}
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <div className="flex items-center gap-2 text-xs text-tinta-3">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm" style={{ background: '#10b981' }} />Completada
               </span>
-              <span className="text-zinc-700">·</span>
+              <span className="text-tinta-3">·</span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm" style={{ background: 'linear-gradient(90deg,#6366f1,#a78bfa)' }} />En curso
               </span>
-              <span className="text-zinc-700">·</span>
+              <span className="text-tinta-3">·</span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-sm" style={{ background: '#27272a', border: '1px solid #3f3f46' }} />Planeada
+                <span className="w-2 h-2 rounded-sm" style={{ background: 'var(--borde)', border: '1px solid var(--borde-fuerte)' }} />Planeada
               </span>
-              <span className="text-zinc-700">·</span>
+              <span className="text-tinta-3">·</span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm" style={{ background: '#ef4444' }} />Atrasada
               </span>
@@ -233,8 +233,8 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                 <button key={g} onClick={() => setGranularity(g)}
                   className="px-3 py-1.5 font-medium transition-all"
                   style={granularity === g
-                    ? { background: '#27272a', color: '#e4e4e7' }
-                    : { color: '#71717a' }}>
+                    ? { background: 'var(--borde)', color: '#e4e4e7' }
+                    : { color: 'var(--tinta-3)' }}>
                   {g === 'week' ? 'Semana' : g === 'month' ? 'Mes' : 'Trimestre'}
                 </button>
               ))}
@@ -243,20 +243,20 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
             {/* Plegar / desplegar fases */}
             <div className="flex items-center gap-1">
               <button onClick={() => setExpanded(new Set(phases.map((p) => p.name)))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
                 title="Desplegar todas las fases"><ChevronsUpDown size={14} /></button>
               <button onClick={() => setExpanded(new Set())}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
                 title="Plegar todas las fases"><ChevronsDownUp size={14} /></button>
             </div>
 
             {/* Zoom */}
             <div className="flex items-center gap-1">
               <button onClick={() => setZoom((z) => Math.max(0.7, +(z - 0.2).toFixed(1)))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
                 title="Alejar"><ZoomOut size={14} /></button>
               <button onClick={() => setZoom((z) => Math.min(2, +(z + 0.2).toFixed(1)))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
                 title="Acercar"><ZoomIn size={14} /></button>
             </div>
           </div>
@@ -278,7 +278,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
               </div>
               <div>
                 <div className="text-lg font-bold text-white tabular-nums">{v}</div>
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">{l}</div>
+                <div className="text-[10px] text-tinta-3 uppercase tracking-wider">{l}</div>
               </div>
             </div>
           ))}
@@ -292,15 +292,15 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
 
             {/* Sticky header */}
             <div className="sticky top-0 z-20 grid"
-              style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, background: '#0c0c0f', borderBottom: '1px solid #27272a' }}>
-              <div className="px-4 py-3 text-xs text-zinc-500 uppercase tracking-wider font-semibold flex items-center gap-2"
-                style={{ borderRight: '1px solid #27272a' }}>
+              style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, background: '#0c0c0f', borderBottom: '1px solid var(--borde)' }}>
+              <div className="px-4 py-3 text-xs text-tinta-3 uppercase tracking-wider font-semibold flex items-center gap-2"
+                style={{ borderRight: '1px solid var(--borde)' }}>
                 <Layers size={13} /> Fases / Tareas
               </div>
               <div className="flex relative">
                 {cols.map((c, i) => (
-                  <div key={i} className="px-3 py-3 text-xs text-zinc-400 flex items-center"
-                    style={{ width: colWidth, borderRight: '1px solid #27272a', flexShrink: 0 }}>
+                  <div key={i} className="px-3 py-3 text-xs text-tinta-2 flex items-center"
+                    style={{ width: colWidth, borderRight: '1px solid var(--borde)', flexShrink: 0 }}>
                     <span className="font-medium capitalize">{colLabel(c)}</span>
                   </div>
                 ))}
@@ -346,15 +346,15 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                     <div className="grid" style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, borderBottom: '1px solid rgba(39,39,42,0.6)' }}>
                       <button type="button" onClick={() => toggle(g.name)}
                         aria-expanded={isOpen}
-                        className="px-4 py-2.5 flex items-center gap-2.5 text-left w-full hover:bg-zinc-900/60 transition-colors"
-                        style={{ background: '#0d0d11', borderRight: '1px solid #27272a' }}>
+                        className="px-4 py-2.5 flex items-center gap-2.5 text-left w-full hover:bg-superficie/60 transition-colors"
+                        style={{ background: '#0d0d11', borderRight: '1px solid var(--borde)' }}>
                         {isOpen
-                          ? <ChevronDown size={14} className="text-zinc-500 flex-shrink-0" />
-                          : <ChevronRight size={14} className="text-zinc-500 flex-shrink-0" />}
+                          ? <ChevronDown size={14} className="text-tinta-3 flex-shrink-0" />
+                          : <ChevronRight size={14} className="text-tinta-3 flex-shrink-0" />}
                         <div className="w-1 rounded-sm flex-shrink-0" style={{ height: 28, background: phColor, boxShadow: `0 0 12px ${phColor}` }} />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-white truncate">{g.name}</div>
-                          <div className="text-[10px] text-zinc-500 truncate">
+                          <div className="text-[10px] text-tinta-3 truncate">
                             {phItems.length} tareas · {doneCount} completadas · {fmtShort(phStart)} → {fmtShort(phEnd)}
                           </div>
                         </div>
@@ -390,14 +390,14 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                       const hasBlocker = false // real blockers not in WorkItemSummary
 
                       return (
-                        <div key={w.id} className="grid group hover:bg-zinc-900/40 transition-all"
+                        <div key={w.id} className="grid group hover:bg-superficie/40 transition-all"
                           style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, borderBottom: '1px solid rgba(39,39,42,0.4)' }}>
                           {/* Left label */}
-                          <div className="flex items-center gap-2.5 py-2.5" style={{ paddingLeft: 36, paddingRight: 12, borderRight: '1px solid #27272a' }}>
-                            <div className="w-0.5 rounded-full flex-shrink-0" style={{ height: 18, background: PRIORITY_COLOR[w.priority] ?? '#71717a' }} />
+                          <div className="flex items-center gap-2.5 py-2.5" style={{ paddingLeft: 36, paddingRight: 12, borderRight: '1px solid var(--borde)' }}>
+                            <div className="w-0.5 rounded-full flex-shrink-0" style={{ height: 18, background: PRIORITY_COLOR[w.priority] ?? 'var(--tinta-3)' }} />
                             <div className="min-w-0 flex-1">
                               <div className="text-[13px] text-white truncate">{w.title}</div>
-                              <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
+                              <div className="text-[10px] text-tinta-3 flex items-center gap-1.5">
                                 <span>{w.id.slice(0, 8).toUpperCase()}</span>
                                 {isOverdue && <span className="text-rose-400">atrasada</span>}
                               </div>
@@ -436,7 +436,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                             </div>
 
                             {/* End date on hover */}
-                            <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-[10px] text-zinc-400 whitespace-nowrap"
+                            <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-[10px] text-tinta-2 whitespace-nowrap"
                               style={{ left: `calc(${left}% + ${width}%)`, top: '50%', transform: 'translateY(-50%)', paddingLeft: 6 }}>
                               {fmtShort(w._end)}
                             </div>
@@ -450,8 +450,8 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
 
               {/* Milestones strip */}
               <div className="grid" style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, background: '#0d0d11' }}>
-                <div className="px-4 py-3 text-xs text-zinc-500 uppercase tracking-wider font-semibold flex items-center gap-2"
-                  style={{ borderRight: '1px solid #27272a' }}>
+                <div className="px-4 py-3 text-xs text-tinta-3 uppercase tracking-wider font-semibold flex items-center gap-2"
+                  style={{ borderRight: '1px solid var(--borde)' }}>
                   <Flag size={12} className="text-amber-400" /> Hitos
                 </div>
                 <div className="relative" style={{ height: 48 }}>
@@ -463,7 +463,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                     if (left < 0 || left > 100) return null
                     const past = m.date < today
                     const mc   = past ? '#10b981' : '#f59e0b'
-                    const mb   = past ? '#34d399' : '#fbbf24'
+                    const mb   = past ? '#34d399' : 'var(--aviso)'
                     return (
                       <div key={i} className="absolute top-1/2 -translate-y-1/2 group/m"
                         style={{ left: `${left}%` }}>
@@ -472,7 +472,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                         </div>
                         {/* Tooltip */}
                         <div className="absolute opacity-0 group-hover/m:opacity-100 transition-opacity pointer-events-none rounded-md px-2 py-1 text-[10px] text-white whitespace-nowrap z-10"
-                          style={{ bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#18181b', border: '1px solid #3f3f46' }}>
+                          style={{ bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--superficie)', border: '1px solid var(--borde-fuerte)' }}>
                           {m.name} · {fmtShort(m.date)}
                         </div>
                       </div>

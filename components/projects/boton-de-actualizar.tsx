@@ -46,7 +46,7 @@ export function BotonDeActualizar({ cargadoEn, onActualizar, actualizando = fals
       <span
         data-testid="frescura"
         className="text-xs tabular-nums"
-        style={{ color: frescura.vieja ? '#fbbf24' : '#71717a' }}
+        style={{ color: frescura.vieja ? 'var(--aviso)' : 'var(--tinta-3)' }}
         // El texto ya lo dice todo; el color sólo lo subraya. Que la única señal de «esto está
         // viejo» fuera el color dejaría fuera a quien no lo distingue.
         title={frescura.vieja ? 'Puede haber cambios que no estás viendo' : undefined}
@@ -60,7 +60,7 @@ export function BotonDeActualizar({ cargadoEn, onActualizar, actualizando = fals
         disabled={actualizando}
         aria-label="Actualizar los datos de este proyecto"
         title="Vuelve a pedir el proyecto, el tablero y el plan"
-        className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-lg border border-borde-fuerte px-2.5 py-1 text-xs text-tinta hover:border-borde-fuerte hover:bg-superficie-3 disabled:opacity-50"
       >
         {actualizando ? 'Actualizando…' : 'Actualizar'}
       </button>

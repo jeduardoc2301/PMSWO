@@ -181,7 +181,7 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
     // pantalla. Lo que queda por comprobar es que cambiar de pestaña cambia cuál está activa.
     const resaltada = () =>
       ['Resumen', 'Tablero Kanban', 'Elementos de Trabajo'].find(
-        (n) => (screen.getByRole('button', { name: n }) as HTMLElement).style.color === '#a5b4fc',
+        (n) => (screen.getByRole('button', { name: n }) as HTMLElement).style.color === 'var(--acento-tinta)',
       )
 
     // Se espera en lugar de comprobar a secas: la pantalla se asienta en dos pasos desde que la
@@ -280,8 +280,8 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
       { status: ProjectStatus.ACTIVE, etiqueta: 'Activo', color: '#6ee7b7' },
       { status: ProjectStatus.PLANNING, etiqueta: 'Planeación', color: '#c4b5fd' },
       { status: ProjectStatus.ON_HOLD, etiqueta: 'En pausa', color: '#fcd34d' },
-      { status: ProjectStatus.COMPLETED, etiqueta: 'Completado', color: '#a5b4fc' },
-      { status: ProjectStatus.ARCHIVED, etiqueta: 'Archivado', color: '#a1a1aa' },
+      { status: ProjectStatus.COMPLETED, etiqueta: 'Completado', color: 'var(--acento-tinta)' },
+      { status: ProjectStatus.ARCHIVED, etiqueta: 'Archivado', color: 'var(--tinta-2)' },
     ]
 
     for (const { status, etiqueta, color } of estados) {

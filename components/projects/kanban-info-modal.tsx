@@ -58,7 +58,7 @@ function MiniKanbanCard({ card }: { card: SampleCard }) {
     if (card.urgency === 'stale' && card.daysStale !== undefined) {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' }}>
+          style={{ background: 'rgba(99,102,241,0.12)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' }}>
           <Hourglass size={10} /> {card.daysStale}d sin mover
         </span>
       )
@@ -76,7 +76,7 @@ function MiniKanbanCard({ card }: { card: SampleCard }) {
 
   return (
     <div className={`rounded-xl p-3 w-full ${urgencyClass}`}
-      style={{ border: '1px solid #27272a', borderLeft: `3px solid ${bar}`, userSelect: 'none' }}>
+      style={{ border: '1px solid var(--borde)', borderLeft: `3px solid ${bar}`, userSelect: 'none' }}>
       <div className="flex items-start gap-1.5 flex-wrap mb-2">
         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
           style={{ background: pb.bg, color: pb.color, border: `1px solid ${pb.border}` }}>
@@ -84,9 +84,9 @@ function MiniKanbanCard({ card }: { card: SampleCard }) {
         </span>
         {urgencyBadge}
       </div>
-      <div className="text-sm font-medium text-zinc-100 leading-snug">{card.title}</div>
+      <div className="text-sm font-medium text-tinta leading-snug">{card.title}</div>
       {card.ownerName && (
-        <div className="text-[11px] text-zinc-500 mt-2">{card.ownerName}</div>
+        <div className="text-[11px] text-tinta-3 mt-2">{card.ownerName}</div>
       )}
     </div>
   )
@@ -99,7 +99,7 @@ function AnatomyRow({ color, label, desc }: { color: string; label: string; desc
         style={{ background: color, boxShadow: `0 0 10px ${color}88` }} />
       <div>
         <div className="text-[12.5px] text-white font-medium">{label}</div>
-        <div className="text-[12px] text-zinc-500 leading-relaxed">{desc}</div>
+        <div className="text-[12px] text-tinta-3 leading-relaxed">{desc}</div>
       </div>
     </div>
   )
@@ -128,7 +128,7 @@ const STATES = [
     id: 'stale',
     icon: Hourglass,
     label: 'Estancada',
-    color: '#6366f1',
+    color: 'var(--acento)',
     rule: 'Lleva más de 7 días en la misma columna sin moverse.',
     detail: 'Patrón de líneas diagonales sutiles + píldora indigo "Nd sin mover". No es crítica, pero alguien debería revisarla.',
     sample: { title: 'Documento de gobierno de datos', priority: 'LOW', urgency: 'stale' as const, daysStale: 9 },
@@ -229,12 +229,12 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
           {/* Header */}
           <header className="flex items-center justify-between px-7 py-5" style={{ borderBottom: '1px solid #1c1c20' }}>
             <div>
-              <div className="text-[11px] uppercase tracking-widest text-zinc-500 font-semibold">Estados visuales</div>
+              <div className="text-[11px] uppercase tracking-widest text-tinta-3 font-semibold">Estados visuales</div>
               <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">4 estados temporales + saludable</h2>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
               aria-label="Cerrar"
             >
               <X size={16} />
@@ -247,7 +247,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
 
             {/* Anatomy */}
             <div className="info-anatomy">
-              <div className="text-[11px] uppercase tracking-widest text-zinc-500 font-semibold mb-3">Anatomía</div>
+              <div className="text-[11px] uppercase tracking-widest text-tinta-3 font-semibold mb-3">Anatomía</div>
               <div className="flex items-start gap-5 flex-wrap">
                 <div style={{ width: 220, flexShrink: 0 }}>
                   <MiniKanbanCard card={{ title: 'Envío de pre-requisitos', priority: 'HIGH', urgency: 'overdue', daysFromDue: -3, ownerName: 'Juan C.' }} />
@@ -256,7 +256,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
                   <AnatomyRow color="#f97316" label="Barra de prioridad" desc="Importancia inherente — HIGH/MEDIUM/LOW/CRITICAL. No cambia." />
                   <AnatomyRow color="#ef4444" label="Tinte + glow" desc="Estado temporal — solo aparece si la tarjeta necesita acción." />
                   <AnatomyRow color="#fda4af" label="Píldora explicativa" desc="Dice exactamente qué pasa: 3d vencida, vence hoy, 9d sin mover." />
-                  <AnatomyRow color="#a1a1aa" label="Fecha relativa" desc="Siempre presente, en gris cuando está sana." />
+                  <AnatomyRow color="var(--tinta-2)" label="Fecha relativa" desc="Siempre presente, en gris cuando está sana." />
                 </div>
               </div>
             </div>
@@ -303,7 +303,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
 
           {/* Footer */}
           <footer className="flex items-center justify-between px-7 py-4" style={{ borderTop: '1px solid #1c1c20', background: '#0a0a0c' }}>
-            <span className="text-[11px] text-zinc-500">
+            <span className="text-[11px] text-tinta-3">
               Las reglas (días para "vence pronto", umbral de "estancada") son configurables en Ajustes → Workflow.
             </span>
             <button

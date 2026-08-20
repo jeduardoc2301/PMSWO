@@ -45,7 +45,7 @@ const HEALTH_LABEL: Record<ProjectHealthStatus, string> = { HEALTHY: 'Saludable'
 const STATUS_LABEL: Record<string, string> = {
   PLANNING: 'Planeación', ACTIVE: 'Activo', ON_HOLD: 'En pausa', COMPLETED: 'Completado', ARCHIVED: 'Archivado',
 }
-const SEV_COLOR: Record<string, string> = { CRITICAL: '#ef4444', HIGH: '#f97316', MEDIUM: '#f59e0b', LOW: '#71717a' }
+const SEV_COLOR: Record<string, string> = { CRITICAL: '#ef4444', HIGH: '#f97316', MEDIUM: '#f59e0b', LOW: 'var(--tinta-3)' }
 const SEV_LABEL: Record<string, string> = { CRITICAL: 'Crítico', HIGH: 'Alto', MEDIUM: 'Medio', LOW: 'Bajo' }
 const AGREE_LABEL: Record<string, string> = { PENDING: 'Pendiente', IN_PROGRESS: 'En progreso', OPEN: 'Abierto' }
 
@@ -67,7 +67,7 @@ function DualProgress({ startDate, endDate, plannedHours, actualHours }: {
   const timePct = totalMs > 0 ? Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 100))) : 0
   const execPct = hasHours ? Math.min(100, Math.round((actualHours! / plannedHours!) * 100)) : 0
 
-  let dotColor = '#71717a'
+  let dotColor = 'var(--tinta-3)'
   if (isOverdue) dotColor = '#ef4444'
   else if (hasHours && execPct >= timePct - 10) dotColor = '#10b981'
   else if (hasHours && execPct >= timePct - 25) dotColor = '#f59e0b'
@@ -82,15 +82,15 @@ function DualProgress({ startDate, endDate, plannedHours, actualHours }: {
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10, color: '#71717a', marginBottom: 5, whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 10, color: 'var(--tinta-3)', marginBottom: 5, whiteSpace: 'nowrap' }}>
           {hasHours
             ? `⏱ ${timePct}% tiempo  |  ✅ ${execPct}% ejec.`
             : isOverdue ? `⏱ ${timePct}% tiempo  |  Sin datos` : 'Sin datos'}
         </div>
-        <div style={{ height: 4, background: '#27272a', borderRadius: 999, marginBottom: 3, overflow: 'hidden' }}>
+        <div style={{ height: 4, background: 'var(--borde)', borderRadius: 999, marginBottom: 3, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${timePct}%`, background: '#B0BEC5', borderRadius: 999 }} />
         </div>
-        <div style={{ height: 4, background: '#27272a', borderRadius: 999, overflow: 'hidden' }}>
+        <div style={{ height: 4, background: 'var(--borde)', borderRadius: 999, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${execPct}%`, background: '#1565C0', borderRadius: 999 }} />
         </div>
       </div>
@@ -105,13 +105,13 @@ function MetricCard({ title, value, subtitle, variant = 'default', icon }: {
 }) {
   const valueColor = { default: '#fff', success: '#10b981', warning: '#f59e0b', danger: '#ef4444' }[variant]
   return (
-    <div className="rounded-xl p-5" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+    <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs text-zinc-500 uppercase tracking-wider">{title}</p>
-        {icon && <span className="text-zinc-600">{icon}</span>}
+        <p className="text-xs text-tinta-3 uppercase tracking-wider">{title}</p>
+        {icon && <span className="text-tinta-3">{icon}</span>}
       </div>
       <p className="text-3xl font-bold tabular-nums tracking-tight" style={{ color: valueColor }}>{value}</p>
-      {subtitle && <p className="text-xs text-zinc-500 mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-tinta-3 mt-1">{subtitle}</p>}
     </div>
   )
 }
@@ -119,8 +119,8 @@ function MetricCard({ title, value, subtitle, variant = 'default', icon }: {
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2 uppercase tracking-wider">
-        <span className="text-zinc-500">{icon}</span> {title}
+      <h2 className="text-sm font-semibold text-tinta-2 mb-3 flex items-center gap-2 uppercase tracking-wider">
+        <span className="text-tinta-3">{icon}</span> {title}
       </h2>
       {children}
     </section>
@@ -139,7 +139,7 @@ function GroupedItemList<T extends { projectName: string }>({
 }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-xl px-4 py-3 text-sm text-zinc-500 mt-3" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+      <div className="rounded-xl px-4 py-3 text-sm text-tinta-3 mt-3" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
         {emptyText}
       </div>
     )
@@ -153,15 +153,15 @@ function GroupedItemList<T extends { projectName: string }>({
   }
 
   return (
-    <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+    <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
       {Object.entries(groups).map(([projectName, groupItems], gi) => (
-        <div key={projectName} style={gi > 0 ? { borderTop: '1px solid #27272a' } : {}}>
-          <div className="px-4 py-2 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider"
-            style={{ background: '#111113' }}>
+        <div key={projectName} style={gi > 0 ? { borderTop: '1px solid var(--borde)' } : {}}>
+          <div className="px-4 py-2 text-[11px] font-semibold text-tinta-2 uppercase tracking-wider"
+            style={{ background: 'var(--superficie)' }}>
             {projectName}
           </div>
           {groupItems.map((item, idx) => (
-            <div key={idx} style={{ background: '#18181b', borderTop: idx > 0 ? '1px solid #1f1f23' : undefined }}>
+            <div key={idx} style={{ background: 'var(--superficie)', borderTop: idx > 0 ? '1px solid #1f1f23' : undefined }}>
               {renderItem(item, idx)}
             </div>
           ))}
@@ -188,14 +188,14 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
   }, [consultantId])
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center gap-3 text-zinc-500" style={{ background: '#09090b' }}>
-      <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center gap-3 text-tinta-3" style={{ background: 'var(--fondo)' }}>
+      <div className="w-5 h-5 border-2 border-borde-fuerte border-t-indigo-500 rounded-full animate-spin" />
       Cargando...
     </div>
   )
 
   if (error || !data) return (
-    <div className="p-8 min-h-screen" style={{ background: '#09090b' }}>
+    <div className="p-8 min-h-screen" style={{ background: 'var(--fondo)' }}>
       <div className="rounded-xl p-4 text-rose-400" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
         {error ?? 'No se encontraron datos'}
       </div>
@@ -209,20 +209,20 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
   const agreementPct = Math.round(summary.agreementCompletionRate * 100)
 
   return (
-    <div className="min-h-screen" style={{ background: '#09090b' }}>
+    <div className="min-h-screen" style={{ background: 'var(--fondo)' }}>
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center gap-4" style={{ borderBottom: '1px solid #18181b' }}>
         <button onClick={() => router.push(`/${locale}/consultant-performance`)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all">
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all">
           <ArrowLeft size={16} />
         </button>
-        <div className="text-sm text-zinc-500">Consultores /</div>
+        <div className="text-sm text-tinta-3">Consultores /</div>
         <h1 className="text-base font-semibold text-white">{consultant.name}</h1>
       </div>
 
       <div className="p-8 max-w-[1200px] space-y-7">
         {/* Profile hero */}
-        <div className="rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <div className="rounded-xl p-6" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <div className="flex items-start gap-5">
             <div className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center text-white font-bold text-xl"
               style={{ background: consultant.avatar ? 'transparent' : 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
@@ -232,19 +232,19 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-bold text-white tracking-tight">{consultant.name}</h2>
-              <p className="text-sm text-zinc-400 mt-1">{consultant.email}</p>
+              <p className="text-sm text-tinta-2 mt-1">{consultant.email}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-4 gap-4 mt-6">
             {[
               { l: 'Completitud', v: `${completionPct}%`, c: completionPct >= 70 ? '#10b981' : completionPct >= 40 ? '#f59e0b' : '#ef4444' },
-              { l: 'Proyectos activos', v: summary.activeProjects, c: '#6366f1' },
+              { l: 'Proyectos activos', v: summary.activeProjects, c: 'var(--acento)' },
               { l: 'Tareas completadas', v: summary.completedWorkItems, c: '#a78bfa' },
               { l: 'Vencidos', v: summary.overdueItems, c: summary.overdueItems === 0 ? '#10b981' : '#ef4444' },
             ].map((s) => (
-              <div key={s.l} className="rounded-xl p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
-                <div className="text-[11px] text-zinc-500">{s.l}</div>
+              <div key={s.l} className="rounded-xl p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+                <div className="text-[11px] text-tinta-3">{s.l}</div>
                 <div className="text-2xl font-bold mt-1 tabular-nums" style={{ color: s.c }}>{s.v}</div>
               </div>
             ))}
@@ -264,12 +264,12 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
 
         {/* Salud de proyectos — moved here, right after Carga de trabajo */}
         <Section title="Salud de proyectos" icon={<Shield size={14} />}>
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
+                <tr style={{ background: 'var(--superficie)', borderBottom: '1px solid var(--borde)' }}>
                   {['Proyecto', 'Cliente', 'Estado', 'Progreso', 'Blockers', 'Riesgos', 'Vencidos', 'Salud'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-tinta-3 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -277,11 +277,11 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
                 {projects.map((p) => {
                   const hc = healthHex(p.healthStatus)
                   return (
-                    <tr key={p.id} className="border-b hover:bg-zinc-900/30 transition-all" style={{ borderColor: '#27272a' }}>
-                      <td className="px-4 py-3 font-medium text-zinc-100">{p.name}</td>
-                      <td className="px-4 py-3 text-zinc-400">{p.client}</td>
+                    <tr key={p.id} className="border-b hover:bg-superficie/30 transition-all" style={{ borderColor: 'var(--borde)' }}>
+                      <td className="px-4 py-3 font-medium text-tinta">{p.name}</td>
+                      <td className="px-4 py-3 text-tinta-2">{p.client}</td>
                       <td className="px-4 py-3">
-                        <span className="text-[11px] px-2 py-1 rounded-full text-zinc-400 bg-zinc-800 border border-zinc-700">
+                        <span className="text-[11px] px-2 py-1 rounded-full text-tinta-2 bg-superficie-3 border border-borde-fuerte">
                           {STATUS_LABEL[p.status] ?? p.status}
                         </span>
                       </td>
@@ -294,13 +294,13 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
                         />
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={p.activeBlockers > 0 ? 'text-rose-400 font-semibold' : 'text-zinc-600'}>{p.activeBlockers}</span>
+                        <span className={p.activeBlockers > 0 ? 'text-rose-400 font-semibold' : 'text-tinta-3'}>{p.activeBlockers}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={p.activeRisks > 0 ? 'text-amber-400 font-semibold' : 'text-zinc-600'}>{p.activeRisks}</span>
+                        <span className={p.activeRisks > 0 ? 'text-amber-400 font-semibold' : 'text-tinta-3'}>{p.activeRisks}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={p.overdueItems > 0 ? 'text-rose-400 font-semibold' : 'text-zinc-600'}>{p.overdueItems}</span>
+                        <span className={p.overdueItems > 0 ? 'text-rose-400 font-semibold' : 'text-tinta-3'}>{p.overdueItems}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-full"
@@ -343,7 +343,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
             emptyText="Sin items vencidos"
             renderItem={(item) => (
               <div className="px-4 py-2.5 flex items-center justify-between gap-4">
-                <span className="text-sm text-zinc-300 truncate">{item.title}</span>
+                <span className="text-sm text-tinta-2 truncate">{item.title}</span>
                 <span className="text-xs text-rose-400 whitespace-nowrap flex-shrink-0">
                   Venció {fmtDate(item.estimatedEndDate)}
                 </span>
@@ -368,7 +368,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
           {/* Blockers list */}
           {activeBlockersList.length > 0 && (
             <div className="mt-5">
-              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Blockers activos</p>
+              <p className="text-xs text-tinta-3 uppercase tracking-wider mb-2">Blockers activos</p>
               <GroupedItemList
                 items={activeBlockersList}
                 emptyText=""
@@ -378,7 +378,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
                       style={{ background: `${SEV_COLOR[item.severity]}18`, color: SEV_COLOR[item.severity], border: `1px solid ${SEV_COLOR[item.severity]}30` }}>
                       {SEV_LABEL[item.severity] ?? item.severity}
                     </span>
-                    <span className="text-sm text-zinc-300 leading-snug line-clamp-2">{item.description}</span>
+                    <span className="text-sm text-tinta-2 leading-snug line-clamp-2">{item.description}</span>
                   </div>
                 )}
               />
@@ -388,7 +388,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
           {/* Risks list */}
           {activeRisksList.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Riesgos activos</p>
+              <p className="text-xs text-tinta-3 uppercase tracking-wider mb-2">Riesgos activos</p>
               <GroupedItemList
                 items={activeRisksList}
                 emptyText=""
@@ -398,7 +398,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
                       style={{ background: `${SEV_COLOR[item.riskLevel]}18`, color: SEV_COLOR[item.riskLevel], border: `1px solid ${SEV_COLOR[item.riskLevel]}30` }}>
                       {SEV_LABEL[item.riskLevel] ?? item.riskLevel}
                     </span>
-                    <span className="text-sm text-zinc-300 leading-snug line-clamp-2">{item.description}</span>
+                    <span className="text-sm text-tinta-2 leading-snug line-clamp-2">{item.description}</span>
                   </div>
                 )}
               />
@@ -419,13 +419,13 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
             emptyText="Sin acuerdos pendientes"
             renderItem={(item) => (
               <div className="px-4 py-2.5 flex items-center justify-between gap-4">
-                <span className="text-sm text-zinc-300 truncate">{item.title}</span>
+                <span className="text-sm text-tinta-2 truncate">{item.title}</span>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-[10px] px-1.5 py-0.5 rounded text-amber-300 font-medium"
                     style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)' }}>
                     {AGREE_LABEL[item.status] ?? item.status}
                   </span>
-                  <span className="text-xs text-zinc-500">{fmtDate(item.agreementDate)}</span>
+                  <span className="text-xs text-tinta-3">{fmtDate(item.agreementDate)}</span>
                 </div>
               </div>
             )}
@@ -435,19 +435,19 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
         {/* Actividad reciente */}
         {recentActivity.length > 0 && (
           <Section title="Actividad reciente" icon={<Clock size={14} />}>
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
               {recentActivity.map((a, i) => (
-                <div key={i} className="px-4 py-3 flex items-start gap-3 border-b last:border-0" style={{ borderColor: '#27272a', background: '#18181b' }}>
+                <div key={i} className="px-4 py-3 flex items-start gap-3 border-b last:border-0" style={{ borderColor: 'var(--borde)', background: 'var(--superficie)' }}>
                   <div className="w-2 h-2 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm text-zinc-300">
+                    <p className="text-sm text-tinta-2">
                       <span className="font-medium text-white">{a.workItemTitle}</span>
-                      {' — '}<span className="text-zinc-500">{a.field}:</span>{' '}
-                      <span className="text-zinc-400">{String(a.oldValue ?? '—')}</span>
+                      {' — '}<span className="text-tinta-3">{a.field}:</span>{' '}
+                      <span className="text-tinta-2">{String(a.oldValue ?? '—')}</span>
                       {' → '}
-                      <span className="text-zinc-200">{String(a.newValue ?? '—')}</span>
+                      <span className="text-tinta">{String(a.newValue ?? '—')}</span>
                     </p>
-                    <p className="text-xs text-zinc-600 mt-0.5">
+                    <p className="text-xs text-tinta-3 mt-0.5">
                       {new Date(a.changedAt).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>

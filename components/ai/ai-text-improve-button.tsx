@@ -104,10 +104,10 @@ export function AITextImproveButton({
           {t('improveText')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl bg-[#18181b] border-[#27272a]">
+      <DialogContent className="max-w-2xl bg-superficie border-borde">
         <DialogHeader>
           <DialogTitle className="text-[#e4e4e7]">{t('textImprovement.title')}</DialogTitle>
-          <DialogDescription className="text-[#71717a]">
+          <DialogDescription className="text-tinta-3">
             {t('textImprovement.original')}
           </DialogDescription>
         </DialogHeader>
@@ -128,16 +128,16 @@ export function AITextImproveButton({
           {improvedText && !improving && (
             <>
               <div>
-                <p className="text-sm font-medium text-[#a1a1aa] mb-2">
+                <p className="text-sm font-medium text-tinta-2 mb-2">
                   {t('textImprovement.original')}
                 </p>
-                <div className="rounded-lg p-3 text-sm text-[#a1a1aa] max-h-32 overflow-y-auto" style={{ background: '#111113', border: '1px solid #27272a' }}>
+                <div className="rounded-lg p-3 text-sm text-tinta-2 max-h-32 overflow-y-auto" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                   {text}
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-[#a1a1aa] mb-2">
+                <p className="text-sm font-medium text-tinta-2 mb-2">
                   {t('textImprovement.improved')}
                 </p>
                 <div className="rounded-lg p-3 text-sm text-[#e4e4e7] max-h-32 overflow-y-auto" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>

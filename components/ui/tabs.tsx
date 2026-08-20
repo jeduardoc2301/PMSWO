@@ -40,7 +40,7 @@ interface TabsListProps {
 export function TabsList({ children, className = '' }: TabsListProps) {
   return (
     <div
-      className={`inline-flex h-10 items-center justify-center rounded-md bg-zinc-800/50 p-1 text-zinc-300 ${className}`}
+      className={`inline-flex h-10 items-center justify-center rounded-md bg-superficie-3/50 p-1 text-tinta-2 ${className}`}
       role="tablist"
     >
       {children}
@@ -64,10 +64,10 @@ export function TabsTrigger({ value, children, className = '' }: TabsTriggerProp
       role="tab"
       aria-selected={isSelected}
       onClick={() => onValueChange(value)}
-      className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-zinc-900 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-zinc-900 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-borde-fuerte focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
         isSelected
-          ? 'bg-[#18181b] text-zinc-100 shadow-sm'
-          : 'text-zinc-100 hover:bg-zinc-800/50 hover:text-zinc-100'
+          ? 'bg-superficie text-tinta shadow-sm'
+          : 'text-tinta hover:bg-superficie-3/50 hover:text-tinta'
       } ${className}`}
     >
       {children}
@@ -91,7 +91,7 @@ export function TabsContent({ value, children, className = '' }: TabsContentProp
   return (
     <div
       role="tabpanel"
-      className={`mt-2 ring-offset-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 focus-visible:ring-offset-2 ${className}`}
+      className={`mt-2 ring-offset-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-borde-fuerte focus-visible:ring-offset-2 ${className}`}
     >
       {children}
     </div>

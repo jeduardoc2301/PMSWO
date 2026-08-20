@@ -112,12 +112,12 @@ export function ResourceAbsencesDialog({
         role="dialog"
         aria-modal="true"
         aria-label={`Días libres de ${nombre}`}
-        className="w-full max-w-lg rounded-xl border border-zinc-800 bg-[#18181b] p-5"
+        className="w-full max-w-lg rounded-xl border border-borde bg-superficie p-5"
       >
         <div className="mb-4 flex items-baseline justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-medium text-zinc-100">Días libres de {nombre}</h2>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <h2 className="truncate text-base font-medium text-tinta">Días libres de {nombre}</h2>
+            <p className="mt-0.5 text-xs text-tinta-3">
               Un día libre pone su capacidad a cero: el trabajo que siga planificado ahí saldrá en rojo.
             </p>
           </div>
@@ -125,25 +125,25 @@ export function ResourceAbsencesDialog({
             type="button"
             aria-label="Cerrar"
             onClick={onCerrar}
-            className="shrink-0 rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+            className="shrink-0 rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
           >
             ✕
           </button>
         </div>
 
-        <div className="mb-4 flex flex-wrap items-end gap-2 border-b border-zinc-800 pb-4">
+        <div className="mb-4 flex flex-wrap items-end gap-2 border-b border-borde pb-4">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-zinc-500">Desde</span>
+            <span className="text-xs text-tinta-3">Desde</span>
             <input
               aria-label="Desde"
               type="date"
               value={desde}
               onChange={(e) => setDesde(e.target.value)}
-              className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-100"
+              className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-zinc-500">Hasta</span>
+            <span className="text-xs text-tinta-3">Hasta</span>
             <input
               aria-label="Hasta"
               type="date"
@@ -151,25 +151,25 @@ export function ResourceAbsencesDialog({
               min={desde || undefined}
               placeholder="el mismo día"
               onChange={(e) => setHasta(e.target.value)}
-              className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-100"
+              className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
             />
           </label>
           <label className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs text-zinc-500">Motivo</span>
+            <span className="text-xs text-tinta-3">Motivo</span>
             <input
               aria-label="Motivo"
               type="text"
               value={motivo}
               placeholder="Vacaciones"
               onChange={(e) => setMotivo(e.target.value)}
-              className="min-w-0 rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-600"
+              className="min-w-0 rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta placeholder:text-tinta-3"
             />
           </label>
           <button
             type="button"
             disabled={guardando || desde === ''}
             onClick={() => void guardar()}
-            className="rounded bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+            className="rounded bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
           >
             {guardando ? 'Guardando...' : 'Añadir'}
           </button>
@@ -182,7 +182,7 @@ export function ResourceAbsencesDialog({
         ) : null}
 
         {ausencias.length === 0 ? (
-          <p className="py-4 text-center text-xs text-zinc-500">
+          <p className="py-4 text-center text-xs text-tinta-3">
             Este recurso no tiene ningún día libre declarado.
           </p>
         ) : (
@@ -191,17 +191,17 @@ export function ResourceAbsencesDialog({
               <li
                 key={a.id}
                 data-testid={`ausencia-${a.id}`}
-                className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-zinc-800/60"
+                className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-superficie-3/60"
               >
-                <span className="tabular-nums text-xs text-zinc-200">
+                <span className="tabular-nums text-xs text-tinta">
                   {a.startDate === a.endDate ? a.startDate : `${a.startDate} → ${a.endDate}`}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-zinc-500">{a.reason ?? ''}</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-tinta-3">{a.reason ?? ''}</span>
                 <button
                   type="button"
                   aria-label={`Quitar el día libre del ${a.startDate}`}
                   onClick={() => void borrar(a.id)}
-                  className="shrink-0 rounded px-1.5 text-xs text-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
+                  className="shrink-0 rounded px-1.5 text-xs text-tinta-3 hover:bg-superficie-3 hover:text-tinta"
                 >
                   ✕
                 </button>

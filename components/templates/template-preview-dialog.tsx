@@ -141,29 +141,29 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <p className="text-zinc-400">{t('loading')}</p>
+            <p className="text-tinta-2">{t('loading')}</p>
           </div>
         ) : preview ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-zinc-100">{preview.template.name}</h3>
-              <p className="text-sm text-zinc-300">{preview.template.description}</p>
+              <h3 className="text-lg font-semibold text-tinta">{preview.template.name}</h3>
+              <p className="text-sm text-tinta-2">{preview.template.description}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div style={{ background: '#18181b', border: '2px solid #6366f1' }} className="rounded-lg p-4 text-center">
-                <p className="text-xs font-medium text-zinc-400 uppercase mb-1">{t('activityCount')}</p>
+              <div style={{ background: 'var(--superficie)', border: '2px solid var(--acento)' }} className="rounded-lg p-4 text-center">
+                <p className="text-xs font-medium text-tinta-2 uppercase mb-1">{t('activityCount')}</p>
                 <p className="text-3xl font-bold text-[#6366f1]">{preview.totalActivities}</p>
               </div>
-              <div style={{ background: '#18181b', border: '2px solid #16a34a' }} className="rounded-lg p-4 text-center">
-                <p className="text-xs font-medium text-zinc-400 uppercase mb-1">{t('totalDuration')}</p>
+              <div style={{ background: 'var(--superficie)', border: '2px solid #16a34a' }} className="rounded-lg p-4 text-center">
+                <p className="text-xs font-medium text-tinta-2 uppercase mb-1">{t('totalDuration')}</p>
                 <p className="text-3xl font-bold text-green-500">{preview.totalEstimatedDuration}h</p>
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-zinc-100">
+                <h4 className="text-sm font-medium text-tinta">
                   {t('phases')} ({preview.template.phases.length})
                 </h4>
                 <div className="flex gap-2">
@@ -175,18 +175,18 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
                       setExpandedPhases(new Set(allPhaseIds))
                       setExpandedActivities(new Set(allActivityIds))
                     }}
-                    className="text-xs text-[#6366f1] hover:text-[#a5b4fc] hover:underline"
+                    className="text-xs text-[#6366f1] hover:text-acento-tinta hover:underline"
                   >
                     {t('expandAll', { defaultValue: 'Expandir todo' })}
                   </button>
-                  <span className="text-xs text-zinc-500">|</span>
+                  <span className="text-xs text-tinta-3">|</span>
                   <button
                     type="button"
                     onClick={() => {
                       setExpandedPhases(new Set())
                       setExpandedActivities(new Set())
                     }}
-                    className="text-xs text-[#6366f1] hover:text-[#a5b4fc] hover:underline"
+                    className="text-xs text-[#6366f1] hover:text-acento-tinta hover:underline"
                   >
                     {t('collapseAll', { defaultValue: 'Contraer todo' })}
                   </button>
@@ -210,7 +210,7 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
                           <button
                             type="button"
                             onClick={() => togglePhase(phase.id)}
-                            className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-[#6366f1] hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
+                            className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-acento hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
                           >
                             {isPhaseExpanded ? (
                               <ChevronDown className="w-4 h-4" />
@@ -221,11 +221,11 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-base font-semibold text-zinc-100">
+                              <span className="text-base font-semibold text-tinta">
                                 {t('phase')} {phaseIndex + 1}: {phase.name}
                               </span>
                               {!isPhaseExpanded && (
-                                <span className="text-sm text-zinc-400">
+                                <span className="text-sm text-tinta-2">
                                   ({sortedActivities.length} {sortedActivities.length === 1 ? t('activity') : t('activities')})
                                 </span>
                               )}
@@ -233,9 +233,9 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
                             {isPhaseExpanded && (
                               <div className="space-y-3 pb-3">
-                                <div className="pl-6 border-l-2 border-[#27272a]">
+                                <div className="pl-6 border-l-2 border-borde">
                                   <div className="space-y-2">
-                                    <h5 className="text-sm font-medium text-zinc-100">
+                                    <h5 className="text-sm font-medium text-tinta">
                                       {t('activities')} ({sortedActivities.length})
                                     </h5>
 
@@ -264,15 +264,15 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
                                               <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-2">
-                                                  <span className="text-sm font-medium text-zinc-100">
+                                                  <span className="text-sm font-medium text-tinta">
                                                     {activity.title}
                                                   </span>
                                                   {!isActivityExpanded && (
                                                     <>
-                                                      <span className="text-xs text-zinc-400">
+                                                      <span className="text-xs text-tinta-2">
                                                         {getPriorityLabel(activity.priority)}
                                                       </span>
-                                                      <span className="text-xs text-zinc-400">
+                                                      <span className="text-xs text-tinta-2">
                                                         {activity.estimatedDuration}h
                                                       </span>
                                                     </>
@@ -281,17 +281,17 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
 
                                                 {isActivityExpanded && (
                                                   <div className="space-y-2 pb-3">
-                                                    <p className="text-sm text-zinc-300">{activity.description}</p>
+                                                    <p className="text-sm text-tinta-2">{activity.description}</p>
                                                     <div className="flex items-center gap-4 text-xs">
                                                       <div>
-                                                        <span className="text-zinc-400">{t('priority')}:</span>{' '}
-                                                        <span className="font-medium text-zinc-100">
+                                                        <span className="text-tinta-2">{t('priority')}:</span>{' '}
+                                                        <span className="font-medium text-tinta">
                                                           {getPriorityLabel(activity.priority)}
                                                         </span>
                                                       </div>
                                                       <div>
-                                                        <span className="text-zinc-400">{t('estimatedDuration')}:</span>{' '}
-                                                        <span className="font-medium text-zinc-100">
+                                                        <span className="text-tinta-2">{t('estimatedDuration')}:</span>{' '}
+                                                        <span className="font-medium text-tinta">
                                                           {formatDuration(activity.estimatedDuration)}
                                                         </span>
                                                       </div>
@@ -318,7 +318,7 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
           </div>
         ) : (
           <div className="flex items-center justify-center py-8">
-            <p className="text-zinc-400">{t('errors.notFound')}</p>
+            <p className="text-tinta-2">{t('errors.notFound')}</p>
           </div>
         )}
 
@@ -327,8 +327,8 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
             <button
               type="button"
               onClick={exportCSV}
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all"
-              style={{ border: '1px solid #27272a' }}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+              style={{ border: '1px solid var(--borde)' }}
             >
               <Download size={14} />
               Exportar CSV

@@ -91,7 +91,7 @@ export function RepartoDePapeles({ projectId, puedeRepartir = false }: RepartoDe
 
   if (estado.fase === 'cargando') {
     return (
-      <p aria-busy="true" aria-live="polite" className="text-sm text-zinc-500">
+      <p aria-busy="true" aria-live="polite" className="text-sm text-tinta-3">
         Leyendo quién está en el proyecto…
       </p>
     )
@@ -107,8 +107,8 @@ export function RepartoDePapeles({ projectId, puedeRepartir = false }: RepartoDe
   return (
     <section data-testid="reparto-de-papeles" className="flex flex-col gap-3">
       <div>
-        <h3 className="text-sm font-semibold text-zinc-100">Quién está en este proyecto</h3>
-        <p className="mt-0.5 text-xs text-zinc-500">
+        <h3 className="text-sm font-semibold text-tinta">Quién está en este proyecto</h3>
+        <p className="mt-0.5 text-xs text-tinta-3">
           El papel decide qué vistas ve y qué puede tocar. Lo que la organización no permite, esto no
           lo concede: el permiso efectivo es lo que dejan las dos cosas a la vez.
         </p>
@@ -128,15 +128,15 @@ export function RepartoDePapeles({ projectId, puedeRepartir = false }: RepartoDe
               key={persona.id}
               data-persona={persona.id}
               data-papel={persona.papel}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-[#18181b] px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-borde bg-superficie px-4 py-3"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm text-zinc-100">{persona.nombre}</p>
-                <p className="truncate text-xs text-zinc-500">{persona.correo}</p>
+                <p className="truncate text-sm text-tinta">{persona.nombre}</p>
+                <p className="truncate text-xs text-tinta-3">{persona.correo}</p>
               </div>
 
               <div className="flex items-center gap-3">
-                <p className="max-w-[26rem] text-right text-[11px] leading-snug text-zinc-500">
+                <p className="max-w-[26rem] text-right text-[11px] leading-snug text-tinta-3">
                   {PAPELES_EN_PANTALLA.find((p) => p.clave === persona.papel)?.explica}
                 </p>
                 {editable ? (
@@ -145,7 +145,7 @@ export function RepartoDePapeles({ projectId, puedeRepartir = false }: RepartoDe
                     value={persona.papel}
                     disabled={guardando === persona.id}
                     onChange={(e) => void cambiar(persona, e.target.value as RolDeProyecto)}
-                    className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-200"
+                    className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
                   >
                     {PAPELES_EN_PANTALLA.map((p) => {
                       const cambio = queCambia(persona.papel, p.clave)
@@ -165,7 +165,7 @@ export function RepartoDePapeles({ projectId, puedeRepartir = false }: RepartoDe
                         ? 'Lo es por serlo del proyecto. Para cambiarlo, cambia el propietario del proyecto.'
                         : 'No tienes permiso para repartir papeles en este proyecto.'
                     }
-                    className="rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs text-zinc-400"
+                    className="rounded border border-borde bg-superficie px-2 py-1 text-xs text-tinta-2"
                   >
                     {PAPELES_EN_PANTALLA.find((p) => p.clave === persona.papel)?.nombre}
                   </span>

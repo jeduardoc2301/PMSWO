@@ -24,12 +24,12 @@ export function TemplatesClient() {
   const refresh = () => setRefreshKey((k) => k + 1)
 
   return (
-    <div className="min-h-screen" style={{ background: '#09090b' }}>
+    <div className="min-h-screen" style={{ background: 'var(--fondo)' }}>
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div>
           <h1 className="text-lg font-semibold text-white">Plantillas</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-tinta-3 mt-0.5">
             Comienza un proyecto en segundos con flujos pre-configurados de SoftwareOne.
           </p>
         </div>
@@ -41,14 +41,14 @@ export function TemplatesClient() {
           </button>
           <button
             onClick={() => setImportDialogOpen(true)}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-zinc-300 transition-all hover:text-white hover:border-zinc-600"
-            style={{ border: '1px solid #27272a', background: '#18181b' }}>
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-tinta-2 transition-all hover:text-white hover:border-borde-fuerte"
+            style={{ border: '1px solid var(--borde)', background: 'var(--superficie)' }}>
             <Upload size={14} /> Importar plantilla
           </button>
           <button
             onClick={() => setCreateDialogOpen(true)}
             className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: '#6366f1' }}>
+            style={{ background: 'var(--acento)' }}>
             <Plus size={16} /> Nueva plantilla
           </button>
         </div>
@@ -58,7 +58,7 @@ export function TemplatesClient() {
         {/* Page headline */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-white tracking-tight">Acelera con plantillas</h2>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="text-sm text-tinta-2 mt-1">
             Comienza un proyecto en segundos con flujos pre-configurados de SoftwareOne.
           </p>
         </div>
@@ -91,13 +91,13 @@ export function TemplatesClient() {
           </div>
           <div className="flex-1">
             <div className="text-base font-semibold text-white">¿No encuentras la plantilla ideal?</div>
-            <div className="text-sm text-zinc-400 mt-1">
+            <div className="text-sm text-tinta-2 mt-1">
               Describe tu proyecto y la IA generará una plantilla con módulos, tareas y duración estimada.
             </div>
           </div>
           <button
             className="flex-shrink-0 px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: '#6366f1' }}>
+            style={{ background: 'var(--acento)' }}>
             Generar plantilla con IA
           </button>
         </div>

@@ -276,7 +276,7 @@ export function GanttChart({
 
   if (layout.rows.length === 0) {
     return (
-      <p className="rounded-lg border border-zinc-800 bg-[#18181b] p-6 text-sm text-zinc-400">
+      <p className="rounded-lg border border-borde bg-superficie p-6 text-sm text-tinta-2">
         No hay líneas que mostrar con los filtros de ahora.
       </p>
     )
@@ -288,7 +288,7 @@ export function GanttChart({
         ref={caja}
         data-testid="gantt-desplazable"
         onScroll={(e) => setDesplazamiento(e.currentTarget.scrollTop)}
-        className="relative overflow-auto rounded-lg border border-zinc-800 bg-[#18181b]"
+        className="relative overflow-auto rounded-lg border border-borde bg-superficie"
         style={{ maxHeight: ALTO_VISIBLE + rowHeight }}
       >
         <div className="flex" style={{ width: anchoDeLaRejilla + width }}>
@@ -299,13 +299,13 @@ export function GanttChart({
             // `overflow-x-auto` sólo cuando el divisor recorta: con la rejilla entera a la vista una
             // barra de desplazamiento que no desplaza nada es ruido, y en algunos navegadores roba
             // altura a la última fila.
-            className={`sticky left-0 z-20 shrink-0 border-r border-zinc-800 bg-[#18181b] ${
+            className={`sticky left-0 z-20 shrink-0 border-r border-borde bg-superficie ${
               anchoDeLaRejilla < anchoDeLasColumnas ? 'overflow-x-auto' : ''
             }`}
             style={{ width: anchoDeLaRejilla }}
           >
             <div
-              className="sticky top-0 z-10 flex border-b border-zinc-800 bg-[#18181b] text-xs uppercase tracking-wide text-zinc-400"
+              className="sticky top-0 z-10 flex border-b border-borde bg-superficie text-xs uppercase tracking-wide text-tinta-2"
               style={{ height: rowHeight, width: anchoDeLasColumnas }}
             >
               {marcadas !== undefined ? <div className="w-8 shrink-0" aria-hidden /> : null}
@@ -374,14 +374,14 @@ export function GanttChart({
                         }
                       : undefined
                   }
-                  className={`absolute left-0 flex ${row.id === selectedId ? 'bg-zinc-800/60' : ''}`}
+                  className={`absolute left-0 flex ${row.id === selectedId ? 'bg-superficie-3/60' : ''}`}
                   // Las filas miden lo que miden las columnas, no lo que se ve: si midieran la
                   // ventana, al desplazar la rejilla por dentro el fondo de la fila seleccionada se
                   // quedaría corto y la fila parecería partida.
                   style={{ top: (primera + k) * rowHeight, width: anchoDeLasColumnas }}
                 >
                   {marcadas !== undefined && onMarcar !== undefined ? (
-                    <div className="flex w-8 shrink-0 items-center justify-center border-b border-zinc-800">
+                    <div className="flex w-8 shrink-0 items-center justify-center border-b border-borde">
                       <input
                         type="checkbox"
                         data-marca={row.id}
@@ -399,7 +399,7 @@ export function GanttChart({
                     <div
                       key={columna.id}
                       data-testid={`celda-${columna.id}-${row.id}`}
-                      className="shrink-0 overflow-hidden border-b border-zinc-800"
+                      className="shrink-0 overflow-hidden border-b border-borde"
                       style={{ width: anchoPorColumna[i] }}
                     >
                       {columna.id === 'progress' && onEditarCelda ? (
@@ -427,7 +427,7 @@ export function GanttChart({
                       ) : (
                         <span
                           data-celda={columna.id}
-                          className={`flex h-full items-center truncate px-2 text-xs text-zinc-400 ${
+                          className={`flex h-full items-center truncate px-2 text-xs text-tinta-2 ${
                             columna.numerica ? 'justify-end tabular-nums' : ''
                           }`}
                           style={{ height: rowHeight }}
@@ -445,7 +445,7 @@ export function GanttChart({
 
           {/* El lienzo. */}
           <div className="relative" style={{ width }}>
-            <div className="sticky top-0 z-10 bg-[#18181b]">
+            <div className="sticky top-0 z-10 bg-superficie">
               {/* La fila gruesa, cuando la hay. Es lo que hace legible el zoom por días: sin ella la
                   cabecera dice «15» y no hay forma de saber de qué mes. Por años no hay nada más
                   grueso y la cabecera se queda con una sola fila, que es lo correcto — una fila
@@ -453,14 +453,14 @@ export function GanttChart({
               {layout.ticksSuperiores.length > 0 ? (
                 <div
                   data-testid="eje-superior"
-                  className="flex border-b border-zinc-800/60"
+                  className="flex border-b border-borde/60"
                   style={{ height: Math.round(rowHeight * 0.7) }}
                 >
                   {layout.ticksSuperiores.map((tick) => (
                     <div
                       key={`sup-${tick.date}`}
                       data-tick-superior={tick.date}
-                      className="shrink-0 overflow-hidden border-r border-zinc-800 px-2 text-[11px] font-medium text-zinc-300"
+                      className="shrink-0 overflow-hidden border-r border-borde px-2 text-[11px] font-medium text-tinta-2"
                       style={{
                         width: tick.width * dayWidth,
                         lineHeight: `${Math.round(rowHeight * 0.7)}px`,
@@ -473,14 +473,14 @@ export function GanttChart({
               ) : null}
               <div
                 data-testid="eje-inferior"
-                className="flex border-b border-zinc-800"
+                className="flex border-b border-borde"
                 style={{ height: rowHeight }}
               >
                 {layout.ticks.map((tick) => (
                   <div
                     key={tick.date}
                     data-tick={tick.date}
-                    className="shrink-0 overflow-hidden border-r border-zinc-800 px-2 text-xs text-zinc-400"
+                    className="shrink-0 overflow-hidden border-r border-borde px-2 text-xs text-tinta-2"
                     style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}
                   >
                     {tick.label}
@@ -558,7 +558,7 @@ function NameCell({
           aria-label={row.isCollapsed ? `Abrir ${row.name}` : `Cerrar ${row.name}`}
           aria-expanded={!row.isCollapsed}
           onClick={() => onToggle(row.id, row.isCollapsed)}
-          className="w-4 shrink-0 text-zinc-400"
+          className="w-4 shrink-0 text-tinta-2"
         >
           {row.isCollapsed ? '▸' : '▾'}
         </button>
@@ -584,7 +584,7 @@ function NameCell({
         <button
           type="button"
           onClick={() => onSelect?.(row.id)}
-          className={`truncate text-left ${row.isSummary ? 'font-medium text-zinc-100' : 'text-zinc-300'}`}
+          className={`truncate text-left ${row.isSummary ? 'font-medium text-tinta' : 'text-tinta-2'}`}
           title={row.name}
         >
           {row.name}
@@ -734,7 +734,7 @@ function Bar({
         <div
           data-testid={`holgura-${row.id}`}
           title={`${row.totalFloat} días de margen`}
-          className="absolute rounded-sm border border-dashed border-zinc-700"
+          className="absolute rounded-sm border border-dashed border-borde-fuerte"
           style={{ left: row.floatX * dayWidth, top: y, width: row.floatWidth * dayWidth, height: alto }}
         />
       ) : null}
@@ -815,7 +815,7 @@ function Bar({
                 e.stopPropagation()
                 onConectar(row.id, extremo, 'SOLTAR')
               }}
-              className="absolute z-10 rounded-full border border-zinc-300 bg-[#18181b] opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100"
+              className="absolute z-10 rounded-full border border-zinc-300 bg-superficie opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100"
               style={{
                 left: (extremo === 'INICIO' ? row.x : row.x + row.width) * dayWidth - 4,
                 top: y + alto / 2 - 4,
@@ -887,7 +887,7 @@ function TiradorDelDivisor({
         tirador.addEventListener('pointerup', alSoltar)
         tirador.addEventListener('pointercancel', alSoltar)
       }}
-      className="sticky right-0 top-0 z-30 float-right h-full w-2 cursor-col-resize touch-none bg-transparent hover:bg-[#6366f1]/70"
+      className="sticky right-0 top-0 z-30 float-right h-full w-2 cursor-col-resize touch-none bg-transparent hover:bg-acento/70"
     />
   )
 }
@@ -933,7 +933,7 @@ function TiradorDeColumna({
         tirador.addEventListener('pointerup', alSoltar)
         tirador.addEventListener('pointercancel', alSoltar)
       }}
-      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize touch-none bg-transparent hover:bg-[#6366f1]/60"
+      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize touch-none bg-transparent hover:bg-acento/60"
     />
   )
 }
@@ -948,10 +948,10 @@ function TiradorDeColumna({
  */
 function barTone(row: GanttRow, rutaCritica: boolean): string {
   if (row.isSummary) return 'bg-zinc-500'
-  if (!rutaCritica) return 'bg-[#6366f1]/80'
+  if (!rutaCritica) return 'bg-acento/80'
   if (row.isSuperCritical) return 'bg-red-500/80'
   if (row.isCritical) return 'bg-orange-500/80'
-  return 'bg-[#6366f1]/80'
+  return 'bg-acento/80'
 }
 
 /**
@@ -1062,5 +1062,5 @@ function Legend({ layout }: { layout: GanttLayout }) {
     partes.push(`${layout.foldedLinkCount} ${layout.foldedLinkCount === 1 ? 'vínculo plegado' : 'vínculos plegados'}`)
   }
 
-  return <p className="text-xs text-zinc-400">{partes.join(' · ')}</p>
+  return <p className="text-xs text-tinta-2">{partes.join(' · ')}</p>
 }

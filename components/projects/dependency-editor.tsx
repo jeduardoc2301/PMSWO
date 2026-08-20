@@ -112,12 +112,12 @@ export function DependencyEditor({
   return (
     <section
       aria-labelledby="titulo-editor-vinculos"
-      className="flex flex-col gap-4 rounded-lg border border-zinc-800 bg-[#18181b] p-5"
+      className="flex flex-col gap-4 rounded-lg border border-borde bg-superficie p-5"
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide text-zinc-400">Vínculos de</p>
-          <h3 id="titulo-editor-vinculos" className="mt-1 truncate text-base font-semibold text-zinc-100">
+          <p className="text-xs uppercase tracking-wide text-tinta-2">Vínculos de</p>
+          <h3 id="titulo-editor-vinculos" className="mt-1 truncate text-base font-semibold text-tinta">
             {task.name}
           </h3>
         </div>
@@ -125,7 +125,7 @@ export function DependencyEditor({
           type="button"
           aria-label="Cerrar el editor de vínculos"
           onClick={onClose}
-          className="shrink-0 rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          className="shrink-0 rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
         >
           ✕
         </button>
@@ -138,28 +138,28 @@ export function DependencyEditor({
       ) : null}
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-xs uppercase tracking-wide text-zinc-400">
+        <p className="text-xs uppercase tracking-wide text-tinta-2">
           Depende de ({predecesoras.length})
         </p>
         {predecesoras.length === 0 ? (
-          <p className="text-sm text-zinc-500">No depende de ninguna otra línea.</p>
+          <p className="text-sm text-tinta-3">No depende de ninguna otra línea.</p>
         ) : (
           <ul className="flex max-h-48 flex-col gap-1 overflow-y-auto">
             {predecesoras.map((vinculo) => (
               <li
                 key={vinculo.predecessorId}
-                className="flex items-baseline gap-2 rounded px-2 py-1 hover:bg-zinc-900"
+                className="flex items-baseline gap-2 rounded px-2 py-1 hover:bg-superficie"
               >
-                <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">
+                <span className="min-w-0 flex-1 truncate text-sm text-tinta">
                   {nombres.get(vinculo.predecessorId) ?? vinculo.predecessorId}
                 </span>
-                <span className="shrink-0 text-xs text-zinc-400">{linkLabel(vinculo)}</span>
+                <span className="shrink-0 text-xs text-tinta-2">{linkLabel(vinculo)}</span>
                 <button
                   type="button"
                   aria-label={`Quitar el vínculo con ${nombres.get(vinculo.predecessorId) ?? vinculo.predecessorId}`}
                   disabled={busy}
                   onClick={() => onRemove(vinculo.predecessorId)}
-                  className="shrink-0 rounded px-1.5 text-zinc-500 hover:bg-red-900/30 hover:text-red-300 disabled:opacity-50"
+                  className="shrink-0 rounded px-1.5 text-tinta-3 hover:bg-red-900/30 hover:text-red-300 disabled:opacity-50"
                 >
                   ✕
                 </button>
@@ -169,17 +169,17 @@ export function DependencyEditor({
         )}
       </div>
 
-      <div className="flex flex-col gap-2 rounded-md border border-zinc-800 bg-[#111113] p-3">
-        <p className="text-xs uppercase tracking-wide text-zinc-400">Capturar una predecesora</p>
+      <div className="flex flex-col gap-2 rounded-md border border-borde bg-superficie p-3">
+        <p className="text-xs uppercase tracking-wide text-tinta-2">Capturar una predecesora</p>
 
         {elegida ? (
-          <div className="flex items-center gap-2 rounded border border-[#6366f1]/40 bg-[#6366f1]/10 px-2 py-1.5">
-            <span className="min-w-0 flex-1 truncate text-sm text-zinc-100">{elegida.name}</span>
+          <div className="flex items-center gap-2 rounded border border-acento/40 bg-acento/10 px-2 py-1.5">
+            <span className="min-w-0 flex-1 truncate text-sm text-tinta">{elegida.name}</span>
             <button
               type="button"
               aria-label="Quitar la elección"
               onClick={() => setElegida(null)}
-              className="shrink-0 text-zinc-400 hover:text-zinc-100"
+              className="shrink-0 text-tinta-2 hover:text-tinta"
             >
               ✕
             </button>
@@ -192,16 +192,16 @@ export function DependencyEditor({
               onChange={(evento) => setBusqueda(evento.target.value)}
               placeholder="Buscar la línea por nombre (mínimo 2 letras)..."
               aria-label="Buscar la línea predecesora"
-              className="rounded border border-zinc-700 bg-[#18181b] px-2 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 focus:border-[#6366f1] focus:outline-none"
+              className="rounded border border-borde-fuerte bg-superficie px-2 py-1.5 text-sm text-tinta placeholder-zinc-600 focus:border-acento focus:outline-none"
             />
             {coincidencias.length > 0 ? (
-              <ul className="flex max-h-44 flex-col overflow-y-auto rounded border border-zinc-800">
+              <ul className="flex max-h-44 flex-col overflow-y-auto rounded border border-borde">
                 {coincidencias.map((candidata) => (
                   <li key={candidata.id}>
                     <button
                       type="button"
                       onClick={() => setElegida(candidata)}
-                      className="flex w-full items-baseline gap-2 px-2 py-1.5 text-left text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                      className="flex w-full items-baseline gap-2 px-2 py-1.5 text-left text-sm text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
                     >
                       <span className="min-w-0 flex-1 truncate">{candidata.name}</span>
                       {esResumen(candidata) ? (
@@ -212,7 +212,7 @@ export function DependencyEditor({
                 ))}
               </ul>
             ) : busqueda.trim().length >= 2 ? (
-              <p className="text-xs text-zinc-500">Ninguna línea coincide.</p>
+              <p className="text-xs text-tinta-3">Ninguna línea coincide.</p>
             ) : null}
           </React.Fragment>
         )}
@@ -222,7 +222,7 @@ export function DependencyEditor({
             value={tipo}
             onChange={(evento) => setTipo(evento.target.value as LinkType)}
             aria-label="Tipo de vínculo"
-            className="rounded border border-zinc-700 bg-[#18181b] px-2 py-1.5 text-sm text-zinc-100 focus:border-[#6366f1] focus:outline-none"
+            className="rounded border border-borde-fuerte bg-superficie px-2 py-1.5 text-sm text-tinta focus:border-acento focus:outline-none"
           >
             {TIPOS.map((opcion) => (
               <option key={opcion.valor} value={opcion.valor}>
@@ -230,14 +230,14 @@ export function DependencyEditor({
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-1.5 text-sm text-zinc-400">
+          <label className="flex items-center gap-1.5 text-sm text-tinta-2">
             Desfase
             <input
               type="number"
               value={desfase}
               onChange={(evento) => setDesfase(evento.target.value)}
               aria-label="Desfase en días hábiles"
-              className="w-16 rounded border border-zinc-700 bg-[#18181b] px-1.5 py-1 text-right text-zinc-100 focus:border-[#6366f1] focus:outline-none"
+              className="w-16 rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-right text-tinta focus:border-acento focus:outline-none"
             />
             días
           </label>
@@ -245,7 +245,7 @@ export function DependencyEditor({
             type="button"
             disabled={!elegida || busy}
             onClick={capturar}
-            className="rounded-md border border-[#6366f1] bg-[#6366f1] px-3 py-1.5 text-sm text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md border border-acento bg-acento px-3 py-1.5 text-sm text-tinta disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? 'Guardando...' : 'Capturar vínculo'}
           </button>
@@ -253,22 +253,22 @@ export function DependencyEditor({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-xs uppercase tracking-wide text-zinc-400">La esperan ({sucesoras.length})</p>
+        <p className="text-xs uppercase tracking-wide text-tinta-2">La esperan ({sucesoras.length})</p>
         {sucesoras.length === 0 ? (
-          <p className="text-sm text-zinc-500">Nadie la está esperando.</p>
+          <p className="text-sm text-tinta-3">Nadie la está esperando.</p>
         ) : (
           <ul className="flex max-h-32 flex-col gap-1 overflow-y-auto">
             {sucesoras.map((vinculo) => (
               <li key={vinculo.successorId} className="flex items-baseline gap-2 px-2 py-0.5">
-                <span className="min-w-0 flex-1 truncate text-sm text-zinc-300">
+                <span className="min-w-0 flex-1 truncate text-sm text-tinta-2">
                   {nombres.get(vinculo.successorId) ?? vinculo.successorId}
                 </span>
-                <span className="shrink-0 text-xs text-zinc-500">{linkLabel(vinculo)}</span>
+                <span className="shrink-0 text-xs text-tinta-3">{linkLabel(vinculo)}</span>
               </li>
             ))}
           </ul>
         )}
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-tinta-3">
           Las sucesoras se capturan desde la línea que espera: ahí es donde la pregunta tiene dueño.
         </p>
       </div>

@@ -54,7 +54,7 @@ export function FieldsPanel({ visibles, onAlternar, onMover }: FieldsPanelProps)
         aria-expanded={abierto}
         data-testid="boton-campos"
         onClick={() => setAbierto((v) => !v)}
-        className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+        className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
       >
         Campos ({visibles.length}) ▾
       </button>
@@ -64,14 +64,14 @@ export function FieldsPanel({ visibles, onAlternar, onMover }: FieldsPanelProps)
           role="menu"
           aria-label="Columnas de la rejilla"
           data-testid="panel-campos"
-          className="absolute left-0 top-full z-40 mt-1 w-72 rounded-lg border border-zinc-800 bg-[#18181b] p-3 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-1 w-72 rounded-lg border border-borde bg-superficie p-3 shadow-xl"
         >
           {GRUPOS.map((grupo) => {
             const delGrupo = COLUMNAS.filter((c) => c.grupo === grupo)
             if (delGrupo.length === 0) return null
             return (
               <fieldset key={grupo} className="m-0 mb-2 border-0 p-0 last:mb-0">
-                <legend className="mb-1 p-0 text-[11px] uppercase tracking-wide text-zinc-500">
+                <legend className="mb-1 p-0 text-[11px] uppercase tracking-wide text-tinta-3">
                   {grupo}
                 </legend>
                 {delGrupo.map((columna) => {
@@ -80,7 +80,7 @@ export function FieldsPanel({ visibles, onAlternar, onMover }: FieldsPanelProps)
                     <label
                       key={columna.id}
                       className={`flex items-center gap-2 rounded px-1.5 py-1 ${
-                        fija ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-zinc-800'
+                        fija ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-superficie-3'
                       }`}
                       // Se dice por qué está bloqueada. Un interruptor apagado y mudo se lee como
                       // una avería.
@@ -94,7 +94,7 @@ export function FieldsPanel({ visibles, onAlternar, onMover }: FieldsPanelProps)
                         data-testid={`campo-${columna.id}`}
                         className="h-3.5 w-3.5 accent-[#6366f1]"
                       />
-                      <span className="flex-1 truncate text-xs text-zinc-300">{columna.etiqueta}</span>
+                      <span className="flex-1 truncate text-xs text-tinta-2">{columna.etiqueta}</span>
 
                       {/* Las flechas sólo en las encendidas: mover una columna apagada no significa
                           nada, y enseñarlas en todas llena el panel de botones que no hacen nada. */}
@@ -114,7 +114,7 @@ export function FieldsPanel({ visibles, onAlternar, onMover }: FieldsPanelProps)
                                 e.stopPropagation()
                                 onMover(columna.id, direccion)
                               }}
-                              className="rounded border border-zinc-700 px-1 text-[10px] leading-4 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                              className="rounded border border-borde-fuerte px-1 text-[10px] leading-4 text-tinta-2 hover:border-borde-fuerte hover:text-tinta"
                             >
                               {direccion === 'IZQUIERDA' ? '←' : '→'}
                             </button>

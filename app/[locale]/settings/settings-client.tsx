@@ -59,8 +59,8 @@ export function SettingsClient({ locale }: SettingsClientProps) {
     : '?'
 
   if (isFetching) return (
-    <div className="flex items-center justify-center py-16 gap-3 text-zinc-500">
-      <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+    <div className="flex items-center justify-center py-16 gap-3 text-tinta-3">
+      <div className="w-5 h-5 border-2 border-borde-fuerte border-t-indigo-500 rounded-full animate-spin" />
       {t('common.loading')}
     </div>
   )
@@ -68,8 +68,8 @@ export function SettingsClient({ locale }: SettingsClientProps) {
   return (
     <div className="space-y-4">
       {/* Profile card */}
-      <div className="rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
-        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-5">{t('settings.profile')}</h2>
+      <div className="rounded-xl p-6" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+        <h2 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider mb-5">{t('settings.profile')}</h2>
         <div className="flex items-center gap-4 mb-6">
           <div className="w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center text-white font-bold text-lg"
             style={{ background: avatar ? 'transparent' : 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
@@ -79,21 +79,21 @@ export function SettingsClient({ locale }: SettingsClientProps) {
           </div>
           <div>
             <div className="text-base font-semibold text-white">{session?.user?.name}</div>
-            <div className="text-sm text-zinc-400 mt-0.5">{session?.user?.email}</div>
+            <div className="text-sm text-tinta-2 mt-0.5">{session?.user?.email}</div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
-            <div className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">{t('auth.email')}</div>
-            <div className="text-sm text-zinc-200">{session?.user?.email}</div>
+          <div className="rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+            <div className="text-[11px] text-tinta-3 uppercase tracking-wider mb-1">{t('auth.email')}</div>
+            <div className="text-sm text-tinta">{session?.user?.email}</div>
           </div>
-          <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
-            <div className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Nombre</div>
-            <div className="text-sm text-zinc-200">{session?.user?.name}</div>
+          <div className="rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+            <div className="text-[11px] text-tinta-3 uppercase tracking-wider mb-1">Nombre</div>
+            <div className="text-sm text-tinta">{session?.user?.name}</div>
           </div>
           {session?.user?.roles && (
-            <div className="col-span-2 rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
-              <div className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">Roles</div>
+            <div className="col-span-2 rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+              <div className="text-[11px] text-tinta-3 uppercase tracking-wider mb-2">Roles</div>
               <div className="flex flex-wrap gap-2">
                 {session.user.roles.map((role: string) => (
                   <span key={role} className="text-[11px] px-2 py-1 rounded-full text-indigo-300 font-medium"
@@ -108,17 +108,17 @@ export function SettingsClient({ locale }: SettingsClientProps) {
       </div>
 
       {/* Language card */}
-      <div className="rounded-xl p-6" style={{ background: '#18181b', border: '1px solid #27272a' }}>
-        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-5">{t('settings.language')}</h2>
-        <p className="text-sm text-zinc-400 mb-4">{t('settings.languageDescription')}</p>
+      <div className="rounded-xl p-6" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+        <h2 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider mb-5">{t('settings.language')}</h2>
+        <p className="text-sm text-tinta-2 mb-4">{t('settings.languageDescription')}</p>
 
         <div className="flex gap-3 mb-5">
           {(['es', 'pt'] as Locale[]).map((loc) => (
             <button key={loc} onClick={() => setSelectedLocale(loc)}
               className="flex-1 py-3 rounded-xl text-sm font-medium transition-all"
               style={selectedLocale === loc
-                ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc' }
-                : { background: '#111113', border: '1px solid #27272a', color: '#71717a' }}>
+                ? { background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.5)', color: 'var(--acento-tinta)' }
+                : { background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta-3)' }}>
               {loc === 'es' ? t('settings.spanish') : t('settings.portuguese')}
             </button>
           ))}
@@ -135,7 +135,7 @@ export function SettingsClient({ locale }: SettingsClientProps) {
 
         <button onClick={handleSave} disabled={isLoading || selectedLocale === locale}
           className="h-9 px-5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-          style={{ background: '#6366f1' }}>
+          style={{ background: 'var(--acento)' }}>
           {isLoading ? `${t('common.save')}...` : t('common.save')}
         </button>
       </div>

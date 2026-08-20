@@ -56,12 +56,12 @@ export default async function PlanPage({ params }: { params: Promise<{ locale: s
 function SinPlan({ ruta, motivo }: { ruta: string; motivo: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-8" style={{ background: '#0b0b0d' }}>
-      <div className="max-w-lg rounded-xl border border-zinc-800 bg-[#18181b] p-8">
-        <h1 className="text-lg font-semibold text-zinc-100">Todavía no hay un plan que mostrar</h1>
-        <p className="mt-3 text-sm text-zinc-400">{motivo}</p>
-        <p className="mt-4 text-sm text-zinc-400">
+      <div className="max-w-lg rounded-xl border border-borde bg-superficie p-8">
+        <h1 className="text-lg font-semibold text-tinta">Todavía no hay un plan que mostrar</h1>
+        <p className="mt-3 text-sm text-tinta-2">{motivo}</p>
+        <p className="mt-4 text-sm text-tinta-2">
           Esta pantalla lee el plan de{' '}
-          <code className="rounded bg-zinc-900 px-1.5 py-0.5 text-xs text-zinc-300">{ruta}</code>, dentro del
+          <code className="rounded bg-superficie px-1.5 py-0.5 text-xs text-tinta-2">{ruta}</code>, dentro del
           proyecto. Ese archivo no se versiona —es un artefacto de trabajo, no del producto—, así que hay que
           ponerlo ahí a mano.
         </p>

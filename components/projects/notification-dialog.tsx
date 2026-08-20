@@ -101,9 +101,9 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
       case 'MEDIUM':
         return 'bg-yellow-900/40 text-yellow-300'
       case 'LOW':
-        return 'bg-[rgba(99,102,241,0.15)] text-[#a5b4fc]'
+        return 'bg-[rgba(99,102,241,0.15)] text-acento-tinta'
       default:
-        return 'bg-zinc-800 text-zinc-400'
+        return 'bg-superficie-3 text-tinta-2'
     }
   }
 
@@ -115,17 +115,17 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
           {triggerLabel || t('button')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
           <DialogTitle className="text-[#e4e4e7]">{t('title')}</DialogTitle>
-          <DialogDescription className="text-[#71717a]">
+          <DialogDescription className="text-tinta-3">
             {loading ? tCommon('loading') : t('generate')}
           </DialogDescription>
         </DialogHeader>
 
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="text-[#71717a]">{tCommon('loading')}</div>
+            <div className="text-tinta-3">{tCommon('loading')}</div>
           </div>
         )}
 
@@ -138,7 +138,7 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
         {notification && !loading && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Label className="text-[#a1a1aa]">{t('priority')}:</Label>
+              <Label className="text-tinta-2">{t('priority')}:</Label>
               <span
                 className={`px-3 py-1 text-xs font-semibold rounded-full ${getPriorityColor(
                   notification.priority
@@ -149,15 +149,15 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[#a1a1aa]">{t('subject')}</Label>
-              <div className="rounded-lg p-3" style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <Label className="text-tinta-2">{t('subject')}</Label>
+              <div className="rounded-lg p-3" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <p className="text-sm font-medium text-[#e4e4e7]">{notification.subject}</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[#a1a1aa]">{t('body')}</Label>
-              <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <Label className="text-tinta-2">{t('body')}</Label>
+              <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <pre className="text-sm whitespace-pre-wrap font-sans text-[#e4e4e7]">{notification.body}</pre>
               </div>
             </div>

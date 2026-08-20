@@ -140,7 +140,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
 
   return (
     <aside className="fixed top-0 left-0 z-40 h-screen w-64 flex flex-col"
-      style={{ background: '#111113', borderRight: '1px solid #1f1f23' }}>
+      style={{ background: 'var(--superficie)', borderRight: '1px solid #1f1f23' }}>
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #1f1f23' }}>
@@ -151,7 +151,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
           </div>
           <div>
             <div className="text-sm font-bold text-white tracking-tight leading-none">PMSWO</div>
-            <div className="text-[10px] text-zinc-500 leading-none mt-0.5">SoftwareOne</div>
+            <div className="text-[10px] text-tinta-3 leading-none mt-0.5">SoftwareOne</div>
           </div>
         </Link>
       </div>
@@ -170,11 +170,11 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                   active
                     ? 'bg-indigo-950/60 text-indigo-200'
-                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                    : 'text-tinta-2 hover:bg-superficie hover:text-tinta'
                 )}
                 style={active ? { boxShadow: 'inset 2px 0 0 #6366f1' } : {}}
               >
-                <span className={active ? 'text-indigo-400' : 'text-zinc-500'}>{item.icon}</span>
+                <span className={active ? 'text-indigo-400' : 'text-tinta-3'}>{item.icon}</span>
                 {item.label}
               </Link>
             )
@@ -183,14 +183,14 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
 
         {/* Saved views section */}
         <div>
-          <div className="px-3 mb-2 text-[10px] uppercase tracking-widest font-semibold text-zinc-600">
+          <div className="px-3 mb-2 text-[10px] uppercase tracking-widest font-semibold text-tinta-3">
             Vistas guardadas
           </div>
           {SAVED_VIEWS.map((v) => (
             <Link
               key={v.label}
               href={`/${locale}/${v.href}`}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 transition-all"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs text-tinta-3 hover:text-tinta-2 hover:bg-superficie transition-all"
             >
               <span className={v.color}>{v.icon}</span>
               {v.label}
@@ -201,12 +201,12 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
 
       {/* Cmd+K hint */}
       <div className="px-4 pb-3">
-        <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 transition-all"
-          style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-tinta-3 hover:text-tinta-2 transition-all"
+          style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <Command size={12} />
           <span className="flex-1 text-left">Búsqueda global</span>
           <kbd className="text-[10px] px-1.5 py-0.5 rounded"
-            style={{ background: '#27272a', border: '1px solid #3f3f46' }}>⌘K</kbd>
+            style={{ background: 'var(--borde)', border: '1px solid var(--borde-fuerte)' }}>⌘K</kbd>
         </button>
       </div>
 
@@ -215,9 +215,9 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
         {/* Locale switcher */}
         <button
           onClick={() => onLocaleChange(locale === Locale.ES ? Locale.PT : Locale.ES)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 transition-all"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-tinta-2 hover:bg-superficie hover:text-tinta transition-all"
         >
-          <Globe size={14} className="text-zinc-600" />
+          <Globe size={14} className="text-tinta-3" />
           <span>{locale === Locale.ES ? 'Español' : 'Português'}</span>
         </button>
 
@@ -225,7 +225,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
         <div ref={profileRef} className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-900 transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-superficie transition-all"
           >
             <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white"
               style={{ background: avatar ? 'transparent' : 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
@@ -234,23 +234,23 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
                 : initials}
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium text-zinc-200 truncate leading-none">{user.name}</p>
-              <p className="text-[11px] text-zinc-500 truncate mt-0.5">{user.email}</p>
+              <p className="text-sm font-medium text-tinta truncate leading-none">{user.name}</p>
+              <p className="text-[11px] text-tinta-3 truncate mt-0.5">{user.email}</p>
             </div>
-            <ChevronDown size={14} className={cn('text-zinc-600 transition-transform', isProfileOpen && 'rotate-180')} />
+            <ChevronDown size={14} className={cn('text-tinta-3 transition-transform', isProfileOpen && 'rotate-180')} />
           </button>
 
           {isProfileOpen && (
             <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl py-1.5"
-              style={{ background: '#1c1c1f', border: '1px solid #27272a', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-              <div className="px-4 py-2 mb-1" style={{ borderBottom: '1px solid #27272a' }}>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">
+              style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+              <div className="px-4 py-2 mb-1" style={{ borderBottom: '1px solid var(--borde)' }}>
+                <p className="text-[10px] text-tinta-3 uppercase tracking-wider">
                   {user.roles.map((r) => r.replace(/_/g, ' ')).join(', ')}
                 </p>
               </div>
               <button
                 onClick={onSignOut}
-                className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-400 hover:bg-zinc-800 transition-all"
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-400 hover:bg-superficie-3 transition-all"
               >
                 <LogOut size={14} />
                 {t('nav.signOut')}

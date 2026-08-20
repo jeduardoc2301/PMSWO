@@ -198,7 +198,7 @@ describe('PageHeader', () => {
       // La acción secundaria dejó de ser un botón blanco con borde de clase: es transparente, con
       // el borde puesto en línea para que combine con el resto del tema oscuro.
       expect(button).toHaveClass('bg-transparent')
-      expect(button).toHaveStyle({ border: '1px solid #27272a' })
+      expect(button).toHaveStyle({ border: '1px solid var(--borde)' })
     })
 
     it('should render icon with quick action', () => {
@@ -228,8 +228,10 @@ describe('PageHeader', () => {
       // El encabezado va sobre el fondo oscuro del tema y su línea inferior se pone en línea.
       const header = container.firstElementChild as HTMLElement
       expect(header).toBeInTheDocument()
-      expect(header.className).toContain('#18181b')
-      expect(header.style.borderBottom).toBe('1px solid #27272a')
+      // El color ya no se escribe aquí: sale del token, que es lo que permite el modo claro.
+      expect(header.className).toContain('bg-superficie')
+      // `happy-dom` normaliza el atajo a sus tres partes cuando el valor es una variable.
+      expect(header.style.borderBottomColor).toBe('var(--borde)')
     })
 
     it('should apply responsive padding classes', () => {

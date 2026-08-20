@@ -114,7 +114,7 @@ export function ColumnasDelTablero({
 
   if (estado.fase === 'cargando') {
     return (
-      <p aria-busy="true" aria-live="polite" className="text-sm text-zinc-500">
+      <p aria-busy="true" aria-live="polite" className="text-sm text-tinta-3">
         Leyendo las columnas del tablero…
       </p>
     )
@@ -132,8 +132,8 @@ export function ColumnasDelTablero({
   return (
     <section data-testid="columnas-del-tablero" className="flex flex-col gap-3">
       <div>
-        <h3 className="text-sm font-semibold text-zinc-100">Columnas del tablero</h3>
-        <p className="mt-0.5 text-xs text-zinc-500">
+        <h3 className="text-sm font-semibold text-tinta">Columnas del tablero</h3>
+        <p className="mt-0.5 text-xs text-tinta-3">
           Son los estados del proyecto. La inicial es donde nacen las tareas; la de terminado es la
           que pone el avance al 100 %.
         </p>
@@ -156,11 +156,11 @@ export function ColumnasDelTablero({
               // devuelva las dos cosas mezcladas. Se vio midiendo esto mismo.
               data-columna-del-tablero={c.id}
               data-tarjetas={c.tarjetas}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-[#18181b] px-4 py-2.5"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-borde bg-superficie px-4 py-2.5"
             >
               <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm text-zinc-100">{c.nombre}</span>
-                <span className="shrink-0 rounded bg-zinc-800 px-1.5 text-[11px] tabular-nums text-zinc-400">
+                <span className="truncate text-sm text-tinta">{c.nombre}</span>
+                <span className="shrink-0 rounded bg-superficie-3 px-1.5 text-[11px] tabular-nums text-tinta-2">
                   {c.tarjetas}
                 </span>
                 {c.esInicial ? (
@@ -211,7 +211,7 @@ export function ColumnasDelTablero({
                           }),
                         )
                       }
-                      className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-800"
+                      className="rounded border border-borde-fuerte px-2 py-1 text-[11px] text-tinta-2 hover:bg-superficie-3"
                     >
                       Hacer inicial
                     </button>
@@ -229,7 +229,7 @@ export function ColumnasDelTablero({
                           }),
                         )
                       }
-                      className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-800"
+                      className="rounded border border-borde-fuerte px-2 py-1 text-[11px] text-tinta-2 hover:bg-superficie-3"
                     >
                       Hacer terminado
                     </button>
@@ -243,7 +243,7 @@ export function ColumnasDelTablero({
                       setBorrando(c)
                       setDestino(destinosPosibles(c, columnas)[0]?.id ?? '')
                     }}
-                    className="rounded border border-zinc-700 px-2 py-1 text-[11px] text-zinc-400 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded border border-borde-fuerte px-2 py-1 text-[11px] text-tinta-2 hover:bg-superficie-3 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Quitar
                   </button>
@@ -261,7 +261,7 @@ export function ColumnasDelTablero({
             value={nombreNuevo}
             onChange={(e) => setNombreNuevo(e.target.value)}
             placeholder="Nombre de la columna nueva"
-            className="min-w-0 flex-1 rounded border border-zinc-700 bg-[#111113] px-2 py-1.5 text-sm text-zinc-100 placeholder-zinc-600"
+            className="min-w-0 flex-1 rounded border border-borde-fuerte bg-superficie px-2 py-1.5 text-sm text-tinta placeholder-zinc-600"
           />
           <button
             type="button"
@@ -276,7 +276,7 @@ export function ColumnasDelTablero({
               )
               if (ok) setNombreNuevo('')
             }}
-            className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40"
+            className="rounded border border-borde-fuerte px-3 py-1.5 text-sm text-tinta hover:bg-superficie-3 disabled:opacity-40"
           >
             Añadir columna
           </button>
@@ -301,7 +301,7 @@ export function ColumnasDelTablero({
                 aria-label="A qué columna van las tarjetas"
                 value={destino}
                 onChange={(e) => setDestino(e.target.value)}
-                className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-200"
+                className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
               >
                 {destinosPosibles(borrando, columnas).map((c) => (
                   <option key={c.id} value={c.id}>
@@ -328,7 +328,7 @@ export function ColumnasDelTablero({
             <button
               type="button"
               onClick={() => setBorrando(null)}
-              className="rounded border border-zinc-700 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+              className="rounded border border-borde-fuerte px-3 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
             >
               Cancelar
             </button>
@@ -377,7 +377,7 @@ function Mover({
       onClick={() => {
         if (orden) void onMover(orden)
       }}
-      className="rounded border border-zinc-700 px-1.5 py-0.5 text-xs text-zinc-300 hover:border-zinc-500 disabled:cursor-not-allowed disabled:opacity-30"
+      className="rounded border border-borde-fuerte px-1.5 py-0.5 text-xs text-tinta-2 hover:border-borde-fuerte disabled:cursor-not-allowed disabled:opacity-30"
     >
       {arriba ? '▲' : '▼'}
     </button>

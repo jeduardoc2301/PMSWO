@@ -38,7 +38,7 @@ export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
   }
 
   return (
-    <div className="bg-[#18181b] rounded-lg p-6" style={{ border: '1px solid #27272a' }}>
+    <div className="bg-superficie rounded-lg p-6" style={{ border: '1px solid var(--borde)' }}>
       <h3 className="text-lg font-semibold text-[#e4e4e7] mb-4">{t('filters')}</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -76,8 +76,8 @@ export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
             id="status"
             className="flex h-10 w-full rounded-md px-3 py-2 text-sm ring-offset-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             style={{
-              background: '#111113',
-              border: '1px solid #27272a',
+              background: 'var(--superficie)',
+              border: '1px solid var(--borde)',
               color: '#e4e4e7',
             }}
             value={filters.status || ''}

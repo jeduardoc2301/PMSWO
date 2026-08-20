@@ -80,7 +80,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Label className="text-sm font-medium text-zinc-100">
+        <Label className="text-sm font-medium text-tinta">
           {t('activities')} ({activities.length})
         </Label>
         <button
@@ -95,9 +95,9 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
       </div>
 
       {activities.length === 0 && (
-        <div className="border border-dashed border-[#27272a] rounded-md p-6 text-center">
-          <p className="text-sm text-zinc-400">{t('noActivities')}</p>
-          <p className="text-xs text-zinc-500 mt-1">{t('clickAddActivity')}</p>
+        <div className="border border-dashed border-borde rounded-md p-6 text-center">
+          <p className="text-sm text-tinta-2">{t('noActivities')}</p>
+          <p className="text-xs text-tinta-3 mt-1">{t('clickAddActivity')}</p>
         </div>
       )}
 
@@ -135,12 +135,12 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                       className="h-8 text-sm flex-1"
                     />
                     {!isExpanded && activity.priority && (
-                      <span className="text-xs text-zinc-400 flex-shrink-0">
+                      <span className="text-xs text-tinta-2 flex-shrink-0">
                         {t(`priorityEnum.${activity.priority.toLowerCase()}`)}
                       </span>
                     )}
                     {!isExpanded && activity.estimatedDuration && (
-                      <span className="text-xs text-zinc-400 flex-shrink-0">
+                      <span className="text-xs text-tinta-2 flex-shrink-0">
                         {activity.estimatedDuration}h
                       </span>
                     )}
@@ -159,7 +159,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                   {isExpanded && (
                     <div className="space-y-3 pb-3">
                       <div className="space-y-1">
-                        <Label htmlFor={`activity-description-${index}`} className="text-xs text-zinc-400">
+                        <Label htmlFor={`activity-description-${index}`} className="text-xs text-tinta-2">
                           {t('activityDescription')} *
                         </Label>
                         <Textarea
@@ -175,7 +175,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label htmlFor={`activity-priority-${index}`} className="text-xs text-zinc-400">
+                          <Label htmlFor={`activity-priority-${index}`} className="text-xs text-tinta-2">
                             {t('priority')} *
                           </Label>
                           <Select
@@ -186,7 +186,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                             <SelectTrigger className="h-8 text-sm">
                               <SelectValue placeholder={t('placeholders.selectPriority')} />
                             </SelectTrigger>
-                            <SelectContent style={{ background: '#111113', border: '1px solid #27272a' }}>
+                            <SelectContent style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                               <SelectItem value={WorkItemPriority.LOW}>
                                 {t('priorityEnum.low')}
                               </SelectItem>
@@ -204,7 +204,7 @@ export function ActivityManager({ activities, onChange, disabled = false }: Acti
                         </div>
 
                         <div className="space-y-1">
-                          <Label htmlFor={`activity-duration-${index}`} className="text-xs text-zinc-400">
+                          <Label htmlFor={`activity-duration-${index}`} className="text-xs text-tinta-2">
                             {t('estimatedDuration')} (h) *
                           </Label>
                           <Input

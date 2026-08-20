@@ -146,7 +146,7 @@ export function PlanTab({
 
   if (plan.tasks.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-zinc-400">
+      <p className="py-12 text-center text-sm text-tinta-2">
         Este proyecto todavía no tiene elementos de trabajo que planear.
       </p>
     )

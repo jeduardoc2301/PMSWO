@@ -31,7 +31,7 @@ const SEV_STYLE: Record<BlockerSeverity, { bg: string; color: string; border: st
   [BlockerSeverity.LOW]:      { bg: 'rgba(59,130,246,0.12)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
 }
 
-const inputStyle: React.CSSProperties = { background: '#111113', border: '1px solid #27272a', color: '#e4e4e7' }
+const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: '#e4e4e7' }
 
 export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, onBlockerDataUsed }: BlockersTabProps) {
   const t = useTranslations('blockers')
@@ -135,7 +135,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
   const criticalBlockers = activeBlockers.filter(b => b.severity === BlockerSeverity.CRITICAL)
   const resolvedBlockers = blockers.filter(b => b.resolvedAt)
 
-  if (loading) return <div className="py-12 flex items-center justify-center gap-3 text-zinc-500"><div className="w-4 h-4 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />{t('loading')}</div>
+  if (loading) return <div className="py-12 flex items-center justify-center gap-3 text-tinta-3"><div className="w-4 h-4 border-2 border-borde-fuerte border-t-indigo-500 rounded-full animate-spin" />{t('loading')}</div>
 
   if (error) return (
     <div className="py-6">
@@ -148,14 +148,14 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
-          <span className="text-sm text-zinc-300"><span className="font-bold text-white">{activeBlockers.length}</span> <span className="text-zinc-500">{t('activeBlockers')}</span></span>
+          <span className="text-sm text-tinta-2"><span className="font-bold text-white">{activeBlockers.length}</span> <span className="text-tinta-3">{t('activeBlockers')}</span></span>
           {criticalBlockers.length > 0 && (
-            <span className="text-sm"><span className="font-bold text-rose-400">{criticalBlockers.length}</span> <span className="text-zinc-500">{t('criticalBlockers')}</span></span>
+            <span className="text-sm"><span className="font-bold text-rose-400">{criticalBlockers.length}</span> <span className="text-tinta-3">{t('criticalBlockers')}</span></span>
           )}
         </div>
         <button onClick={() => setShowCreateDialog(true)}
           className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: '#6366f1' }}>
+          style={{ background: 'var(--acento)' }}>
           <Plus size={14} /> {t('createBlocker')}
         </button>
       </div>
@@ -163,12 +163,12 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
       {/* Active blockers */}
       {activeBlockers.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">{t('activeBlockers')}</h3>
+          <h3 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider">{t('activeBlockers')}</h3>
           {activeBlockers.map(blocker => {
             const s = SEV_STYLE[blocker.severity] ?? SEV_STYLE[BlockerSeverity.MEDIUM]
             return (
               <div key={blocker.id} className="rounded-xl p-5"
-                style={{ background: '#18181b', border: `1px solid ${blocker.severity === BlockerSeverity.CRITICAL ? 'rgba(239,68,68,0.4)' : '#27272a'}` }}>
+                style={{ background: 'var(--superficie)', border: `1px solid ${blocker.severity === BlockerSeverity.CRITICAL ? 'rgba(239,68,68,0.4)' : 'var(--borde)'}` }}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -176,12 +176,12 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
                         style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
                         {getSeverityLabel(blocker.severity)}
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-zinc-500">
+                      <span className="flex items-center gap-1 text-xs text-tinta-3">
                         <Clock size={12} /> {calculateDuration(blocker.startDate, blocker.resolvedAt)}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-zinc-100 mb-1">{blocker.description}</p>
-                    <p className="text-xs text-zinc-500">{t('blockedBy')}: {blocker.blockedBy}</p>
+                    <p className="text-sm font-medium text-tinta mb-1">{blocker.description}</p>
+                    <p className="text-xs text-tinta-3">{t('blockedBy')}: {blocker.blockedBy}</p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     {(blocker.severity === BlockerSeverity.CRITICAL || blocker.severity === BlockerSeverity.HIGH) && (
@@ -189,7 +189,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
                     )}
                     <button onClick={() => { setSelectedBlocker(blocker); setShowResolveDialog(true) }}
                       className="h-8 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
-                      style={{ background: '#6366f1' }}>
+                      style={{ background: 'var(--acento)' }}>
                       {t('resolveBlocker')}
                     </button>
                   </div>
@@ -201,30 +201,30 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
       )}
 
       {activeBlockers.length === 0 && (
-        <div className="rounded-xl py-12 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <div className="rounded-xl py-12 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <CheckCircle2 size={36} className="text-emerald-500 mx-auto mb-3" />
-          <p className="text-zinc-400">{t('noActiveBlockers')}</p>
+          <p className="text-tinta-2">{t('noActiveBlockers')}</p>
         </div>
       )}
 
       {/* Resolved blockers */}
       {resolvedBlockers.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">{t('resolvedBlockers')}</h3>
+          <h3 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider">{t('resolvedBlockers')}</h3>
           {resolvedBlockers.map(blocker => (
             <div key={blocker.id} className="rounded-xl p-5 opacity-60"
-              style={{ background: '#18181b', border: '1px solid #27272a' }}>
+              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
                   style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.3)' }}>
                   <CheckCircle2 size={10} /> {t('resolved')}
                 </span>
-                <span className="flex items-center gap-1 text-xs text-zinc-500">
+                <span className="flex items-center gap-1 text-xs text-tinta-3">
                   <Clock size={12} /> {calculateDuration(blocker.startDate, blocker.resolvedAt)}
                 </span>
               </div>
-              <p className="text-sm font-medium text-zinc-300 mb-1">{blocker.description}</p>
-              <p className="text-xs text-zinc-500">{t('resolution')}: {blocker.resolution}</p>
+              <p className="text-sm font-medium text-tinta-2 mb-1">{blocker.description}</p>
+              <p className="text-xs text-tinta-3">{t('resolution')}: {blocker.resolution}</p>
             </div>
           ))}
         </div>
@@ -232,35 +232,35 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
 
       {/* Create dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <DialogContent style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <form onSubmit={handleCreateBlocker}>
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">{t('createBlocker')}</DialogTitle>
-              <DialogDescription className="text-zinc-500">{t('createDialogDescription')}</DialogDescription>
+              <DialogTitle className="text-tinta">{t('createBlocker')}</DialogTitle>
+              <DialogDescription className="text-tinta-3">{t('createDialogDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('workItem')}</Label>
+                <Label className="text-tinta-2 text-xs">{t('workItem')}</Label>
                 <Select value={formData.workItemId} onValueChange={(v) => setFormData({ ...formData, workItemId: v })}>
                   <SelectTrigger style={inputStyle}><SelectValue placeholder={t('selectWorkItem')} /></SelectTrigger>
-                  <SelectContent style={{ background: '#1c1c1f', border: '1px solid #27272a' }}>
+                  <SelectContent style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)' }}>
                     {workItems.map(item => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('blockerDescription')}</Label>
-                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required rows={3} style={inputStyle} className="text-zinc-200 placeholder-zinc-600 resize-none" />
+                <Label className="text-tinta-2 text-xs">{t('blockerDescription')}</Label>
+                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required rows={3} style={inputStyle} className="text-tinta placeholder-zinc-600 resize-none" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('blockedBy')}</Label>
-                <Input value={formData.blockedBy} onChange={(e) => setFormData({ ...formData, blockedBy: e.target.value })} required style={inputStyle} className="text-zinc-200 placeholder-zinc-600" />
+                <Label className="text-tinta-2 text-xs">{t('blockedBy')}</Label>
+                <Input value={formData.blockedBy} onChange={(e) => setFormData({ ...formData, blockedBy: e.target.value })} required style={inputStyle} className="text-tinta placeholder-zinc-600" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('severity')}</Label>
+                <Label className="text-tinta-2 text-xs">{t('severity')}</Label>
                 <Select value={formData.severity} onValueChange={(v) => setFormData({ ...formData, severity: v as BlockerSeverity })}>
                   <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
-                  <SelectContent style={{ background: '#1c1c1f', border: '1px solid #27272a' }}>
+                  <SelectContent style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)' }}>
                     <SelectItem value={BlockerSeverity.LOW}>{t('severityLevels.low')}</SelectItem>
                     <SelectItem value={BlockerSeverity.MEDIUM}>{t('severityLevels.medium')}</SelectItem>
                     <SelectItem value={BlockerSeverity.HIGH}>{t('severityLevels.high')}</SelectItem>
@@ -269,17 +269,17 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('startDate')}</Label>
+                <Label className="text-tinta-2 text-xs">{t('startDate')}</Label>
                 <DatePicker value={formData.startDate} onChange={(v) => setFormData({ ...formData, startDate: v })} />
               </div>
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowCreateDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
-                style={{ border: '1px solid #27272a' }}>{t('cancel')}</button>
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#6366f1' }}>
+                style={{ background: 'var(--acento)' }}>
                 {submitting ? t('creating') : t('createBlocker')}
               </button>
             </DialogFooter>
@@ -289,25 +289,25 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
 
       {/* Resolve dialog */}
       <Dialog open={showResolveDialog} onOpenChange={setShowResolveDialog}>
-        <DialogContent style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <DialogContent style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <form onSubmit={handleResolveBlocker}>
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">{t('resolveBlocker')}</DialogTitle>
-              <DialogDescription className="text-zinc-500">{t('resolveDialogDescription')}</DialogDescription>
+              <DialogTitle className="text-tinta">{t('resolveBlocker')}</DialogTitle>
+              <DialogDescription className="text-tinta-3">{t('resolveDialogDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('resolution')}</Label>
-                <Textarea value={resolution} onChange={(e) => setResolution(e.target.value)} required rows={4} placeholder={t('resolutionPlaceholder')} style={inputStyle} className="text-zinc-200 placeholder-zinc-600 resize-none" />
+                <Label className="text-tinta-2 text-xs">{t('resolution')}</Label>
+                <Textarea value={resolution} onChange={(e) => setResolution(e.target.value)} required rows={4} placeholder={t('resolutionPlaceholder')} style={inputStyle} className="text-tinta placeholder-zinc-600 resize-none" />
               </div>
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowResolveDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
-                style={{ border: '1px solid #27272a' }}>{t('cancel')}</button>
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#6366f1' }}>
+                style={{ background: 'var(--acento)' }}>
                 {submitting ? t('resolving') : t('resolveBlocker')}
               </button>
             </DialogFooter>

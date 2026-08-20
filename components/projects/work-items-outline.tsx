@@ -105,7 +105,7 @@ const TIPO_EN_PALABRAS: Readonly<Record<Exclude<TaskKind, 'RESUMEN'>, string>> =
 
 const INSIGNIA: Readonly<Record<EstadoAlCorte, { readonly texto: string; readonly clase: string }>> =
   Object.freeze({
-    NO_INICIADO: { texto: 'No iniciado', clase: 'border-zinc-700 bg-zinc-800/60 text-zinc-400' },
+    NO_INICIADO: { texto: 'No iniciado', clase: 'border-borde-fuerte bg-superficie-3/60 text-tinta-2' },
     EN_CURSO: { texto: 'En curso', clase: 'border-amber-500/30 bg-amber-500/10 text-amber-300' },
     CERRADO: { texto: 'Cerrado', clase: 'border-green-500/30 bg-green-500/10 text-green-400' },
   })
@@ -232,7 +232,7 @@ export function WorkItemsOutline({
 
   if (base === null || layout === null) {
     return (
-      <p className="rounded-lg border border-zinc-800 bg-[#18181b] p-6 text-sm text-zinc-400">
+      <p className="rounded-lg border border-borde bg-superficie p-6 text-sm text-tinta-2">
         El plan no tiene líneas todavía.
       </p>
     )
@@ -261,23 +261,23 @@ export function WorkItemsOutline({
           <button
             type="button"
             onClick={() => setPlegados(new Set())}
-            className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+            className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
           >
             Expandir todo
           </button>
           <button
             type="button"
             onClick={() => setPlegados(new Set(collapseToLevel(jerarquia, 0)))}
-            className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+            className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
           >
             Contraer todo
           </button>
           {barraDeLineaBase}
         </div>
-        <p className="text-xs text-zinc-500">{contador}</p>
+        <p className="text-xs text-tinta-3">{contador}</p>
       </div>
 
-      <div className="max-w-full overflow-x-auto rounded-xl border border-zinc-800 bg-[#18181b]">
+      <div className="max-w-full overflow-x-auto rounded-xl border border-borde bg-superficie">
         {/*
           `table-fixed` con anchos declarados, y no el reparto automático.
           Con el reparto por contenido, la columna del título se llevaba 1 294 px de 2 336 —los
@@ -300,7 +300,7 @@ export function WorkItemsOutline({
             {onEditItem || onDeleteItem ? <col style={{ width: 72 }} /> : null}
           </colgroup>
           <thead>
-            <tr className="border-b border-zinc-800 text-left text-xs uppercase tracking-wide text-zinc-400">
+            <tr className="border-b border-borde text-left text-xs uppercase tracking-wide text-tinta-2">
               <th className="px-3 py-2 font-medium">Línea del plan</th>
               <th className="px-3 py-2 font-medium">Tipo</th>
               <th className="px-3 py-2 font-medium" title="Estado al corte del avance">Estado</th>
@@ -397,7 +397,7 @@ function Linea({
   const insignia = INSIGNIA[variance.estado]
 
   return (
-    <tr className={`border-b border-zinc-800 last:border-b-0 ${row.isSummary ? 'bg-[#111113]' : ''}`}>
+    <tr className={`border-b border-borde last:border-b-0 ${row.isSummary ? 'bg-superficie' : ''}`}>
       <td className="px-3 py-1.5">
         <div className="flex items-center gap-1" style={{ paddingLeft: row.level * 16 }}>
           {row.hasChildren ? (
@@ -406,7 +406,7 @@ function Linea({
               aria-label={row.isCollapsed ? `Abrir ${row.name}` : `Cerrar ${row.name}`}
               aria-expanded={!row.isCollapsed}
               onClick={() => onToggle(row.id)}
-              className="w-4 shrink-0 text-zinc-400"
+              className="w-4 shrink-0 text-tinta-2"
             >
               {row.isCollapsed ? '▸' : '▾'}
             </button>
@@ -416,7 +416,7 @@ function Linea({
           <span
             data-testid={`edt-${row.id}`}
             title={`EDT ${wbs}`}
-            className="shrink-0 tabular-nums text-[11px] text-zinc-600"
+            className="shrink-0 tabular-nums text-[11px] text-tinta-3"
           >
             {wbs}
           </span>
@@ -429,14 +429,14 @@ function Linea({
             />
           ) : null}
           <span
-            className={`truncate ${row.isSummary ? 'font-medium text-zinc-100' : 'text-zinc-300'}`}
+            className={`truncate ${row.isSummary ? 'font-medium text-tinta' : 'text-tinta-2'}`}
             title={row.name}
           >
             {row.name}
           </span>
         </div>
       </td>
-      <td className="truncate px-3 py-1.5 text-zinc-400" title={tipoDeLinea(row)}>{tipoDeLinea(row)}</td>
+      <td className="truncate px-3 py-1.5 text-tinta-2" title={tipoDeLinea(row)}>{tipoDeLinea(row)}</td>
       <td className="px-3 py-1.5">
         <span
           data-testid={`estado-${row.id}`}
@@ -450,7 +450,7 @@ function Linea({
           <span
             data-testid={`avance-${row.id}`}
             title="Se acumula del avance de sus líneas; no se captura aquí"
-            className="italic text-zinc-500"
+            className="italic text-tinta-3"
           >
             {Math.round(avance * 100)}%
           </span>
@@ -472,8 +472,8 @@ function Linea({
       <td className="whitespace-nowrap px-3 py-1.5 text-center">
         <CeldaDeVinculos row={row} vinculos={vinculos} onEditLinks={onEditLinks} />
       </td>
-      <td className="truncate px-3 py-1.5 text-zinc-300" title={owner ?? undefined}>{owner ? owner : '—'}</td>
-      <td className="whitespace-nowrap px-3 py-1.5 text-xs text-zinc-400">
+      <td className="truncate px-3 py-1.5 text-tinta-2" title={owner ?? undefined}>{owner ? owner : '—'}</td>
+      <td className="whitespace-nowrap px-3 py-1.5 text-xs text-tinta-2">
         {/* Una sola celda: nueve columnas desbordaban la pestaña, y el rango se lee mejor junto. */}
         {row.isMilestone ? row.start : `${row.start} → ${row.finish}`}
         {/* Lo que prometía la línea base, debajo y en rojo (§4.6). Sólo cuando cambió: repetir la
@@ -495,7 +495,7 @@ function Linea({
           <span
             data-testid={`base-${row.id}`}
             title="Esta línea no existía cuando se tomó la línea base"
-            className="block text-[11px] text-zinc-600"
+            className="block text-[11px] text-tinta-3"
           >
             nueva desde la línea base
           </span>
@@ -513,7 +513,7 @@ function Linea({
                 type="button"
                 aria-label={`Agregar una línea dentro de ${row.name}`}
                 onClick={() => onAddChild(row.id)}
-                className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
+                className="rounded p-1 text-tinta-3 hover:bg-superficie-3 hover:text-tinta"
               >
                 +
               </button>
@@ -525,7 +525,7 @@ function Linea({
                     type="button"
                     aria-label={`Editar ${row.name}`}
                     onClick={() => onEditItem(row.id)}
-                    className="rounded p-1 text-zinc-600 hover:bg-zinc-800 hover:text-zinc-200"
+                    className="rounded p-1 text-tinta-3 hover:bg-superficie-3 hover:text-tinta"
                   >
                     ✎
                   </button>
@@ -535,7 +535,7 @@ function Linea({
                     type="button"
                     aria-label={`Eliminar ${row.name}`}
                     onClick={() => onDeleteItem(row.id)}
-                    className="rounded p-1 text-zinc-600 hover:bg-rose-900/20 hover:text-rose-300"
+                    className="rounded p-1 text-tinta-3 hover:bg-rose-900/20 hover:text-rose-300"
                   >
                     🗑
                   </button>
@@ -583,14 +583,14 @@ function CeldaDeVinculos({
 }) {
   const texto = `${vinculos?.entran ?? 0} ◂ · ${vinculos?.salen ?? 0} ▸`
   if (!onEditLinks || row.isSummary) {
-    return <span className="text-xs text-zinc-500">{texto}</span>
+    return <span className="text-xs text-tinta-3">{texto}</span>
   }
   return (
     <button
       type="button"
       aria-label={`Editar vínculos de ${row.name}`}
       onClick={() => onEditLinks(row.id)}
-      className="rounded px-1.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+      className="rounded px-1.5 py-0.5 text-xs text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
     >
       {texto}
     </button>
@@ -601,7 +601,7 @@ function CeldaDeVinculos({
 function Delta({ id, valor }: { id: string; valor: number }) {
   if (valor === 0) {
     return (
-      <span data-testid={`delta-${id}`} className="text-zinc-600">
+      <span data-testid={`delta-${id}`} className="text-tinta-3">
         0
       </span>
     )
@@ -662,9 +662,9 @@ function CapturaDeAvance({
         onKeyDown={(evento) => {
           if (evento.key === 'Enter') confirmar(evento.currentTarget)
         }}
-        className="w-14 rounded border border-zinc-700 bg-[#111113] px-1.5 py-0.5 text-right text-zinc-100 focus:border-[#6366f1] focus:outline-none"
+        className="w-14 rounded border border-borde-fuerte bg-superficie px-1.5 py-0.5 text-right text-tinta focus:border-acento focus:outline-none"
       />
-      <span className="text-zinc-500">%</span>
+      <span className="text-tinta-3">%</span>
     </span>
   )
 }
@@ -686,8 +686,8 @@ function BarraDelCorte({
   onCutoffChange: (iso: string | null) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-800 bg-[#18181b] px-3 py-2 text-sm">
-      <label htmlFor="corte-del-avance" className="text-zinc-300">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-borde bg-superficie px-3 py-2 text-sm">
+      <label htmlFor="corte-del-avance" className="text-tinta-2">
         Corte del avance:
       </label>
       <input
@@ -698,7 +698,7 @@ function BarraDelCorte({
           // Borrar el campo no es descongelar; para eso está el botón, que lo dice con palabras.
           if (evento.target.value !== '') onCutoffChange(evento.target.value)
         }}
-        className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-zinc-100 focus:border-[#6366f1] focus:outline-none"
+        className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-tinta focus:border-acento focus:outline-none"
       />
       {cutoffFrozen ? (
         <React.Fragment>
@@ -708,13 +708,13 @@ function BarraDelCorte({
           <button
             type="button"
             onClick={() => onCutoffChange(null)}
-            className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+            className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
           >
             Descongelar
           </button>
         </React.Fragment>
       ) : (
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-tinta-3">
           El corte es hoy y se mueve con el calendario; elige una fecha para congelar la foto.
         </span>
       )}

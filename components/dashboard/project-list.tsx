@@ -27,72 +27,72 @@ export function ProjectList({ projects }: ProjectListProps) {
       case 'healthy':
         return { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
       case 'at-risk':
-        return { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }
+        return { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(251,191,36,0.3)' }
       case 'critical':
         return { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }
       default:
-        return { background: 'rgba(113,113,122,0.15)', color: '#a1a1aa', border: '1px solid rgba(113,113,122,0.3)' }
+        return { background: 'rgba(113,113,122,0.15)', color: 'var(--tinta-2)', border: '1px solid rgba(113,113,122,0.3)' }
     }
   }
 
   const getStatusBadgeStyle = (status: ProjectStatus): React.CSSProperties => {
     switch (status) {
       case ProjectStatus.ACTIVE:
-        return { background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' }
+        return { background: 'rgba(99,102,241,0.15)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' }
       case ProjectStatus.PLANNING:
         return { background: 'rgba(167,139,250,0.15)', color: '#c4b5fd', border: '1px solid rgba(167,139,250,0.3)' }
       case ProjectStatus.ON_HOLD:
-        return { background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }
+        return { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(251,191,36,0.3)' }
       case ProjectStatus.COMPLETED:
         return { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
       default:
-        return { background: 'rgba(113,113,122,0.15)', color: '#a1a1aa', border: '1px solid rgba(113,113,122,0.3)' }
+        return { background: 'rgba(113,113,122,0.15)', color: 'var(--tinta-2)', border: '1px solid rgba(113,113,122,0.3)' }
     }
   }
 
   if (projects.length === 0) {
     return (
-      <div className="bg-[#18181b] rounded-lg p-8 text-center" style={{ border: '1px solid #27272a' }}>
-        <p className="text-[#71717a]">{t('projectSummary.noProjects', { defaultValue: 'No se encontraron proyectos' })}</p>
+      <div className="bg-superficie rounded-lg p-8 text-center" style={{ border: '1px solid var(--borde)' }}>
+        <p className="text-tinta-3">{t('projectSummary.noProjects', { defaultValue: 'No se encontraron proyectos' })}</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-[#18181b] rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
+    <div className="bg-superficie rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-[#27272a]">
-          <thead className="bg-[#111113]">
+          <thead className="bg-superficie">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-tinta-3 uppercase tracking-wider">
                 {t('projectSummary.projectName')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-tinta-3 uppercase tracking-wider">
                 {t('projectSummary.client')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-tinta-3 uppercase tracking-wider">
                 {t('projectSummary.status')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-tinta-3 uppercase tracking-wider">
                 {t('projectSummary.health')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-tinta-3 uppercase tracking-wider">
                 {t('projectSummary.completion')}
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#71717a] uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-tinta-3 uppercase tracking-wider">
                 {t('projectSummary.issues', { defaultValue: 'Problemas' })}
               </th>
             </tr>
           </thead>
-          <tbody className="bg-[#18181b] divide-y divide-[#27272a]">
+          <tbody className="bg-superficie divide-y divide-[#27272a]">
             {projects.map((project) => {
               const healthStatus = getHealthStatus(project)
               return (
-                <tr key={project.id} className="hover:bg-[#111113] transition-colors">
+                <tr key={project.id} className="hover:bg-superficie transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Link
                       href={`/${locale}/projects/${project.id}`}
-                      className="text-sm font-medium text-[#a5b4fc] hover:text-[#e4e4e7] transition-colors"
+                      className="text-sm font-medium text-acento-tinta hover:text-[#e4e4e7] transition-colors"
                     >
                       {project.name}
                     </Link>
@@ -118,16 +118,16 @@ export function ProjectList({ projects }: ProjectListProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[#e4e4e7]">
                     <div className="flex items-center">
-                      <div className="w-16 bg-zinc-800 rounded-full h-2 mr-2">
+                      <div className="w-16 bg-superficie-3 rounded-full h-2 mr-2">
                         <div
-                          className="bg-[#6366f1] h-2 rounded-full"
+                          className="bg-acento h-2 rounded-full"
                           style={{ width: `${Math.min(project.completionRate, 100)}%` }}
                         />
                       </div>
                       <span>{project.completionRate.toFixed(0)}%</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[#a1a1aa]">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-tinta-2">
                     <div className="flex gap-3">
                       {project.criticalBlockers > 0 && (
                         <span className="text-[#f87171] font-medium">
@@ -145,7 +145,7 @@ export function ProjectList({ projects }: ProjectListProps) {
                         </span>
                       )}
                       {project.overdueWorkItems > 0 && (
-                        <span className="text-[#a1a1aa]">
+                        <span className="text-tinta-2">
                           {project.overdueWorkItems} {t('projectSummary.overdue', { defaultValue: 'Atrasado' })}
                         </span>
                       )}

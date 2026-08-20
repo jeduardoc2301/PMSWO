@@ -134,13 +134,13 @@ export function DeleteWorkItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-[#18181b] border-[#27272a]">
+      <DialogContent className="sm:max-w-[500px] bg-superficie border-borde">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-400">
             <AlertTriangle className="h-5 w-5" />
             {t('deleteDialog.title')}
           </DialogTitle>
-          <DialogDescription className="text-[#71717a]">
+          <DialogDescription className="text-tinta-3">
             {t('deleteDialog.description')}
           </DialogDescription>
         </DialogHeader>
@@ -158,8 +158,8 @@ export function DeleteWorkItemDialog({
             </p>
           </div>
 
-          <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
-            <p className="text-sm text-[#71717a] mb-1">
+          <div className="rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+            <p className="text-sm text-tinta-3 mb-1">
               {t('deleteDialog.workItemTitle')}
             </p>
             <p className="font-medium text-[#e4e4e7]">{workItem.title}</p>

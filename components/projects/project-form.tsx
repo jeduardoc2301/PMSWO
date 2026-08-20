@@ -64,9 +64,9 @@ function UserAvatar({ user, size = 24 }: { user: OrgUser; size?: number }) {
   return (
     <div
       style={{
-        width: size, height: size, borderRadius: '50%', background: '#3f3f46',
+        width: size, height: size, borderRadius: '50%', background: 'var(--borde-fuerte)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: size * 0.38, fontWeight: 600, color: '#a1a1aa', flexShrink: 0,
+        fontSize: size * 0.38, fontWeight: 600, color: 'var(--tinta-2)', flexShrink: 0,
       }}
     >
       {initials}
@@ -94,7 +94,7 @@ function SingleUserSelect({
   const selected = users.find((u) => u.id === value) ?? null
   return (
     <div>
-      <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
+      <label className="block text-xs font-medium text-tinta-2 uppercase tracking-wider mb-1.5">
         {label} {required && <span className="text-rose-500">*</span>}
       </label>
       <div className="relative">
@@ -104,16 +104,16 @@ function SingleUserSelect({
           disabled={disabled}
           className="w-full h-9 pl-9 pr-8 rounded-lg text-sm appearance-none cursor-pointer outline-none transition-all"
           style={{
-            background: '#111113',
-            border: '1px solid #27272a',
-            color: value ? '#e4e4e7' : '#71717a',
+            background: 'var(--superficie)',
+            border: '1px solid var(--borde)',
+            color: value ? '#e4e4e7' : 'var(--tinta-3)',
           }}
         >
-          <option value="" disabled style={{ background: '#111113', color: '#71717a' }}>
+          <option value="" disabled style={{ background: 'var(--superficie)', color: 'var(--tinta-3)' }}>
             {placeholder}
           </option>
           {users.map((u) => (
-            <option key={u.id} value={u.id} style={{ background: '#111113', color: '#e4e4e7' }}>
+            <option key={u.id} value={u.id} style={{ background: 'var(--superficie)', color: '#e4e4e7' }}>
               {u.name}
             </option>
           ))}
@@ -123,10 +123,10 @@ function SingleUserSelect({
           {selected ? (
             <UserAvatar user={selected} size={20} />
           ) : (
-            <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#27272a' }} />
+            <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--borde)' }} />
           )}
         </div>
-        <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-tinta-3" />
       </div>
     </div>
   )
@@ -157,7 +157,7 @@ function MultiUserSelect({
 
   return (
     <div>
-      <label className="block text-xs font-medium text-zinc-400 uppercase tracking-wider mb-1.5">
+      <label className="block text-xs font-medium text-tinta-2 uppercase tracking-wider mb-1.5">
         {label}
       </label>
 
@@ -167,8 +167,8 @@ function MultiUserSelect({
           {selected.map((u) => (
             <div
               key={u.id}
-              className="flex items-center gap-1.5 h-7 pl-1.5 pr-2 rounded-full text-xs text-zinc-200"
-              style={{ background: '#27272a', border: '1px solid #3f3f46' }}
+              className="flex items-center gap-1.5 h-7 pl-1.5 pr-2 rounded-full text-xs text-tinta"
+              style={{ background: 'var(--borde)', border: '1px solid var(--borde-fuerte)' }}
             >
               <UserAvatar user={u} size={18} />
               <span>{u.name}</span>
@@ -176,7 +176,7 @@ function MultiUserSelect({
                 <button
                   type="button"
                   onClick={() => toggle(u.id)}
-                  className="text-zinc-500 hover:text-zinc-200 ml-0.5"
+                  className="text-tinta-3 hover:text-tinta ml-0.5"
                 >
                   <X size={11} />
                 </button>
@@ -193,19 +193,19 @@ function MultiUserSelect({
           disabled={disabled}
           onClick={() => setOpen((v) => !v)}
           className="w-full h-9 px-3 flex items-center justify-between rounded-lg text-sm transition-all"
-          style={{ background: '#111113', border: '1px solid #27272a', color: '#71717a' }}
+          style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta-3)' }}
         >
           <span>{placeholder}</span>
-          <ChevronDown size={14} className="text-zinc-500" style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }} />
+          <ChevronDown size={14} className="text-tinta-3" style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }} />
         </button>
 
         {open && (
           <div
             className="absolute z-50 w-full mt-1 rounded-lg overflow-hidden shadow-xl"
-            style={{ background: '#111113', border: '1px solid #27272a', maxHeight: 200, overflowY: 'auto' }}
+            style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', maxHeight: 200, overflowY: 'auto' }}
           >
             {users.length === 0 && (
-              <div className="px-3 py-2 text-xs text-zinc-500">Sin usuarios</div>
+              <div className="px-3 py-2 text-xs text-tinta-3">Sin usuarios</div>
             )}
             {users.map((u) => {
               const checked = value.includes(u.id)
@@ -214,10 +214,10 @@ function MultiUserSelect({
                   key={u.id}
                   type="button"
                   onClick={() => toggle(u.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-zinc-800/60 transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-superficie-3/60 transition-colors text-left"
                 >
                   <UserAvatar user={u} size={22} />
-                  <span className="flex-1 text-zinc-200 truncate">{u.name}</span>
+                  <span className="flex-1 text-tinta truncate">{u.name}</span>
                   {checked && <Check size={14} className="text-indigo-400 flex-shrink-0" />}
                 </button>
               )
@@ -379,7 +379,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Project Name */}
       <div>
-        <Label htmlFor="name" className="block text-zinc-300 mb-2">
+        <Label htmlFor="name" className="block text-tinta-2 mb-2">
           {t('projectName')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Input
@@ -397,7 +397,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Description */}
       <div>
-        <Label htmlFor="description" className="block text-zinc-300 mb-2">
+        <Label htmlFor="description" className="block text-tinta-2 mb-2">
           {t('description')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Textarea
@@ -415,7 +415,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Client */}
       <div>
-        <Label htmlFor="client" className="block text-zinc-300 mb-2">
+        <Label htmlFor="client" className="block text-tinta-2 mb-2">
           {t('client')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <Input
@@ -433,11 +433,11 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* People section — only on creation */}
       {!isEditMode && (
-        <div className="rounded-xl" style={{ border: '1px solid #27272a' }}>
-          <div className="px-4 py-2.5 rounded-t-xl" style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Personas del proyecto</p>
+        <div className="rounded-xl" style={{ border: '1px solid var(--borde)' }}>
+          <div className="px-4 py-2.5 rounded-t-xl" style={{ background: 'var(--superficie)', borderBottom: '1px solid var(--borde)' }}>
+            <p className="text-xs font-semibold text-tinta-3 uppercase tracking-wider">Personas del proyecto</p>
           </div>
-          <div className="p-4 space-y-4 rounded-b-xl" style={{ background: '#18181b' }}>
+          <div className="p-4 space-y-4 rounded-b-xl" style={{ background: 'var(--superficie)' }}>
             {/* Owner */}
             <SingleUserSelect
               label="Owner (responsable)"
@@ -476,7 +476,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
       {/* Dates */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <Label htmlFor="startDate" className="block text-zinc-300 mb-2">
+          <Label htmlFor="startDate" className="block text-tinta-2 mb-2">
             {t('startDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <DatePicker
@@ -488,7 +488,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           {errors.startDate && <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>}
         </div>
         <div>
-          <Label htmlFor="estimatedEndDate" className="block text-zinc-300 mb-2">
+          <Label htmlFor="estimatedEndDate" className="block text-tinta-2 mb-2">
             {t('estimatedEndDate')} <span className="text-red-500">{t('required')}</span>
           </Label>
           <DatePicker
@@ -504,7 +504,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
       {/* Status */}
       <div>
-        <Label htmlFor="status" className="block text-zinc-300 mb-2">
+        <Label htmlFor="status" className="block text-tinta-2 mb-2">
           {t('status')} <span className="text-red-500">{t('required')}</span>
         </Label>
         <select
@@ -515,16 +515,16 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           disabled={isSubmitting}
           className={`w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#18181b] ${
             errors.status ? 'border-red-500' : ''
-          } ${!formData.status ? 'text-zinc-500' : 'text-zinc-100'}`}
-          style={{ background: '#111113', border: errors.status ? '1px solid #ef4444' : '1px solid #27272a' }}
+          } ${!formData.status ? 'text-tinta-3' : 'text-tinta'}`}
+          style={{ background: 'var(--superficie)', border: errors.status ? '1px solid #ef4444' : '1px solid var(--borde)' }}
         >
-          <option value="" disabled className="text-zinc-500" style={{ background: '#111113' }}>
+          <option value="" disabled className="text-tinta-3" style={{ background: 'var(--superficie)' }}>
             {t('placeholders.selectStatus')}
           </option>
-          <option value={ProjectStatus.PLANNING} style={{ background: '#111113' }}>{t('statusOptions.planning')}</option>
-          <option value={ProjectStatus.ACTIVE} style={{ background: '#111113' }}>{t('statusOptions.active')}</option>
-          <option value={ProjectStatus.ON_HOLD} style={{ background: '#111113' }}>{t('statusOptions.onHold')}</option>
-          <option value={ProjectStatus.COMPLETED} style={{ background: '#111113' }}>{t('statusOptions.completed')}</option>
+          <option value={ProjectStatus.PLANNING} style={{ background: 'var(--superficie)' }}>{t('statusOptions.planning')}</option>
+          <option value={ProjectStatus.ACTIVE} style={{ background: 'var(--superficie)' }}>{t('statusOptions.active')}</option>
+          <option value={ProjectStatus.ON_HOLD} style={{ background: 'var(--superficie)' }}>{t('statusOptions.onHold')}</option>
+          <option value={ProjectStatus.COMPLETED} style={{ background: 'var(--superficie)' }}>{t('statusOptions.completed')}</option>
         </select>
         {errors.status && <p className="mt-1 text-sm text-red-400">{errors.status}</p>}
       </div>

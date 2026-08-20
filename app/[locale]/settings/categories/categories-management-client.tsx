@@ -38,16 +38,16 @@ export function CategoriesManagementClient() {
   useEffect(() => { fetchCategories() }, [])
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
       {/* Header */}
-      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #27272a' }}>
+      <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--borde)' }}>
         <div>
-          <h2 className="text-sm font-semibold text-zinc-200">{t('title')}</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">{t('description')}</p>
+          <h2 className="text-sm font-semibold text-tinta">{t('title')}</h2>
+          <p className="text-xs text-tinta-3 mt-0.5">{t('description')}</p>
         </div>
         <button onClick={() => setCreateDialogOpen(true)}
           className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
-          style={{ background: '#6366f1' }}>
+          style={{ background: 'var(--acento)' }}>
           <Plus size={13} /> {t('createCategory')}
         </button>
       </div>
@@ -55,7 +55,7 @@ export function CategoriesManagementClient() {
       {/* Content */}
       <div>
         {loading ? (
-          <div className="flex items-center justify-center py-16 gap-3 text-zinc-500">
+          <div className="flex items-center justify-center py-16 gap-3 text-tinta-3">
             <Loader2 size={18} className="animate-spin text-indigo-500" />
             {t('loadingCategories')}
           </div>
@@ -65,31 +65,31 @@ export function CategoriesManagementClient() {
             {error}
           </div>
         ) : categories.length === 0 ? (
-          <div className="py-16 text-center text-zinc-500 text-sm">{t('noCategories')}</div>
+          <div className="py-16 text-center text-tinta-3 text-sm">{t('noCategories')}</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
+              <tr style={{ background: 'var(--superficie)', borderBottom: '1px solid var(--borde)' }}>
                 {[t('categoryName'), t('createdAt'), t('actions')].map((h, i) => (
-                  <th key={h} className={`px-5 py-3 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider ${i === 2 ? 'text-right' : 'text-left'}`}>{h}</th>
+                  <th key={h} className={`px-5 py-3 text-[11px] font-semibold text-tinta-3 uppercase tracking-wider ${i === 2 ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {categories.map((cat) => (
-                <tr key={cat.id} className="border-b hover:bg-zinc-900/30 transition-all" style={{ borderColor: '#27272a' }}>
-                  <td className="px-5 py-3.5 font-medium text-zinc-100">{cat.name}</td>
-                  <td className="px-5 py-3.5 text-zinc-500 text-xs">
+                <tr key={cat.id} className="border-b hover:bg-superficie/30 transition-all" style={{ borderColor: 'var(--borde)' }}>
+                  <td className="px-5 py-3.5 font-medium text-tinta">{cat.name}</td>
+                  <td className="px-5 py-3.5 text-tinta-3 text-xs">
                     {new Date(cat.createdAt).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex justify-end gap-1">
                       <button onClick={() => { setSelectedCategory(cat); setEditDialogOpen(true) }}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all">
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all">
                         <Pencil size={13} />
                       </button>
                       <button onClick={() => { setSelectedCategory(cat); setDeleteDialogOpen(true) }}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all">
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-rose-400 hover:bg-rose-950/40 transition-all">
                         <Trash2 size={13} />
                       </button>
                     </div>

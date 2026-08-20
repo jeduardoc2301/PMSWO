@@ -175,7 +175,7 @@ export function DatePicker({
         </button>
         <button type="button" className="dp-title" onClick={cycleMode}>
           {pickerMode === 'days' && (
-            <>{monthNames[viewDate.getMonth()]} <span style={{ color: '#71717a' }}>{viewDate.getFullYear()}</span></>
+            <>{monthNames[viewDate.getMonth()]} <span style={{ color: 'var(--tinta-3)' }}>{viewDate.getFullYear()}</span></>
           )}
           {pickerMode === 'months' && <>{viewDate.getFullYear()}</>}
           {pickerMode === 'years' && <>{startYear} – {startYear + 11}</>}

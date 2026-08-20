@@ -114,21 +114,21 @@ export function PlanDetailPanel({
   return (
     <section
       aria-labelledby="titulo-detalle-linea"
-      className="flex flex-col gap-4 rounded-lg border border-zinc-800 bg-[#18181b] p-5"
+      className="flex flex-col gap-4 rounded-lg border border-borde bg-superficie p-5"
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide text-zinc-400" data-testid="clase-linea">
+          <p className="text-xs uppercase tracking-wide text-tinta-2" data-testid="clase-linea">
             {CLASE[row.kind]}
           </p>
           {ruta !== undefined && ruta.length > 0 ? (
             <nav aria-label="Dónde está esta línea" data-testid="ruta-linea" className="mt-0.5">
-              <p className="truncate text-xs text-zinc-500" title={ruta.join(" › ")}>
+              <p className="truncate text-xs text-tinta-3" title={ruta.join(" › ")}>
                 {ruta.join(" › ")}
               </p>
             </nav>
           ) : null}
-          <h3 id="titulo-detalle-linea" className="mt-1 text-base font-semibold text-zinc-100">
+          <h3 id="titulo-detalle-linea" className="mt-1 text-base font-semibold text-tinta">
             {onRenombrar ? (
               // La misma celda que la rejilla y la Lista, no una copia: son las mismas reglas
               // —Enter guarda, Escape cancela, vacío se rechaza— y dos celdas editables que se
@@ -149,7 +149,7 @@ export function PlanDetailPanel({
           type="button"
           aria-label="Cerrar el detalle"
           onClick={onClose}
-          className="shrink-0 rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+          className="shrink-0 rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
         >
           ✕
         </button>
@@ -168,8 +168,8 @@ export function PlanDetailPanel({
       {row.recoverability !== 'RECUPERABLE' ? (
         <div data-testid="no-se-recupera" className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
           <p className="text-xs uppercase tracking-wide text-red-300">No se recupera con más gente</p>
-          <p className="mt-1 text-sm text-zinc-300">{POR_QUE[row.recoverability]}</p>
-          {row.reason ? <p className="mt-1 text-xs text-zinc-400">{row.reason}</p> : null}
+          <p className="mt-1 text-sm text-tinta-2">{POR_QUE[row.recoverability]}</p>
+          {row.reason ? <p className="mt-1 text-xs text-tinta-2">{row.reason}</p> : null}
         </div>
       ) : null}
 
@@ -178,7 +178,7 @@ export function PlanDetailPanel({
         // Un resumen no captura avance: lo acumula de sus hijas (§3.6). Ofrecer el campo ahí sería
         // ofrecer un valor que el próximo cálculo pisa sin avisar.
         <div className="flex flex-col gap-0.5">
-          <p className="text-xs uppercase tracking-wide text-zinc-400">Avance</p>
+          <p className="text-xs uppercase tracking-wide text-tinta-2">Avance</p>
           <CeldaEditable
             texto={`${avance(row.progress)} %`}
             valor={String(avance(row.progress))}
@@ -279,11 +279,11 @@ function Esfuerzo({ coherencia }: { coherencia: NonNullable<GanttRow['esfuerzo']
   return (
     <div className="flex flex-col gap-0.5" data-testid="esfuerzo-descuadra">
       <p className="text-xs uppercase tracking-wide text-amber-300">Esfuerzo · no cuadra</p>
-      <p className="text-sm text-zinc-100">
+      <p className="text-sm text-tinta">
         {horas(coherencia.capturado)} capturadas, y en estos días con esta gente caben{' '}
         {horas(coherencia.implicado)}.
       </p>
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-tinta-2">
         {sobra
           ? 'Sobran horas: o la tarea dura más, o hace falta más gente, o las horas están de más.'
           : 'Faltan horas: o la tarea dura menos, o sobra gente, o las horas se quedaron cortas.'}
@@ -311,12 +311,12 @@ function Restriccion({ puesta }: { puesta: NonNullable<GanttRow['restriccion']> 
   }
   return (
     <div data-testid="restriccion-de-la-linea" className="flex flex-col gap-0.5">
-      <p className="text-xs uppercase tracking-wide text-zinc-400">Restricción de fecha</p>
-      <p className="text-sm text-zinc-200">
+      <p className="text-xs uppercase tracking-wide text-tinta-2">Restricción de fecha</p>
+      <p className="text-sm text-tinta">
         {r.nombre}
         {puesta.fecha ? ` · ${puesta.fecha}` : ''}
       </p>
-      <p className="text-xs text-zinc-400">{r.explicacion}</p>
+      <p className="text-xs text-tinta-2">{r.explicacion}</p>
     </div>
   )
 }
@@ -324,8 +324,8 @@ function Restriccion({ puesta }: { puesta: NonNullable<GanttRow['restriccion']> 
 function Dato({ titulo, valor }: { titulo: string; valor: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="text-xs uppercase tracking-wide text-zinc-400">{titulo}</p>
-      <p className="text-sm text-zinc-200">{valor}</p>
+      <p className="text-xs uppercase tracking-wide text-tinta-2">{titulo}</p>
+      <p className="text-sm text-tinta">{valor}</p>
     </div>
   )
 }
@@ -353,9 +353,9 @@ function Vinculos({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="text-xs uppercase tracking-wide text-zinc-400">{titulo}</p>
+      <p className="text-xs uppercase tracking-wide text-tinta-2">{titulo}</p>
       {vinculos.length === 0 ? (
-        <p className="text-sm text-zinc-500">{vacio}</p>
+        <p className="text-sm text-tinta-3">{vacio}</p>
       ) : (
         <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
           {vinculos.map((vinculo) => (
@@ -364,16 +364,16 @@ function Vinculos({
                 type="button"
                 data-testid={`${prefijo}-${vinculo.id}`}
                 onClick={() => onNavigate(vinculo.id)}
-                className="flex w-full items-baseline gap-2 rounded px-2 py-1 text-left hover:bg-zinc-800"
+                className="flex w-full items-baseline gap-2 rounded px-2 py-1 text-left hover:bg-superficie-3"
               >
                 {/* El identificador ya no se enseña: es un UUID de treinta y seis caracteres y en un
                     panel de 320 px se comía el renglón entero antes de que empezara el nombre. El
                     comentario de arriba —«depende de la 288»— se escribió suponiendo un código corto
                     de plan; el modelo no tiene ninguno, así que lo que sitúa el vínculo es el nombre. */}
-                <span className="min-w-0 flex-1 truncate text-sm text-zinc-200" title={vinculo.name}>
+                <span className="min-w-0 flex-1 truncate text-sm text-tinta" title={vinculo.name}>
                   {vinculo.name}
                 </span>
-                <span className="shrink-0 text-xs text-zinc-400">{linkLabel(vinculo)}</span>
+                <span className="shrink-0 text-xs text-tinta-2">{linkLabel(vinculo)}</span>
               </button>
             </li>
           ))}

@@ -116,7 +116,7 @@ export function TemplateList({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 gap-3 text-zinc-500">
+      <div className="flex items-center justify-center py-16 gap-3 text-tinta-3">
         <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
         <span>{t('loadingTemplates', { defaultValue: 'Cargando plantillas...' })}</span>
       </div>
@@ -134,9 +134,9 @@ export function TemplateList({
 
   if (templates.length === 0) {
     return (
-      <div className="rounded-xl p-16 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+      <div className="rounded-xl p-16 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
         <div className="text-base font-semibold text-white">Sin plantillas que coincidan</div>
-        <div className="text-sm text-zinc-500 mt-2">
+        <div className="text-sm text-tinta-3 mt-2">
           {searchQuery || categoryFilter ? 'Prueba ajustando los filtros.' : 'Crea tu primera plantilla.'}
         </div>
       </div>
@@ -152,12 +152,12 @@ export function TemplateList({
         return (
           <div
             key={key}
-            style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}
+            style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', borderRadius: 12, overflow: 'hidden' }}
           >
             {/* Folder header */}
             <button
               onClick={() => toggleFolder(key)}
-              className="w-full flex items-center justify-between hover:bg-zinc-800/30 transition-colors"
+              className="w-full flex items-center justify-between hover:bg-superficie-3/30 transition-colors"
               style={{ padding: '14px 18px', background: 'transparent', border: 'none', cursor: 'pointer' }}
             >
               <div className="flex items-center gap-3">
@@ -167,7 +167,7 @@ export function TemplateList({
                     background: isNoCategory ? 'rgba(113,113,122,0.2)' : 'rgba(99,102,241,0.2)',
                     border: `1px solid ${isNoCategory ? 'rgba(113,113,122,0.3)' : 'rgba(99,102,241,0.3)'}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: isNoCategory ? '#71717a' : '#a5b4fc',
+                    color: isNoCategory ? 'var(--tinta-3)' : 'var(--acento-tinta)',
                   }}
                 >
                   {isExpanded
@@ -175,26 +175,26 @@ export function TemplateList({
                     : <Folder className="h-4 w-4" />}
                 </div>
                 <div className="text-left">
-                  <div className="text-sm font-semibold text-zinc-100">{folder.name}</div>
-                  <div className="text-xs text-zinc-500">
+                  <div className="text-sm font-semibold text-tinta">{folder.name}</div>
+                  <div className="text-xs text-tinta-3">
                     {folder.templates.length} {folder.templates.length === 1 ? 'plantilla' : 'plantillas'}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-xs text-zinc-500 hidden sm:block">
+                <div className="text-xs text-tinta-3 hidden sm:block">
                   {folder.templates.reduce((sum, t) => sum + t.activityCount, 0)} actividades ·{' '}
                   {folder.templates.reduce((sum, t) => sum + t.totalEstimatedDuration, 0)}h estimadas
                 </div>
                 {isExpanded
-                  ? <ChevronDown className="h-4 w-4 text-zinc-500" />
-                  : <ChevronRight className="h-4 w-4 text-zinc-500" />}
+                  ? <ChevronDown className="h-4 w-4 text-tinta-3" />
+                  : <ChevronRight className="h-4 w-4 text-tinta-3" />}
               </div>
             </button>
 
             {/* Templates grid */}
             {isExpanded && (
-              <div style={{ borderTop: '1px solid #27272a', padding: '16px 18px' }}>
+              <div style={{ borderTop: '1px solid var(--borde)', padding: '16px 18px' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {folder.templates.map((template) => (
                     <TemplateCard

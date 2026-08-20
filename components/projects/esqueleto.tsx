@@ -31,7 +31,7 @@ function Barra({ ancho, alto = 12 }: { readonly ancho: string; readonly alto?: n
   return (
     <span
       aria-hidden
-      className="block rounded bg-zinc-800 motion-safe:animate-pulse"
+      className="block rounded bg-superficie-3 motion-safe:animate-pulse"
       style={{ width: ancho, height: alto }}
     />
   )
@@ -59,8 +59,8 @@ const ANCHOS = ['92%', '68%', '84%', '55%', '76%', '61%', '88%', '70%']
 export function EsqueletoDeTabla({ filas = 8, columnas = 5 }: { readonly filas?: number; readonly columnas?: number }) {
   return (
     <Cargando que="Cargando las líneas del plan">
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
-        <div className="flex gap-4 border-b border-zinc-800 bg-zinc-900/40 px-6 py-3">
+      <div className="overflow-hidden rounded-lg border border-borde">
+        <div className="flex gap-4 border-b border-borde bg-superficie/40 px-6 py-3">
           {Array.from({ length: columnas }, (_, i) => (
             <div key={i} className="flex-1">
               <Barra ancho="60%" alto={10} />
@@ -68,7 +68,7 @@ export function EsqueletoDeTabla({ filas = 8, columnas = 5 }: { readonly filas?:
           ))}
         </div>
         {Array.from({ length: filas }, (_, f) => (
-          <div key={f} className="flex gap-4 border-b border-zinc-800/60 px-6 py-3.5 last:border-b-0">
+          <div key={f} className="flex gap-4 border-b border-borde/60 px-6 py-3.5 last:border-b-0">
             {Array.from({ length: columnas }, (_, c) => (
               <div key={c} className="flex-1">
                 <Barra ancho={ANCHOS[(f * columnas + c) % ANCHOS.length]!} />
@@ -91,16 +91,16 @@ export function EsqueletoDeTabla({ filas = 8, columnas = 5 }: { readonly filas?:
 export function EsqueletoDeGantt({ filas = 10 }: { readonly filas?: number }) {
   return (
     <Cargando que="Calculando el plan del proyecto">
-      <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <div className="overflow-hidden rounded-lg border border-borde">
         {Array.from({ length: filas }, (_, i) => (
-          <div key={i} className="flex items-center gap-4 border-b border-zinc-800/60 px-4 py-3 last:border-b-0">
+          <div key={i} className="flex items-center gap-4 border-b border-borde/60 px-4 py-3 last:border-b-0">
             <div className="w-64 shrink-0" style={{ paddingLeft: (i % 3) * 14 }}>
               <Barra ancho={ANCHOS[i % ANCHOS.length]!} />
             </div>
             <div className="relative h-4 flex-1">
               <span
                 aria-hidden
-                className="absolute block rounded-sm bg-zinc-800 motion-safe:animate-pulse"
+                className="absolute block rounded-sm bg-superficie-3 motion-safe:animate-pulse"
                 style={{ left: `${(i * 7) % 45}%`, width: `${18 + ((i * 11) % 30)}%`, height: 10, top: 3 }}
               />
             </div>
@@ -117,7 +117,7 @@ export function EsqueletoDeWidgets({ cuantos = 4 }: { readonly cuantos?: number 
     <Cargando que="Armando el panel de control">
       <div className="grid gap-4 sm:grid-cols-2">
         {Array.from({ length: cuantos }, (_, i) => (
-          <div key={i} className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-[#18181b] p-5">
+          <div key={i} className="flex flex-col gap-3 rounded-xl border border-borde bg-superficie p-5">
             <Barra ancho="42%" alto={10} />
             <Barra ancho="70%" alto={26} />
             <Barra ancho="88%" />

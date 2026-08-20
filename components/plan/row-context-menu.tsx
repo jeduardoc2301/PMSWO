@@ -87,12 +87,12 @@ export function RowContextMenu({ x, y, nombre, acciones, onClose }: RowContextMe
       aria-label={`Acciones de «${nombre}»`}
       data-testid="menu-de-fila"
       style={{ left: izquierda, top: arriba, width: ANCHO }}
-      className="fixed z-50 overflow-hidden rounded-lg border border-zinc-700 bg-[#18181b] py-1 shadow-2xl outline-none"
+      className="fixed z-50 overflow-hidden rounded-lg border border-borde-fuerte bg-superficie py-1 shadow-2xl outline-none"
     >
-      <p className="truncate px-3 py-1.5 text-[11px] text-zinc-500" title={nombre}>
+      <p className="truncate px-3 py-1.5 text-[11px] text-tinta-3" title={nombre}>
         {nombre}
       </p>
-      <div className="my-1 h-px bg-zinc-800" />
+      <div className="my-1 h-px bg-superficie-3" />
 
       <Entrada onClick={acciones.abrirDetalle} onClose={onClose}>
         Ver el detalle
@@ -101,7 +101,7 @@ export function RowContextMenu({ x, y, nombre, acciones, onClose }: RowContextMe
         Configuraciones de la tarea
       </Entrada>
 
-      <div className="my-1 h-px bg-zinc-800" />
+      <div className="my-1 h-px bg-superficie-3" />
 
       <Entrada onClick={acciones.anadirSubtarea} onClose={onClose}>
         Añadir subtarea
@@ -110,7 +110,7 @@ export function RowContextMenu({ x, y, nombre, acciones, onClose }: RowContextMe
         Añadir tarea al mismo nivel
       </Entrada>
 
-      <div className="my-1 h-px bg-zinc-800" />
+      <div className="my-1 h-px bg-superficie-3" />
 
       {/* Deshabilitadas y no escondidas: que la acción exista y aquí no se pueda es información —la
           primera hermana no puede sangrarse—, y esconderla haría creer que el menú cambia solo. */}
@@ -121,7 +121,7 @@ export function RowContextMenu({ x, y, nombre, acciones, onClose }: RowContextMe
         Anular sangría
       </Entrada>
 
-      <div className="my-1 h-px bg-zinc-800" />
+      <div className="my-1 h-px bg-superficie-3" />
 
       <Entrada onClick={acciones.eliminar} onClose={onClose} peligrosa>
         Eliminar
@@ -158,10 +158,10 @@ function Entrada({
         onClose()
         onClick()
       }}
-      className={`block w-full px-3 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:text-zinc-600 ${
+      className={`block w-full px-3 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:text-tinta-3 ${
         peligrosa
           ? 'text-rose-300 hover:bg-rose-950/40 disabled:hover:bg-transparent'
-          : 'text-zinc-200 hover:bg-zinc-800 disabled:hover:bg-transparent'
+          : 'text-tinta hover:bg-superficie-3 disabled:hover:bg-transparent'
       }`}
     >
       {children}

@@ -43,7 +43,7 @@ export function UndoBar({
           sePuedeDeshacer ? `Deshacer «${etiquetaDeDeshacer}» · Ctrl+Z` : 'No hay nada que deshacer'
         }
         aria-label={sePuedeDeshacer ? `Deshacer ${etiquetaDeDeshacer}` : 'Deshacer'}
-        className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3 disabled:cursor-not-allowed disabled:opacity-40"
       >
         ↶
       </button>
@@ -55,7 +55,7 @@ export function UndoBar({
           sePuedeRehacer ? `Rehacer «${etiquetaDeRehacer}» · Ctrl+Shift+Z` : 'No hay nada que rehacer'
         }
         aria-label={sePuedeRehacer ? `Rehacer ${etiquetaDeRehacer}` : 'Rehacer'}
-        className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3 disabled:cursor-not-allowed disabled:opacity-40"
       >
         ↷
       </button>
@@ -64,7 +64,7 @@ export function UndoBar({
         <span
           data-testid="aviso-deshacer"
           role="status"
-          className="ml-1 flex items-center gap-1 text-xs text-zinc-500"
+          className="ml-1 flex items-center gap-1 text-xs text-tinta-3"
         >
           {aviso}
           {onCerrarAviso ? (
@@ -72,7 +72,7 @@ export function UndoBar({
               type="button"
               aria-label="Cerrar el aviso"
               onClick={onCerrarAviso}
-              className="rounded px-1 hover:bg-zinc-800 hover:text-zinc-300"
+              className="rounded px-1 hover:bg-superficie-3 hover:text-tinta-2"
             >
               ✕
             </button>

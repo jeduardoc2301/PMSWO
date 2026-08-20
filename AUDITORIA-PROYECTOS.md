@@ -2909,3 +2909,43 @@ Uno de los agentes abrió su plan con «PASO 0 · arreglar el corredor de prueba
 hacerle caso: recoge **39 archivos y 927 pruebas**, en las dos formas de invocarlo. Séptima vez que
 una acusación de un informe no sobrevive a reproducirla.
 
+### La conversión: 2 139 sustituciones, y tres colores de la paleta que no pasaban
+
+**Diecinueve literales cubren casi todo.** `text-zinc-500` sale 294 veces, `#27272a` 268,
+`bg-zinc-800` 265, `text-zinc-400` 244… Así que la conversión es mecánica — con una condición: las
+reglas van por **prefijo**, no por valor. `zinc-400` no significa nada por sí solo: en
+`text-zinc-400` es texto secundario y en `border-zinc-400` es un borde. El mismo número, dos papeles,
+un token distinto para cada uno.
+
+**2 139 sustituciones en 106 archivos.** Cuatro archivos quedan fuera a propósito: aquellos donde el
+color **codifica un dato** — el rojo de sobrecarga, la rampa de ocupación, la del embudo. Ahí
+cambiar el color cambia lo que la pantalla dice.
+
+Medido en pantalla sobre la página del proyecto, con el tema en claro:
+
+| elementos pintados a mano de oscuro | |
+|---|---:|
+| antes de convertir | 18 de 769 |
+| ahora | **2** de 769 |
+
+### Y tres fallos de contraste en la paleta que había escrito yo
+
+La síntesis del inventario los señaló y los comprobé con la aritmética de WCAG antes de hacerle
+caso. Los tres eran ciertos, al decimal:
+
+| | medído | hacía falta | ahora |
+|---|---:|---:|---|
+| `--tinta-3` sobre lo hundido | **3.08:1** | 4.5:1 | `#91919a` → 4.77:1 |
+| `--grave` como **texto** | **3.69:1** | 4.5:1 | `--grave-tinta` `#f87171` → 6.40:1 |
+| `--borde-fuerte` como **anillo de foco** | **1.70:1** | 3:1 | `--foco` = el acento → 3.97:1 |
+
+El de `--tinta-3` es el que más pesa: cubre unas **450** ocurrencias —`text-zinc-500` incluido, la
+clase de color más usada del repositorio—, así que heredar ese fallo era heredarlo en todas partes.
+Subirlo de `#71717a` a `#91919a` **cambia el aspecto** de esos 450 sitios, y es una decisión, no un
+detalle: se toma una vez, con el número delante.
+
+Y una cuarta, que no era un fallo sino una trampa: `--sobre-color` vale negro en oscuro y sirve para
+un chip relleno de ámbar (11.92:1), pero **no** es la tinta del botón primario — blanco sobre
+`#6366f1` da 4.47:1, a un pelo del mínimo. De ahí `--acento-relleno` = `#4f46e5` en los dos temas,
+que con blanco encima da **6.29:1**.
+

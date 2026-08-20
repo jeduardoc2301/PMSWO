@@ -23,7 +23,7 @@ const ROLE_COLOR: Record<string, { bg: string; color: string; border: string }> 
   EXECUTIVE:           { bg: 'rgba(14,165,233,0.12)',  color: '#7dd3fc', border: 'rgba(14,165,233,0.3)'  },
   PROJECT_MANAGER:     { bg: 'rgba(16,185,129,0.12)',  color: '#6ee7b7', border: 'rgba(16,185,129,0.3)'  },
   INTERNAL_CONSULTANT: { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)'  },
-  EXTERNAL_CONSULTANT: { bg: 'rgba(113,113,122,0.12)', color: '#a1a1aa', border: 'rgba(113,113,122,0.3)' },
+  EXTERNAL_CONSULTANT: { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)' },
 }
 
 export function UsersManagementClient() {
@@ -258,11 +258,11 @@ export function UsersManagementClient() {
     setCreateFormData((p) => ({ ...p, roles: p.roles.includes(role) ? p.roles.filter((r) => r !== role) : [...p.roles, role] }))
 
   const inputStyle = {
-    background: '#111113', border: '1px solid #27272a', color: '#e4e4e7',
+    background: 'var(--superficie)', border: '1px solid var(--borde)', color: '#e4e4e7',
   } as React.CSSProperties
 
   if (loading) return (
-    <div className="flex items-center justify-center py-16 gap-3 text-zinc-500">
+    <div className="flex items-center justify-center py-16 gap-3 text-tinta-3">
       <Loader2 size={18} className="animate-spin text-indigo-500" />
       {tCommon('loading')}...
     </div>
@@ -276,12 +276,12 @@ export function UsersManagementClient() {
   )
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
       {/* Header */}
-      <div className="px-6 py-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderBottom: '1px solid #27272a' }}>
+      <div className="px-6 py-4 flex items-center justify-between gap-4 flex-wrap" style={{ borderBottom: '1px solid var(--borde)' }}>
         <div className="flex-shrink-0">
-          <h2 className="text-sm font-semibold text-zinc-200">{t('title')}</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <h2 className="text-sm font-semibold text-tinta">{t('title')}</h2>
+          <p className="text-xs text-tinta-3 mt-0.5">
             {filteredUsers.length === users.length
               ? `${users.length} usuario${users.length !== 1 ? 's' : ''}`
               : `${filteredUsers.length} de ${users.length} usuarios`}
@@ -291,13 +291,13 @@ export function UsersManagementClient() {
         {/* Search bar */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 max-w-xs">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3 pointer-events-none" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nombre, correo o rol..."
-              className="w-full h-8 pl-8 pr-3 rounded-lg text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-              style={{ background: '#111113', border: '1px solid #27272a' }}
+              className="w-full h-8 pl-8 pr-3 rounded-lg text-xs text-tinta placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}
             />
           </div>
 
@@ -305,11 +305,11 @@ export function UsersManagementClient() {
           <div ref={roleFilterRef} className="relative flex-shrink-0">
             <button
               onClick={() => setRoleFilterOpen((o) => !o)}
-              className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs transition-all hover:border-zinc-600"
-              style={{ background: '#111113', border: '1px solid #27272a', color: '#a1a1aa' }}
+              className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs transition-all hover:border-borde-fuerte"
+              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta-2)' }}
             >
-              <span className="text-zinc-600">Rol:</span>
-              <span className="text-zinc-300">
+              <span className="text-tinta-3">Rol:</span>
+              <span className="text-tinta-2">
                 {roleFilter ? getRoleLabel(roleFilter) : 'Todos'}
               </span>
               <ChevronDown size={11} />
@@ -334,7 +334,7 @@ export function UsersManagementClient() {
         {canCreateUsers && (
           <button onClick={() => setCreateDialogOpen(true)}
             className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90 flex-shrink-0"
-            style={{ background: '#6366f1' }}>
+            style={{ background: 'var(--acento)' }}>
             <UserPlus size={13} /> {t('createUser')}
           </button>
         )}
@@ -343,22 +343,22 @@ export function UsersManagementClient() {
       {/* Table */}
       <table className="w-full text-sm">
         <thead>
-          <tr style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
+          <tr style={{ background: 'var(--superficie)', borderBottom: '1px solid var(--borde)' }}>
             {[t('name'), t('rolesLabel'), tCommon('status'), tCommon('actions')].map((h, i) => (
-              <th key={h} className={`px-5 py-3 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider ${i === 3 ? 'text-right' : 'text-left'}`}>{h}</th>
+              <th key={h} className={`px-5 py-3 text-[11px] font-semibold text-tinta-3 uppercase tracking-wider ${i === 3 ? 'text-right' : 'text-left'}`}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {filteredUsers.length === 0 && (
             <tr>
-              <td colSpan={4} className="px-5 py-10 text-center text-sm text-zinc-500">
+              <td colSpan={4} className="px-5 py-10 text-center text-sm text-tinta-3">
                 No se encontraron usuarios con ese criterio de búsqueda.
               </td>
             </tr>
           )}
           {filteredUsers.map((user) => (
-            <tr key={user.id} className="border-b hover:bg-zinc-900/30 transition-all" style={{ borderColor: '#27272a' }}>
+            <tr key={user.id} className="border-b hover:bg-superficie/30 transition-all" style={{ borderColor: 'var(--borde)' }}>
               <td className="px-5 py-3.5">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center text-xs font-bold text-white"
@@ -369,8 +369,8 @@ export function UsersManagementClient() {
                     }
                   </div>
                   <div>
-                    <div className="font-medium text-zinc-100">{user.name}</div>
-                    <div className="text-xs text-zinc-500 mt-0.5">{user.email}</div>
+                    <div className="font-medium text-tinta">{user.name}</div>
+                    <div className="text-xs text-tinta-3 mt-0.5">{user.email}</div>
                   </div>
                 </div>
               </td>
@@ -398,12 +398,12 @@ export function UsersManagementClient() {
               <td className="px-5 py-3.5">
                 <div className="flex justify-end gap-1">
                   <button onClick={() => handleEditUser(user)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all">
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all">
                     <Pencil size={13} />
                   </button>
                   {user.active && (
                     <button onClick={() => handleDeactivateUser(user)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 transition-all">
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-rose-400 hover:bg-rose-950/40 transition-all">
                       <UserX size={13} />
                     </button>
                   )}
@@ -416,11 +416,11 @@ export function UsersManagementClient() {
 
       {/* Edit dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-lg" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <DialogContent className="max-w-lg" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <form onSubmit={handleUpdateUser}>
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">{t('editUser')}</DialogTitle>
-              <DialogDescription className="text-zinc-500">{t('editUser')}</DialogDescription>
+              <DialogTitle className="text-tinta">{t('editUser')}</DialogTitle>
+              <DialogDescription className="text-tinta-3">{t('editUser')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               {editError && (
@@ -434,7 +434,7 @@ export function UsersManagementClient() {
                   type="button"
                   onClick={() => editAvatarInputRef.current?.click()}
                   className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
-                  style={{ background: '#1c1c1f', border: '2px dashed #3f3f46' }}
+                  style={{ background: 'var(--superficie-2)', border: '2px dashed #3f3f46' }}
                 >
                   {(editAvatarPreview || formData.avatar) ? (
                     <>
@@ -446,44 +446,44 @@ export function UsersManagementClient() {
                     </>
                   ) : (
                     <div className="flex flex-col items-center gap-1">
-                      <Camera size={22} className="text-zinc-600" />
-                      <span className="text-[9px] text-zinc-600 font-medium">FOTO</span>
+                      <Camera size={22} className="text-tinta-3" />
+                      <span className="text-[9px] text-tinta-3 font-medium">FOTO</span>
                     </div>
                   )}
                 </button>
-                <span className="text-[10px] text-zinc-600">Foto del consultor (opcional)</span>
+                <span className="text-[10px] text-tinta-3">Foto del consultor (opcional)</span>
                 <input ref={editAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleEditAvatarChange} />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('name')}</Label>
+                <Label className="text-tinta-2 text-xs">{t('name')}</Label>
                 <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required className="text-zinc-200 placeholder-zinc-600 focus-visible:ring-indigo-500/40" style={inputStyle} />
+                  required className="text-tinta placeholder-zinc-600 focus-visible:ring-indigo-500/40" style={inputStyle} />
               </div>
 
               {/* Password change */}
-              <div className="rounded-lg p-3 space-y-3" style={{ background: '#111113', border: '1px solid #27272a' }}>
-                <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-wider">Cambiar contraseña</p>
+              <div className="rounded-lg p-3 space-y-3" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+                <p className="text-[11px] text-tinta-3 font-medium uppercase tracking-wider">Cambiar contraseña</p>
                 <div className="space-y-1.5">
-                  <Label className="text-zinc-400 text-xs">Nueva contraseña</Label>
+                  <Label className="text-tinta-2 text-xs">Nueva contraseña</Label>
                   <Input
                     type="password"
                     placeholder="Mínimo 8 caracteres"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="text-zinc-200 placeholder-zinc-600 focus-visible:ring-indigo-500/40"
+                    className="text-tinta placeholder-zinc-600 focus-visible:ring-indigo-500/40"
                     style={inputStyle}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-zinc-400 text-xs">Confirmar contraseña</Label>
+                  <Label className="text-tinta-2 text-xs">Confirmar contraseña</Label>
                   <Input
                     type="password"
                     placeholder="Repetir contraseña"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="text-zinc-200 placeholder-zinc-600 focus-visible:ring-indigo-500/40"
-                    style={{ ...inputStyle, borderColor: formData.confirmPassword && formData.password !== formData.confirmPassword ? '#ef4444' : '#27272a' }}
+                    className="text-tinta placeholder-zinc-600 focus-visible:ring-indigo-500/40"
+                    style={{ ...inputStyle, borderColor: formData.confirmPassword && formData.password !== formData.confirmPassword ? '#ef4444' : 'var(--borde)' }}
                   />
                   {formData.confirmPassword && formData.password !== formData.confirmPassword && (
                     <p className="text-[11px] text-rose-400">Las contraseñas no coinciden</p>
@@ -492,13 +492,13 @@ export function UsersManagementClient() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('rolesLabel')}</Label>
-                <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
+                <Label className="text-tinta-2 text-xs">{t('rolesLabel')}</Label>
+                <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
                   {Object.values(UserRole).map((role) => (
-                    <label key={role} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-zinc-900/50 transition-all"
-                      style={{ borderBottom: '1px solid #27272a' }}>
+                    <label key={role} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-superficie/50 transition-all"
+                      style={{ borderBottom: '1px solid var(--borde)' }}>
                       <Checkbox checked={formData.roles.includes(role)} onCheckedChange={() => toggleRole(role)} />
-                      <span className="text-sm text-zinc-300">{getRoleLabel(role)}</span>
+                      <span className="text-sm text-tinta-2">{getRoleLabel(role)}</span>
                     </label>
                   ))}
                 </div>
@@ -506,16 +506,16 @@ export function UsersManagementClient() {
               </div>
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <Checkbox checked={formData.active} onCheckedChange={(v) => setFormData({ ...formData, active: v as boolean })} />
-                <span className="text-sm text-zinc-300">{t('active')}</span>
+                <span className="text-sm text-tinta-2">{t('active')}</span>
               </label>
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setEditDialogOpen(false)}
-                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-                style={{ border: '1px solid #27272a' }}>{tCommon('cancel')}</button>
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
+                style={{ border: '1px solid var(--borde)' }}>{tCommon('cancel')}</button>
               <button type="submit" disabled={submitting || formData.roles.length === 0}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#6366f1' }}>
+                style={{ background: 'var(--acento)' }}>
                 {submitting ? `${tCommon('save')}...` : tCommon('save')}
               </button>
             </DialogFooter>
@@ -525,11 +525,11 @@ export function UsersManagementClient() {
 
       {/* Create dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-lg" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <DialogContent className="max-w-lg" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <form onSubmit={handleCreateUser}>
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">{t('createUser')}</DialogTitle>
-              <DialogDescription className="text-zinc-500">{t('createUser')}</DialogDescription>
+              <DialogTitle className="text-tinta">{t('createUser')}</DialogTitle>
+              <DialogDescription className="text-tinta-3">{t('createUser')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               {createError && (
@@ -543,7 +543,7 @@ export function UsersManagementClient() {
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
                   className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
-                  style={{ background: '#1c1c1f', border: '2px dashed #3f3f46' }}
+                  style={{ background: 'var(--superficie-2)', border: '2px dashed #3f3f46' }}
                 >
                   {(createAvatarPreview || createFormData.avatar) ? (
                     <>
@@ -555,12 +555,12 @@ export function UsersManagementClient() {
                     </>
                   ) : (
                     <div className="flex flex-col items-center gap-1">
-                      <Camera size={22} className="text-zinc-600" />
-                      <span className="text-[9px] text-zinc-600 font-medium">FOTO</span>
+                      <Camera size={22} className="text-tinta-3" />
+                      <span className="text-[9px] text-tinta-3 font-medium">FOTO</span>
                     </div>
                   )}
                 </button>
-                <span className="text-[10px] text-zinc-600">Foto del consultor (opcional)</span>
+                <span className="text-[10px] text-tinta-3">Foto del consultor (opcional)</span>
                 <input
                   ref={avatarInputRef}
                   type="file"
@@ -576,21 +576,21 @@ export function UsersManagementClient() {
                 { id: 'create-pw',    label: t('password'), key: 'password' as const, type: 'password', placeholder: t('passwordPlaceholder') },
               ].map(({ id, label, key, type, placeholder }) => (
                 <div key={id} className="space-y-1.5">
-                  <Label htmlFor={id} className="text-zinc-400 text-xs">{label}</Label>
+                  <Label htmlFor={id} className="text-tinta-2 text-xs">{label}</Label>
                   <Input id={id} type={type} placeholder={placeholder} required
                     value={createFormData[key]}
                     onChange={(e) => setCreateFormData({ ...createFormData, [key]: e.target.value })}
-                    className="text-zinc-200 placeholder-zinc-600 focus-visible:ring-indigo-500/40" style={inputStyle} />
+                    className="text-tinta placeholder-zinc-600 focus-visible:ring-indigo-500/40" style={inputStyle} />
                 </div>
               ))}
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('rolesLabel')}</Label>
-                <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
+                <Label className="text-tinta-2 text-xs">{t('rolesLabel')}</Label>
+                <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
                   {Object.values(UserRole).map((role) => (
-                    <label key={role} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-zinc-900/50 transition-all"
-                      style={{ borderBottom: '1px solid #27272a' }}>
+                    <label key={role} className="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-superficie/50 transition-all"
+                      style={{ borderBottom: '1px solid var(--borde)' }}>
                       <Checkbox checked={createFormData.roles.includes(role)} onCheckedChange={() => toggleCreateRole(role)} />
-                      <span className="text-sm text-zinc-300">{getRoleLabel(role)}</span>
+                      <span className="text-sm text-tinta-2">{getRoleLabel(role)}</span>
                     </label>
                   ))}
                 </div>
@@ -599,11 +599,11 @@ export function UsersManagementClient() {
             </div>
             <DialogFooter>
               <button type="button" onClick={() => { setCreateDialogOpen(false); resetCreateForm(); setCreateAvatarPreview(null) }}
-                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-                style={{ border: '1px solid #27272a' }}>{tCommon('cancel')}</button>
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
+                style={{ border: '1px solid var(--borde)' }}>{tCommon('cancel')}</button>
               <button type="submit" disabled={submitting || createFormData.roles.length === 0}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#6366f1' }}>
+                style={{ background: 'var(--acento)' }}>
                 {submitting ? `${tCommon('create')}...` : tCommon('create')}
               </button>
             </DialogFooter>

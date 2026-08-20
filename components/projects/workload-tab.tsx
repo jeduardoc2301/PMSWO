@@ -240,7 +240,7 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
   )
 
   if (estado.fase === 'cargando') {
-    return <p className="py-12 text-center text-sm text-zinc-400">Armando la carga del equipo...</p>
+    return <p className="py-12 text-center text-sm text-tinta-2">Armando la carga del equipo...</p>
   }
 
   if (estado.fase === 'error') {
@@ -267,8 +267,8 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
   const sinAsignaciones = corte.assignments.length === 0
 
   const ofrecerSembrar = sinAsignaciones ? (
-    <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
-        <p className="mx-auto max-w-lg text-sm leading-relaxed text-zinc-400">
+    <div className="rounded-xl border border-dashed border-borde p-8 text-center">
+        <p className="mx-auto max-w-lg text-sm leading-relaxed text-tinta-2">
           Esta vista reparte la carga entre los recursos del proyecto, y este plan todavía no tiene
           asignaciones. Se pueden crear a partir de lo que ya hay: el responsable de cada línea y el
           nombre del responsable del cliente, con la fracción de jornada que sale de repartir la
@@ -278,7 +278,7 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
           type="button"
           disabled={sembrando}
           onClick={() => void sembrar()}
-          className="mt-4 rounded-lg bg-[#6366f1] px-4 py-2 text-sm font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+          className="mt-4 rounded-lg bg-acento px-4 py-2 text-sm font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
         >
           {sembrando ? 'Creando asignaciones...' : 'Crear las asignaciones desde el plan'}
         </button>
@@ -327,7 +327,7 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
         <aside
           data-testid="detalle-carga"
           aria-label="Detalle de la línea"
-          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-zinc-800 bg-[#111113] p-3 shadow-2xl"
+          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-borde bg-superficie p-3 shadow-2xl"
         >
           {filaDelDetalle ? (
             <PlanDetailPanel
@@ -338,16 +338,16 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
               onClose={() => setDetalle(null)}
             />
           ) : (
-            <div className="rounded-lg border border-zinc-800 bg-[#18181b] p-5">
+            <div className="rounded-lg border border-borde bg-superficie p-5">
               <button
                 type="button"
                 aria-label="Cerrar el detalle"
                 onClick={() => setDetalle(null)}
-                className="float-right rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                className="float-right rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
               >
                 ✕
               </button>
-              <p className="text-sm text-zinc-400" data-testid="detalle-carga-aviso">
+              <p className="text-sm text-tinta-2" data-testid="detalle-carga-aviso">
                 {plan.error !== null
                   ? `No se pudo cargar el plan: ${plan.error}`
                   : plan.cargando

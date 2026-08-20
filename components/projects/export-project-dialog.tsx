@@ -105,10 +105,10 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
           {t('button')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
           <DialogTitle className="text-[#e4e4e7]">{t('title')}</DialogTitle>
-          <DialogDescription className="text-[#71717a]">
+          <DialogDescription className="text-tinta-3">
             {exportContent ? t('download') : t('sections')}
           </DialogDescription>
         </DialogHeader>
@@ -116,7 +116,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
         {!exportContent ? (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="detail-level" className="text-[#a1a1aa]">{t('detailLevel')}</Label>
+              <Label htmlFor="detail-level" className="text-tinta-2">{t('detailLevel')}</Label>
               <Select
                 value={detailLevel}
                 onValueChange={(value) => setDetailLevel(value as ReportDetailLevel)}
@@ -139,7 +139,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[#a1a1aa]">{t('sections')}</Label>
+              <Label className="text-tinta-2">{t('sections')}</Label>
 
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -229,7 +229,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: '#111113', border: '1px solid #27272a' }}>
+            <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
               <pre className="text-sm whitespace-pre-wrap font-mono text-[#e4e4e7]">{exportContent}</pre>
             </div>
 

@@ -16,11 +16,11 @@ export default function Loading() {
       <div className="flex flex-col items-center gap-4">
         {/* Spinner */}
         <div className="relative h-12 w-12">
-          <div className="absolute h-12 w-12 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900 dark:border-zinc-800 dark:border-t-zinc-50"></div>
+          <div className="absolute h-12 w-12 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900 dark:border-borde dark:border-t-zinc-50"></div>
         </div>
         
         {/* Loading text */}
-        <p className="text-sm text-zinc-600 dark:text-zinc-400" role="status" aria-live="polite">
+        <p className="text-sm text-tinta-3 dark:text-tinta-2" role="status" aria-live="polite">
           {t('loading')}
         </p>
       </div>

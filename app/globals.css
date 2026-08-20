@@ -34,15 +34,44 @@
 
   --tinta:          #fafafa;  /* texto principal */
   --tinta-2:        #a1a1aa;  /* secundario: valores, subtítulos */
-  --tinta-3:        #71717a;  /* apagado: rótulos, ayudas, lo deshabilitado */
+  /*
+    Apagado: rótulos, ayudas, lo deshabilitado. **Era `#71717a` y no llegaba.**
+
+    Medido: 3.67:1 sobre la superficie y 3.08:1 sobre lo hundido, por debajo del 4.5:1 que necesita
+    un texto pequeño. Y es el token que más sitios cubre —unas 450, `text-zinc-500` incluido, que es
+    la clase de color más usada del repositorio—, así que heredar ese fallo era heredarlo en todas
+    partes. `#91919a` da 5.67:1 y 4.77:1, y conserva el escalón contra `--tinta-2` (6.91:1).
+  */
+  --tinta-3:        #91919a;
 
   --acento:         #6366f1;
   --acento-tinta:   #a5b4fc;  /* el acento sobre la superficie, cuando es TEXTO */
   --acento-suave:   #312e81;  /* el acento como fondo de algo pequeño */
+  /*
+    El acento **relleno**, con texto blanco encima: un botón primario.
+
+    No es `--acento`: blanco sobre `#6366f1` da 4.47:1, que se queda a un pelo del 4.5:1. Sobre
+    `#4f46e5` da 6.29:1, y el mismo valor sirve en los dos temas — un relleno oscuro con texto claro
+    encima no tiene por qué cambiar cuando cambia el fondo de la página.
+  */
+  --acento-relleno: #4f46e5;
+  /*
+    El anillo de foco. Va aparte de `--borde-fuerte`, que da **1.70:1** contra la superficie: un
+    indicador de foco necesita 3:1, y uno que no se ve no es un indicador.
+  */
+  --foco:           #6366f1;
 
   --bien:           #34a86e;
   --aviso:          #fbbf24;
   --grave:          #d03b3b;
+  /*
+    El rojo como **texto**, que no es el mismo que como relleno.
+
+    `#d03b3b` sobre la superficie da 3.69:1 — y es el color del atraso, del bloqueo y de la
+    sobrecarga, o sea el estado que más importa leer bien. `#f87171` da 6.40:1. Es la misma partición
+    que `--acento` / `--acento-tinta`, y por el mismo motivo.
+  */
+  --grave-tinta:    #f87171;
   --sobre-color:    #09090b;  /* lo que se escribe ENCIMA de un bien/aviso/grave lleno */
 }
 
@@ -76,10 +105,13 @@
   --acento:         #4f46e5;
   --acento-tinta:   #4338ca;
   --acento-suave:   #e0e7ff;
+  --acento-relleno: #4f46e5;
+  --foco:           #4f46e5;
 
   --bien:           #15803d;
   --aviso:          #b45309;
   --grave:          #b91c1c;
+  --grave-tinta:    #b91c1c;
   --sobre-color:    #ffffff;
 
   --bg:       #f4f4f7;
@@ -114,10 +146,13 @@
     --acento:         #4f46e5;
     --acento-tinta:   #4338ca;
     --acento-suave:   #e0e7ff;
+    --acento-relleno: #4f46e5;
+    --foco:           #4f46e5;
 
     --bien:           #15803d;
     --aviso:          #b45309;
     --grave:          #b91c1c;
+    --grave-tinta:    #b91c1c;
     --sobre-color:    #ffffff;
 
     --bg:       #f4f4f7;
@@ -135,6 +170,30 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Los tokens, también como utilidades: `bg-superficie`, `text-tinta-2`, `border-borde`.
+
+     Sin esto habría que escribir `bg-[var(--superficie)]` en cada sitio, que funciona pero se lee
+     peor y se equivoca más. Con esto, el nombre de la clase dice el **papel** —que es justo lo que
+     `zinc-400` no dice— y cambiar el tema no toca ni un componente. */
+  --color-fondo:          var(--fondo);
+  --color-superficie:     var(--superficie);
+  --color-superficie-2:   var(--superficie-2);
+  --color-superficie-3:   var(--superficie-3);
+  --color-borde:          var(--borde);
+  --color-borde-fuerte:   var(--borde-fuerte);
+  --color-tinta:          var(--tinta);
+  --color-tinta-2:        var(--tinta-2);
+  --color-tinta-3:        var(--tinta-3);
+  --color-acento:         var(--acento);
+  --color-acento-tinta:   var(--acento-tinta);
+  --color-acento-suave:   var(--acento-suave);
+  --color-bien:           var(--bien);
+  --color-aviso:          var(--aviso);
+  --color-grave:          var(--grave);
+  --color-grave-tinta:    var(--grave-tinta);
+  --color-acento-relleno: var(--acento-relleno);
+  --color-foco:           var(--foco);
 }
 
 * {

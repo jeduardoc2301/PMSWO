@@ -13,7 +13,7 @@ export default function ProjectsLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-[#09090b]">
+    <div className="flex min-h-screen bg-fondo">
       {/* Navigation sidebar with sign-out functionality */}
       <MainNavWrapper />
       

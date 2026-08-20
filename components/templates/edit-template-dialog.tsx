@@ -294,7 +294,7 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
 
         {loadingTemplate ? (
           <div className="flex items-center justify-center py-8">
-            <p className="text-sm text-[#71717a]">{t('loading')}</p>
+            <p className="text-sm text-tinta-3">{t('loading')}</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">

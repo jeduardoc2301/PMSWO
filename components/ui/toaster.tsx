@@ -47,7 +47,7 @@ function Aviso({ aviso }: { readonly aviso: ToastConAsa }) {
       className={`pointer-events-auto flex items-start gap-2.5 rounded-lg border px-3.5 py-3 shadow-xl ${
         esError
           ? 'border-red-900/60 bg-[#2a1416] text-red-100'
-          : 'border-zinc-700 bg-[#1c1c1f] text-zinc-100'
+          : 'border-borde-fuerte bg-superficie-2 text-tinta'
       }`}
     >
       <span aria-hidden className={`shrink-0 text-sm ${esError ? 'text-red-400' : 'text-emerald-400'}`}>
@@ -60,7 +60,7 @@ function Aviso({ aviso }: { readonly aviso: ToastConAsa }) {
           {aviso.title}
         </p>
         {aviso.description ? (
-          <p className={`mt-0.5 text-xs leading-relaxed ${esError ? 'text-red-200/80' : 'text-zinc-400'}`}>
+          <p className={`mt-0.5 text-xs leading-relaxed ${esError ? 'text-red-200/80' : 'text-tinta-2'}`}>
             {aviso.description}
           </p>
         ) : null}

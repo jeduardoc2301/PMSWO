@@ -350,7 +350,7 @@ export function CalendarTab({
   }
 
   if (estado.fase === 'cargando') {
-    return <p className="py-12 text-center text-sm text-zinc-400">Armando el calendario del proyecto...</p>
+    return <p className="py-12 text-center text-sm text-tinta-2">Armando el calendario del proyecto...</p>
   }
 
   if (estado.fase === 'error') {
@@ -372,7 +372,7 @@ export function CalendarTab({
           retorno temprano se la saltaba y dejaba la vista sin manera de deshacer el filtro. */}
       {barraDeFiltro}
       {sinNadaQueDibujar ? (
-        <p className="py-12 text-center text-sm text-zinc-400" data-testid="calendario-vacio">
+        <p className="py-12 text-center text-sm text-tinta-2" data-testid="calendario-vacio">
           {esCulpaDelFiltro
             ? `El filtro no deja pasar ninguna de las ${estado.plan.tasks.length} líneas del plan.`
             : 'Este proyecto todavía no tiene líneas que poner en el calendario.'}
@@ -416,14 +416,14 @@ export function CalendarTab({
               type="button"
               disabled={aplicando}
               onClick={() => void aplicarMovimiento()}
-              className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+              className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
             >
               {aplicando ? 'Aplicando...' : 'Aplicar'}
             </button>
             <button
               type="button"
               onClick={() => setPropuesta(null)}
-              className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+              className="rounded-lg border border-borde-fuerte px-3 py-1.5 text-xs text-tinta-2 hover:bg-superficie-3"
             >
               Cancelar
             </button>

@@ -17,7 +17,7 @@ export default async function TemplatesLayout({
   const t = await getTranslations('templates')
 
   return (
-    <div className="flex min-h-screen bg-[#09090b]">
+    <div className="flex min-h-screen bg-fondo">
       <MainNavWrapper />
       <main className="flex-1 ml-64 min-w-0">
         {children}

@@ -214,8 +214,8 @@ export function ActivitySelectionStep({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-100" />
-        <span className="ml-2 text-zinc-100">{t('loading')}</span>
+        <Loader2 className="h-8 w-8 animate-spin text-tinta" />
+        <span className="ml-2 text-tinta">{t('loading')}</span>
       </div>
     )
   }
@@ -232,9 +232,9 @@ export function ActivitySelectionStep({
 
   return (
     <div className="space-y-6">
-      <div style={{ background: '#111113', border: '1px solid #27272a' }} className="rounded-lg p-4">
-        <h4 className="font-medium text-zinc-100">{template.name}</h4>
-        <p className="text-sm text-zinc-400 mt-1">{template.description}</p>
+      <div style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }} className="rounded-lg p-4">
+        <h4 className="font-medium text-tinta">{template.name}</h4>
+        <p className="text-sm text-tinta-2 mt-1">{template.description}</p>
       </div>
 
       <div className="flex justify-between items-center">
@@ -247,7 +247,7 @@ export function ActivitySelectionStep({
           {isAllSelected() ? t('deselectAll') : t('selectAll')}
         </Button>
 
-        <div className="text-sm text-zinc-300">
+        <div className="text-sm text-tinta-2">
           <span className="font-medium">{stats.count}</span> {t('selectedActivities').toLowerCase()} •{' '}
           <span className="font-medium">{stats.duration}</span> {t('hours')}
         </div>
@@ -271,7 +271,7 @@ export function ActivitySelectionStep({
                   <button
                     type="button"
                     onClick={() => togglePhase(phase.id)}
-                    className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-[#6366f1] hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
+                    className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-acento hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
                   >
                     {isPhaseExpanded ? (
                       <ChevronDown className="w-4 h-4" />
@@ -282,10 +282,10 @@ export function ActivitySelectionStep({
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-base font-semibold text-zinc-100">
+                      <span className="text-base font-semibold text-tinta">
                         {phase.name}
                       </span>
-                      <span className="text-sm text-zinc-400">
+                      <span className="text-sm text-tinta-2">
                         ({selectedInPhase} / {sortedActivities.length})
                       </span>
                     </div>
@@ -303,12 +303,12 @@ export function ActivitySelectionStep({
                             : t('selectAllInPhase')}
                         </Button>
 
-                        <div className="pl-6 border-l-2 border-[#27272a] space-y-2">
+                        <div className="pl-6 border-l-2 border-borde space-y-2">
                           {sortedActivities.map((activity) => (
                             <div
                               key={activity.id}
-                              className="flex items-start space-x-3 p-3 border border-[#27272a] rounded-lg hover:bg-zinc-800/50"
-                              style={{ background: '#111113' }}
+                              className="flex items-start space-x-3 p-3 border border-borde rounded-lg hover:bg-superficie-3/50"
+                              style={{ background: 'var(--superficie)' }}
                             >
                               <Checkbox
                                 id={activity.id}
@@ -320,13 +320,13 @@ export function ActivitySelectionStep({
                                 htmlFor={activity.id}
                                 className="flex-1 cursor-pointer"
                               >
-                                <div className="font-medium text-zinc-100">
+                                <div className="font-medium text-tinta">
                                   {activity.title}
                                 </div>
-                                <div className="text-sm text-zinc-400 mt-1">
+                                <div className="text-sm text-tinta-2 mt-1">
                                   {activity.description}
                                 </div>
-                                <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
+                                <div className="flex items-center gap-4 mt-2 text-xs text-tinta-3">
                                   <span>
                                     {t('priority')}: {t(`priorityEnum.${activity.priority.toLowerCase()}`)}
                                   </span>
@@ -355,7 +355,7 @@ export function ActivitySelectionStep({
         </div>
       )}
 
-      <div className="flex justify-between pt-4 border-t border-[#27272a]">
+      <div className="flex justify-between pt-4 border-t border-borde">
         <Button type="button" variant="outline" onClick={onBack}>
           {t('back')}
         </Button>

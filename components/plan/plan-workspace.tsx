@@ -981,8 +981,8 @@ export function PlanWorkspace({
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-medium text-zinc-100">El plan, línea por línea</h2>
-          <p className="text-xs text-zinc-500">
+          <h2 className="text-lg font-medium text-tinta">El plan, línea por línea</h2>
+          <p className="text-xs text-tinta-3">
             {origin ? `${origin} · ` : ''}arranca el {start} y cierra el {layout.finish}
             {layout.finish === deadline ? ' (la fecha comprometida)' : ` (comprometido: ${deadline})`}
           </p>
@@ -1087,14 +1087,14 @@ export function PlanWorkspace({
                     type="button"
                     disabled={aplicando}
                     onClick={() => void aplicarMovimiento()}
-                    className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                    className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
                   >
                     {aplicando ? 'Aplicando...' : 'Aplicar'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setPropuesta(null)}
-                    className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                    className="rounded-lg border border-borde-fuerte px-3 py-1.5 text-xs text-tinta-2 hover:bg-superficie-3"
                   >
                     Cancelar
                   </button>
@@ -1194,15 +1194,15 @@ export function PlanWorkspace({
           {seleccionando ? (
             <div
               data-testid="barra-de-lote"
-              className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-[#27272a] bg-[#18181b] px-3 py-2 text-xs"
+              className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-borde bg-superficie px-3 py-2 text-xs"
             >
-              <span className="text-zinc-300">
+              <span className="text-tinta-2">
                 <strong className="tabular-nums">{alcance.sobreLasQueOperar.length}</strong>{' '}
                 {alcance.sobreLasQueOperar.length === 1 ? 'línea marcada' : 'líneas marcadas'}
                 {/* Lo que no se ve se dice: operar en silencio sobre menos de lo marcado deja a
                     alguien contando por qué faltan. */}
                 {alcance.fueraDeLaVista > 0 ? (
-                  <span className="text-zinc-500">
+                  <span className="text-tinta-3">
                     {' '}
                     · {alcance.fueraDeLaVista} fuera de la vista
                   </span>
@@ -1212,14 +1212,14 @@ export function PlanWorkspace({
               <button
                 type="button"
                 onClick={() => setSeleccion((prev) => marcarTodas(prev, idsVisiblesEnPantalla))}
-                className="rounded border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-800"
+                className="rounded border border-borde-fuerte px-2 py-1 text-tinta-2 hover:bg-superficie-3"
               >
                 Marcar lo visible
               </button>
               <button
                 type="button"
                 onClick={() => setSeleccion(limpiar())}
-                className="rounded border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-800"
+                className="rounded border border-borde-fuerte px-2 py-1 text-tinta-2 hover:bg-superficie-3"
               >
                 Limpiar
               </button>
@@ -1230,7 +1230,7 @@ export function PlanWorkspace({
                 type="button"
                 disabled={alcance.sobreLasQueOperar.length === 0 || enCurso !== null}
                 onClick={() => void sangrarEnLote(true)}
-                className="rounded bg-[#6366f1] px-2 py-1 font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+                className="rounded bg-acento px-2 py-1 font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
               >
                 Sangrar
               </button>
@@ -1238,18 +1238,18 @@ export function PlanWorkspace({
                 type="button"
                 disabled={alcance.sobreLasQueOperar.length === 0 || enCurso !== null}
                 onClick={() => void sangrarEnLote(false)}
-                className="rounded border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
+                className="rounded border border-borde-fuerte px-2 py-1 text-tinta-2 hover:bg-superficie-3 disabled:opacity-40"
               >
                 Anular sangría
               </button>
 
               {enCurso !== null ? (
-                <span className="tabular-nums text-zinc-400" data-testid="avance-del-lote">
+                <span className="tabular-nums text-tinta-2" data-testid="avance-del-lote">
                   {enCurso.hechas} de {enCurso.total}...
                 </span>
               ) : null}
               {resultadoDelLote !== null ? (
-                <span className="text-zinc-300" data-testid="resultado-del-lote" role="status">
+                <span className="text-tinta-2" data-testid="resultado-del-lote" role="status">
                   {resultadoDelLote}
                 </span>
               ) : null}
@@ -1292,14 +1292,14 @@ export function PlanWorkspace({
                   type="button"
                   disabled={escribiendoDuracion}
                   onClick={() => void escribirDuracion()}
-                  className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                  className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
                 >
                   {escribiendoDuracion ? 'Aplicando...' : 'Aplicar'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDuracionPropuesta(null)}
-                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                  className="rounded-lg border border-borde-fuerte px-3 py-1.5 text-xs text-tinta-2 hover:bg-superficie-3"
                 >
                   Cancelar
                 </button>
@@ -1312,10 +1312,10 @@ export function PlanWorkspace({
               role="alertdialog"
               aria-label="Confirmar el vínculo"
               data-testid="propuesta-de-vinculo"
-              className="mt-2 rounded-xl border border-[#6366f1]/40 bg-[#6366f1]/10 p-3"
+              className="mt-2 rounded-xl border border-acento/40 bg-acento/10 p-3"
             >
-              <p className="text-sm text-zinc-100">{comoSeLee(vinculoPropuesto, nombres)}</p>
-              <p className="mt-1 text-xs text-zinc-400">
+              <p className="text-sm text-tinta">{comoSeLee(vinculoPropuesto, nombres)}</p>
+              <p className="mt-1 text-xs text-tinta-2">
                 Cambia las fechas de todo lo que dependa de la segunda.
               </p>
               <div className="mt-2 flex gap-2">
@@ -1323,14 +1323,14 @@ export function PlanWorkspace({
                   type="button"
                   disabled={escribiendoVinculo}
                   onClick={() => void escribirVinculo()}
-                  className="rounded-lg bg-[#6366f1] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                  className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
                 >
                   {escribiendoVinculo ? 'Creando...' : 'Crear el vínculo'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setVinculoPropuesto(null)}
-                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                  className="rounded-lg border border-borde-fuerte px-3 py-1.5 text-xs text-tinta-2 hover:bg-superficie-3"
                 >
                   Cancelar
                 </button>
@@ -1382,7 +1382,7 @@ export function PlanWorkspace({
                   type="button"
                   data-testid="editar-vinculos"
                   onClick={() => setEditandoVinculos(seleccionada.id)}
-                  className="mt-2 w-full rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                  className="mt-2 w-full rounded-lg border border-borde-fuerte px-3 py-2 text-xs text-tinta-2 hover:border-borde-fuerte hover:text-tinta"
                 >
                   Editar vínculos de esta línea
                 </button>

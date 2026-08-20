@@ -214,8 +214,8 @@ export function FinalPreviewStep({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
-        <span className="ml-2 text-zinc-400">{t('loading')}</span>
+        <Loader2 className="h-8 w-8 animate-spin text-tinta-2" />
+        <span className="ml-2 text-tinta-2">{t('loading')}</span>
       </div>
     )
   }
@@ -233,26 +233,26 @@ export function FinalPreviewStep({
       <div className="rounded-lg p-4" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="font-medium text-[#a5b4fc]">
+            <h4 className="font-medium text-acento-tinta">
               {t('workItemsToCreate')}: {calculatedActivities.length}
             </h4>
-            <p className="text-sm text-[#a5b4fc] mt-1">
+            <p className="text-sm text-acento-tinta mt-1">
               {t('totalDuration')}: {totalDuration} {t('hours')}
             </p>
           </div>
-          <div className="text-sm text-[#a5b4fc]">
+          <div className="text-sm text-acento-tinta">
             {t('startDate')}: {startDate.toLocaleDateString()}
           </div>
         </div>
       </div>
 
       <div>
-        <h4 className="font-medium text-zinc-100 mb-3">
+        <h4 className="font-medium text-tinta mb-3">
           {t('selectedActivities')}
         </h4>
 
         {calculatedActivities.length === 0 ? (
-          <div style={{ background: '#111113', border: '1px solid #27272a' }} className="rounded-lg p-4 text-center text-zinc-400">
+          <div style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }} className="rounded-lg p-4 text-center text-tinta-2">
             {t('validation.noActivitiesSelected')}
           </div>
         ) : (
@@ -266,7 +266,7 @@ export function FinalPreviewStep({
                     <button
                       type="button"
                       onClick={() => togglePhase(phaseName)}
-                      className="flex-shrink-0 w-8 h-8 rounded-full bg-[#6366f1] text-white flex items-center justify-center hover:bg-[#5254cc] transition-colors"
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-acento text-white flex items-center justify-center hover:bg-[#5254cc] transition-colors"
                     >
                       {isExpanded ? (
                         <ChevronDown className="h-4 w-4" />
@@ -277,10 +277,10 @@ export function FinalPreviewStep({
 
                     <div className="flex-1 pt-1">
                       <div className="flex items-center justify-between">
-                        <h5 className="font-semibold text-zinc-100 text-lg">
+                        <h5 className="font-semibold text-tinta text-lg">
                           {phaseName}
                         </h5>
-                        <span className="text-sm text-zinc-400">
+                        <span className="text-sm text-tinta-2">
                           {activities.length} {activities.length === 1 ? t('activity') : t('activities').toLowerCase()}
                         </span>
                       </div>
@@ -288,7 +288,7 @@ export function FinalPreviewStep({
                   </div>
 
                   {isExpanded && (
-                    <div className="ml-4 mt-3 border-l-2 border-[#27272a] pl-4 space-y-3">
+                    <div className="ml-4 mt-3 border-l-2 border-borde pl-4 space-y-3">
                       {activities.map((activity, activityIndex) => (
                         <div key={activity.id} className="relative">
                           <div className="absolute left-0 top-4 w-4 h-0.5 bg-[#27272a]" />
@@ -298,39 +298,39 @@ export function FinalPreviewStep({
                               <ChevronRight className="h-4 w-4" />
                             </div>
 
-                            <div className="flex-1 p-4 border border-[#27272a] rounded-lg" style={{ background: '#18181b' }}>
-                              <h6 className="font-medium text-zinc-100 mb-2">
+                            <div className="flex-1 p-4 border border-borde rounded-lg" style={{ background: 'var(--superficie)' }}>
+                              <h6 className="font-medium text-tinta mb-2">
                                 {activity.title}
                               </h6>
 
                               {activity.description && (
-                                <p className="text-sm text-zinc-300 mb-3">
+                                <p className="text-sm text-tinta-2 mb-3">
                                   {activity.description}
                                 </p>
                               )}
 
                               <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
-                                  <span className="text-zinc-400">{t('priority')}:</span>{' '}
-                                  <span className="font-medium text-zinc-100">
+                                  <span className="text-tinta-2">{t('priority')}:</span>{' '}
+                                  <span className="font-medium text-tinta">
                                     {t(`priorityEnum.${activity.priority.toLowerCase()}`)}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-zinc-400">{t('estimatedDuration')}:</span>{' '}
-                                  <span className="font-medium text-zinc-100">
+                                  <span className="text-tinta-2">{t('estimatedDuration')}:</span>{' '}
+                                  <span className="font-medium text-tinta">
                                     {activity.estimatedDuration} {t('hours')}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-zinc-400">{t('startDate')}:</span>{' '}
-                                  <span className="font-medium text-zinc-100">
+                                  <span className="text-tinta-2">{t('startDate')}:</span>{' '}
+                                  <span className="font-medium text-tinta">
                                     {desdeFechaCivil(activity.startDate).toLocaleDateString()}
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-zinc-400">{t('estimatedEndDate')}:</span>{' '}
-                                  <span className="font-medium text-zinc-100">
+                                  <span className="text-tinta-2">{t('estimatedEndDate')}:</span>{' '}
+                                  <span className="font-medium text-tinta">
                                     {desdeFechaCivil(activity.endDate).toLocaleDateString()}
                                   </span>
                                 </div>
@@ -354,7 +354,7 @@ export function FinalPreviewStep({
         </p>
       </div>
 
-      <div className="flex justify-between pt-4 border-t border-[#27272a]">
+      <div className="flex justify-between pt-4 border-t border-borde">
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onBack} disabled={submitting}>
             {t('back')}

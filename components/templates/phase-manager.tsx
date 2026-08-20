@@ -74,7 +74,7 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Label className="text-sm font-medium text-zinc-100">
+        <Label className="text-sm font-medium text-tinta">
           {t('phases')} ({phases.length})
         </Label>
         <button
@@ -89,8 +89,8 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
       </div>
 
       {phases.length === 0 && (
-        <div className="border border-dashed border-[#27272a] rounded-md p-6 text-center">
-          <p className="text-sm text-zinc-400">{t('validation.phaseRequired')}</p>
+        <div className="border border-dashed border-borde rounded-md p-6 text-center">
+          <p className="text-sm text-tinta-2">{t('validation.phaseRequired')}</p>
         </div>
       )}
 
@@ -109,7 +109,7 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
                   type="button"
                   onClick={() => toggleExpand(index)}
                   disabled={disabled}
-                  className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-[#6366f1] hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
+                  className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-acento hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
                 >
                   {isExpanded ? (
                     <ChevronDown className="w-4 h-4" />
@@ -120,7 +120,7 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-base font-semibold text-zinc-100 flex-shrink-0">
+                    <span className="text-base font-semibold text-tinta flex-shrink-0">
                       {t('phase')} {index + 1}:
                     </span>
                     <Input
@@ -131,7 +131,7 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
                       className="h-8 text-sm flex-1"
                     />
                     {!isExpanded && phase.activities.length > 0 && (
-                      <span className="text-sm text-zinc-400 flex-shrink-0">
+                      <span className="text-sm text-tinta-2 flex-shrink-0">
                         ({phase.activities.length} {phase.activities.length === 1 ? t('activity') : t('activities')})
                       </span>
                     )}
@@ -149,7 +149,7 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
 
                   {isExpanded && (
                     <div className="space-y-3 pb-3">
-                      <div className="pl-6 border-l-2 border-[#27272a]">
+                      <div className="pl-6 border-l-2 border-borde">
                         <ActivityManager
                           activities={phase.activities}
                           onChange={(activities) => updatePhase(index, 'activities', activities)}

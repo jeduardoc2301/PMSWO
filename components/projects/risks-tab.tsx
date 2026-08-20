@@ -36,10 +36,10 @@ const STATUS_STYLE: Record<RiskStatus, { bg: string; color: string; border: stri
   [RiskStatus.MONITORING]:  { bg: 'rgba(139,92,246,0.12)',  color: '#c4b5fd', border: 'rgba(139,92,246,0.3)'  },
   [RiskStatus.MITIGATING]:  { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)'  },
   [RiskStatus.MATERIALIZED]:{ bg: 'rgba(239,68,68,0.12)',   color: '#fca5a5', border: 'rgba(239,68,68,0.3)'   },
-  [RiskStatus.CLOSED]:      { bg: 'rgba(113,113,122,0.12)', color: '#a1a1aa', border: 'rgba(113,113,122,0.3)' },
+  [RiskStatus.CLOSED]:      { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)' },
 }
 
-const inputStyle: React.CSSProperties = { background: '#111113', border: '1px solid #27272a', color: '#e4e4e7' }
+const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: '#e4e4e7' }
 
 export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDataUsed }: RisksTabProps) {
   const t = useTranslations('risks')
@@ -140,7 +140,7 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
     return order[a.riskLevel] - order[b.riskLevel]
   })
 
-  if (loading) return <div className="py-12 flex items-center justify-center gap-3 text-zinc-500"><div className="w-4 h-4 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />{t('loading')}</div>
+  if (loading) return <div className="py-12 flex items-center justify-center gap-3 text-tinta-3"><div className="w-4 h-4 border-2 border-borde-fuerte border-t-indigo-500 rounded-full animate-spin" />{t('loading')}</div>
 
   if (error) return (
     <div className="py-6">
@@ -153,29 +153,29 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
-          <span className="text-sm"><span className="font-bold text-white">{activeRisks.length}</span> <span className="text-zinc-500">{t('activeRisks')}</span></span>
-          {highRisks.length > 0 && <span className="text-sm"><span className="font-bold text-amber-400">{highRisks.length}</span> <span className="text-zinc-500">{t('highRisks')}</span></span>}
+          <span className="text-sm"><span className="font-bold text-white">{activeRisks.length}</span> <span className="text-tinta-3">{t('activeRisks')}</span></span>
+          {highRisks.length > 0 && <span className="text-sm"><span className="font-bold text-amber-400">{highRisks.length}</span> <span className="text-tinta-3">{t('highRisks')}</span></span>}
         </div>
         <button onClick={() => setShowCreateDialog(true)}
           className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: '#6366f1' }}>
+          style={{ background: 'var(--acento)' }}>
           <Plus size={14} /> {t('createRisk')}
         </button>
       </div>
 
       {/* Risk matrix */}
       {activeRisks.length > 0 && (
-        <div className="rounded-xl p-5" style={{ background: '#18181b', border: '1px solid #27272a' }}>
-          <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-4">{t('riskMatrix')}</h3>
-          <p className="text-xs text-zinc-500 mb-4">{t('riskMatrixDescription')}</p>
+        <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+          <h3 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider mb-4">{t('riskMatrix')}</h3>
+          <p className="text-xs text-tinta-3 mb-4">{t('riskMatrixDescription')}</p>
           <div className="grid grid-cols-6 gap-1">
             <div />
             {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="text-[10px] font-medium text-zinc-500 text-center py-1">{i}</div>
+              <div key={i} className="text-[10px] font-medium text-tinta-3 text-center py-1">{i}</div>
             ))}
             {[5, 4, 3, 2, 1].map(prob => (
               <React.Fragment key={prob}>
-                <div className="text-[10px] font-medium text-zinc-500 flex items-center justify-center">{prob}</div>
+                <div className="text-[10px] font-medium text-tinta-3 flex items-center justify-center">{prob}</div>
                 {[1, 2, 3, 4, 5].map(impact => {
                   const cellRisks = activeRisks.filter(r => r.probability === prob && r.impact === impact)
                   const score = prob * impact
@@ -191,7 +191,7 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
               </React.Fragment>
             ))}
           </div>
-          <div className="mt-3 text-xs text-zinc-500 flex gap-4">
+          <div className="mt-3 text-xs text-tinta-3 flex gap-4">
             <span>{t('yAxis')}</span><span>{t('xAxis')}</span>
           </div>
         </div>
@@ -200,13 +200,13 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
       {/* Active risks */}
       {sortedActiveRisks.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">{t('activeRisks')}</h3>
+          <h3 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider">{t('activeRisks')}</h3>
           {sortedActiveRisks.map(risk => {
             const ls = LEVEL_STYLE[risk.riskLevel] ?? LEVEL_STYLE[RiskLevel.MEDIUM]
             const ss = STATUS_STYLE[risk.status] ?? STATUS_STYLE[RiskStatus.IDENTIFIED]
             return (
               <div key={risk.id} className="rounded-xl p-5"
-                style={{ background: '#18181b', border: `1px solid ${risk.riskLevel === RiskLevel.CRITICAL ? 'rgba(239,68,68,0.4)' : '#27272a'}` }}>
+                style={{ background: 'var(--superficie)', border: `1px solid ${risk.riskLevel === RiskLevel.CRITICAL ? 'rgba(239,68,68,0.4)' : 'var(--borde)'}` }}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -218,23 +218,23 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
                         style={{ background: ss.bg, color: ss.color, border: `1px solid ${ss.border}` }}>
                         {t(`status.${risk.status.toLowerCase()}`)}
                       </span>
-                      <span className="text-xs text-zinc-500">P: {risk.probability} × I: {risk.impact}</span>
+                      <span className="text-xs text-tinta-3">P: {risk.probability} × I: {risk.impact}</span>
                     </div>
-                    <p className="text-sm font-medium text-zinc-100 mb-1">{risk.description}</p>
-                    <p className="text-xs text-zinc-500"><span className="text-zinc-400">{t('mitigationPlan')}:</span> {risk.mitigationPlan}</p>
+                    <p className="text-sm font-medium text-tinta mb-1">{risk.description}</p>
+                    <p className="text-xs text-tinta-3"><span className="text-tinta-2">{t('mitigationPlan')}:</span> {risk.mitigationPlan}</p>
                   </div>
                   <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
                     {(risk.riskLevel === RiskLevel.HIGH || risk.riskLevel === RiskLevel.CRITICAL) && (
                       <NotificationDialog type="risk" entityId={risk.id} />
                     )}
                     <button onClick={() => handleConvertToBlocker(risk.id)}
-                      className="h-8 px-3 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
-                      style={{ border: '1px solid #27272a' }}>
+                      className="h-8 px-3 rounded-lg text-xs text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                      style={{ border: '1px solid var(--borde)' }}>
                       {t('convertToBlocker')}
                     </button>
                     <button onClick={() => { setSelectedRisk(risk); setShowCloseDialog(true) }}
                       className="h-8 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
-                      style={{ background: '#6366f1' }}>
+                      style={{ background: 'var(--acento)' }}>
                       {t('closeRisk')}
                     </button>
                   </div>
@@ -246,26 +246,26 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
       )}
 
       {activeRisks.length === 0 && (
-        <div className="rounded-xl py-12 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <div className="rounded-xl py-12 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <AlertTriangle size={36} className="text-emerald-500 mx-auto mb-3" />
-          <p className="text-zinc-400">{t('noActiveRisks')}</p>
+          <p className="text-tinta-2">{t('noActiveRisks')}</p>
         </div>
       )}
 
       {/* Closed risks */}
       {closedRisks.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">{t('closedRisks')}</h3>
+          <h3 className="text-sm font-semibold text-tinta-2 uppercase tracking-wider">{t('closedRisks')}</h3>
           {closedRisks.map(risk => (
-            <div key={risk.id} className="rounded-xl p-5 opacity-60" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+            <div key={risk.id} className="rounded-xl p-5 opacity-60" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(113,113,122,0.12)', color: '#a1a1aa', border: '1px solid rgba(113,113,122,0.3)' }}>
+                  style={{ background: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: '1px solid rgba(113,113,122,0.3)' }}>
                   <X size={10} /> {t('closed')}
                 </span>
               </div>
-              <p className="text-sm font-medium text-zinc-300 mb-1">{risk.description}</p>
-              <p className="text-xs text-zinc-500">{t('closureNotes')}: {risk.closureNotes}</p>
+              <p className="text-sm font-medium text-tinta-2 mb-1">{risk.description}</p>
+              <p className="text-xs text-tinta-3">{t('closureNotes')}: {risk.closureNotes}</p>
             </div>
           ))}
         </div>
@@ -273,59 +273,59 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
 
       {/* Create dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <DialogContent className="max-w-2xl" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <form onSubmit={handleCreateRisk}>
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">{t('createRisk')}</DialogTitle>
-              <DialogDescription className="text-zinc-500">{t('createDialogDescription')}</DialogDescription>
+              <DialogTitle className="text-tinta">{t('createRisk')}</DialogTitle>
+              <DialogDescription className="text-tinta-3">{t('createDialogDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('riskDescription')}</Label>
-                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required rows={3} style={inputStyle} className="text-zinc-200 placeholder-zinc-600 resize-none" />
+                <Label className="text-tinta-2 text-xs">{t('riskDescription')}</Label>
+                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required rows={3} style={inputStyle} className="text-tinta placeholder-zinc-600 resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-zinc-400 text-xs">{t('probability')}</Label>
+                  <Label className="text-tinta-2 text-xs">{t('probability')}</Label>
                   <Select value={formData.probability.toString()} onValueChange={(v) => setFormData({ ...formData, probability: parseInt(v) })}>
                     <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
-                    <SelectContent style={{ background: '#1c1c1f', border: '1px solid #27272a' }}>
+                    <SelectContent style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)' }}>
                       {[1,2,3,4,5].map(v => <SelectItem key={v} value={v.toString()}>{t(`probabilityScale.${v}`)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-zinc-400 text-xs">{t('impact')}</Label>
+                  <Label className="text-tinta-2 text-xs">{t('impact')}</Label>
                   <Select value={formData.impact.toString()} onValueChange={(v) => setFormData({ ...formData, impact: parseInt(v) })}>
                     <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
-                    <SelectContent style={{ background: '#1c1c1f', border: '1px solid #27272a' }}>
+                    <SelectContent style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)' }}>
                       {[1,2,3,4,5].map(v => <SelectItem key={v} value={v.toString()}>{t(`impactScale.${v}`)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('mitigationPlan')}</Label>
-                <Textarea value={formData.mitigationPlan} onChange={(e) => setFormData({ ...formData, mitigationPlan: e.target.value })} required rows={3} style={inputStyle} className="text-zinc-200 placeholder-zinc-600 resize-none" />
+                <Label className="text-tinta-2 text-xs">{t('mitigationPlan')}</Label>
+                <Textarea value={formData.mitigationPlan} onChange={(e) => setFormData({ ...formData, mitigationPlan: e.target.value })} required rows={3} style={inputStyle} className="text-tinta placeholder-zinc-600 resize-none" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('owner')}</Label>
+                <Label className="text-tinta-2 text-xs">{t('owner')}</Label>
                 <Select value={formData.ownerId} onValueChange={(v) => setFormData({ ...formData, ownerId: v })}>
                   <SelectTrigger style={inputStyle}><SelectValue placeholder={t('selectOwner')} /></SelectTrigger>
-                  <SelectContent style={{ background: '#1c1c1f', border: '1px solid #27272a' }}>
+                  <SelectContent style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)' }}>
                     {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-zinc-600">{t('ownerOptional')}</p>
+                <p className="text-xs text-tinta-3">{t('ownerOptional')}</p>
               </div>
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowCreateDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
-                style={{ border: '1px solid #27272a' }}>{t('cancel')}</button>
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#6366f1' }}>
+                style={{ background: 'var(--acento)' }}>
                 {submitting ? t('creating') : t('createRisk')}
               </button>
             </DialogFooter>
@@ -335,25 +335,25 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
 
       {/* Close dialog */}
       <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
-        <DialogContent style={{ background: '#18181b', border: '1px solid #27272a' }}>
+        <DialogContent style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <form onSubmit={handleCloseRisk}>
             <DialogHeader>
-              <DialogTitle className="text-zinc-100">{t('closeRisk')}</DialogTitle>
-              <DialogDescription className="text-zinc-500">{t('closeDialogDescription')}</DialogDescription>
+              <DialogTitle className="text-tinta">{t('closeRisk')}</DialogTitle>
+              <DialogDescription className="text-tinta-3">{t('closeDialogDescription')}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <Label className="text-zinc-400 text-xs">{t('closureNotes')}</Label>
-                <Textarea value={closureNotes} onChange={(e) => setClosureNotes(e.target.value)} required rows={4} placeholder={t('closureNotesPlaceholder')} style={inputStyle} className="text-zinc-200 placeholder-zinc-600 resize-none" />
+                <Label className="text-tinta-2 text-xs">{t('closureNotes')}</Label>
+                <Textarea value={closureNotes} onChange={(e) => setClosureNotes(e.target.value)} required rows={4} placeholder={t('closureNotesPlaceholder')} style={inputStyle} className="text-tinta placeholder-zinc-600 resize-none" />
               </div>
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowCloseDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
-                style={{ border: '1px solid #27272a' }}>{t('cancel')}</button>
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#6366f1' }}>
+                style={{ background: 'var(--acento)' }}>
                 {submitting ? t('closing') : t('closeRisk')}
               </button>
             </DialogFooter>

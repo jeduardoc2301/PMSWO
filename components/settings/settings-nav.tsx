@@ -27,10 +27,10 @@ export function SettingsNav() {
 
   return (
     <nav className="w-56 flex-shrink-0">
-      <div className="rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
-        <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid #27272a' }}>
-          <Settings size={14} className="text-zinc-500" />
-          <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Configuración</span>
+      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+        <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--borde)' }}>
+          <Settings size={14} className="text-tinta-3" />
+          <span className="text-xs font-semibold text-tinta-2 uppercase tracking-wider">Configuración</span>
         </div>
         <div className="p-1.5">
           {navItems.map((item) => {
@@ -42,8 +42,8 @@ export function SettingsNav() {
                 href={item.href}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all"
                 style={active
-                  ? { background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', boxShadow: 'inset 2px 0 0 #6366f1' }
-                  : { color: '#71717a' }}
+                  ? { background: 'rgba(99,102,241,0.12)', color: 'var(--acento-tinta)', boxShadow: 'inset 2px 0 0 #6366f1' }
+                  : { color: 'var(--tinta-3)' }}
               >
                 <Icon size={14} />
                 {item.label}

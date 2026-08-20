@@ -117,9 +117,9 @@ export function CeldaEditable({
         }}
         data-editable={deshabilitada ? 'no' : 'sí'}
         title={deshabilitada ? motivo : `${texto} · doble clic para editar`}
-        className={`flex h-full w-full items-center truncate px-2 text-xs text-zinc-400 outline-none focus-visible:ring-1 focus-visible:ring-[#6366f1] ${
+        className={`flex h-full w-full items-center truncate px-2 text-xs text-tinta-2 outline-none focus-visible:ring-1 focus-visible:ring-[#6366f1] ${
           alineadoALaDerecha ? 'justify-end tabular-nums' : ''
-        } ${deshabilitada ? '' : 'hover:bg-zinc-800/60'}`}
+        } ${deshabilitada ? '' : 'hover:bg-superficie-3/60'}`}
       >
         {texto}
       </span>
@@ -151,8 +151,8 @@ export function CeldaEditable({
           // El resto de teclas no sube: una flecha dentro del campo mueve el cursor, no la fila.
           e.stopPropagation()
         }}
-        className={`w-full rounded border bg-[#111113] px-1.5 py-0.5 text-xs text-zinc-100 outline-none ${
-          error !== null ? 'border-red-500' : 'border-[#6366f1]'
+        className={`w-full rounded border bg-superficie px-1.5 py-0.5 text-xs text-tinta outline-none ${
+          error !== null ? 'border-red-500' : 'border-acento'
         } ${alineadoALaDerecha ? 'text-right tabular-nums' : ''}`}
       />
     </span>

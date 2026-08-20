@@ -73,12 +73,12 @@ export function DashboardView({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-zinc-500">Al {fechaLegible(hoy)}</p>
+        <p className="text-xs text-tinta-3">Al {fechaLegible(hoy)}</p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onConfigurar}
-            className="rounded-lg border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+            className="rounded-lg border border-borde px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3"
           >
             Configurar widgets
           </button>
@@ -86,7 +86,7 @@ export function DashboardView({
             <button
               type="button"
               onClick={onExportar}
-              className="rounded-lg border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+              className="rounded-lg border border-borde px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3"
             >
               Exportar
             </button>
@@ -156,67 +156,67 @@ function WidgetInformacion({ panel }: { readonly panel: PanelDeProyecto }) {
     <Widget titulo="Información del proyecto">
       <div className="flex flex-col gap-4">
         <div>
-          <p className="text-lg font-medium text-zinc-100">{panel.nombre}</p>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+          <p className="text-lg font-medium text-tinta">{panel.nombre}</p>
+          <p className="mt-1 text-sm leading-relaxed text-tinta-2">
             {panel.descripcion.trim() === '' ? 'Sin descripción.' : panel.descripcion}
           </p>
         </div>
 
         <div>
           <div className="mb-1.5 flex items-baseline justify-between">
-            <span className="text-xs text-zinc-500">Progreso global</span>
-            <span className="text-sm font-semibold tabular-nums text-zinc-100">
+            <span className="text-xs text-tinta-3">Progreso global</span>
+            <span className="text-sm font-semibold tabular-nums text-tinta">
               {porcentaje(metricas.proyecto.progresoGlobal, 1)}
             </span>
           </div>
           <Medidor valor={metricas.proyecto.progresoGlobal} etiqueta="Progreso global" />
-          <p className="mt-1.5 text-[11px] text-zinc-600">
+          <p className="mt-1.5 text-[11px] text-tinta-3">
             Ponderado por días hábiles sobre las {metricas.tareas.hojas} líneas hoja del plan.
           </p>
         </div>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <div>
-            <dt className="text-xs text-zinc-500">Cliente</dt>
-            <dd className="truncate text-zinc-200" title={panel.cliente}>{panel.cliente}</dd>
+            <dt className="text-xs text-tinta-3">Cliente</dt>
+            <dd className="truncate text-tinta" title={panel.cliente}>{panel.cliente}</dd>
           </div>
           <div>
-            <dt className="text-xs text-zinc-500">Propietario</dt>
-            <dd className="truncate text-zinc-200" title={panel.propietario?.correo}>
+            <dt className="text-xs text-tinta-3">Propietario</dt>
+            <dd className="truncate text-tinta" title={panel.propietario?.correo}>
               {panel.propietario?.nombre ?? '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-zinc-500">Inicio</dt>
-            <dd className="tabular-nums text-zinc-200">{fechaLegible(metricas.proyecto.inicio)}</dd>
+            <dt className="text-xs text-tinta-3">Inicio</dt>
+            <dd className="tabular-nums text-tinta">{fechaLegible(metricas.proyecto.inicio)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-zinc-500">Fin</dt>
-            <dd className="tabular-nums text-zinc-200">{fechaLegible(metricas.proyecto.fin)}</dd>
+            <dt className="text-xs text-tinta-3">Fin</dt>
+            <dd className="tabular-nums text-tinta">{fechaLegible(metricas.proyecto.fin)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-zinc-500">Duración</dt>
-            <dd className="tabular-nums text-zinc-200">{metricas.proyecto.duracionHabil} días hábiles</dd>
+            <dt className="text-xs text-tinta-3">Duración</dt>
+            <dd className="tabular-nums text-tinta">{metricas.proyecto.duracionHabil} días hábiles</dd>
           </div>
           <div>
-            <dt className="text-xs text-zinc-500">Último cambio</dt>
-            <dd className="tabular-nums text-zinc-200">
+            <dt className="text-xs text-tinta-3">Último cambio</dt>
+            <dd className="tabular-nums text-tinta">
               {fechaLegible(metricas.proyecto.ultimoCambio.slice(0, 10))}
             </dd>
           </div>
         </dl>
 
         <div>
-          <p className="mb-2 text-xs text-zinc-500">Equipo</p>
+          <p className="mb-2 text-xs text-tinta-3">Equipo</p>
           {equipo.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nadie más colabora en este proyecto todavía.</p>
+            <p className="text-sm text-tinta-3">Nadie más colabora en este proyecto todavía.</p>
           ) : (
             <div className="flex items-center gap-1.5">
               {visibles.map((persona) => (
                 <span
                   key={persona.correo}
                   title={`${persona.nombre} · ${persona.correo}`}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-medium text-zinc-300"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-superficie-3 text-xs font-medium text-tinta-2"
                 >
                   {iniciales(persona.nombre)}
                 </span>
@@ -224,7 +224,7 @@ function WidgetInformacion({ panel }: { readonly panel: PanelDeProyecto }) {
               {sobran > 0 ? (
                 <span
                   title={equipo.slice(AVATARES_VISIBLES).map((p) => p.nombre).join(', ')}
-                  className="flex h-8 shrink-0 items-center justify-center rounded-full bg-zinc-800/60 px-2 text-xs text-zinc-400"
+                  className="flex h-8 shrink-0 items-center justify-center rounded-full bg-superficie-3/60 px-2 text-xs text-tinta-2"
                 >
                   +{sobran}
                 </span>
@@ -248,7 +248,7 @@ function WidgetTareas({ metricas }: { readonly metricas: PanelDeProyecto['metric
         <button
           type="button"
           onClick={() => setVerTabla((v) => !v)}
-          className="text-xs text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+          className="text-xs text-tinta-3 underline-offset-2 hover:text-tinta-2 hover:underline"
         >
           {verTabla ? 'Ver gráfico' : 'Ver tabla'}
         </button>
@@ -263,7 +263,7 @@ function WidgetTareas({ metricas }: { readonly metricas: PanelDeProyecto['metric
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-3 border-t border-zinc-800 pt-4">
+        <div className="grid grid-cols-3 gap-3 border-t border-borde pt-4">
           <Cifra valor={String(tareas.hojas)} pie="líneas de trabajo" />
           <Cifra
             valor={String(tareas.atrasadas)}
@@ -273,7 +273,7 @@ function WidgetTareas({ metricas }: { readonly metricas: PanelDeProyecto['metric
           <Cifra valor={String(tareas.sinResponsableDelCliente)} pie="sin responsable del cliente" />
         </div>
 
-        <p className="text-[11px] leading-relaxed text-zinc-600">
+        <p className="text-[11px] leading-relaxed text-tinta-3">
           {tareas.resumenes > 0
             ? tareas.resumenes === 1
               ? '1 línea más es un resumen: no tiene trabajo propio y no entra en el reparto. '
@@ -314,18 +314,18 @@ function WidgetCalendario({ metricas }: { readonly metricas: PanelDeProyecto['me
                 className="inline-block h-2.5 w-2.5 rounded-[2px]"
                 style={{ backgroundColor: colorDeEstado('IN_PROGRESS') }}
               />
-              <span className="text-zinc-300">Real</span>
-              <span className="tabular-nums text-zinc-500">{porcentaje(real, 1)}</span>
+              <span className="text-tinta-2">Real</span>
+              <span className="tabular-nums text-tinta-3">{porcentaje(real, 1)}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <span aria-hidden className="inline-block h-3 w-[3px] rounded-full bg-zinc-100" />
-              <span className="text-zinc-300">Planificado</span>
-              <span className="tabular-nums text-zinc-500">{porcentaje(planificado, 1)}</span>
+              <span className="text-tinta-2">Planificado</span>
+              <span className="tabular-nums text-tinta-3">{porcentaje(planificado, 1)}</span>
             </span>
           </div>
         </div>
 
-        <p className="text-[11px] leading-relaxed text-zinc-600">
+        <p className="text-[11px] leading-relaxed text-tinta-3">
           Lo planificado es la fracción del calendario <strong>laborable</strong> ya transcurrida —no
           del almanaque—, así que los fines de semana y los festivos del proyecto no cuentan como
           avance perdido.
@@ -357,7 +357,7 @@ function WidgetHitos({
       <div className="flex flex-col gap-4">
         <BarraApilada id="hitos" rebanadas={hitos.porEstado} etiqueta="Hitos por estado" />
 
-        <div className="grid grid-cols-2 gap-3 border-t border-zinc-800 pt-4">
+        <div className="grid grid-cols-2 gap-3 border-t border-borde pt-4">
           <Cifra valor={String(hitos.total)} pie="hitos en total" />
           <Cifra
             valor={String(hitos.atrasados)}
@@ -368,8 +368,8 @@ function WidgetHitos({
 
         <div className="max-h-64 overflow-y-auto">
           <table className="w-full table-fixed text-sm">
-            <thead className="sticky top-0 bg-[#18181b]">
-              <tr className="text-left text-xs text-zinc-500">
+            <thead className="sticky top-0 bg-superficie">
+              <tr className="text-left text-xs text-tinta-3">
                 <th className="w-[52%] pb-2 font-normal">Hito</th>
                 <th className="w-[24%] pb-2 font-normal">Fecha</th>
                 <th className="w-[24%] pb-2 font-normal">Estado</th>
@@ -377,8 +377,8 @@ function WidgetHitos({
             </thead>
             <tbody>
               {hitos.lista.map((hito) => (
-                <tr key={hito.id} className="border-t border-zinc-800/60">
-                  <td className="truncate py-1.5 pr-2 text-zinc-200" title={hito.nombre}>
+                <tr key={hito.id} className="border-t border-borde/60">
+                  <td className="truncate py-1.5 pr-2 text-tinta" title={hito.nombre}>
                     {hito.atrasado ? (
                       <span title="Atrasado" className="mr-1" style={{ color: COLORES_DE_ESTADO.critico }}>
                         ⚠
@@ -401,8 +401,8 @@ function WidgetHitos({
                       hito.nombre
                     )}
                   </td>
-                  <td className="py-1.5 pr-2 tabular-nums text-zinc-400">{fechaLegible(hito.fecha)}</td>
-                  <td className="py-1.5 text-zinc-400">
+                  <td className="py-1.5 pr-2 tabular-nums text-tinta-2">{fechaLegible(hito.fecha)}</td>
+                  <td className="py-1.5 text-tinta-2">
                     <span className="flex items-center gap-1.5">
                       <span
                         aria-hidden
@@ -430,7 +430,7 @@ function WidgetTiempo() {
     <Widget titulo="Tiempo en tareas">
       <SinDatos>
         Este widget compara el tiempo registrado con lo estimado, y hoy no hay dónde registrar
-        tiempo: falta el modelo <code className="text-zinc-400">TimeLog</code>. Se deja apagado a
+        tiempo: falta el modelo <code className="text-tinta-2">TimeLog</code>. Se deja apagado a
         propósito en vez de dibujar tres barras en cero, que se leerían como «no hay desviación»
         cuando lo que pasa es que no hay dato.
       </SinDatos>
@@ -443,8 +443,8 @@ function WidgetPresupuesto() {
     <Widget titulo="Presupuesto">
       <SinDatos>
         Este widget compara el costo acumulado con el presupuesto, y el plan todavía no lleva
-        dinero: faltan <code className="text-zinc-400">budget</code> y{' '}
-        <code className="text-zinc-400">actualCost</code> por línea.
+        dinero: faltan <code className="text-tinta-2">budget</code> y{' '}
+        <code className="text-tinta-2">actualCost</code> por línea.
       </SinDatos>
     </Widget>
   )
@@ -458,7 +458,7 @@ function TablaDeEstados({
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="text-left text-xs text-zinc-500">
+        <tr className="text-left text-xs text-tinta-3">
           <th className="pb-2 font-normal">Estado</th>
           <th className="pb-2 text-right font-normal">Líneas</th>
           <th className="pb-2 text-right font-normal">Del total</th>
@@ -466,8 +466,8 @@ function TablaDeEstados({
       </thead>
       <tbody>
         {rebanadas.map((rebanada) => (
-          <tr key={rebanada.estado} className="border-t border-zinc-800/60">
-            <td className="py-1.5 text-zinc-200">
+          <tr key={rebanada.estado} className="border-t border-borde/60">
+            <td className="py-1.5 text-tinta">
               <span className="flex items-center gap-1.5">
                 <span
                   aria-hidden
@@ -478,8 +478,8 @@ function TablaDeEstados({
                 {nombreDeEstado(rebanada.estado)}
               </span>
             </td>
-            <td className="py-1.5 text-right tabular-nums text-zinc-300">{rebanada.cantidad}</td>
-            <td className="py-1.5 text-right tabular-nums text-zinc-400">
+            <td className="py-1.5 text-right tabular-nums text-tinta-2">{rebanada.cantidad}</td>
+            <td className="py-1.5 text-right tabular-nums text-tinta-2">
               {porcentaje(rebanada.fraccion, 1)}
             </td>
           </tr>

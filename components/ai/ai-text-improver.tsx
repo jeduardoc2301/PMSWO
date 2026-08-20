@@ -100,22 +100,22 @@ export function AITextImprover({
   return (
     <Card style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2 text-[#a5b4fc]">
+        <CardTitle className="text-base flex items-center gap-2 text-acento-tinta">
           <Sparkles className="h-4 w-4 text-[#6366f1]" />
           {t('textImprovement.title')}
         </CardTitle>
-        <CardDescription className="text-[#71717a]">{t('textImprovement.original')}</CardDescription>
+        <CardDescription className="text-tinta-3">{t('textImprovement.original')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-lg p-3" style={{ background: '#111113', border: '1px solid #27272a' }}>
-          <p className="text-sm text-[#a1a1aa] whitespace-pre-wrap">{originalText}</p>
+        <div className="rounded-lg p-3" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+          <p className="text-sm text-tinta-2 whitespace-pre-wrap">{originalText}</p>
         </div>
 
         <div>
-          <p className="text-sm font-medium text-[#a1a1aa] mb-2">
+          <p className="text-sm font-medium text-tinta-2 mb-2">
             {t('textImprovement.improved')}
           </p>
-          <div className="rounded-lg p-3" style={{ background: '#111113', border: '1px solid rgba(99,102,241,0.3)' }}>
+          <div className="rounded-lg p-3" style={{ background: 'var(--superficie)', border: '1px solid rgba(99,102,241,0.3)' }}>
             <p className="text-sm text-[#e4e4e7] whitespace-pre-wrap">{improvedText}</p>
           </div>
         </div>

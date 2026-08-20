@@ -167,7 +167,7 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
         <aside
           data-testid="detalle-panel"
           aria-label="Detalle de la línea"
-          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-zinc-800 bg-[#111113] p-3 shadow-2xl"
+          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-borde bg-superficie p-3 shadow-2xl"
         >
           {filaDelDetalle ? (
             <PlanDetailPanel
@@ -178,16 +178,16 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
               onClose={() => setDetalle(null)}
             />
           ) : (
-            <div className="rounded-lg border border-zinc-800 bg-[#18181b] p-5">
+            <div className="rounded-lg border border-borde bg-superficie p-5">
               <button
                 type="button"
                 aria-label="Cerrar el detalle"
                 onClick={() => setDetalle(null)}
-                className="float-right rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                className="float-right rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
               >
                 ✕
               </button>
-              <p className="text-sm text-zinc-400" data-testid="detalle-panel-aviso">
+              <p className="text-sm text-tinta-2" data-testid="detalle-panel-aviso">
                 {plan.error !== null
                   ? `No se pudo cargar el plan: ${plan.error}`
                   : plan.cargando

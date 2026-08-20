@@ -123,8 +123,8 @@ export function FilterBar({
           onClick={() => setAbierto((v) => !v)}
           className={`rounded border px-2 py-1 text-xs ${
             puesto
-              ? 'border-[#6366f1]/60 bg-[#6366f1]/10 text-indigo-300'
-              : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
+              ? 'border-acento/60 bg-acento/10 text-indigo-300'
+              : 'border-borde-fuerte text-tinta-2 hover:bg-superficie-3'
           }`}
         >
           {puesto ? `Filtro (${cuantas})` : 'Filtro'} ▾
@@ -137,14 +137,14 @@ export function FilterBar({
             <span
               data-testid="resumen-filtro"
               title={resumen}
-              className="max-w-md truncate text-xs text-zinc-500"
+              className="max-w-md truncate text-xs text-tinta-3"
             >
               {resumen}
             </span>
             <button
               type="button"
               onClick={() => onCambiar(FILTRO_VACIO)}
-              className="rounded px-1.5 py-0.5 text-xs text-zinc-500 underline-offset-2 hover:text-zinc-200 hover:underline"
+              className="rounded px-1.5 py-0.5 text-xs text-tinta-3 underline-offset-2 hover:text-tinta hover:underline"
             >
               Quitar
             </button>
@@ -152,7 +152,7 @@ export function FilterBar({
         ) : null}
 
         {puesto && conteo ? (
-          <span data-testid="conteo-filtro" className="text-xs tabular-nums text-zinc-500">
+          <span data-testid="conteo-filtro" className="text-xs tabular-nums text-tinta-3">
             {conteo.visibles} de {conteo.total}
           </span>
         ) : null}
@@ -162,11 +162,11 @@ export function FilterBar({
         <div
           role="dialog"
           aria-label="Filtros"
-          className="absolute left-0 top-full z-40 mt-1 w-[540px] max-w-[90vw] rounded-lg border border-zinc-800 bg-[#18181b] p-3 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-1 w-[540px] max-w-[90vw] rounded-lg border border-borde bg-superficie p-3 shadow-xl"
         >
           {guardados.length > 0 ? (
-            <div className="mb-3 border-b border-zinc-800 pb-3">
-              <p className="mb-1.5 text-xs text-zinc-500">Filtros guardados</p>
+            <div className="mb-3 border-b border-borde pb-3">
+              <p className="mb-1.5 text-xs text-tinta-3">Filtros guardados</p>
               <ul className="flex flex-wrap gap-1.5">
                 {guardados.map((g) => (
                   <li key={g.id} className="flex items-center gap-1">
@@ -180,7 +180,7 @@ export function FilterBar({
                           setAbierto(false)
                         }
                       }}
-                      className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {g.isShared ? '👥 ' : ''}
                       {g.name}
@@ -193,7 +193,7 @@ export function FilterBar({
                         type="button"
                         aria-label={`Borrar el filtro ${g.name}`}
                         onClick={() => onBorrar(g.id)}
-                        className="rounded px-1 text-xs text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300"
+                        className="rounded px-1 text-xs text-tinta-3 hover:bg-superficie-3 hover:text-tinta-2"
                       >
                         ✕
                       </button>
@@ -214,7 +214,7 @@ export function FilterBar({
           ) : (
             <>
               <div className="mb-2 flex items-center gap-2">
-                <span className="text-xs text-zinc-500">Cumplir</span>
+                <span className="text-xs text-tinta-3">Cumplir</span>
                 {(['AND', 'OR'] as const).map((op) => (
                   <button
                     key={op}
@@ -222,7 +222,7 @@ export function FilterBar({
                     aria-pressed={filtro.op === op}
                     onClick={() => onCambiar({ ...filtro, op })}
                     className={`rounded px-2 py-0.5 text-xs ${
-                      filtro.op === op ? 'bg-[#6366f1] text-white' : 'text-zinc-400 hover:bg-zinc-800'
+                      filtro.op === op ? 'bg-acento text-white' : 'text-tinta-2 hover:bg-superficie-3'
                     }`}
                   >
                     {op === 'AND' ? 'todas' : 'alguna'}
@@ -247,9 +247,9 @@ export function FilterBar({
               </ul>
 
               {grupo ? (
-                <div className="mt-2 rounded border border-zinc-800 p-2">
+                <div className="mt-2 rounded border border-borde p-2">
                   <div className="mb-1.5 flex items-center gap-2">
-                    <span className="text-xs text-zinc-500">Y además, cumplir</span>
+                    <span className="text-xs text-tinta-3">Y además, cumplir</span>
                     {(['AND', 'OR'] as const).map((op) => (
                       <button
                         key={op}
@@ -257,7 +257,7 @@ export function FilterBar({
                         aria-pressed={grupo.op === op}
                         onClick={() => rehacer(sueltas, { ...grupo, op })}
                         className={`rounded px-2 py-0.5 text-xs ${
-                          grupo.op === op ? 'bg-[#6366f1] text-white' : 'text-zinc-400 hover:bg-zinc-800'
+                          grupo.op === op ? 'bg-acento text-white' : 'text-tinta-2 hover:bg-superficie-3'
                         }`}
                       >
                         {op === 'AND' ? 'todas' : 'alguna'}
@@ -289,7 +289,7 @@ export function FilterBar({
                     onClick={() =>
                       rehacer(sueltas, { ...grupo, conditions: [...grupo.conditions, condicionNueva()] })
                     }
-                    className="mt-1.5 rounded px-1.5 py-0.5 text-xs text-zinc-400 hover:bg-zinc-800"
+                    className="mt-1.5 rounded px-1.5 py-0.5 text-xs text-tinta-2 hover:bg-superficie-3"
                   >
                     + condición al grupo
                   </button>
@@ -300,7 +300,7 @@ export function FilterBar({
                 <button
                   type="button"
                   onClick={() => rehacer([...sueltas, condicionNueva()], grupo)}
-                  className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+                  className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
                 >
                   + condición
                 </button>
@@ -308,7 +308,7 @@ export function FilterBar({
                   <button
                     type="button"
                     onClick={() => rehacer(sueltas, { op: 'OR', conditions: [condicionNueva('priority')] })}
-                    className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+                    className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
                   >
                     + grupo
                   </button>
@@ -318,8 +318,8 @@ export function FilterBar({
           )}
 
           {onGuardar && puesto ? (
-            <div className="mt-3 border-t border-zinc-800 pt-3">
-              <label htmlFor="nombre-filtro" className="mb-1.5 block text-xs text-zinc-500">
+            <div className="mt-3 border-t border-borde pt-3">
+              <label htmlFor="nombre-filtro" className="mb-1.5 block text-xs text-tinta-3">
                 Guardar este filtro
               </label>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -329,9 +329,9 @@ export function FilterBar({
                   value={nombreNuevo}
                   placeholder="Críticas del cliente"
                   onChange={(e) => setNombreNuevo(e.target.value)}
-                  className="min-w-0 flex-1 rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-600"
+                  className="min-w-0 flex-1 rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta placeholder:text-tinta-3"
                 />
-                <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-zinc-400">
+                <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-tinta-2">
                   <input
                     type="checkbox"
                     checked={compartir}
@@ -348,7 +348,7 @@ export function FilterBar({
                     setNombreNuevo('')
                     setCompartir(false)
                   }}
-                  className="shrink-0 rounded bg-[#6366f1] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+                  className="shrink-0 rounded bg-acento px-2.5 py-1 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
                 >
                   Guardar
                 </button>
@@ -360,7 +360,7 @@ export function FilterBar({
             <button
               type="button"
               onClick={() => setAbierto(false)}
-              className="rounded px-2.5 py-1 text-xs text-zinc-400 hover:bg-zinc-800"
+              className="rounded px-2.5 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
             >
               Cerrar
             </button>
@@ -392,7 +392,7 @@ function FilaDeCondicion({
         aria-label="Campo"
         value={condicion.field}
         onChange={(e) => onCambiar(condicionNueva(e.target.value))}
-        className="rounded border border-zinc-700 bg-[#111113] px-1.5 py-1 text-xs text-zinc-200"
+        className="rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-xs text-tinta"
       >
         {Object.entries(CAMPOS).map(([clave, campo]) => (
           <option key={clave} value={clave}>
@@ -411,7 +411,7 @@ function FilaDeCondicion({
           const valor = operador === 'between' ? ['', ''] : operador === 'in' || operador === 'not_in' ? [] : ''
           onCambiar({ ...condicion, operator: operador, value: valor })
         }}
-        className="rounded border border-zinc-700 bg-[#111113] px-1.5 py-1 text-xs text-zinc-200"
+        className="rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-xs text-tinta"
       >
         {operadores.map((op) => (
           <option key={op} value={op}>
@@ -428,7 +428,7 @@ function FilaDeCondicion({
             aria-label="Valor"
             value={condicion.value === true ? 'si' : 'no'}
             onChange={(e) => onCambiar({ ...condicion, value: e.target.value === 'si' })}
-            className="rounded border border-zinc-700 bg-[#111113] px-1.5 py-1 text-xs text-zinc-200"
+            className="rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-xs text-tinta"
           >
             <option value="si">sí</option>
             <option value="no">no</option>
@@ -442,7 +442,7 @@ function FilaDeCondicion({
               onChange={(e) =>
                 onCambiar({ ...condicion, value: [e.target.value, (condicion.value as unknown[])?.[1] ?? ''] })
               }
-              className="w-32 rounded border border-zinc-700 bg-[#111113] px-1.5 py-1 text-xs text-zinc-200"
+              className="w-32 rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-xs text-tinta"
             />
             <input
               aria-label="Hasta"
@@ -451,7 +451,7 @@ function FilaDeCondicion({
               onChange={(e) =>
                 onCambiar({ ...condicion, value: [(condicion.value as unknown[])?.[0] ?? '', e.target.value] })
               }
-              className="w-32 rounded border border-zinc-700 bg-[#111113] px-1.5 py-1 text-xs text-zinc-200"
+              className="w-32 rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-xs text-tinta"
             />
           </>
         ) : (
@@ -468,7 +468,7 @@ function FilaDeCondicion({
                   : e.target.value,
               })
             }
-            className="min-w-0 flex-1 rounded border border-zinc-700 bg-[#111113] px-1.5 py-1 text-xs text-zinc-200 placeholder:text-zinc-600"
+            className="min-w-0 flex-1 rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-xs text-tinta placeholder:text-tinta-3"
           />
         )
       ) : null}
@@ -477,7 +477,7 @@ function FilaDeCondicion({
         type="button"
         aria-label="Quitar la condición"
         onClick={onQuitar}
-        className="shrink-0 rounded px-1.5 py-0.5 text-xs text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+        className="shrink-0 rounded px-1.5 py-0.5 text-xs text-tinta-3 hover:bg-superficie-3 hover:text-tinta"
       >
         ✕
       </button>

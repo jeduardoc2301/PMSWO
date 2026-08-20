@@ -188,20 +188,20 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset() }}>
       <DialogContent className="sm:max-w-[560px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-zinc-100">Importar plantilla</DialogTitle>
+          <DialogTitle className="text-tinta">Importar plantilla</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Category selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+            <label className="text-xs font-medium text-tinta-2 uppercase tracking-wider">
               Categoría <span className="text-rose-500">*</span>
             </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg text-sm text-zinc-200 appearance-none cursor-pointer outline-none transition-all"
-              style={{ background: '#111113', border: '1px solid #27272a', color: categoryId ? '#e4e4e7' : '#71717a' }}
+              className="w-full h-9 px-3 rounded-lg text-sm text-tinta appearance-none cursor-pointer outline-none transition-all"
+              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', color: categoryId ? '#e4e4e7' : 'var(--tinta-3)' }}
             >
               <option value="" disabled>Seleccionar categoría...</option>
               {categories.map((c) => (
@@ -215,24 +215,24 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
             type="button"
             onClick={() => fileRef.current?.click()}
             className="w-full rounded-xl flex flex-col items-center gap-3 py-8 transition-all hover:border-indigo-500/50"
-            style={{ border: '2px dashed #3f3f46', background: '#111113' }}
+            style={{ border: '2px dashed #3f3f46', background: 'var(--superficie)' }}
           >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
               <Upload size={18} className="text-indigo-400" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-zinc-200">Seleccionar archivo CSV</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Formato generado por el export de plantillas</p>
+              <p className="text-sm font-medium text-tinta">Seleccionar archivo CSV</p>
+              <p className="text-xs text-tinta-3 mt-0.5">Formato generado por el export de plantillas</p>
             </div>
           </button>
           <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFile} />
 
           {/* File selected */}
           {fileName && !parseError && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#18181b', border: '1px solid #27272a' }}>
-              <FileText size={14} className="text-zinc-400 flex-shrink-0" />
-              <span className="text-xs text-zinc-300 truncate flex-1">{fileName}</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+              <FileText size={14} className="text-tinta-2 flex-shrink-0" />
+              <span className="text-xs text-tinta-2 truncate flex-1">{fileName}</span>
               {parsed && <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" />}
             </div>
           )}
@@ -248,25 +248,25 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
 
           {/* Preview */}
           {parsed && (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
-              <div className="px-4 py-3" style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Vista previa</p>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
+              <div className="px-4 py-3" style={{ background: 'var(--superficie)', borderBottom: '1px solid var(--borde)' }}>
+                <p className="text-xs text-tinta-3 uppercase tracking-wider font-semibold">Vista previa</p>
               </div>
               <div className="px-4 py-3 space-y-3">
                 <div>
-                  <p className="text-sm font-semibold text-zinc-100">{parsed.name}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{parsed.description}</p>
+                  <p className="text-sm font-semibold text-tinta">{parsed.name}</p>
+                  <p className="text-xs text-tinta-3 mt-0.5">{parsed.description}</p>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-zinc-400">
+                <div className="flex items-center gap-4 text-xs text-tinta-2">
                   <span><span className="text-white font-medium">{parsed.phases.length}</span> fases</span>
                   <span><span className="text-white font-medium">{totalActivities}</span> actividades</span>
                 </div>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
                   {parsed.phases.map((ph) => (
                     <div key={ph.order} className="flex items-center justify-between text-xs px-2 py-1.5 rounded-lg"
-                      style={{ background: '#18181b' }}>
-                      <span className="text-zinc-300">{ph.order}. {ph.name}</span>
-                      <span className="text-zinc-500">{ph.activities.length} act.</span>
+                      style={{ background: 'var(--superficie)' }}>
+                      <span className="text-tinta-2">{ph.order}. {ph.name}</span>
+                      <span className="text-tinta-3">{ph.activities.length} act.</span>
                     </div>
                   ))}
                 </div>
@@ -286,8 +286,8 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
 
         <DialogFooter>
           <button type="button" onClick={() => { onOpenChange(false); reset() }}
-            className="h-9 px-4 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-            style={{ border: '1px solid #27272a' }}>
+            className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
+            style={{ border: '1px solid var(--borde)' }}>
             Cancelar
           </button>
           <button
@@ -295,7 +295,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
             onClick={handleImport}
             disabled={!parsed || !categoryId || submitting}
             className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: '#6366f1' }}>
+            style={{ background: 'var(--acento)' }}>
             {submitting ? 'Importando...' : 'Importar plantilla'}
           </button>
         </DialogFooter>

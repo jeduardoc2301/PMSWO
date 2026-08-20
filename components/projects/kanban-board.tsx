@@ -143,7 +143,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
     if (urgency === 'stale' && daysStale !== null) {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)' }}>
+          style={{ background: 'rgba(99,102,241,0.12)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' }}>
           <Hourglass size={10} /> {daysStale}d sin mover
         </span>
       )
@@ -175,9 +175,9 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
       draggable
       onDragStart={(e) => onDragStart(e, workItem.id)}
       onDragEnd={onDragEnd}
-      className={`rounded-xl p-3 cursor-move transition-all hover:border-zinc-600 ${urgencyClass}`}
+      className={`rounded-xl p-3 cursor-move transition-all hover:border-borde-fuerte ${urgencyClass}`}
       style={{
-        border: '1px solid #27272a',
+        border: '1px solid var(--borde)',
         borderLeft: `3px solid ${PRIORITY_BAR[workItem.priority] ?? '#3b82f6'}`,
         opacity: draggedItemId === workItem.id ? 0.5 : 1,
         userSelect: 'none',
@@ -194,7 +194,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
             <span
               data-testid={`edt-tarjeta-${workItem.id}`}
               title={`EDT ${edt}`}
-              className="text-[10px] tabular-nums text-zinc-600"
+              className="text-[10px] tabular-nums text-tinta-3"
             >
               {edt}
             </span>
@@ -213,7 +213,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
             type="button"
             aria-label={`Editar ${workItem.title}`}
             onClick={(e) => { e.stopPropagation(); onEdit(workItem) }}
-            className="p-1 rounded text-zinc-600 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            className="p-1 rounded text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-colors"
           >
             <Pencil size={12} />
           </button>
@@ -221,7 +221,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
             type="button"
             aria-label={`Eliminar ${workItem.title}`}
             onClick={(e) => { e.stopPropagation(); onDelete(workItem) }}
-            className="p-1 rounded text-zinc-600 hover:text-rose-300 hover:bg-rose-900/20 transition-colors"
+            className="p-1 rounded text-tinta-3 hover:text-rose-300 hover:bg-rose-900/20 transition-colors"
           >
             <Trash2 size={12} />
           </button>
@@ -236,7 +236,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
 
       {/* Row 2: title. El título abre el panel de detalle del §10.3 —el mismo componente que montan
           el Gantt, el Calendario y la Lista—. `stopPropagation`: el clic no es un arrastre. */}
-      <h4 className="text-sm font-medium text-zinc-100 line-clamp-2 mb-2.5">
+      <h4 className="text-sm font-medium text-tinta line-clamp-2 mb-2.5">
         {onAbrirDetalle ? (
           <button
             type="button"
@@ -254,14 +254,14 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
       {/* Row 3: date + owner */}
       <div className="flex items-center justify-between">
         {healthyDueLabel && (
-          <span className="inline-flex items-center gap-1 text-[11px] text-zinc-500">
+          <span className="inline-flex items-center gap-1 text-[11px] text-tinta-3">
             <Calendar size={11} /> {healthyDueLabel}
           </span>
         )}
         {(workItem.responsibleName ?? workItem.ownerName) && (
           // El responsable con nombre —la persona real del plan— y no la cuenta del sistema que
           // importó las líneas. Es la paridad con el esquema y con el archivo.
-          <span className="text-[11px] text-zinc-500 truncate ml-auto">
+          <span className="text-[11px] text-tinta-3 truncate ml-auto">
             {workItem.responsibleName ?? workItem.ownerName}
           </span>
         )}
@@ -275,13 +275,13 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
         if (avance <= 0 && (delta === null || delta === 0)) return null
         return (
           <div className="flex items-center gap-2 mt-2">
-            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: '#27272a' }} data-testid={`avance-barra-${workItem.id}`}>
+            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--borde)' }} data-testid={`avance-barra-${workItem.id}`}>
               <div
                 className="h-full rounded-full"
-                style={{ width: `${Math.round(avance * 100)}%`, background: avance >= 1 ? '#34d399' : '#6366f1' }}
+                style={{ width: `${Math.round(avance * 100)}%`, background: avance >= 1 ? '#34d399' : 'var(--acento)' }}
               />
             </div>
-            <span className="text-[10px] text-zinc-500 tabular-nums">{Math.round(avance * 100)}%</span>
+            <span className="text-[10px] text-tinta-3 tabular-nums">{Math.round(avance * 100)}%</span>
             {delta !== null && delta !== 0 && (
               <span
                 data-testid={`atraso-${workItem.id}`}
@@ -371,15 +371,15 @@ function KanbanColumn({
     >
       <div
         className="rounded-xl overflow-hidden h-full"
-        style={{ background: '#111113', border: `1px solid ${isDragTarget ? '#6366f1' : '#27272a'}`, transition: 'border-color 0.15s' }}
+        style={{ background: 'var(--superficie)', border: `1px solid ${isDragTarget ? 'var(--acento)' : 'var(--borde)'}`, transition: 'border-color 0.15s' }}
       >
         <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid #1f1f23' }}>
-          <span className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">{column.name}</span>
-          <span className="text-xs text-zinc-600">{workItemsInColumn.length}</span>
+          <span className="text-xs font-semibold text-tinta-2 uppercase tracking-wider">{column.name}</span>
+          <span className="text-xs text-tinta-3">{workItemsInColumn.length}</span>
         </div>
         <div className="p-2 space-y-2 min-h-[120px]">
           {workItemsInColumn.length === 0
-            ? <div className="text-center py-8 text-zinc-700 text-xs">{noItemsLabel}</div>
+            ? <div className="text-center py-8 text-tinta-3 text-xs">{noItemsLabel}</div>
             : workItemsInColumn.slice(0, dibujadas).map(wi => (
               <WorkItemCard
                 key={wi.id}
@@ -402,7 +402,7 @@ function KanbanColumn({
               type="button"
               data-testid={`mas-tarjetas-${column.id}`}
               onClick={() => setDibujadas((n) => n + TARJETAS_POR_TANDA)}
-              className="w-full rounded-lg border border-dashed border-zinc-700 py-2 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+              className="w-full rounded-lg border border-dashed border-borde-fuerte py-2 text-xs text-tinta-2 hover:border-borde-fuerte hover:text-tinta"
             >
               {workItemsInColumn.length - dibujadas} tarjetas más
             </button>
@@ -441,13 +441,13 @@ function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
         onClick={() => setOpen(o => !o)}
         className="h-9 flex items-center gap-1.5 px-3 rounded-lg text-sm transition-all"
         style={{
-          border: `1px solid ${isActive ? 'rgba(99,102,241,0.5)' : '#27272a'}`,
-          background: isActive ? 'rgba(99,102,241,0.08)' : '#111113',
-          color: isActive ? '#a5b4fc' : '#a1a1aa',
+          border: `1px solid ${isActive ? 'rgba(99,102,241,0.5)' : 'var(--borde)'}`,
+          background: isActive ? 'rgba(99,102,241,0.08)' : 'var(--superficie)',
+          color: isActive ? 'var(--acento-tinta)' : 'var(--tinta-2)',
         }}
       >
-        <span className="font-medium text-zinc-400 text-xs">{label}:</span>
-        <span className={isActive ? 'text-indigo-300 font-semibold' : 'text-zinc-200'}>
+        <span className="font-medium text-tinta-2 text-xs">{label}:</span>
+        <span className={isActive ? 'text-indigo-300 font-semibold' : 'text-tinta'}>
           {selected?.label ?? 'Todos'}
         </span>
         <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -460,8 +460,8 @@ function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
             <button
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false) }}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-zinc-800/60"
-              style={{ color: value === opt.value ? '#a5b4fc' : '#d4d4d8' }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-superficie-3/60"
+              style={{ color: value === opt.value ? 'var(--acento-tinta)' : '#d4d4d8' }}
             >
               <span>{opt.label}</span>
               {value === opt.value && <Check size={12} className="text-indigo-400 flex-shrink-0" />}
@@ -863,13 +863,13 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
       <div className="flex items-center gap-3 flex-wrap">
         {/* «Agrupar por» del §5.1. Cambiarlo reconstruye las columnas sin recargar, que es el
             criterio del §5.4: las columnas se derivan de los datos, no de la lista de la base. */}
-        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <label className="flex items-center gap-1.5 text-xs text-tinta-3">
           Agrupar por
           <select
             aria-label="Agrupar por"
             value={criterioDeAgrupacion}
             onChange={(e) => setCriterioDeAgrupacion(e.target.value as CriterioDeAgrupacion)}
-            className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-200"
+            className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
           >
             {CRITERIOS.map((c) => (
               <option key={c.clave} value={c.clave}>
@@ -888,8 +888,8 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
           data-testid="conmutador-resumenes"
           className={`rounded border px-2 py-1 text-xs ${
             conResumenes
-              ? 'border-[#6366f1] bg-[#6366f1]/15 text-indigo-200'
-              : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
+              ? 'border-acento bg-acento/15 text-indigo-200'
+              : 'border-borde-fuerte text-tinta-2 hover:bg-superficie-3'
           }`}
           title="Una fase no tiene estado propio: sus hijas sí"
         >
@@ -899,13 +899,13 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
         {/* «Ordenar por» del §5.1, con el EDT por omisión. El sentido va en su propio botón y no
             como doce entradas del desplegable: «Nombre ascendente» y «Nombre descendente» serían
             dos opciones por cada uno de los seis criterios. */}
-        <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <label className="flex items-center gap-1.5 text-xs text-tinta-3">
           Ordenar por
           <select
             aria-label="Ordenar por"
             value={campoDeOrden}
             onChange={(e) => setCampoDeOrden(e.target.value as CampoDeOrden)}
-            className="rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-200"
+            className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
           >
             {CAMPOS_DE_ORDEN.map((c) => (
               <option key={c.clave} value={c.clave}>
@@ -923,27 +923,27 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
               : 'Descendente · pulsa para invertir'
           }
           onClick={() => setSentidoDeOrden((s) => (s === 'asc' ? 'desc' : 'asc'))}
-          className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+          className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
         >
           {sentidoDeOrden === 'asc' ? '↑' : '↓'}
         </button>
 
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar tarea..."
-            className="w-full h-9 pl-8 pr-8 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 bg-transparent outline-none transition-all"
-            style={{ border: '1px solid #27272a', background: '#111113' }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)' }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = '#27272a'; e.currentTarget.style.boxShadow = 'none' }}
+            className="w-full h-9 pl-8 pr-8 rounded-lg text-sm text-tinta placeholder-zinc-600 bg-transparent outline-none transition-all"
+            style={{ border: '1px solid var(--borde)', background: 'var(--superficie)' }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--acento)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)' }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--borde)'; e.currentTarget.style.boxShadow = 'none' }}
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-tinta-3 hover:text-tinta-2 transition-colors">
               <X size={13} />
             </button>
           )}
@@ -981,12 +981,12 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
           )}
           <button onClick={() => setCreateDialogOpen(true)}
             className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: '#6366f1' }}>
+            style={{ background: 'var(--acento)' }}>
             <Plus size={14} /> {t('createWorkItem')}
           </button>
           <button onClick={() => setShowInfo(true)}
-            className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm font-medium text-zinc-300 transition-all hover:text-white hover:bg-zinc-800"
-            style={{ border: '1px solid #27272a' }}
+            className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm font-medium text-tinta-2 transition-all hover:text-white hover:bg-superficie-3"
+            style={{ border: '1px solid var(--borde)' }}
             title="Sistema de urgencia">
             <Info size={14} /> Información
           </button>
@@ -995,7 +995,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
 
       {/* Urgency filter chips */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[11px] uppercase tracking-widest text-zinc-500 font-semibold mr-1">Estados:</span>
+        <span className="text-[11px] uppercase tracking-widest text-tinta-3 font-semibold mr-1">Estados:</span>
         <UrgencyChip kind="overdue" count={counts.overdue} active={activeFilter === 'overdue'}
           onClick={() => setActiveFilter(f => f === 'overdue' ? null : 'overdue')} />
         <UrgencyChip kind="soon"    count={counts.soon}    active={activeFilter === 'soon'}
@@ -1006,7 +1006,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
           onClick={() => setActiveFilter(f => f === 'blocked' ? null : 'blocked')} />
         {activeFilter && (
           <button onClick={() => setActiveFilter(null)}
-            className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-white ml-1 transition-colors">
+            className="inline-flex items-center gap-1 text-[11px] text-tinta-3 hover:text-white ml-1 transition-colors">
             <X size={12} /> Limpiar
           </button>
         )}
@@ -1026,23 +1026,23 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
               const pct = total > 0 ? Math.round((completed / total) * 100) : 0
 
               return (
-                <div key={phaseName} className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+                <div key={phaseName} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
                   <button
                     onClick={() => togglePhase(phaseName)}
-                    className="w-full flex items-center justify-between px-4 py-3 transition-all hover:bg-zinc-900/40"
-                    style={{ background: '#111113', borderBottom: isExpanded ? '1px solid #27272a' : 'none' }}
+                    className="w-full flex items-center justify-between px-4 py-3 transition-all hover:bg-superficie/40"
+                    style={{ background: 'var(--superficie)', borderBottom: isExpanded ? '1px solid var(--borde)' : 'none' }}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                        style={{ background: isNoPhase ? '#52525b' : '#6366f1' }}>
+                        style={{ background: isNoPhase ? '#52525b' : 'var(--acento)' }}>
                         {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       </div>
                       <div className="text-left">
-                        <div className="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                        <div className="text-sm font-semibold text-tinta flex items-center gap-2">
                           {!isNoPhase && <Layers size={13} className="text-indigo-400" />}
                           {displayName}
                         </div>
-                        <div className="text-xs text-zinc-500">{total} elemento{total !== 1 ? 's' : ''}</div>
+                        <div className="text-xs text-tinta-3">{total} elemento{total !== 1 ? 's' : ''}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
@@ -1050,12 +1050,12 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
                         <div className="w-28 pms-progress">
                           <div style={{ width: `${pct}%`, background: '#10b981' }} />
                         </div>
-                        <span className="text-xs font-semibold text-zinc-300 w-9 text-right">{pct}%</span>
+                        <span className="text-xs font-semibold text-tinta-2 w-9 text-right">{pct}%</span>
                       </div>
                       <div className="flex gap-4 text-xs">
-                        <div className="text-center"><div className="text-zinc-600">Hecho</div><div className="font-semibold text-emerald-400">{completed}</div></div>
-                        <div className="text-center"><div className="text-zinc-600">En progreso</div><div className="font-semibold text-amber-400">{inProgress}</div></div>
-                        <div className="text-center"><div className="text-zinc-600">Pendiente</div><div className="font-semibold text-indigo-400">{total - completed - inProgress}</div></div>
+                        <div className="text-center"><div className="text-tinta-3">Hecho</div><div className="font-semibold text-emerald-400">{completed}</div></div>
+                        <div className="text-center"><div className="text-tinta-3">En progreso</div><div className="font-semibold text-amber-400">{inProgress}</div></div>
+                        <div className="text-center"><div className="text-tinta-3">Pendiente</div><div className="font-semibold text-indigo-400">{total - completed - inProgress}</div></div>
                       </div>
                     </div>
                   </button>
@@ -1131,7 +1131,7 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
         <aside
           data-testid="detalle-tablero"
           aria-label="Detalle de la línea"
-          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-zinc-800 bg-[#111113] p-3 shadow-2xl"
+          className="fixed right-0 top-0 z-40 h-full w-80 overflow-y-auto border-l border-borde bg-superficie p-3 shadow-2xl"
         >
           {filaDelDetalle ? (
             <PlanDetailPanel
@@ -1144,16 +1144,16 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
           ) : (
             // Mientras llega el plan, y si no llega. Un cajón vacío haría creer que la línea no
             // tiene nada que contar.
-            <div className="rounded-lg border border-zinc-800 bg-[#18181b] p-5">
+            <div className="rounded-lg border border-borde bg-superficie p-5">
               <button
                 type="button"
                 aria-label="Cerrar el detalle"
                 onClick={() => setDetalle(null)}
-                className="float-right rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                className="float-right rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
               >
                 ✕
               </button>
-              <p className="text-sm text-zinc-400" data-testid="detalle-tablero-aviso">
+              <p className="text-sm text-tinta-2" data-testid="detalle-tablero-aviso">
                 {plan.error !== null
                   ? `No se pudo cargar el plan: ${plan.error}`
                   : plan.cargando

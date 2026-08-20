@@ -20,7 +20,7 @@ interface ProjectGanttChartProps {
 
 const COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1',
+  '#06b6d4', '#f97316', '#84cc16', '#ec4899', 'var(--acento)',
 ]
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -28,12 +28,12 @@ const CustomTooltip = ({ active, payload }: any) => {
   const d = payload[1]?.payload ?? payload[0]?.payload
   if (!d) return null
   return (
-    <div style={{ background: '#1c1c1f', border: '1px solid #27272a', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
+    <div style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
       <p style={{ fontWeight: 600, color: '#e4e4e7', marginBottom: 4 }}>{d.phase}</p>
-      <p style={{ color: '#71717a' }}>Inicio: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.startLabel}</span></p>
-      <p style={{ color: '#71717a' }}>Fin: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.endLabel}</span></p>
-      <p style={{ color: '#71717a' }}>Duración: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.durationLabel}</span></p>
-      <p style={{ color: '#71717a' }}>Actividades: <span style={{ color: '#a1a1aa', fontWeight: 500 }}>{d.itemCount}</span></p>
+      <p style={{ color: 'var(--tinta-3)' }}>Inicio: <span style={{ color: 'var(--tinta-2)', fontWeight: 500 }}>{d.startLabel}</span></p>
+      <p style={{ color: 'var(--tinta-3)' }}>Fin: <span style={{ color: 'var(--tinta-2)', fontWeight: 500 }}>{d.endLabel}</span></p>
+      <p style={{ color: 'var(--tinta-3)' }}>Duración: <span style={{ color: 'var(--tinta-2)', fontWeight: 500 }}>{d.durationLabel}</span></p>
+      <p style={{ color: 'var(--tinta-3)' }}>Actividades: <span style={{ color: 'var(--tinta-2)', fontWeight: 500 }}>{d.itemCount}</span></p>
     </div>
   )
 }
@@ -101,7 +101,7 @@ export function ProjectGanttChart({ workItems }: ProjectGanttChartProps) {
 
   if (!chartData) {
     return (
-      <div className="flex items-center justify-center h-48 text-zinc-500">
+      <div className="flex items-center justify-center h-48 text-tinta-3">
         No hay fases con fechas asignadas para mostrar en el diagrama.
       </div>
     )
@@ -125,24 +125,24 @@ export function ProjectGanttChart({ workItems }: ProjectGanttChartProps) {
           margin={{ top: 5, right: 30, left: 10, bottom: 20 }}
           barSize={26}
         >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#27272a" />
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--borde)" />
           <XAxis
             type="number"
             domain={[0, maxVal + 1]}
             tickCount={maxVal + 2}
             tickFormatter={tickFormatter}
-            tick={{ fontSize: 11, fill: '#71717a' }}
-            label={{ value: 'Fecha', position: 'insideBottom', offset: -10, fontSize: 12, fill: '#71717a' }}
-            axisLine={{ stroke: '#27272a' }}
-            tickLine={{ stroke: '#27272a' }}
+            tick={{ fontSize: 11, fill: 'var(--tinta-3)' }}
+            label={{ value: 'Fecha', position: 'insideBottom', offset: -10, fontSize: 12, fill: 'var(--tinta-3)' }}
+            axisLine={{ stroke: 'var(--borde)' }}
+            tickLine={{ stroke: 'var(--borde)' }}
           />
           <YAxis
             type="category"
             dataKey="phase"
             width={230}
-            tick={{ fontSize: 12, fill: '#a1a1aa' }}
-            axisLine={{ stroke: '#27272a' }}
-            tickLine={{ stroke: '#27272a' }}
+            tick={{ fontSize: 12, fill: 'var(--tinta-2)' }}
+            axisLine={{ stroke: 'var(--borde)' }}
+            tickLine={{ stroke: 'var(--borde)' }}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
           {/* Invisible offset bar */}

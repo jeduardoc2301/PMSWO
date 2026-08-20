@@ -135,10 +135,10 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
           {t('generateReport')}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-[#18181b] border-[#27272a]">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
           <DialogTitle className="text-[#e4e4e7]">{t('report.title')}</DialogTitle>
-          <DialogDescription className="text-[#71717a]">
+          <DialogDescription className="text-tinta-3">
             {t('detailLevel.title')}
           </DialogDescription>
         </DialogHeader>
@@ -146,7 +146,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
         <div className="space-y-4">
           {!report && (
             <div className="space-y-2">
-              <Label htmlFor="detail-level" className="text-[#a1a1aa]">{t('detailLevel.title')}</Label>
+              <Label htmlFor="detail-level" className="text-tinta-2">{t('detailLevel.title')}</Label>
               <Select
                 value={detailLevel}
                 onValueChange={(value) => setDetailLevel(value as ReportDetailLevel)}
@@ -159,7 +159,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="EXECUTIVE">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.executive')}</span>
-                      <span className="text-xs text-[#71717a]">
+                      <span className="text-xs text-tinta-3">
                         {t('detailLevel.executiveDesc')}
                       </span>
                     </div>
@@ -167,7 +167,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="DETAILED">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.detailed')}</span>
-                      <span className="text-xs text-[#71717a]">
+                      <span className="text-xs text-tinta-3">
                         {t('detailLevel.detailedDesc')}
                       </span>
                     </div>
@@ -175,7 +175,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                   <SelectItem value="COMPLETE">
                     <div className="flex flex-col items-start">
                       <span className="font-medium">{t('detailLevel.complete')}</span>
-                      <span className="text-xs text-[#71717a]">
+                      <span className="text-xs text-tinta-3">
                         {t('detailLevel.completeDesc')}
                       </span>
                     </div>
@@ -188,14 +188,14 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
           {generating && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
-              <p className="text-sm text-[#a1a1aa]">{t('loading.generatingReport')}</p>
+              <p className="text-sm text-tinta-2">{t('loading.generatingReport')}</p>
             </div>
           )}
 
           {report && !generating && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-[#71717a]">
+                <p className="text-sm text-tinta-3">
                   {t('report.generatedAt')}: {generatedAt?.toLocaleString()}
                 </p>
                 <div className="flex items-center gap-2">
@@ -238,7 +238,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
                 </div>
               </div>
 
-              <div className="rounded-lg p-4" style={{ background: '#111113', border: '1px solid #27272a' }}>
+              <div className="rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <pre className="whitespace-pre-wrap text-sm font-mono text-[#e4e4e7]">{report}</pre>
               </div>
             </div>

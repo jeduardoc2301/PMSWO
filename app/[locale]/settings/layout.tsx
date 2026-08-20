@@ -16,7 +16,7 @@ export default function SettingsLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-[#09090b]">
+    <div className="flex min-h-screen bg-fondo">
       <MainNavWrapper />
       <main className="flex-1 ml-64 min-w-0">
         <div className="p-8">

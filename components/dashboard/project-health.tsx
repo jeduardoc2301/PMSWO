@@ -49,7 +49,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
         )
       case HealthFactorImpact.NEUTRAL:
         return (
-          <svg className="w-5 h-5 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-tinta-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
           </svg>
         )
@@ -63,7 +63,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
       case HealthFactorImpact.NEGATIVE:
         return 'border-[rgba(248,113,113,0.25)]'
       case HealthFactorImpact.NEUTRAL:
-        return 'border-[#27272a]'
+        return 'border-borde'
     }
   }
 
@@ -74,14 +74,14 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
       case HealthFactorImpact.NEGATIVE:
         return 'rgba(239,68,68,0.08)'
       case HealthFactorImpact.NEUTRAL:
-        return '#111113'
+        return 'var(--superficie)'
     }
   }
 
   const colors = getHealthColor(health.status)
 
   return (
-    <div className="bg-[#18181b] rounded-lg p-6" style={{ border: '1px solid #27272a' }}>
+    <div className="bg-superficie rounded-lg p-6" style={{ border: '1px solid var(--borde)' }}>
       <h3 className="text-lg font-semibold text-[#e4e4e7] mb-4">Project Health</h3>
 
       <div className="flex items-center justify-center mb-6">
@@ -114,7 +114,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
             <span className={`text-3xl font-bold ${colors.text}`}>
               {health.score}
             </span>
-            <span className="text-sm text-[#71717a]">/ 100</span>
+            <span className="text-sm text-tinta-3">/ 100</span>
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
       </div>
 
       <div className="space-y-3">
-        <h4 className="text-sm font-medium text-[#a1a1aa] mb-3">Health Factors</h4>
+        <h4 className="text-sm font-medium text-tinta-2 mb-3">Health Factors</h4>
         {health.factors.map((factor, index) => (
           <div
             key={index}
@@ -141,7 +141,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
                 <p className="text-sm font-medium text-[#e4e4e7]">
                   {factor.name}
                 </p>
-                <p className="text-sm text-[#a1a1aa] mt-1">
+                <p className="text-sm text-tinta-2 mt-1">
                   {factor.description}
                 </p>
               </div>
@@ -150,20 +150,20 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
         ))}
       </div>
 
-      <div className="mt-6 pt-4" style={{ borderTop: '1px solid #27272a' }}>
-        <p className="text-xs text-[#71717a] mb-2">Health Score Ranges:</p>
+      <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--borde)' }}>
+        <p className="text-xs text-tinta-3 mb-2">Health Score Ranges:</p>
         <div className="flex flex-wrap gap-3 text-xs">
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-[#34d399]"></div>
-            <span className="text-[#a1a1aa]">Healthy (70-100)</span>
+            <span className="text-tinta-2">Healthy (70-100)</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-[#fbbf24]"></div>
-            <span className="text-[#a1a1aa]">At Risk (40-69)</span>
+            <span className="text-tinta-2">At Risk (40-69)</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-[#f87171]"></div>
-            <span className="text-[#a1a1aa]">Critical (&lt;40)</span>
+            <span className="text-tinta-2">Critical (&lt;40)</span>
           </div>
         </div>
       </div>

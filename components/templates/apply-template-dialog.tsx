@@ -221,15 +221,15 @@ export function ApplyTemplateDialog({
         <DialogHeader>
           <div className="flex items-center justify-between mb-2">
             <DialogTitle>{getDialogTitle()}</DialogTitle>
-            <div className="text-sm font-medium text-zinc-300">
+            <div className="text-sm font-medium text-tinta-2">
               Paso {getCurrentStepNumber()} de {totalSteps}
             </div>
           </div>
           <DialogDescription>{getDialogDescription()}</DialogDescription>
 
-          <div className="w-full bg-zinc-800 rounded-full h-2 mt-4">
+          <div className="w-full bg-superficie-3 rounded-full h-2 mt-4">
             <div
-              className="bg-[#6366f1] h-2 rounded-full transition-all duration-300"
+              className="bg-acento h-2 rounded-full transition-all duration-300"
               style={{ width: `${(getCurrentStepNumber() / totalSteps) * 100}%` }}
             />
           </div>

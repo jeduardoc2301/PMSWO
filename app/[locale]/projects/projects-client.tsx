@@ -58,7 +58,7 @@ const healthColors: Record<HealthCategory, string> = {
   CRITICO:    '#ef4444',
   EN_RIESGO:  '#f59e0b',
   A_TIEMPO:   '#10b981',
-  SIN_ALERTAS: '#6366f1',
+  SIN_ALERTAS: 'var(--acento)',
 }
 
 function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, completedWorkItems, totalWorkItems, healthCategory }: {
@@ -92,7 +92,7 @@ function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, co
   const dotColor = healthCategory
     ? healthColors[healthCategory]
     : isOverdue ? '#ef4444'
-    : !hasTasks && !hasHours ? '#71717a'
+    : !hasTasks && !hasHours ? 'var(--tinta-3)'
     : execPct >= timePct - 10 ? '#10b981'
     : execPct >= timePct - 25 ? '#f59e0b'
     : '#ef4444'
@@ -116,13 +116,13 @@ function ProjectProgressBars({ startDate, endDate, plannedHours, actualHours, co
       </div>
       {/* Barras */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10, color: '#71717a', marginBottom: 5, whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 10, color: 'var(--tinta-3)', marginBottom: 5, whiteSpace: 'nowrap' }}>
           {`⏱ ${timePct}% tiempo  |  ${execLabel}`}
         </div>
-        <div style={{ height: 5, background: '#27272a', borderRadius: 999, marginBottom: 4, overflow: 'hidden' }}>
+        <div style={{ height: 5, background: 'var(--borde)', borderRadius: 999, marginBottom: 4, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${timePct}%`, background: '#B0BEC5', borderRadius: 999, transition: 'width 0.3s' }} />
         </div>
-        <div style={{ height: 5, background: '#27272a', borderRadius: 999, overflow: 'hidden' }}>
+        <div style={{ height: 5, background: 'var(--borde)', borderRadius: 999, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${execPct}%`, background: '#1565C0', borderRadius: 999, transition: 'width 0.3s' }} />
         </div>
       </div>
@@ -186,8 +186,8 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
 
   return (
     <a href={`/${locale}/projects/${project.id}`}
-      className="rounded-xl p-5 flex flex-col gap-4 transition-all hover:border-zinc-600 cursor-pointer"
-      style={{ background: '#18181b', border: '1px solid #27272a', textDecoration: 'none' }}>
+      className="rounded-xl p-5 flex flex-col gap-4 transition-all hover:border-borde-fuerte cursor-pointer"
+      style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', textDecoration: 'none' }}>
       <div className="flex items-start justify-between">
         <div />
         <div onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
@@ -201,13 +201,13 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
           {initials}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold text-zinc-100 truncate">{project.name}</div>
-          <div className="text-[11px] text-zinc-500 truncate">{project.client}</div>
+          <div className="text-sm font-semibold text-tinta truncate">{project.name}</div>
+          <div className="text-[11px] text-tinta-3 truncate">{project.client}</div>
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid #27272a', paddingTop: 12 }}>
-        <div className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">Salud del proyecto</div>
+      <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 12 }}>
+        <div className="text-[10px] text-tinta-3 uppercase tracking-wider mb-2">Salud del proyecto</div>
         <ProjectProgressBars
           startDate={project.startDate}
           endDate={project.estimatedEndDate}
@@ -219,12 +219,12 @@ function ProjectCard({ project, locale, onStatusUpdate }: {
         />
       </div>
 
-      <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid #27272a' }}>
+      <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid var(--borde)' }}>
         <div className="flex items-center gap-3">
           {/* Fecha inicio */}
-          <div className="flex items-center gap-1 text-[11px] text-zinc-500">
+          <div className="flex items-center gap-1 text-[11px] text-tinta-3">
             <Calendar size={10} className="flex-shrink-0" />
-            <span className="text-zinc-600 mr-0.5">Inicio</span>
+            <span className="text-tinta-3 mr-0.5">Inicio</span>
             {new Date(`${project.startDate.slice(0, 10)}T00:00:00`).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })}
           </div>
           {/* Fecha fin — roja si vencida, verde si en tiempo */}
@@ -348,19 +348,19 @@ export function ProjectsPageClient() {
   ]
 
   return (
-    <div className="min-h-screen" style={{ background: '#09090b' }}>
+    <div className="min-h-screen" style={{ background: 'var(--fondo)' }}>
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div>
           <h1 className="text-lg font-semibold text-white">{t('title')}</h1>
-          <div className="text-xs text-zinc-500 mt-0.5">
+          <div className="text-xs text-tinta-3 mt-0.5">
             {pagination.total > 0 ? `${projects.length} de ${pagination.total}` : `${projects.length} proyectos`}
           </div>
         </div>
         {canCreateProject && (
           <a href={`/${locale}/projects/new`}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: '#6366f1' }}>
+            style={{ background: 'var(--acento)' }}>
             <Plus size={16} /> Nuevo proyecto
           </a>
         )}
@@ -371,13 +371,13 @@ export function ProjectsPageClient() {
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {/* Search */}
           <div className="relative flex-1 max-w-xs">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tinta-3 pointer-events-none" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por nombre, cliente..."
-              className="w-full h-9 pl-9 pr-3 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-              style={{ background: '#18181b', border: '1px solid #27272a' }}
+              className="w-full h-9 pl-9 pr-3 rounded-lg text-sm text-tinta placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}
             />
           </div>
 
@@ -385,11 +385,11 @@ export function ProjectsPageClient() {
           <div ref={statusRef} className="relative">
             <button
               onClick={() => setStatusOpen((o) => !o)}
-              className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm transition-all hover:border-zinc-600"
-              style={{ background: '#18181b', border: '1px solid #27272a', color: '#a1a1aa' }}
+              className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm transition-all hover:border-borde-fuerte"
+              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta-2)' }}
             >
-              <span className="text-xs text-zinc-600">Estado:</span>
-              <span className="text-zinc-300">{statusOptions.find(([v]) => v === statusFilter)?.[1] ?? 'Todos'}</span>
+              <span className="text-xs text-tinta-3">Estado:</span>
+              <span className="text-tinta-2">{statusOptions.find(([v]) => v === statusFilter)?.[1] ?? 'Todos'}</span>
               <ChevronDown size={12} />
             </button>
             {statusOpen && (
@@ -409,8 +409,8 @@ export function ProjectsPageClient() {
           </div>
 
           {/* Archived toggle */}
-          <label className="flex items-center gap-2 cursor-pointer h-9 px-3 rounded-lg text-sm text-zinc-400 hover:bg-zinc-900 transition-all"
-            style={{ border: '1px solid #27272a' }}>
+          <label className="flex items-center gap-2 cursor-pointer h-9 px-3 rounded-lg text-sm text-tinta-2 hover:bg-superficie transition-all"
+            style={{ border: '1px solid var(--borde)' }}>
             <input type="checkbox" checked={includeArchived} onChange={(e) => {
               setIncludeArchived(e.target.checked)
               setPagination((p) => ({ ...p, page: 1 }))
@@ -418,19 +418,19 @@ export function ProjectsPageClient() {
             Archivados
           </label>
 
-          <button className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm text-zinc-400 hover:bg-zinc-900 transition-all"
-            style={{ border: '1px solid #27272a' }}>
+          <button className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm text-tinta-2 hover:bg-superficie transition-all"
+            style={{ border: '1px solid var(--borde)' }}>
             <BookmarkPlus size={14} /> Guardar vista
           </button>
 
           <div className="ml-auto flex items-center">
-            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #27272a' }}>
+            <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
               <button onClick={() => setView('grid')}
-                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'grid' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'grid' ? 'bg-superficie-3 text-white' : 'text-tinta-3 hover:text-tinta-2'}`}>
                 <LayoutGrid size={15} />
               </button>
               <button onClick={() => setView('table')}
-                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'table' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'table' ? 'bg-superficie-3 text-white' : 'text-tinta-3 hover:text-tinta-2'}`}>
                 <Table2 size={15} />
               </button>
             </div>
@@ -447,27 +447,27 @@ export function ProjectsPageClient() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-16 text-zinc-500 gap-3">
-            <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-16 text-tinta-3 gap-3">
+            <div className="w-5 h-5 border-2 border-borde-fuerte border-t-indigo-500 rounded-full animate-spin" />
             {t('loading')}
           </div>
         )}
 
         {/* Empty state */}
         {!loading && projects.length === 0 && (
-          <div className="rounded-xl p-16 text-center" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+          <div className="rounded-xl p-16 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
               style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
               <FolderSearch size={28} className="text-indigo-400" />
             </div>
             <div className="text-base font-semibold text-white">Sin proyectos que coincidan</div>
-            <div className="text-sm text-zinc-500 mt-2 max-w-sm mx-auto">
+            <div className="text-sm text-tinta-3 mt-2 max-w-sm mx-auto">
               Prueba ajustando los filtros, o crea tu primer proyecto.
             </div>
             {canCreateProject && (
               <a href={`/${locale}/projects/new`}
                 className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
-                style={{ background: '#6366f1' }}>
+                style={{ background: 'var(--acento)' }}>
                 <Plus size={16} /> Nuevo proyecto
               </a>
             )}
@@ -485,10 +485,10 @@ export function ProjectsPageClient() {
 
         {/* Table view */}
         {!loading && projects.length > 0 && view === 'table' && (
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #27272a' }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
             <table className="w-full">
               <thead>
-                <tr style={{ background: '#111113', borderBottom: '1px solid #27272a' }}>
+                <tr style={{ background: 'var(--superficie)', borderBottom: '1px solid var(--borde)' }}>
                   <th className="w-8 px-4 py-3">
                     <input type="checkbox" className="accent-indigo-500"
                       onChange={(e) => {
@@ -497,7 +497,7 @@ export function ProjectsPageClient() {
                       }} />
                   </th>
                   {['Proyecto', 'Cliente', 'Estado', 'Salud del proyecto', 'Tareas', 'Fecha fin', ''].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+                    <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-tinta-3 uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -506,8 +506,8 @@ export function ProjectsPageClient() {
               <tbody>
                 {projects.map((p) => (
                   <tr key={p.id}
-                    className={`border-b transition-all hover:bg-zinc-900/40 cursor-pointer ${selected.has(p.id) ? 'bg-indigo-950/20' : ''}`}
-                    style={{ borderColor: '#27272a' }}>
+                    className={`border-b transition-all hover:bg-superficie/40 cursor-pointer ${selected.has(p.id) ? 'bg-indigo-950/20' : ''}`}
+                    style={{ borderColor: 'var(--borde)' }}>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSel(p.id)}
                         className="accent-indigo-500" />
@@ -516,12 +516,12 @@ export function ProjectsPageClient() {
                       <div className="flex items-center gap-2.5">
                         <div className={`pms-priority-bar pms-priority-HIGH`} style={{ height: 24 }} />
                         <div>
-                          <div className="text-sm font-medium text-zinc-100">{p.name}</div>
-                          <div className="text-[11px] text-zinc-500">{p.description?.slice(0, 40) ?? ''}</div>
+                          <div className="text-sm font-medium text-tinta">{p.name}</div>
+                          <div className="text-[11px] text-tinta-3">{p.description?.slice(0, 40) ?? ''}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-300" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                    <td className="px-4 py-3 text-sm text-tinta-2" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
                       {p.client}
                     </td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -538,18 +538,18 @@ export function ProjectsPageClient() {
                         healthCategory={p.healthCategory}
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-400" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                    <td className="px-4 py-3 text-sm text-tinta-2" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
                       {p._count?.workItems ?? 0}
                       {(p._count?.blockers ?? 0) > 0 && (
                         <span className="ml-2 text-rose-400">{p._count!.blockers} bloq.</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
+                    <td className="px-4 py-3 text-xs text-tinta-3" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
                       {formatDate(p.estimatedEndDate)}
                     </td>
                     <td className="px-4 py-3">
                       <a href={`/${locale}/projects/${p.id}`}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all">
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-tinta-3 hover:text-tinta-2 hover:bg-superficie-3 transition-all">
                         <ArrowRight size={13} />
                       </a>
                     </td>
@@ -563,22 +563,22 @@ export function ProjectsPageClient() {
         {/* Pagination */}
         {!loading && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-5 px-1">
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-tinta-3">
               Página {pagination.page} de {pagination.totalPages} ({pagination.total} proyectos)
             </span>
             <div className="flex gap-2">
               <button
                 disabled={pagination.page === 1}
                 onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                className="px-3 py-1.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ border: '1px solid #27272a' }}>
+                className="px-3 py-1.5 rounded-lg text-sm text-tinta-2 hover:bg-superficie-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ border: '1px solid var(--borde)' }}>
                 ← Anterior
               </button>
               <button
                 disabled={pagination.page === pagination.totalPages}
                 onClick={() => setPagination((p) => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
-                className="px-3 py-1.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ border: '1px solid #27272a' }}>
+                className="px-3 py-1.5 rounded-lg text-sm text-tinta-2 hover:bg-superficie-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ border: '1px solid var(--borde)' }}>
                 Siguiente →
               </button>
             </div>
@@ -590,22 +590,22 @@ export function ProjectsPageClient() {
       {selected.size > 0 && (
         <div className="pms-bulkbar">
           <span className="text-sm text-white"><b>{selected.size}</b> seleccionado(s)</span>
-          <div className="w-px h-5 bg-zinc-800" />
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+          <div className="w-px h-5 bg-superficie-3" />
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-tinta-2 hover:bg-superficie-3 transition-all">
             <UserPlus size={13} /> Asignar PM
           </button>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-tinta-2 hover:bg-superficie-3 transition-all">
             <Circle size={13} /> Cambiar estado
           </button>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-tinta-2 hover:bg-superficie-3 transition-all">
             <Archive size={13} /> Archivar
           </button>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-300 hover:bg-zinc-800 transition-all">
+          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-tinta-2 hover:bg-superficie-3 transition-all">
             <Download size={13} /> Exportar
           </button>
-          <div className="w-px h-5 bg-zinc-800" />
+          <div className="w-px h-5 bg-superficie-3" />
           <button onClick={() => setSelected(new Set())}
-            className="inline-flex items-center justify-center w-6 h-6 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all text-xs">
+            className="inline-flex items-center justify-center w-6 h-6 rounded text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all text-xs">
             ✕
           </button>
         </div>

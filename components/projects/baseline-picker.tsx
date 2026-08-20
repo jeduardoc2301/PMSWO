@@ -83,7 +83,7 @@ export function BaselinePicker({
         className={`rounded border px-2 py-1 text-xs ${
           elegida
             ? 'border-red-900/60 bg-red-950/20 text-red-300'
-            : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
+            : 'border-borde-fuerte text-tinta-2 hover:bg-superficie-3'
         }`}
       >
         {elegida ? `Línea base: ${elegida.name}` : 'Línea base'} ▾
@@ -93,11 +93,11 @@ export function BaselinePicker({
         <div
           role="menu"
           aria-label="Líneas base"
-          className="absolute left-0 top-full z-40 mt-1 w-80 rounded-lg border border-zinc-800 bg-[#18181b] p-3 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-1 w-80 rounded-lg border border-borde bg-superficie p-3 shadow-xl"
         >
           {puedeCrear ? (
-            <div className="mb-3 border-b border-zinc-800 pb-3">
-              <label htmlFor="nombre-linea-base" className="mb-1.5 block text-xs text-zinc-500">
+            <div className="mb-3 border-b border-borde pb-3">
+              <label htmlFor="nombre-linea-base" className="mb-1.5 block text-xs text-tinta-3">
                 Tomar una foto del plan de hoy
               </label>
               <div className="flex gap-1.5">
@@ -110,13 +110,13 @@ export function BaselinePicker({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') crear()
                   }}
-                  className="min-w-0 flex-1 rounded border border-zinc-700 bg-[#111113] px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-600"
+                  className="min-w-0 flex-1 rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta placeholder:text-tinta-3"
                 />
                 <button
                   type="button"
                   disabled={creando || nombreNuevo.trim() === ''}
                   onClick={crear}
-                  className="shrink-0 rounded bg-[#6366f1] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+                  className="shrink-0 rounded bg-acento px-2.5 py-1 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
                 >
                   {creando ? 'Tomando...' : 'Crear'}
                 </button>
@@ -125,13 +125,13 @@ export function BaselinePicker({
           ) : null}
 
           <fieldset>
-            <legend className="mb-1.5 text-xs text-zinc-500">Comparar contra</legend>
+            <legend className="mb-1.5 text-xs text-tinta-3">Comparar contra</legend>
             {/* El cierre va en la etiqueta y no en el `onChange` del radio: pinchar la opción que
                 ya estaba marcada no dispara un cambio, y el menú se quedaba abierto tapando la
                 tabla justo cuando alguien confirmaba que no quería comparar contra nada. */}
             <label
               onClick={() => setAbierto(false)}
-              className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-zinc-800"
+              className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-superficie-3"
             >
               <input
                 type="radio"
@@ -140,11 +140,11 @@ export function BaselinePicker({
                 onChange={() => onElegir(null)}
                 className="h-3.5 w-3.5 accent-[#6366f1]"
               />
-              <span className="text-xs text-zinc-300">Ninguna</span>
+              <span className="text-xs text-tinta-2">Ninguna</span>
             </label>
 
             {baselines.length === 0 ? (
-              <p className="px-1.5 py-2 text-xs text-zinc-600">
+              <p className="px-1.5 py-2 text-xs text-tinta-3">
                 Todavía no hay ninguna foto guardada de este plan.
               </p>
             ) : (
@@ -153,7 +153,7 @@ export function BaselinePicker({
                   <li key={baseline.id} className="flex items-center gap-1">
                     <label
                       onClick={() => setAbierto(false)}
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-zinc-800"
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-superficie-3"
                     >
                       <input
                         type="radio"
@@ -163,10 +163,10 @@ export function BaselinePicker({
                         className="h-3.5 w-3.5 shrink-0 accent-[#6366f1]"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs text-zinc-200" title={baseline.name}>
+                        <span className="block truncate text-xs text-tinta" title={baseline.name}>
                           {baseline.name}
                         </span>
-                        <span className="block text-[11px] text-zinc-600">
+                        <span className="block text-[11px] text-tinta-3">
                           {fechaLegible(baseline.createdAt)} · {baseline.lineas} líneas
                         </span>
                       </span>
@@ -177,7 +177,7 @@ export function BaselinePicker({
                         aria-label={`Borrar la línea base ${baseline.name}`}
                         title="Borrar esta foto"
                         onClick={() => onBorrar(baseline.id)}
-                        className="shrink-0 rounded px-1 text-xs text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300"
+                        className="shrink-0 rounded px-1 text-xs text-tinta-3 hover:bg-superficie-3 hover:text-tinta-2"
                       >
                         ✕
                       </button>
@@ -212,27 +212,27 @@ export function ResumenDeLineaBase({
   return (
     <div
       data-testid="resumen-linea-base"
-      className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-zinc-800 bg-[#18181b] px-3 py-2 text-xs"
+      className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border border-borde bg-superficie px-3 py-2 text-xs"
     >
-      <span className="text-zinc-400">
-        Contra <strong className="text-zinc-200">{nombre}</strong>
+      <span className="text-tinta-2">
+        Contra <strong className="text-tinta">{nombre}</strong>
       </span>
-      <span className="text-zinc-400">
-        <strong className="tabular-nums text-zinc-200">{movidas}</strong> movidas
+      <span className="text-tinta-2">
+        <strong className="tabular-nums text-tinta">{movidas}</strong> movidas
       </span>
       {nuevas > 0 ? (
-        <span className="text-zinc-400">
-          <strong className="tabular-nums text-zinc-200">{nuevas}</strong> nuevas
+        <span className="text-tinta-2">
+          <strong className="tabular-nums text-tinta">{nuevas}</strong> nuevas
         </span>
       ) : null}
       {eliminadas > 0 ? (
-        <span className="text-zinc-400">
-          <strong className="tabular-nums text-zinc-200">{eliminadas}</strong> eliminadas
+        <span className="text-tinta-2">
+          <strong className="tabular-nums text-tinta">{eliminadas}</strong> eliminadas
         </span>
       ) : null}
       {/* El cierre no es la suma de los desvíos: diez líneas que se corren dentro de su holgura no
           mueven la fecha final ni un día. Por eso va aparte y con su propia palabra. */}
-      <span className={driftDelCierre === 0 ? 'text-zinc-400' : tarde ? 'text-red-400' : 'text-emerald-400'}>
+      <span className={driftDelCierre === 0 ? 'text-tinta-2' : tarde ? 'text-red-400' : 'text-emerald-400'}>
         Cierre{' '}
         <strong className="tabular-nums">
           {driftDelCierre === 0

@@ -613,7 +613,7 @@ export function WorkItemsView({
               setCreando(true)
             }}
             className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: '#6366f1' }}
+            style={{ background: 'var(--acento)' }}
           >
             + Nueva tarea
           </button>
@@ -638,13 +638,13 @@ export function WorkItemsView({
             Agrupada
           </BotonModo>
           {modo === 'AGRUPADA' ? (
-            <label className="ml-1 flex items-center gap-1.5 text-xs text-zinc-400">
+            <label className="ml-1 flex items-center gap-1.5 text-xs text-tinta-2">
               Agrupar por
               <select
                 aria-label="Agrupar la lista por"
                 value={agruparPor}
                 onChange={(e) => setAgruparPor(e.target.value as CampoDeGrupo)}
-                className="rounded border border-zinc-700 bg-[#18181b] px-2 py-1 text-xs text-zinc-100"
+                className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
               >
                 {CAMPOS_DE_GRUPO.map((campo) => (
                   <option key={campo} value={campo}>
@@ -713,7 +713,7 @@ export function WorkItemsView({
           <p className="text-sm text-red-300">No se pudo cargar el plan: {estado.mensaje}</p>
         </div>
       ) : estado.plan.tasks.length === 0 ? (
-        <p className="py-12 text-center text-sm text-zinc-400">
+        <p className="py-12 text-center text-sm text-tinta-2">
           Este proyecto todavía no tiene elementos de trabajo que planear.
         </p>
       ) : (
@@ -940,8 +940,8 @@ function BotonModo({
       onClick={onClick}
       className={`rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:ring-offset-[#18181b] ${
         activo
-          ? 'border-[#6366f1] bg-[#6366f1] text-zinc-100'
-          : 'border-[#27272a] bg-[#111113] text-zinc-300 hover:border-[#6366f1] hover:text-zinc-100'
+          ? 'border-acento bg-acento text-tinta'
+          : 'border-borde bg-superficie text-tinta-2 hover:border-acento hover:text-tinta'
       }`}
     >
       {children}

@@ -397,7 +397,7 @@ export function EditWorkItemDialog({
                   })
                 }}
                 disabled={submitting}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                className="w-full rounded-md border border-borde-fuerte bg-superficie px-3 py-2 text-sm text-tinta"
               >
                 <option value="">Ninguna — se coloca por sus predecesoras</option>
                 {RESTRICCIONES.map((r) => (
@@ -410,7 +410,7 @@ export function EditWorkItemDialog({
               {/* La explicación de la elegida. Es lo que separa elegir de adivinar: «no empieza antes
                   de» y «debe empezar el» suenan igual y hacen cosas distintas. */}
               {restriccion(formData.constraintType) && (
-                <p data-testid="restriccion-explicacion" className="text-xs text-zinc-400">
+                <p data-testid="restriccion-explicacion" className="text-xs text-tinta-2">
                   {restriccion(formData.constraintType)!.explicacion}
                 </p>
               )}

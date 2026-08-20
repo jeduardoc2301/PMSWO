@@ -190,13 +190,13 @@ export function CalendarView({
             type="button"
             aria-label="Mes anterior"
             onClick={() => irA(-1)}
-            className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+            className="rounded-lg border border-borde px-2.5 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3"
           >
             ‹
           </button>
           <span
             data-testid="periodo-del-calendario"
-            className="min-w-[210px] text-center text-sm font-medium text-zinc-100"
+            className="min-w-[210px] text-center text-sm font-medium text-tinta"
           >
             {modo === 'SEMANA'
               ? `${primerDia} → ${ultimoDia}`
@@ -206,7 +206,7 @@ export function CalendarView({
             type="button"
             aria-label="Mes siguiente"
             onClick={() => irA(1)}
-            className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+            className="rounded-lg border border-borde px-2.5 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3"
           >
             ›
           </button>
@@ -216,7 +216,7 @@ export function CalendarView({
               onAnclaChange(today)
               setDiaDesplegado(null)
             }}
-            className="ml-1 rounded-lg border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+            className="ml-1 rounded-lg border border-borde px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3"
           >
             Hoy
           </button>
@@ -237,7 +237,7 @@ export function CalendarView({
                 className={`rounded-lg border px-3 py-1.5 text-sm ${
                   modo === m.value
                     ? 'border-indigo-600 bg-indigo-600/15 text-indigo-200'
-                    : 'border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                    : 'border-borde text-tinta-2 hover:bg-superficie-3'
                 }`}
               >
                 {m.label}
@@ -245,7 +245,7 @@ export function CalendarView({
             ))}
           </div>
         </div>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-tinta-3">
           {layout.tasksInRange} de {tasks.length} {tasks.length === 1 ? 'línea' : 'líneas'} caen en
           {modo === 'SEMANA' ? ' esta semana' : ' este mes'}
           {layout.tasksInRange > layout.placedTasks ? (
@@ -262,12 +262,12 @@ export function CalendarView({
         <Agenda dias={agenda} today={today} onSelectTask={onSelectTask} />
       ) : (
         <div
-          className="overflow-hidden rounded-xl border border-zinc-800 bg-[#18181b]"
+          className="overflow-hidden rounded-xl border border-borde bg-superficie"
           onMouseLeave={() => setPintando(null)}
         >
-          <div className="grid grid-cols-7 border-b border-zinc-800">
+          <div className="grid grid-cols-7 border-b border-borde">
             {DIAS.map((dia) => (
-              <div key={dia} className="px-2 py-2 text-center text-xs uppercase tracking-wide text-zinc-500">
+              <div key={dia} className="px-2 py-2 text-center text-xs uppercase tracking-wide text-tinta-3">
                 {dia}
               </div>
             ))}
@@ -289,22 +289,22 @@ export function CalendarView({
       )}
 
       {diaDesplegado !== null ? (
-        <div className="rounded-xl border border-zinc-800 bg-[#18181b] p-4">
+        <div className="rounded-xl border border-borde bg-superficie p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-zinc-100">
+            <p className="text-sm font-medium text-tinta">
               {ocultas.length} {ocultas.length === 1 ? 'línea más' : 'líneas más'} el {diaDesplegado}
             </p>
             <button
               type="button"
               aria-label="Cerrar el desglose del día"
               onClick={() => setDiaDesplegado(null)}
-              className="rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              className="rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
             >
               ✕
             </button>
           </div>
           {ocultas.length === 0 ? (
-            <p className="text-sm text-zinc-500">Ese día no esconde ninguna línea.</p>
+            <p className="text-sm text-tinta-3">Ese día no esconde ninguna línea.</p>
           ) : (
             <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto">
               {ocultas.map((tarea) => (
@@ -312,10 +312,10 @@ export function CalendarView({
                   <button
                     type="button"
                     onClick={() => onSelectTask?.(tarea.id)}
-                    className="flex w-full items-baseline gap-2 rounded px-2 py-1 text-left hover:bg-zinc-800"
+                    className="flex w-full items-baseline gap-2 rounded px-2 py-1 text-left hover:bg-superficie-3"
                   >
-                    <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">{tarea.name}</span>
-                    <span className="shrink-0 text-xs text-zinc-500">
+                    <span className="min-w-0 flex-1 truncate text-sm text-tinta">{tarea.name}</span>
+                    <span className="shrink-0 text-xs text-tinta-3">
                       {tarea.start} → {tarea.finish}
                     </span>
                   </button>
@@ -400,7 +400,7 @@ function Semana({
     // casilla, así que va en una capa absoluta sobre la fila entera. Dentro de la casilla queda un
     // hueco de la misma altura, y así el rótulo de «N líneas más» fluye debajo sin encimarse.
     <div
-      className="relative grid grid-cols-7 border-b border-zinc-800 last:border-b-0"
+      className="relative grid grid-cols-7 border-b border-borde last:border-b-0"
       {...(onMoverLinea
         ? {
             onDragOver: (e: React.DragEvent) => {
@@ -439,8 +439,8 @@ function Semana({
                 onMouseUp: () => onSeleccionar(dia.date, 'SUELTA'),
               }
             : {})}
-          className={`min-h-[104px] border-r border-zinc-800 px-1.5 pb-1.5 last:border-r-0 ${
-            dia.isWorking ? '' : 'bg-[#111113]'
+          className={`min-h-[104px] border-r border-borde px-1.5 pb-1.5 last:border-r-0 ${
+            dia.isWorking ? '' : 'bg-superficie'
           } ${dia.isOutsideMonth ? 'opacity-40' : ''} ${
             seleccion && seleccion.from <= dia.date && dia.date <= seleccion.to
               ? 'bg-indigo-600/15 ring-1 ring-inset ring-indigo-600/60'
@@ -454,8 +454,8 @@ function Semana({
             <span
               className={`text-xs ${
                 dia.date === today
-                  ? 'rounded-full bg-[#6366f1] px-1.5 py-0.5 font-semibold text-zinc-100'
-                  : 'text-zinc-500'
+                  ? 'rounded-full bg-acento px-1.5 py-0.5 font-semibold text-tinta'
+                  : 'text-tinta-3'
               }`}
             >
               {Number(dia.date.slice(8, 10))}
@@ -478,7 +478,7 @@ function Semana({
             <button
               type="button"
               onClick={() => onExpandirDia(dia.date)}
-              className="block w-full truncate rounded px-1 text-left text-[11px] text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              className="block w-full truncate rounded px-1 text-left text-[11px] text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
             >
               {semana.overflowByColumn[columna]}{' '}
               {semana.overflowByColumn[columna] === 1 ? 'línea más' : 'líneas más'}
@@ -506,7 +506,7 @@ function Semana({
             className={`pointer-events-auto absolute truncate px-1.5 text-left text-[11px] ${
               trozo.isMilestone
                 ? 'rounded-sm bg-amber-500/25 text-amber-200 ring-1 ring-amber-400/40'
-                : 'rounded bg-[#6366f1]/25 text-indigo-100 ring-1 ring-[#6366f1]/40'
+                : 'rounded bg-acento/25 text-indigo-100 ring-1 ring-[#6366f1]/40'
             }`}
             style={{
               left: `calc(${(trozo.startColumn / 7) * 100}% + 4px)`,
@@ -554,7 +554,7 @@ function Agenda({
 }) {
   if (dias.length === 0) {
     return (
-      <p data-testid="agenda-vacia" className="rounded-xl border border-zinc-800 bg-[#18181b] p-6 text-center text-sm text-zinc-500">
+      <p data-testid="agenda-vacia" className="rounded-xl border border-borde bg-superficie p-6 text-center text-sm text-tinta-3">
         En este periodo no empieza ni termina ninguna línea.
       </p>
     )
@@ -570,22 +570,22 @@ function Agenda({
             dia.date === today
               ? 'border-indigo-700 bg-indigo-950/20'
               : dia.isWorking
-                ? 'border-zinc-800 bg-[#18181b]'
-                : 'border-zinc-900 bg-zinc-950/40'
+                ? 'border-borde bg-superficie'
+                : 'border-borde bg-fondo/40'
           }`}
         >
           <div className="mb-1.5 flex items-baseline gap-2">
-            <span className="text-sm font-medium text-zinc-100">{dia.date}</span>
+            <span className="text-sm font-medium text-tinta">{dia.date}</span>
             {dia.date === today ? (
               <span className="rounded bg-indigo-600/20 px-1.5 text-[10px] uppercase tracking-wide text-indigo-200">
                 hoy
               </span>
             ) : null}
             {!dia.isWorking ? (
-              <span className="text-[11px] text-zinc-500">no laborable</span>
+              <span className="text-[11px] text-tinta-3">no laborable</span>
             ) : null}
             {dia.enCurso.length > 0 ? (
-              <span data-testid={`en-curso-${dia.date}`} className="ml-auto text-[11px] text-zinc-500">
+              <span data-testid={`en-curso-${dia.date}`} className="ml-auto text-[11px] text-tinta-3">
                 {dia.enCurso.length} en curso
               </span>
             ) : null}
@@ -612,7 +612,7 @@ function GrupoDeAgenda({
   if (tareas.length === 0) return null
   return (
     <div className="mt-1">
-      <p className="text-[11px] uppercase tracking-wide text-zinc-500">{titulo}</p>
+      <p className="text-[11px] uppercase tracking-wide text-tinta-3">{titulo}</p>
       <ul className="mt-0.5 flex flex-col gap-0.5">
         {tareas.map((t) => (
           <li key={`${titulo}-${t.id}`}>
@@ -621,7 +621,7 @@ function GrupoDeAgenda({
               data-agenda-tarea={t.id}
               title={t.name}
               onClick={() => onSelectTask?.(t.id)}
-              className="flex w-full items-center gap-1.5 truncate rounded px-1 py-0.5 text-left text-sm text-zinc-200 hover:bg-zinc-800"
+              className="flex w-full items-center gap-1.5 truncate rounded px-1 py-0.5 text-left text-sm text-tinta hover:bg-superficie-3"
             >
               {t.isMilestone ? <span className="shrink-0 text-amber-300">◆</span> : null}
               <span className="truncate">{t.name}</span>
