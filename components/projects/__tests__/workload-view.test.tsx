@@ -328,3 +328,64 @@ describe('§8.1 · la fila del trabajo huérfano cuando NO hay ninguna asignaci�
     expect(screen.getByText('Luis Pérez')).toBeInTheDocument()
   })
 })
+
+describe('§8.4 · nivelación manual asistida: mover una línea desde la propia vista', () => {
+  /**
+   * La tercera de las tres mejoras que el spec pide sobre GanttPRO, y la que faltaba: la vista ya
+   * decía quién está sobrecargado y quién tiene hueco ese día, pero **los nombres no eran
+   * accionables**. Enseñar la sobrecarga sin ofrecer nada para resolverla deja el problema donde
+   * estaba.
+   */
+  const abrirLaCeldaRoja = () => {
+    // Ana está al 125 % el 1 de junio: diez horas en un día de ocho.
+    fireEvent.click(screen.getByTestId('celda-ana-2026-06-01'))
+  }
+
+  it('sin permiso para tocar el cronograma no ofrece mover nada', async () => {
+    // Un control que no hace nada al pulsarlo es peor que no tenerlo.
+    dibujar()
+    abrirLaCeldaRoja()
+    expect(screen.getAllByText('Luis Pérez', { exact: false }).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: /Mover «/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('Elige una línea de arriba para poder movérsela a alguien.')).not.toBeInTheDocument()
+  })
+
+  it('hasta elegir una línea, los nombres son información y no destinos', async () => {
+    dibujar({ onMover: vi.fn() })
+    abrirLaCeldaRoja()
+    expect(screen.getByText('Elige una línea de arriba para poder movérsela a alguien.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Mover «/ })).not.toBeInTheDocument()
+  })
+
+  it('elegida una línea, cada candidato se vuelve un destino con nombre', async () => {
+    dibujar({ onMover: vi.fn().mockResolvedValue(null) })
+    abrirLaCeldaRoja()
+    fireEvent.click(screen.getByRole('button', { name: /Migrar la red/ }))
+    expect(screen.getByRole('button', { name: 'Mover «Migrar la red» a Luis Pérez' })).toBeInTheDocument()
+  })
+
+  it('mueve con la dedicación que la línea tenía, no con una inventada', async () => {
+    const onMover = vi.fn().mockResolvedValue(null)
+    dibujar({ onMover })
+    abrirLaCeldaRoja()
+    fireEvent.click(screen.getByRole('button', { name: /Migrar la red/ }))
+    fireEvent.click(screen.getByRole('button', { name: /a Luis Pérez/ }))
+    expect(onMover).toHaveBeenCalledWith({
+      taskId: 't1',
+      desdeResourceId: 'ana',
+      haciaResourceId: 'luis',
+      unitsBp: UNIDADES_COMPLETAS,
+    })
+  })
+
+  it('si no se pudo, lo dice y no da el movimiento por hecho', async () => {
+    const onMover = vi.fn().mockResolvedValue('No tienes permiso para cambiar el cronograma.')
+    dibujar({ onMover })
+    abrirLaCeldaRoja()
+    fireEvent.click(screen.getByRole('button', { name: /Migrar la red/ }))
+    fireEvent.click(screen.getByRole('button', { name: /a Luis Pérez/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No tienes permiso para cambiar el cronograma.')
+    // La línea sigue elegida: quien lo intenta otra vez no tiene que volver a buscarla.
+    expect(screen.getByRole('button', { name: /a Luis Pérez/ })).toBeInTheDocument()
+  })
+})

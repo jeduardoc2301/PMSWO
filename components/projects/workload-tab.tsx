@@ -187,6 +187,51 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
     }
   }, [projectId, recibir])
 
+  /**
+   * Mover una línea de un recurso a otro (§8.4, nivelación manual asistida).
+   *
+   * Va con `desdeResourceId` para que quitar y poner pasen o no pasen **juntas**: en dos llamadas,
+   * media falla deja la línea asignada a los dos y la carga contada dos veces, que es justo lo que
+   * quien mueve estaba intentando arreglar.
+   *
+   * Al volver se recarga el corte entero en vez de parchear el estado: la matriz depende de las
+   * asignaciones de **todos** los días del rango, y adivinar cuáles cambiaron es cómo una vista
+   * empieza a enseñar una cosa distinta de lo que hay guardado.
+   */
+  const mover = useCallback(
+    async (m: {
+      taskId: string
+      desdeResourceId: string
+      haciaResourceId: string
+      unitsBp: number
+    }): Promise<string | null> => {
+      try {
+        const respuesta = await fetch(`/api/v1/work-items/${m.taskId}/assignments`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resourceId: m.haciaResourceId,
+            unitsBp: m.unitsBp,
+            desdeResourceId: m.desdeResourceId,
+          }),
+        })
+        if (!respuesta.ok) {
+          const cuerpo = await respuesta.json().catch(() => ({}))
+          return cuerpo.message ?? `No se pudo mover (HTTP ${respuesta.status}).`
+        }
+        const otra = await fetch(`/api/v1/projects/${projectId}/workload`)
+        if (otra.ok) {
+          const { corte } = (await otra.json()) as { corte: CorteRemoto }
+          recibir(corte)
+        }
+        return null
+      } catch (error) {
+        return error instanceof Error ? error.message : 'No se pudo mover.'
+      }
+    },
+    [projectId, recibir],
+  )
+
   // El calendario del proyecto: sin él la matriz pinta como laborables días que el plan no
   // trabaja, y la capacidad de esos días sale de la nada.
   const calendario = useMemo(
@@ -274,6 +319,7 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
         onAbrirDetalle={setDetalle}
         modoInicial={modoGuardado}
         onModoChange={guardarModo}
+        onMover={mover}
       />
       {/* El detalle va de cajón: la matriz de carga ocupa el ancho entero y noventa columnas no
           admiten que se les quite sitio. */}

@@ -2692,3 +2692,37 @@ simple— y elegir entre ellos necesita `Project.progressRollup`, que es una de 
 §2 que esperan decisión. Mientras tanto la aplicación usa el ponderado. Borrarlo costaría volver a
 escribir la fórmula el día que exista el campo.
 
+---
+
+## §8.4 — la tercera mejora sobre la referencia: mover a alguien desde la propia vista
+
+El §8.4 pide tres cosas que GanttPRO no hace, «aunque sea en una segunda iteración». Dos ya
+estaban: la **fila de capacidad agregada** del equipo y la **sugerencia de reasignación** al pulsar
+una celda roja. Faltaba la tercera, **la nivelación manual**.
+
+Y faltaba de la peor manera: el panel del día ya listaba «quién tiene hueco ese día» —con los
+minutos libres de cada uno— y **los nombres no eran accionables**. Enseñar la sobrecarga, decir quién
+podría absorberla, y no dejar hacerlo.
+
+### Cómo quedó
+
+Elegir una línea del desglose y pulsar a quién se le pasa. No es arrastrar —que es lo que dice el
+spec— porque el panel es una lista, no un lienzo: con dos pulsaciones se hace lo mismo, funciona con
+teclado y cada botón dice en voz alta qué mueve y a dónde («Mover «Migrar la red» a Luis Pérez»).
+
+Tres decisiones que no se ven pero cambian el resultado:
+
+- **Va en una sola transacción.** El `PUT` acepta `desdeResourceId` y hace el alta y la baja juntas.
+  En dos llamadas del navegador, media falla deja la línea asignada a los dos y la carga contada
+  **dos veces** — justo lo que quien mueve estaba intentando arreglar.
+- **Se recarga el corte entero al volver**, no se parchea el estado: la matriz depende de las
+  asignaciones de todos los días del rango, y adivinar cuáles cambiaron es cómo una vista empieza a
+  enseñar una cosa distinta de lo que hay guardado.
+- **Sin permiso, la fila no finge ser un botón.** La prop es opcional; sin ella la vista es de sólo
+  lectura y no ofrece mover. Un control que no hace nada al pulsarlo es peor que no tenerlo.
+
+Se mueve con **la dedicación que la línea tenía**, no con una inventada: quien estaba al 100 % en esa
+tarea sigue al 100 % con el otro nombre. Y el permiso es el mismo `edit_schedule` que ya pedía la
+ruta, con el mismo motivo escrito: repartir el trabajo cambia la carga del equipo, que es parte del
+plan.
+

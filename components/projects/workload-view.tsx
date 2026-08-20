@@ -68,6 +68,23 @@ export interface WorkloadViewProps {
    */
   readonly modoInicial?: ModoDeCarga
   readonly onModoChange?: (modo: ModoDeCarga) => void
+  /**
+   * Mover una línea de un recurso a otro sin salir de aquí (§8.4, nivelación manual asistida).
+   *
+   * Es la tercera de las tres mejoras que el spec pide sobre la referencia, y la que faltaba: la
+   * vista ya decía quién está sobrecargado y quién tiene hueco ese día, pero los nombres no eran
+   * accionables. Enseñar la sobrecarga sin ofrecer nada para resolverla deja el problema donde
+   * estaba.
+   *
+   * Devuelve el motivo si no se pudo, o `null` si sí. Sin la prop, la vista es de sólo lectura y
+   * no ofrece mover — que es lo que corresponde a quien no puede tocar el cronograma.
+   */
+  readonly onMover?: (movimiento: {
+    readonly taskId: string
+    readonly desdeResourceId: string
+    readonly haciaResourceId: string
+    readonly unitsBp: number
+  }) => Promise<string | null>
 }
 
 /**
@@ -130,6 +147,7 @@ export function WorkloadView({
   onAbrirDetalle,
   modoInicial,
   onModoChange,
+  onMover,
 }: WorkloadViewProps) {
   const [modo, setModo] = useState<ModoDeCarga>(modoInicial ?? 'horas')
 
@@ -149,6 +167,10 @@ export function WorkloadView({
   }, [modo, modoInicial, onModoChange])
   const [desplegado, setDesplegado] = useState<string | null>(null)
   const [celdaElegida, setCeldaElegida] = useState<{ resourceId: string; date: string } | null>(null)
+  /** La línea que se está moviendo, y el aviso de por qué no se pudo. */
+  const [lineaAMover, setLineaAMover] = useState<string | null>(null)
+  const [moviendo, setMoviendo] = useState(false)
+  const [errorAlMover, setErrorAlMover] = useState<string | null>(null)
 
   const matriz = useMemo(
     () => workloadMatrix({ resources, tasks, assignments, calendar, from, to }),
@@ -379,7 +401,11 @@ export function WorkloadView({
             <button
               type="button"
               aria-label="Cerrar el desglose del día"
-              onClick={() => setCeldaElegida(null)}
+              onClick={() => {
+                setCeldaElegida(null)
+                setLineaAMover(null)
+                setErrorAlMover(null)
+              }}
               className="rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
             >
               ✕
@@ -390,40 +416,120 @@ export function WorkloadView({
             <p className="text-sm text-zinc-500">Ese día no tiene ninguna línea activa.</p>
           ) : (
             <ul className="mb-4 flex max-h-56 flex-col gap-1 overflow-y-auto">
-              {desglose.map((linea) => (
-                <li key={linea.taskId} className="flex items-baseline gap-3 px-1 py-0.5">
-                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-200" title={linea.name}>
-                    {linea.name}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-xs text-zinc-500">
-                    {Math.round(linea.unitsBp / 100)} % · {minutosLegibles(linea.minutos)}
-                  </span>
-                </li>
-              ))}
+              {desglose.map((linea) => {
+                const elegida = lineaAMover === linea.taskId
+                const fila = (
+                  <>
+                    <span className="min-w-0 flex-1 truncate text-sm text-zinc-200" title={linea.name}>
+                      {linea.name}
+                    </span>
+                    <span className="shrink-0 tabular-nums text-xs text-zinc-500">
+                      {Math.round(linea.unitsBp / 100)} % · {minutosLegibles(linea.minutos)}
+                    </span>
+                  </>
+                )
+                // Sin permiso para tocar el cronograma no se ofrece mover, y la fila no finge ser
+                // un botón: un control que no hace nada al pulsarlo es peor que no tenerlo.
+                if (!onMover) {
+                  return (
+                    <li key={linea.taskId} className="flex items-baseline gap-3 px-1 py-0.5">
+                      {fila}
+                    </li>
+                  )
+                }
+                return (
+                  <li key={linea.taskId}>
+                    <button
+                      type="button"
+                      aria-pressed={elegida}
+                      onClick={() => {
+                        setErrorAlMover(null)
+                        setLineaAMover(elegida ? null : linea.taskId)
+                      }}
+                      className={`flex w-full items-baseline gap-3 rounded px-1 py-0.5 text-left hover:bg-zinc-800 ${
+                        elegida ? 'bg-zinc-800 ring-1 ring-zinc-600' : ''
+                      }`}
+                    >
+                      {fila}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
 
           {/* La mejora sobre la referencia (§8.4): enseñar la sobrecarga sin ofrecer nada para
               resolverla deja el problema donde estaba. */}
           <div className="border-t border-zinc-800 pt-3">
-            <p className="mb-1.5 text-xs text-zinc-500">Quién tiene hueco ese día</p>
+            <p className="mb-1.5 text-xs text-zinc-500">
+              {onMover && lineaAMover !== null
+                ? 'Mover esa línea a quién'
+                : 'Quién tiene hueco ese día'}
+            </p>
             {conHueco.length === 0 ? (
               <p className="text-sm text-zinc-500">Nadie del equipo tiene capacidad libre ese día.</p>
             ) : (
               <ul className="flex flex-wrap gap-2">
-                {conHueco.slice(0, 8).map((candidato) => (
-                  <li
-                    key={candidato.resource.id}
-                    className="rounded-lg border border-zinc-800 px-2.5 py-1 text-xs text-zinc-300"
-                  >
-                    {candidato.resource.name}{' '}
-                    <span className="tabular-nums text-zinc-500">
-                      {minutosLegibles(candidato.libreMin)} libres
-                    </span>
-                  </li>
-                ))}
+                {conHueco.slice(0, 8).map((candidato) => {
+                  const etiqueta = (
+                    <>
+                      {candidato.resource.name}{' '}
+                      <span className="tabular-nums text-zinc-500">
+                        {minutosLegibles(candidato.libreMin)} libres
+                      </span>
+                    </>
+                  )
+                  const linea = desglose.find((l) => l.taskId === lineaAMover)
+                  // Sin línea elegida el nombre es información, no un destino: convertirlo en botón
+                  // obligaría a adivinar qué se mueve.
+                  if (!onMover || !linea) {
+                    return (
+                      <li
+                        key={candidato.resource.id}
+                        className="rounded-lg border border-zinc-800 px-2.5 py-1 text-xs text-zinc-300"
+                      >
+                        {etiqueta}
+                      </li>
+                    )
+                  }
+                  return (
+                    <li key={candidato.resource.id}>
+                      <button
+                        type="button"
+                        disabled={moviendo}
+                        aria-label={`Mover «${linea.name}» a ${candidato.resource.name}`}
+                        onClick={async () => {
+                          setMoviendo(true)
+                          setErrorAlMover(null)
+                          const motivo = await onMover({
+                            taskId: linea.taskId,
+                            desdeResourceId: celdaElegida.resourceId,
+                            haciaResourceId: candidato.resource.id,
+                            unitsBp: linea.unitsBp,
+                          })
+                          setMoviendo(false)
+                          if (motivo) setErrorAlMover(motivo)
+                          else setLineaAMover(null)
+                        }}
+                        className="rounded-lg border border-zinc-700 bg-zinc-800/60 px-2.5 py-1 text-xs text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50"
+                      >
+                        {etiqueta}
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
+            {errorAlMover !== null ? (
+              <p role="alert" className="mt-2 text-sm text-red-300">
+                {errorAlMover}
+              </p>
+            ) : null}
+            {onMover && lineaAMover === null && desglose.length > 0 ? (
+              <p className="mt-2 text-xs text-zinc-600">
+                Elige una línea de arriba para poder movérsela a alguien.
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}

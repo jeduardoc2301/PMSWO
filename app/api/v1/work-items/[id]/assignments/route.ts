@@ -26,6 +26,14 @@ const cuerpo = z.object({
   resourceId: z.string().uuid(),
   /** Puntos base: 10 000 es jornada completa. */
   unitsBp: z.number().int(),
+  /**
+   * De quién se quita, cuando esto es un **movimiento** y no un alta (§8.4, nivelación manual).
+   *
+   * Va aquí y no como dos llamadas del navegador porque quitar y poner tienen que pasar o no pasar
+   * juntas: entre una y otra, media falla deja la línea asignada a los dos —y la carga contada
+   * dos veces, que es exactamente lo que quien mueve estaba intentando arreglar—.
+   */
+  desdeResourceId: z.string().uuid().optional(),
 })
 
 /** De qué proyecto es la línea. Sin esto no se puede preguntar por el permiso. */
@@ -111,7 +119,15 @@ async function putHandler(
     )
   }
 
-  await prisma.assignment.upsert({
+  const { desdeResourceId } = datos.data
+  if (desdeResourceId === datos.data.resourceId) {
+    return NextResponse.json(
+      { error: 'Validation Error', message: 'Mover una línea a quien ya la tiene no cambia nada.' },
+      { status: 400 },
+    )
+  }
+
+  const poner = prisma.assignment.upsert({
     where: { workItemId_resourceId: { workItemId: id, resourceId: datos.data.resourceId } },
     create: {
       workItemId: id,
@@ -122,7 +138,18 @@ async function putHandler(
     update: { unitsBp: datos.data.unitsBp },
   })
 
-  return NextResponse.json({ ok: true }, { status: 200 })
+  if (desdeResourceId === undefined) {
+    await poner
+    return NextResponse.json({ ok: true, movida: false }, { status: 200 })
+  }
+
+  // Las dos en la misma transacción: ver `cuerpo.desdeResourceId`.
+  await prisma.$transaction([
+    poner,
+    prisma.assignment.deleteMany({ where: { workItemId: id, resourceId: desdeResourceId } }),
+  ])
+
+  return NextResponse.json({ ok: true, movida: true }, { status: 200 })
 }
 
 async function deleteHandler(
