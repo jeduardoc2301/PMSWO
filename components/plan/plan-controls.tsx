@@ -79,16 +79,25 @@ const FLECHAS: readonly { readonly value: LinkVisibility; readonly label: string
 ]
 
 /**
- * Solo dos escalas, y «Día» no está.
+ * Las cinco escalas del §4.3 que este motor puede dibujar.
  *
- * Los 122 días hábiles del plan de referencia serían 122 columnas: no caben, y las que caben quedan
- * tan angostas que la fecha no se alcanza a leer. El motor sí admite `DIA` —un plan de dos semanas
- * se lee bien por día— pero esta barra es para el plan de un proyecto, y ofrecer una escala que
- * vuelve ilegible la pantalla es ofrecer una trampa.
+ * Hubo dos, y el motivo escrito aquí era: «los 122 días hábiles del plan serían 122 columnas, y las
+ * que caben quedan tan angostas que la fecha no se alcanza a leer». La observación era correcta y
+ * el diagnóstico no: **lo ilegible no era la escala, era la cabecera de una sola fila**. Con la
+ * fila de arriba diciendo el mes, la de abajo sólo tiene que decir «15» — y con el ancho de día
+ * atado al zoom, cambiar de escala acerca y aleja de verdad en vez de repartir la misma anchura en
+ * trozos distintos.
+ *
+ * La sexta —hora— no está y no puede estar: el motor trabaja en ordinales de día hábil, así que
+ * ninguna tarea tiene hora. Un eje por horas dibujaría ocho columnas idénticas por día y todas las
+ * barras pegadas al límite del día. Es la misma pared que los casos 2 y 23 del §12.
  */
 const ESCALAS: readonly { readonly value: AxisScale; readonly label: string }[] = [
-  { value: 'MES', label: 'Mes' },
+  { value: 'DIA', label: 'Día' },
   { value: 'SEMANA', label: 'Semana' },
+  { value: 'MES', label: 'Mes' },
+  { value: 'TRIMESTRE', label: 'Trimestre' },
+  { value: 'ANIO', label: 'Año' },
 ]
 
 /** El eje «qué líneas» del filtro. La parte responsable es el otro eje y va aparte. */

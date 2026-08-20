@@ -278,7 +278,17 @@ export interface GanttInput {
   readonly hoy?: IsoDate
 }
 
-export type AxisScale = 'DIA' | 'SEMANA' | 'MES'
+/**
+ * El «zoom» del eje de tiempo (§4.3).
+ *
+ * El spec pide seis: hora, día, semana, mes, trimestre y año. Están cinco, y **la hora no se puede
+ * dibujar contra este motor**: está construido sobre ordinales de día hábil a propósito —para no
+ * tocar husos ni horario de verano—, así que ninguna tarea tiene hora de inicio ni de fin. Un eje
+ * por horas dibujaría ocho columnas idénticas por día y todas las barras pegadas al límite del día:
+ * un zoom que no muestra nada nuevo, sólo más ancho. Es la misma pared que los casos 2 y 23 del
+ * §12, y sale de la misma decisión de modelo (§2.1, duración en minutos), que espera decisión.
+ */
+export type AxisScale = 'DIA' | 'SEMANA' | 'MES' | 'TRIMESTRE' | 'ANIO'
 
 export interface AxisTick {
   /** Dónde cae la marca, en días hábiles desde el arranque. */
@@ -293,6 +303,14 @@ export interface GanttLayout {
   readonly rows: readonly GanttRow[]
   readonly links: readonly GanttLink[]
   readonly ticks: readonly AxisTick[]
+  /**
+   * La fila de arriba de la cabecera: la escala inmediatamente más gruesa.
+   *
+   * Vacía cuando la escala ya es la más gruesa que hay —por años no hay nada encima—, y entonces la
+   * cabecera se dibuja con una sola fila. Es lo que hace legible el zoom por días: sin ella la
+   * cabecera dice «15» y no hay forma de saber de qué mes.
+   */
+  readonly ticksSuperiores: readonly AxisTick[]
   /** Ancho total del lienzo, en días hábiles. */
   readonly span: number
   readonly start: IsoDate
@@ -539,6 +557,15 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     rows: Object.freeze(rows),
     links: Object.freeze(links),
     ticks: Object.freeze(axisTicks(calendar, schedule.start, schedule.finish, input.scale ?? 'MES')),
+    // La fila de arriba de la cabecera: la escala inmediatamente más gruesa, o vacía si no la hay.
+    // Se calcula aquí y no en el componente porque es el mismo recorrido del calendario y hacerlo
+    // dos veces en el trazado costaría otra pasada por 122 días en cada gesto.
+    ticksSuperiores: Object.freeze(
+      (() => {
+        const arriba = escalaSuperior(input.scale ?? 'MES')
+        return arriba === null ? [] : axisTicks(calendar, schedule.start, schedule.finish, arriba)
+      })(),
+    ),
     span,
     start: schedule.start,
     finish: schedule.finish,
@@ -762,6 +789,14 @@ export function axisTicks(
 function bucketKey(day: DayNumber, scale: AxisScale, calendar: WorkCalendar, origen: number): string {
   if (scale === 'DIA') return String(day)
   if (scale === 'MES') return toIsoDate(day).slice(0, 7)
+  if (scale === 'ANIO') return toIsoDate(day).slice(0, 4)
+  if (scale === 'TRIMESTRE') {
+    const iso = toIsoDate(day)
+    // Trimestres naturales, no del arranque del plan: un trimestre es una unidad de negocio —con
+    // sus cierres y sus comités— y llamar «T1» a los tres meses que siguen al arranque haría que la
+    // rejilla y el acta de la reunión hablaran de trimestres distintos.
+    return `${iso.slice(0, 4)}-T${Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1}`
+  }
   // Semana: bloques de cinco días hábiles contados **desde el arranque del plan**, no desde una
   // referencia absoluta ni por número de semana del calendario. Contarlos desde una referencia
   // absoluta parte la primera columna en donde caiga el arranque, y la rejilla arranca torcida.
@@ -770,9 +805,50 @@ function bucketKey(day: DayNumber, scale: AxisScale, calendar: WorkCalendar, ori
 
 function labelFor(day: DayNumber, scale: AxisScale): string {
   const iso = toIsoDate(day)
+  if (scale === 'ANIO') return iso.slice(0, 4)
+  if (scale === 'TRIMESTRE') return `T${Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1} ${iso.slice(0, 4)}`
   if (scale === 'MES') return `${MESES[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
   if (scale === 'SEMANA') return iso
   return iso.slice(8, 10)
+}
+
+/**
+ * La escala que va **encima** de ésta en la cabecera, o `null` si no hay ninguna.
+ *
+ * Dos filas y no una porque una sola no basta en cuanto se hace zoom: por días, la fila dice «15» y
+ * no hay forma de saber de qué mes — y con 122 columnas, contar hacia atrás hasta encontrar una
+ * pista no es leer un plan. Es lo que hace utilizable la escala de día, que hasta ahora estaba
+ * excluida de la barra por ilegible: no era la escala, era la cabecera.
+ */
+export function escalaSuperior(scale: AxisScale): AxisScale | null {
+  if (scale === 'DIA' || scale === 'SEMANA') return 'MES'
+  if (scale === 'MES' || scale === 'TRIMESTRE') return 'ANIO'
+  return null
+}
+
+/**
+ * Cuántos píxeles ocupa un día hábil en cada escala.
+ *
+ * La escala del §4.3 no es sólo cómo se agrupa la cabecera: es el **zoom**. Con el mismo ancho de
+ * día en todas, cambiar de «mes» a «día» no acerca nada, sólo parte la cabecera en trozos más
+ * pequeños — y cambiar a «año» deja el plan igual de largo, que era justo lo que se quería evitar.
+ *
+ * Los números salen de lo que tiene que caber en la banda: 24 px para «15» con aire, 14 para la
+ * semana, y por debajo de 4 las barras dejan de distinguirse unas de otras.
+ */
+export function anchoDeDiaPara(scale: AxisScale): number {
+  switch (scale) {
+    case 'DIA':
+      return 24
+    case 'SEMANA':
+      return 14
+    case 'MES':
+      return 8
+    case 'TRIMESTRE':
+      return 5
+    case 'ANIO':
+      return 3
+  }
 }
 
 /** Profundidad de cada tarea en el árbol de resúmenes. */

@@ -83,7 +83,7 @@ tiempo real y deshacer.
 | 10 | Roll-up a resúmenes (§3.6) | **EXISTE** | `lib/scheduling/progress.ts` | Nada. Ponderado por trabajo, con hitos en peso cero | — | — |
 | 11 | Carga y sobrecarga de recursos (§3.7) | **PARCIAL · lo que falta es modelo** | `Resource`, `Assignment`, `services/resource.service.ts`, `app/api/v1/work-items/[id]/assignments/` | Ya hay alta y baja de asignación por ruta, con la misma regla de dedicación en servidor y pantalla. La fórmula **no** usa una constante: usa `dailyMinutes` del recurso, que es lo que el modelo permite. Falta `Assignment.work` y franjas horarias por día para que `minutosLaborables(cal, d)` pueda variar — las dos son del §2, que espera decisión | M | Medio |
 | 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | **El EDT ya es estable**: la línea nueva nace con puesto al final, así que añadir una no renumera nada. Falta `sortOrder` como columna propia con su índice (hoy es `templateOrder`, nulable y global al proyecto) y el tope de 16 niveles. El EDT sí está en el Gantt, como columna del catálogo | M | Medio |
-| 13 | Vista Gantt (§4) | **CERRADA** | `components/plan/gantt-chart.tsx`, `plan-workspace.tsx`, `fields-panel.tsx`, `lib/plan/gantt-columns.ts` | **8 de 8 criterios del §4.8, cada uno demostrado en pantalla** (ver la bitácora). Del §4.2 queda fuera el catálogo completo de columnas —presupuesto, tiempo registrado, campos personalizados— porque necesita modelos que no existen; del §4.3, las escalas de hora, día, trimestre y año. Son ampliaciones, no criterios | L | Medio |
+| 13 | Vista Gantt (§4) | **CERRADA** | `components/plan/gantt-chart.tsx`, `plan-workspace.tsx`, `fields-panel.tsx`, `lib/plan/gantt-columns.ts` | **8 de 8 criterios del §4.8, cada uno demostrado en pantalla** (ver la bitácora). Del §4.2 queda fuera el catálogo completo de columnas —presupuesto, tiempo registrado, campos personalizados— porque necesita modelos que no existen. Del §4.3 están ya las **cinco** escalas que este motor puede dibujar —día, semana, mes, trimestre y año, con cabecera de dos filas y el ancho de día atado al zoom—; la sexta, la hora, no cabe contra un motor de ordinales de día hábil y eso es del §2.1 | L | Medio |
 | 14 | Vista Tablero (§5) | **CERRADA** | `components/projects/kanban-board.tsx`, `lib/projects/kanban-group.ts`, `columnas-del-tablero.tsx` | Arrastre, urgencias, avance, atraso, y las dos que faltaban: agrupar por estado, prioridad o responsable —comprobado en pantalla, la barra se reconstruye sin recargar: 5 columnas por estado, 4 por prioridad, 5 por responsable— y columnas configurables desde el propio tablero | M | Bajo |
 | 15 | Vista Lista (§6) | **CERRADA** | `work-items-outline.tsx`, `work-items-list.tsx`, `lib/projects/list-totals.ts` | **5 de 5 criterios del §6.3, cada uno demostrado en pantalla** (ver la bitácora). Del §6.2 queda fuera el panel de Campos propio y la exportación de la vista; de los totales, presupuesto y costo real, que no existen como campos | S | Bajo |
 | 16 | Vista Calendario (§7) | **CERRADA (con una corrección)** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx`, `services/reschedule.service.ts` | **6 de 6 criterios del §7.5 demostrados en pantalla — pero el 5 se dio por bueno de más y hubo que volver.** Mi demostración soltaba la barra sobre casillas vacías; un auditor cuyo encargo era refutarme encontró que soltar sobre **otra barra** no hacía nada, y eso es el 21 % de la rejilla y más de la mitad del alto útil de un día cargado. Corregido y vuelto a medir: de 0 % a 100 % de aceptación en los puntos que caen sobre una barra. La lección no es del Calendario: una demostración en pantalla que no busca el caso denso no es una demostración. Del §7.2 quedan fuera la vista semanal, la de agenda y crear tarea arrastrando un rango: son mejoras propuestas, no criterios. Y el calendario del proyecto sólo se puede **leer**: no hay pantalla ni ruta para crearlo — brecha 27 | L | Bajo |
@@ -1548,3 +1548,61 @@ lo que cambió es el dato, no una preferencia de pantalla.
 Mover la inicial o la de terminado se permite a propósito: lo protegido es el **borrado**, no el
 puesto. Un tablero que empieza por «Hecho» es raro, pero es una decisión de quien lo lleva, no un
 estado imposible.
+
+---
+
+## §4.3 — las escalas del Gantt: lo ilegible no era la escala, era la cabecera
+
+Había dos escalas, mes y semana, y una prueba que fijaba la ausencia de «Día» con este motivo
+escrito: «los 122 días hábiles del plan serían 122 columnas: no caben, y las que caben quedan tan
+angostas que la fecha no se alcanza a leer».
+
+La observación era correcta y el diagnóstico no. Dos cosas lo arreglan:
+
+1. **La cabecera pasa a dos filas.** Por días, la fila de abajo dice «15» y la de arriba dice «junio
+   2026». Con una sola fila había que contar hacia atrás hasta encontrar una pista, y eso no es leer
+   un plan.
+2. **El ancho de día lo manda la escala.** Antes era fijo en 14 px, así que cambiar de «mes» a
+   «día» no acercaba nada: repartía la misma anchura en trozos más pequeños. La escala del §4.3 es
+   un **zoom**, no una forma de agrupar la cabecera.
+
+### Las cinco, medidas en pantalla sobre las 1368 líneas
+
+| escala | columnas abajo | arriba | primera abajo | primera arriba | ancho del lienzo |
+|---|---:|---:|---|---|---:|
+| Día | 122 | 6 | `12` | junio 2026 | **2 928 px** |
+| Semana | 25 | 6 | `2026-06-12` | junio 2026 | 1 708 px |
+| Mes | 6 | 1 | junio 2026 | 2026 | 976 px |
+| Trimestre | 3 | 1 | T2 2026 | 2026 | 610 px |
+| Año | 1 | 0 | 2026 | *(sin fila de arriba)* | **366 px** |
+
+De 2 928 px a 366: el lienzo se ensancha al acercar y se estrecha al alejar, que es lo que un zoom
+significa. La caja visible mide 1 056 px, así que mes, trimestre y año caben enteros y día y semana
+se desplazan.
+
+Por años la fila de arriba **no se dibuja** en vez de dibujarse vacía: una franja sin rótulo ocupando
+alto es peor que ninguna.
+
+Los trimestres son **naturales**, no contados desde el arranque del plan. Un trimestre es una unidad
+de negocio —con sus cierres y sus comités— y llamar «T1» a los tres meses que siguen al arranque
+haría que la rejilla y el acta de la reunión hablaran de trimestres distintos.
+
+### La sexta escala del spec no se puede dibujar, y decirlo es la respuesta
+
+El §4.3 pide seis: hora, día, semana, mes, trimestre y año. La **hora** no cabe contra este motor:
+está construido sobre ordinales de día hábil a propósito —para no tocar husos ni horario de verano—
+así que ninguna tarea tiene hora de inicio ni de fin. Un eje por horas dibujaría ocho columnas
+idénticas por día y **todas las barras pegadas al límite del día**: un zoom que no muestra nada
+nuevo, sólo más ancho. Es la misma pared que los casos 2 y 23 del §12, y sale de la misma decisión
+de modelo del §2.1 que espera decisión.
+
+### Nota de método: la sonda corrió contra la carga
+
+La primera medición dio «Día» dibujando **6 columnas de mes**, y parecía un defecto del zoom. No lo
+era: la preferencia guardada se pide en paralelo al montaje y, cuando responde, pisa lo que se acaba
+de elegir — mi sonda pulsaba antes de que llegara. Es la tercera vez esta sesión que una sonda
+«encuentra» un defecto que es suyo. La reacción correcta las tres veces fue ir a mirar el
+componente, no anotar el defecto.
+
+Lo que sí era real y salió de ahí: el `z.enum(['MES', 'SEMANA'])` del servicio de preferencias
+rechazaba las tres escalas nuevas en silencio.

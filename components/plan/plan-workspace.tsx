@@ -80,8 +80,7 @@ import {
   type GanttFilter,
   type LinkVisibility,
   collapseToLevel,
-  ganttLayout,
-} from '@/lib/scheduling/gantt'
+  ganttLayout, anchoDeDiaPara } from '@/lib/scheduling/gantt'
 import { summarizePlan } from '@/lib/scheduling/plan-summary'
 import { rollUpProgress } from '@/lib/scheduling/progress'
 import { programarConALAP } from '@/lib/scheduling/alap'
@@ -996,6 +995,9 @@ export function PlanWorkspace({
             ) : null}
 
             <GanttChart
+              // El ancho de día lo manda la escala: sin esto, cambiar de «mes» a «día» no
+              // acerca nada, sólo parte la cabecera en trozos más pequeños (§4.3).
+              dayWidth={anchoDeDiaPara(scale)}
               layout={layoutFiltrado}
               columnas={columnasVisibles(preferencia)}
               divisor={posicionDelDivisor(preferencia)}

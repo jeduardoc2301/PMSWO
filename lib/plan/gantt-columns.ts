@@ -74,7 +74,7 @@ export interface PreferenciaDelGantt {
   /** Anchos tocados a mano, por identificador. Lo que no esté usa el del catálogo. */
   readonly anchos: Readonly<Record<string, number>>
   /** La escala del eje: el «zoom» del §4.3. */
-  readonly escala: 'MES' | 'SEMANA'
+  readonly escala: 'DIA' | 'SEMANA' | 'MES' | 'TRIMESTRE' | 'ANIO'
   /** Hasta qué profundidad se abre el árbol. */
   readonly nivel: number
   /** Qué flechas se dibujan. */

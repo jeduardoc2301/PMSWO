@@ -435,19 +435,48 @@ export function GanttChart({
 
           {/* El lienzo. */}
           <div className="relative" style={{ width }}>
-            <div
-              className="sticky top-0 z-10 flex border-b border-zinc-800 bg-[#18181b]"
-              style={{ height: rowHeight }}
-            >
-              {layout.ticks.map((tick) => (
+            <div className="sticky top-0 z-10 bg-[#18181b]">
+              {/* La fila gruesa, cuando la hay. Es lo que hace legible el zoom por días: sin ella la
+                  cabecera dice «15» y no hay forma de saber de qué mes. Por años no hay nada más
+                  grueso y la cabecera se queda con una sola fila, que es lo correcto — una fila
+                  vacía ocupando alto es peor que ninguna. */}
+              {layout.ticksSuperiores.length > 0 ? (
                 <div
-                  key={tick.date}
-                  className="shrink-0 border-r border-zinc-800 px-2 text-xs text-zinc-400"
-                  style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}
+                  data-testid="eje-superior"
+                  className="flex border-b border-zinc-800/60"
+                  style={{ height: Math.round(rowHeight * 0.7) }}
                 >
-                  {tick.label}
+                  {layout.ticksSuperiores.map((tick) => (
+                    <div
+                      key={`sup-${tick.date}`}
+                      data-tick-superior={tick.date}
+                      className="shrink-0 overflow-hidden border-r border-zinc-800 px-2 text-[11px] font-medium text-zinc-300"
+                      style={{
+                        width: tick.width * dayWidth,
+                        lineHeight: `${Math.round(rowHeight * 0.7)}px`,
+                      }}
+                    >
+                      {tick.label}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : null}
+              <div
+                data-testid="eje-inferior"
+                className="flex border-b border-zinc-800"
+                style={{ height: rowHeight }}
+              >
+                {layout.ticks.map((tick) => (
+                  <div
+                    key={tick.date}
+                    data-tick={tick.date}
+                    className="shrink-0 overflow-hidden border-r border-zinc-800 px-2 text-xs text-zinc-400"
+                    style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}
+                  >
+                    {tick.label}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="relative" style={{ height }}>

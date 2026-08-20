@@ -7,8 +7,10 @@ import {
   type GanttInput,
   type GanttLayout,
   LINK_ANCHORS,
+  anchoDeDiaPara,
   axisTicks,
   collapseToLevel,
+  escalaSuperior,
   ganttLayout,
   lagLabel,
   linkLabel,
@@ -761,5 +763,107 @@ describe('La línea base en la rejilla (§4.6 conmutador 4)', () => {
     const foto = new Map([['otra', { start: '2026-06-01', finish: '2026-06-03' }]])
     const fila = trazar(CADENA_SIMPLE, [], { baseline: foto as never }).rows[0]!
     expect(fila.baseStart).toBeUndefined()
+  })
+})
+
+describe('§4.3 · las escalas del eje de tiempo', () => {
+  it('por día, una marca por día hábil, y el rótulo es el número del día', () => {
+    // Del lunes 1 al viernes 5 de junio de 2026: cinco días hábiles.
+    const marcas = axisTicks(calendar, '2026-06-01', '2026-06-05', 'DIA')
+    expect(marcas).toHaveLength(5)
+    expect(marcas.map((m) => m.label)).toEqual(['01', '02', '03', '04', '05'])
+    expect(marcas.every((m) => m.width === 1)).toBe(true)
+  })
+
+  it('por día no cuenta el fin de semana: el lunes siguiente va pegado al viernes', () => {
+    const marcas = axisTicks(calendar, '2026-06-04', '2026-06-09', 'DIA')
+    // jue 4, vie 5, lun 8, mar 9 — cuatro marcas, no seis.
+    expect(marcas.map((m) => m.label)).toEqual(['04', '05', '08', '09'])
+    // Y son contiguas en el eje: el sábado y el domingo no ocupan.
+    expect(marcas.map((m) => m.x)).toEqual([0, 1, 2, 3])
+  })
+
+  it('por trimestre agrupa en trimestres NATURALES, no desde el arranque del plan', () => {
+    /**
+     * Un trimestre es una unidad de negocio —con sus cierres y sus comités—. Llamar «T1» a los tres
+     * meses que siguen al arranque haría que la rejilla y el acta de la reunión hablaran de
+     * trimestres distintos, que es peor que no ofrecer la escala.
+     */
+    const marcas = axisTicks(calendar, '2026-02-02', '2026-08-31', 'TRIMESTRE')
+    expect(marcas.map((m) => m.label)).toEqual(['T1 2026', 'T2 2026', 'T3 2026'])
+  })
+
+  it('por año, una marca por año', () => {
+    const marcas = axisTicks(calendar, '2026-11-02', '2027-02-26', 'ANIO')
+    expect(marcas.map((m) => m.label)).toEqual(['2026', '2027'])
+  })
+
+  it('las marcas cubren el eje sin huecos ni solapes, en las cinco escalas', () => {
+    // Es la propiedad que sostiene el dibujo: la cabecera se pinta como bandas contiguas, así que
+    // un hueco deja una franja sin rótulo y un solape empuja todo lo de la derecha.
+    for (const escala of ['DIA', 'SEMANA', 'MES', 'TRIMESTRE', 'ANIO'] as const) {
+      const marcas = axisTicks(calendar, '2026-06-01', '2027-03-31', escala)
+      expect(marcas.length, escala).toBeGreaterThan(0)
+      let esperado = 0
+      for (const m of marcas) {
+        expect(m.x, `${escala}: hueco o solape`).toBe(esperado)
+        esperado += m.width
+      }
+    }
+  })
+
+  it('a más grueso, menos marcas: es un zoom, no otra forma de repartir lo mismo', () => {
+    const cuantas = (escala: 'DIA' | 'SEMANA' | 'MES' | 'TRIMESTRE' | 'ANIO') =>
+      axisTicks(calendar, '2026-06-01', '2027-03-31', escala).length
+    expect(cuantas('DIA')).toBeGreaterThan(cuantas('SEMANA'))
+    expect(cuantas('SEMANA')).toBeGreaterThan(cuantas('MES'))
+    expect(cuantas('MES')).toBeGreaterThan(cuantas('TRIMESTRE'))
+    expect(cuantas('TRIMESTRE')).toBeGreaterThan(cuantas('ANIO'))
+  })
+})
+
+describe('§4.3 · la cabecera de dos filas', () => {
+  it('la fila de arriba es la escala inmediatamente más gruesa', () => {
+    expect(escalaSuperior('DIA')).toBe('MES')
+    expect(escalaSuperior('SEMANA')).toBe('MES')
+    expect(escalaSuperior('MES')).toBe('ANIO')
+    expect(escalaSuperior('TRIMESTRE')).toBe('ANIO')
+  })
+
+  it('por años no hay nada encima: null, y la cabecera se queda con una fila', () => {
+    // Una fila vacía ocupando alto es peor que ninguna.
+    expect(escalaSuperior('ANIO')).toBeNull()
+  })
+
+  it('el trazado devuelve las dos filas, y la de arriba tiene menos marcas', () => {
+    const layout = trazar(CADENA, ENLACES, { scale: 'DIA' })
+    expect(layout.ticks.length).toBeGreaterThan(0)
+    expect(layout.ticksSuperiores.length).toBeGreaterThan(0)
+    expect(layout.ticksSuperiores.length).toBeLessThan(layout.ticks.length)
+  })
+
+  it('por años la fila de arriba llega vacía', () => {
+    expect(trazar(CADENA, ENLACES, { scale: 'ANIO' }).ticksSuperiores).toEqual([])
+  })
+})
+
+describe('§4.3 · el ancho de día es el zoom', () => {
+  it('cuanto más gruesa la escala, más estrecho el día', () => {
+    // Sin esto, cambiar de «mes» a «día» no acerca nada: sólo parte la cabecera en trozos más
+    // pequeños, que es exactamente lo que hacía cuando la escala de día estaba excluida.
+    expect(anchoDeDiaPara('DIA')).toBeGreaterThan(anchoDeDiaPara('SEMANA'))
+    expect(anchoDeDiaPara('SEMANA')).toBeGreaterThan(anchoDeDiaPara('MES'))
+    expect(anchoDeDiaPara('MES')).toBeGreaterThan(anchoDeDiaPara('TRIMESTRE'))
+    expect(anchoDeDiaPara('TRIMESTRE')).toBeGreaterThan(anchoDeDiaPara('ANIO'))
+  })
+
+  it('ninguna baja de 3 px: por debajo las barras dejan de distinguirse', () => {
+    for (const escala of ['DIA', 'SEMANA', 'MES', 'TRIMESTRE', 'ANIO'] as const) {
+      expect(anchoDeDiaPara(escala), escala).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('por día caben dos cifras: 24 px para «15» con aire', () => {
+    expect(anchoDeDiaPara('DIA')).toBeGreaterThanOrEqual(20)
   })
 })

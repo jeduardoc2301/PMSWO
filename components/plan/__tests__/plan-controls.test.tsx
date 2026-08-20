@@ -191,9 +191,33 @@ describe('La escala', () => {
     expect(props.onScaleChange).toHaveBeenCalledWith('SEMANA')
   })
 
-  it('no ofrece «Día»: en 122 días hábiles son 122 columnas', () => {
+  it('ofrece las cinco escalas que este motor puede dibujar (§4.3)', () => {
+    /**
+     * Esta prueba decía lo contrario: «no ofrece Día: en 122 días hábiles son 122 columnas».
+     *
+     * La observación era correcta y el diagnóstico no: lo ilegible no era la escala, era la
+     * **cabecera de una sola fila**, que por días dice «15» sin decir de qué mes. Con la fila de
+     * arriba y el ancho de día atado al zoom, la escala de día se lee.
+     */
     montar()
-    expect(grupo('Escala').queryByRole('button', { name: 'Día' })).not.toBeInTheDocument()
+    const escala = grupo('Escala')
+    for (const nombre of ['Día', 'Semana', 'Mes', 'Trimestre', 'Año']) {
+      expect(escala.getByRole('button', { name: nombre })).toBeInTheDocument()
+    }
+  })
+
+  it('y no ofrece «Hora», que es la sexta del spec y no se puede dibujar', () => {
+    // El motor trabaja en ordinales de día hábil, así que ninguna tarea tiene hora. Un eje por horas
+    // dibujaría ocho columnas idénticas por día y todas las barras pegadas al límite del día: un
+    // zoom que no muestra nada nuevo. Es la misma pared que los casos 2 y 23 del §12.
+    montar()
+    expect(grupo('Escala').queryByRole('button', { name: 'Hora' })).not.toBeInTheDocument()
+  })
+
+  it('elegir trimestre lo comunica hacia arriba', () => {
+    const props = montar({ scale: 'MES' })
+    fireEvent.click(grupo('Escala').getByRole('button', { name: 'Trimestre' }))
+    expect(props.onScaleChange).toHaveBeenCalledWith('TRIMESTRE')
   })
 })
 
