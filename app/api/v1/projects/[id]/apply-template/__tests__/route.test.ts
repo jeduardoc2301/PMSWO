@@ -8,8 +8,11 @@ import { Permission, WorkItemStatus, WorkItemPriority } from '@/types'
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
   default: {
+    user: { findUnique: vi.fn() },
+    projectCollaborator: { findUnique: vi.fn() },
     project: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }))
@@ -24,6 +27,22 @@ vi.mock('@/lib/middleware/withAuth', () => ({
   withAuth: (handler: any) => handler,
   AuthContext: {},
 }))
+
+
+/**
+ * Las tres consultas que la guardia del §10.1 hace para saber qué papel tiene quien escribe.
+ *
+ * Hicieron falta el día que esta ruta empezó a pedir el asiento del proyecto y no sólo el cargo de
+ * organización. Sin ellas `authorize` no puede decidir y **toda** escritura sale en 403.
+ */
+function conAsientoDeProyecto(userId = 'user-123') {
+  vi.mocked(prisma.project.findUnique).mockResolvedValue({
+    ownerId: userId,
+    projectManagerId: null,
+  } as never)
+  vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+  vi.mocked(prisma.user.findUnique).mockResolvedValue({ roles: ['PROJECT_MANAGER'] } as never)
+}
 
 describe('POST /api/v1/projects/[id]/apply-template', () => {
   const mockAuthContext = {
@@ -73,6 +92,7 @@ describe('POST /api/v1/projects/[id]/apply-template', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    conAsientoDeProyecto()
   })
 
   it('should successfully apply template and create work items', async () => {

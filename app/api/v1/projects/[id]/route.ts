@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { projectService } from '@/services/project.service'
 import { Permission, ProjectStatus } from '@/types'
 import { NotFoundError, ValidationError } from '@/lib/errors'
@@ -160,6 +161,19 @@ async function updateProjectHandler(
         { status: 404 }
       )
     }
+
+    // Editar el proyecto es editar el plan: `startDate` es el suelo desde el que el motor coloca las
+    // 1368 líneas, así que moverlo un día mueve el cronograma entero (§10.1).
+    //
+    // `withAuth` ya exige `PROJECT_UPDATE`, que es el cargo de organización, y eso no distingue en
+    // qué proyecto: un gestor de proyectos invitado aquí sólo como cliente lo pasaba.
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      'edit_schedule',
+      'Cambiar el proyecto mueve el arranque del plan y con él todas sus líneas.',
+    )
+    if (negado) return negado
 
     // Parse request body
     const body = await request.json()

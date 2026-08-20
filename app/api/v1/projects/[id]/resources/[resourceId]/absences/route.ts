@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import prisma from '@/lib/prisma'
 import { Permission } from '@/types'
 
@@ -76,7 +77,18 @@ async function postHandler(
   authContext: AuthContext,
 ): Promise<NextResponse> {
   try {
-    const { resourceId } = await context.params
+    const { id, resourceId } = await context.params
+
+    // Una ausencia **estira las tareas** de quien falta: es el cronograma, no una nota de agenda
+    // (§12 caso 17). Pide el permiso del plan en ESTE proyecto, no sólo el cargo de organización.
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      'edit_schedule',
+      'Registrar una ausencia mueve las fechas de las líneas de esa persona.',
+    )
+    if (negado) return negado
+
     const recurso = await recursoDeLaOrganizacion(resourceId, authContext.organizationId)
     if (!recurso) {
       return NextResponse.json({ error: 'Not Found', message: 'Recurso no encontrado' }, { status: 404 })
@@ -115,7 +127,17 @@ async function deleteHandler(
   context: { params: Promise<{ id: string; resourceId: string }> },
   authContext: AuthContext,
 ): Promise<NextResponse> {
-  const { resourceId } = await context.params
+  const { id, resourceId } = await context.params
+
+  // Quitar una ausencia también mueve fechas — al revés, pero las mueve. Misma guardia que el alta.
+  const negado = await exigirPermiso(
+    authContext.userId,
+    id,
+    'edit_schedule',
+    'Quitar una ausencia mueve las fechas de las líneas de esa persona.',
+  )
+  if (negado) return negado
+
   const ausenciaId = request.nextUrl.searchParams.get('absenceId')
   if (!ausenciaId) {
     return NextResponse.json(

@@ -6,11 +6,14 @@ import { randomUUID } from 'crypto'
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
   default: {
+    projectCollaborator: { findUnique: vi.fn() },
     project: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     user: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
     template: {
       findFirst: vi.fn(),
@@ -52,6 +55,22 @@ import prisma from '@/lib/prisma'
  * Validates: Requirements 8.1, 8.3, 8.4, 10.8, 11.2, 11.3, 11.4, 12.1-12.9, 16.6, 19.1, 19.2
  * Validates: Property 16 (Work Item Creation Mapping), Property 17 (Batch Creation Atomicity), Property 18 (Usage Tracking)
  */
+
+/**
+ * Las tres consultas que la guardia del §10.1 hace para saber qué papel tiene quien escribe.
+ *
+ * Hicieron falta el día que esta ruta empezó a pedir el asiento del proyecto y no sólo el cargo de
+ * organización. Sin ellas `authorize` no puede decidir y **toda** escritura sale en 403.
+ */
+function conAsientoDeProyecto(userId = 'user-123') {
+  vi.mocked(prisma.project.findUnique).mockResolvedValue({
+    ownerId: userId,
+    projectManagerId: null,
+  } as never)
+  vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+  vi.mocked(prisma.user.findUnique).mockResolvedValue({ roles: ['PROJECT_MANAGER'] } as never)
+}
+
 describe('Integration: Template Application Flow', () => {
   let orgId: string
   let userId: string
@@ -87,6 +106,10 @@ describe('Integration: Template Application Flow', () => {
 
     mockAuthContext.userId = userId
     mockAuthContext.organizationId = orgId
+
+    // El asiento va DESPUÉS de sortear los identificadores: si se pone antes, la guardia compara al
+    // dueño simulado contra un `userId` que todavía no existía y todo sale en 403.
+    conAsientoDeProyecto(userId)
   })
 
   const createRequest = (body: any) => {

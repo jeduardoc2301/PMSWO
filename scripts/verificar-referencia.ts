@@ -19,6 +19,12 @@ const ESPERADO = {
   conRestriccionRara: 0,
   conAvance: 0,
   alReves: 0,
+  // El arranque del proyecto es el suelo desde el que el motor coloca las 1368 líneas: moverlo un
+  // día mueve el cronograma entero, y ninguna de las cuentas de arriba lo notaría. Se añadió
+  // después de tener que restaurarlo a mano tras medir la guardia de `PATCH /projects/[id]`.
+  arranque: '2026-06-01',
+  // Y las fotos, que una medición de permisos crea sin querer y nadie vuelve a mirar.
+  lineasBase: 1,
 }
 
 async function main(): Promise<void> {
@@ -69,6 +75,12 @@ async function main(): Promise<void> {
     )
   }
 
+  const proyecto = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    select: { startDate: true },
+  })
+  const lineasBase = await prisma.baseline.count({ where: { projectId } })
+
   const real = {
     lineas,
     vinculos,
@@ -76,6 +88,8 @@ async function main(): Promise<void> {
     conRestriccionRara,
     conAvance,
     alReves: alReves.length,
+    arranque: proyecto.startDate.toISOString().slice(0, 10),
+    lineasBase,
   }
 
   let todoBien = true

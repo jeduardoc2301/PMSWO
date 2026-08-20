@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { templateApplicationService } from '@/services/template-application.service'
 import { applyTemplateSchema } from '@/lib/validators/template.validator'
 import prisma from '@/lib/prisma'
@@ -36,6 +37,17 @@ async function applyTemplateHandler(
   try {
     const params = await context.params
     const projectId = params.id
+
+    // Aplicar una plantilla escribe líneas y fechas: es el plan (§10.1). El permiso de organización
+    // que exige `withAuth` no basta — un gestor de proyectos invitado aquí sólo como cliente lo
+    // pasaba y reescribía el cronograma entero.
+    const negado = await exigirPermiso(
+      authContext.userId,
+      projectId,
+      'edit_schedule',
+      'Aplicar una plantilla reescribe el plan del proyecto.',
+    )
+    if (negado) return negado
 
     // Parse request body
     const body = await request.json()

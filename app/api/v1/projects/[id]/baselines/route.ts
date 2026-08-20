@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import {
   borrarLineaBase,
   compararConLineaBase,
@@ -64,6 +65,17 @@ async function postHandler(
 ): Promise<NextResponse> {
   try {
     const { id } = await context.params
+
+    // Tomar una línea base congela el plan como referencia contra la que se medirá todo lo que
+    // venga: es un acto sobre el plan, no sobre el seguimiento (§10.1).
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      'edit_schedule',
+      'Tomar una línea base fija la referencia del plan del proyecto.',
+    )
+    if (negado) return negado
+
     const cuerpo = await request.json().catch(() => ({}))
     const { name } = esquemaDeCreacion.parse(cuerpo)
 
@@ -103,6 +115,18 @@ async function deleteHandler(
 ): Promise<NextResponse> {
   try {
     const { id } = await context.params
+
+    // Quitar una línea base borra la referencia contra la que se mide el plan (§10.1). El comentario
+    // de arriba ya decía «sólo quien puede escribir en el proyecto»; lo comprobaba el permiso de
+    // organización, que no distingue en qué proyecto.
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      'edit_schedule',
+      'Quitar una línea base borra la referencia del plan del proyecto.',
+    )
+    if (negado) return negado
+
     const baselineId = request.nextUrl.searchParams.get('baselineId')
     if (!baselineId) {
       return NextResponse.json(

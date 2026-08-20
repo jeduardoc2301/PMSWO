@@ -5,6 +5,7 @@ import { projectService } from '@/services/project.service'
 import { UserRole, Locale, ProjectStatus } from '@/types'
 import { auth } from '@/lib/auth'
 import { NotFoundError, ValidationError } from '@/lib/errors'
+import prisma from '@/lib/prisma'
 
 vi.mock('@/lib/auth', () => ({
   auth: vi.fn(),
@@ -18,9 +19,37 @@ vi.mock('@/services/project.service', () => ({
   },
 }))
 
+/**
+ * Las tres consultas que la guardia del §10.1 hace para saber qué papel tiene quien escribe.
+ *
+ * Hicieron falta el día que `PATCH /projects/[id]` empezó a pedir el asiento del proyecto y no sólo
+ * el cargo de organización. Sin ellas `authorize` no puede decidir y **toda** escritura sale en 403,
+ * que es exactamente lo que pasó al enchufar la guardia: 34 pruebas en rojo de golpe.
+ *
+ * No es adorno del banco de pruebas: es que la ruta ahora hace una pregunta más.
+ */
+vi.mock('@/lib/prisma', () => ({
+  default: {
+    project: { findUnique: vi.fn() },
+    projectCollaborator: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
+  },
+}))
+
+/** Deja a quien escribe como dueño del proyecto, que es el caso normal de estas pruebas. */
+function comoDuenoDelProyecto(userId = 'user-123', roles: UserRole[] = [UserRole.PROJECT_MANAGER]) {
+  vi.mocked(prisma.project.findUnique).mockResolvedValue({
+    ownerId: userId,
+    projectManagerId: null,
+  } as never)
+  vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+  vi.mocked(prisma.user.findUnique).mockResolvedValue({ roles } as never)
+}
+
 describe('GET /api/v1/projects/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    comoDuenoDelProyecto()
   })
 
   const createRequest = (id: string) => {
@@ -591,6 +620,7 @@ describe('GET /api/v1/projects/:id', () => {
 describe('PATCH /api/v1/projects/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    comoDuenoDelProyecto()
   })
 
   const createRequest = (id: string, body: any) => {
@@ -1118,6 +1148,7 @@ describe('PATCH /api/v1/projects/:id', () => {
 describe('DELETE /api/v1/projects/:id', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    comoDuenoDelProyecto()
   })
 
   const createRequest = (id: string) => {
@@ -1472,3 +1503,89 @@ describe('DELETE /api/v1/projects/:id', () => {
   })
 })
 
+
+describe('§10.1 · editar el proyecto pide el asiento del proyecto, no sólo el cargo', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const pedir = (body: unknown) =>
+    new NextRequest('http://localhost:3000/api/v1/projects/project-123', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+  const params = { params: Promise.resolve({ id: 'project-123' }) }
+
+  const proyecto = {
+    id: 'project-123',
+    organizationId: 'org-123',
+    name: 'Plan',
+    startDate: new Date('2026-06-01'),
+    estimatedEndDate: new Date('2026-11-30'),
+  }
+
+  /**
+   * El caso que abrió el agujero: `withAuth` exige `PROJECT_UPDATE`, que es el cargo de
+   * organización, y ese cargo no dice **en qué proyecto**. Un gestor de proyectos invitado a éste
+   * sólo como cliente lo pasaba y podía mover `startDate` — el suelo desde el que el motor coloca
+   * las 1368 líneas del plan.
+   */
+  it('un gestor de proyectos invitado como CLIENTE recibe 403 y no se escribe', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: {
+        id: 'user-999',
+        organizationId: 'org-123',
+        email: 'pm@example.com',
+        name: 'PM invitado',
+        roles: [UserRole.PROJECT_MANAGER],
+        locale: Locale.ES,
+      },
+    } as never)
+    vi.mocked(projectService.getProject).mockResolvedValue(proyecto as never)
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({
+      ownerId: 'otra-persona',
+      projectManagerId: null,
+    } as never)
+    vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue({ role: 'CLIENT' } as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      roles: [UserRole.PROJECT_MANAGER],
+    } as never)
+
+    const res = await PATCH(pedir({ startDate: '2026-05-01' }), params as never)
+
+    expect(res.status).toBe(403)
+    // Lo que de verdad se prueba: la guardia va antes de escribir.
+    expect(projectService.updateProject).not.toHaveBeenCalled()
+  })
+
+  it('y el dueño del proyecto sí puede', async () => {
+    // Una guardia que bloquea a todo el mundo también «pasa» la prueba de arriba.
+    vi.mocked(auth).mockResolvedValue({
+      user: {
+        id: 'user-999',
+        organizationId: 'org-123',
+        email: 'pm@example.com',
+        name: 'PM dueño',
+        roles: [UserRole.PROJECT_MANAGER],
+        locale: Locale.ES,
+      },
+    } as never)
+    vi.mocked(projectService.getProject).mockResolvedValue(proyecto as never)
+    vi.mocked(projectService.updateProject).mockResolvedValue({ ...proyecto, startDate: new Date('2026-05-01') } as never)
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({
+      ownerId: 'user-999',
+      projectManagerId: null,
+    } as never)
+    vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      roles: [UserRole.PROJECT_MANAGER],
+    } as never)
+
+    const res = await PATCH(pedir({ startDate: '2026-05-01' }), params as never)
+
+    expect(res.status).toBe(200)
+    expect(projectService.updateProject).toHaveBeenCalled()
+  })
+})

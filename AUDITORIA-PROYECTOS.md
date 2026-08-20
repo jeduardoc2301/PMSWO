@@ -95,14 +95,14 @@ tiempo real y deshacer.
 | 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
-| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. **La de las fechas preguntaba después de escribir**: devolvía 403 con la fecha ya guardada, y la medición de entonces no lo vio porque comprobó el código de respuesta y no el dato — corregido y vuelto a medir contra el servidor. La pantalla de reparto ya existe (`components/projects/reparto-de-papeles.tsx`, en el Resumen). Falta llevar la guardia al resto de rutas de escritura menores | M | Alto |
+| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **CERRADA** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. **La de las fechas preguntaba después de escribir**: devolvía 403 con la fecha ya guardada, y la medición de entonces no lo vio porque comprobó el código de respuesta y no el dato — corregido y vuelto a medir contra el servidor. La pantalla de reparto ya existe (`components/projects/reparto-de-papeles.tsx`, en el Resumen). Barridas **todas** las rutas de `app/api` que escriben: las cinco que quedaban sin asiento de proyecto —aplicar plantilla, editar el proyecto, líneas base y ausencias— la tienen ya, medidas con los dos papeles. Quince puertas, y una prueba que comprueba que la guardia va **antes** de escribir | M | Alto |
 | 30 | Revocar un rol tarda en surtir efecto | **CERRADA · acotada a 5 minutos** | `lib/auth.ts`, `lib/auth-refresco.ts` | Los roles se releen de la base cuando el token lleva más de cinco minutos sin refrescarse. Antes valían los treinta días del token, así que quitarle un permiso a alguien no se lo quitaba. Medido con el reloj: a t=240 s la sesión seguía con los roles viejos y a **t=300 s** ya tenía los nuevos. Una cuenta dada de baja se queda sin ninguno | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
 | 24 | Deshacer / rehacer (§10.6) | **CERRADA** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Los **vínculos** ya se deshacen: el tipo creció con un canal propio, porque un vínculo no es un campo de una línea —vive entre dos— y su inversa no es «el valor de antes» sino la operación contraria. Comprobado en pantalla: 1665 → 1666 → 1665. Las altas y las bajas también: crear una línea la deja en 4 y deshacer la devuelve a 3; borrar una con vínculo baja a 2 líneas y 0 vínculos, y deshacer devuelve las dos cosas. Lo único fuera es arrastrar fechas, excluido a propósito porque pasa por la previsualización | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
 
-**Recuento (19/08/2026, contado de las filas):** 14 CERRADA · 6 PARCIAL · 3 EXISTE · 3 EXISTE PERO MAL · 3 NO EXISTE · 1 NO APLICA. Total 30 filas.
+**Recuento (19/08/2026, contado de las filas):** 15 CERRADA · 5 PARCIAL · 3 EXISTE · 3 EXISTE PERO MAL · 3 NO EXISTE · 1 NO APLICA. Total 30 filas.
 
 > **Nota de método (18/08/2026).** Este recuento estuvo mal escrito durante toda una
 > sesión: sumaba 26 sobre 25 filas y nadie lo tocó al declarar diez cierres. Ahora se
@@ -1428,3 +1428,50 @@ existe **mientras se edita** — en reposo es un `span` con el texto. Y el campo
 Se anota porque el patrón se repite en esta bitácora: **una sonda que no encuentra algo no es prueba
 de que no esté**. Las tres veces la reacción correcta fue ir a leer el componente, no concluir que
 faltaba la funcionalidad.
+
+---
+
+## §10.1 — cinco puertas más, encontradas barriendo en vez de recordando
+
+La fila 29 decía «falta llevar la guardia al resto de rutas de escritura menores», que es una forma
+educada de decir «no sé cuántas quedan». Se barrieron **todas** las rutas de `app/api` que exportan
+`POST`, `PATCH`, `PUT` o `DELETE` y no llaman a `authorize` ni a `exigirPermiso`: salieron 43.
+
+La mayoría son de organización con razón —sesión, usuarios, plantillas, IA—. **Cinco no lo eran**, y
+las cinco escriben el plan:
+
+| puerta | qué hace | tenía |
+|---|---|---|
+| `POST /projects/[id]/apply-template` | reescribe las líneas y sus fechas | `WORK_ITEM_CREATE` de organización |
+| `PATCH /projects/[id]` | mueve `startDate`, el suelo desde el que se coloca todo | `PROJECT_UPDATE` de organización |
+| `POST /projects/[id]/baselines` | congela la referencia contra la que se mide | `PROJECT_UPDATE` |
+| `DELETE /projects/[id]/baselines` | la borra | `PROJECT_UPDATE` |
+| `POST` y `DELETE` de ausencias | estiran las tareas de quien falta (§12 caso 17) | `PROJECT_UPDATE` |
+
+El permiso de **organización** no distingue en qué proyecto. Un gestor de proyectos invitado a
+éste sólo como cliente las pasaba todas — y con `apply-template` reescribía el cronograma entero.
+
+Medido con los dos papeles:
+
+| puerta | colaborador | dueño |
+|---|---|---|
+| aplicar una plantilla | **403** | 400 *(pasa la guardia; falla por el id de plantilla inventado)* |
+| editar el proyecto | **403** | 200 |
+| tomar una línea base | **403** | 201 |
+| quitar una línea base | **403** | 404 *(pasa; el id no existe)* |
+| registrar una ausencia | **403** | 404 *(pasa; el recurso no existe)* |
+
+La columna del dueño importa tanto como la del colaborador: una guardia que bloquea a todo el mundo
+también «pasa» la prueba de la izquierda.
+
+Las cinco entran en la prueba de forma, que ahora cubre **quince** puertas.
+
+### Y el verificador crece otra vez
+
+Restaurar después de esta medición obligó a mirar a mano dos cosas que `verificar-referencia.ts` no
+contaba: el **arranque del proyecto** —que la medición había movido a 2026-05-01, y mover el suelo un
+día mueve las 1368 líneas— y las **líneas base**, de las que la prueba dejó una de más. Las ocho
+cuentas de tamaño seguían diciendo «ok» con las dos cosas mal. Ya las cuenta.
+
+Es la segunda vez esta sesión que el verificador crece por el mismo motivo: **lo que se restaura a
+mano una vez, se olvida la siguiente**.

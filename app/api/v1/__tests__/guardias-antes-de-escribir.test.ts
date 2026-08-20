@@ -32,6 +32,13 @@ const PUERTAS = [
   'app/api/v1/projects/[id]/columns/route.ts',
   'app/api/v1/projects/[id]/calendar/route.ts',
   'app/api/v1/projects/[id]/collaborators/route.ts',
+  // Las cinco que salían del barrido: tenían permiso de **organización** —`PROJECT_UPDATE`— y
+  // ninguna preguntaba por el asiento en el proyecto. Un gestor de proyectos invitado a éste sólo
+  // como cliente las pasaba todas, y con `apply-template` reescribía el cronograma entero.
+  'app/api/v1/projects/[id]/apply-template/route.ts',
+  'app/api/v1/projects/[id]/baselines/route.ts',
+  'app/api/v1/projects/[id]/resources/[resourceId]/absences/route.ts',
+  'app/api/v1/projects/[id]/route.ts',
 ]
 
 /** Pregunta por un permiso: las dos formas que se usan en el proyecto. */
@@ -150,6 +157,6 @@ describe('§10.1 · el permiso se pregunta antes de escribir, en todas las puert
     // El otro fallo posible es que se añada una puerta nueva y nadie la meta aquí. No se puede
     // recorrer el disco desde una prueba de vitest sin traer un buscador entero, así que al menos se
     // fija la cuenta: si crece, alguien tiene que venir a mirar esta lista.
-    expect(PUERTAS.length).toBe(11)
+    expect(PUERTAS.length).toBe(15)
   })
 })
