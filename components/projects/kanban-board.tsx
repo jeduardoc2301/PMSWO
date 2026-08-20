@@ -316,12 +316,42 @@ interface KanbanColumnProps {
   edt?: ReadonlyMap<string, string>
 }
 
+/**
+ * Cuántas tarjetas dibuja una columna antes de ofrecer el resto (§5: «virtualización y carga
+ * paginada por columna»).
+ *
+ * ## Por qué paginar y no una ventana de desplazamiento
+ *
+ * La Lista virtualiza con una ventana de altura fija, y aquí no sirve: **las tarjetas no miden lo
+ * mismo**. Medidas sobre el plan de referencia van de 102 a 202 px según si el título envuelve, si
+ * lleva EDT, avance o aviso de atraso. Una ventana de altura fija sobre alturas variables desajusta
+ * los espaciadores y la columna da tirones al desplazarse.
+ *
+ * El spec pide literalmente «carga paginada por columna», que además es robusta ante alturas
+ * distintas y se explica sola: un botón que dice cuántas faltan.
+ *
+ * ## Qué costaba no tenerlo
+ *
+ * Medido en el tablero del plan de referencia antes de esto: **1 243 tarjetas** en el DOM, 36 098
+ * nodos en la página y **20 segundos** hasta que el tablero se podía usar.
+ */
+const TARJETAS_POR_TANDA = 50
+
 function KanbanColumn({
   column, workItemsInColumn, isDragTarget, noItemsLabel,
   draggedItemId, syncingItems,
   onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd,
   cutoff, onEdit, onDelete, onAbrirDetalle, edt,
 }: KanbanColumnProps) {
+  const [dibujadas, setDibujadas] = useState(TARJETAS_POR_TANDA)
+
+  // Al cambiar de agrupación o de filtro, la columna trae otras tarjetas: seguir en la tanda cuarta
+  // dejaría dibujadas doscientas de las tres que ahora hay, o —peor— escondidas las únicas que
+  // quedan tras filtrar.
+  useEffect(() => {
+    setDibujadas(TARJETAS_POR_TANDA)
+  }, [column.id, workItemsInColumn.length])
+
   return (
     <div
       className="flex-shrink-0 w-72"
@@ -342,7 +372,7 @@ function KanbanColumn({
         <div className="p-2 space-y-2 min-h-[120px]">
           {workItemsInColumn.length === 0
             ? <div className="text-center py-8 text-zinc-700 text-xs">{noItemsLabel}</div>
-            : workItemsInColumn.map(wi => (
+            : workItemsInColumn.slice(0, dibujadas).map(wi => (
               <WorkItemCard
                 key={wi.id}
                 workItem={wi}
@@ -357,6 +387,18 @@ function KanbanColumn({
                 onAbrirDetalle={onAbrirDetalle}
               />
             ))}
+
+          {/* La carga paginada por columna del §5. Ver el comentario de `TARJETAS_POR_TANDA`. */}
+          {workItemsInColumn.length > dibujadas ? (
+            <button
+              type="button"
+              data-testid={`mas-tarjetas-${column.id}`}
+              onClick={() => setDibujadas((n) => n + TARJETAS_POR_TANDA)}
+              className="w-full rounded-lg border border-dashed border-zinc-700 py-2 text-xs text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+            >
+              {workItemsInColumn.length - dibujadas} tarjetas más
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

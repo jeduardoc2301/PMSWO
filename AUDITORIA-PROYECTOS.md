@@ -1871,3 +1871,44 @@ diciendo dos nombres para la misma línea.
 
 Queda del §4.7 todo lo que necesita modelo: tiempo registrado, adjuntos, comentarios, campos
 personalizados y el creador.
+
+---
+
+## §5 — el tablero dibujaba 1 243 tarjetas de golpe
+
+Saltó al recorrer la lista de comprobación del §13, que tiene una casilla literal:
+«virtualización y carga paginada por columna». No había ninguna de las dos.
+
+Medido en el tablero del plan de referencia:
+
+| | antes | después |
+|---|---:|---:|
+| tarjetas en el DOM | **1 243** | 827 |
+| nodos en la página | **36 098** | 24 878 |
+
+### Por qué paginar y no una ventana de desplazamiento
+
+La Lista virtualiza con una ventana de altura fija y aquí no sirve: **las tarjetas no miden lo
+mismo**. Medidas sobre el propio plan, van de **102 a 202 px** según si el título envuelve, si lleva
+EDT, avance o aviso de atraso. Una ventana de altura fija sobre alturas variables desajusta los
+espaciadores y la columna da tirones al desplazarse.
+
+El spec pide literalmente «carga paginada por columna», que además es robusta ante alturas distintas
+y se explica sola: un botón que dice cuántas faltan.
+
+### Por qué 827 y no 250
+
+Porque el tablero dibuja las cinco columnas **por cada fase**. Con veinticinco fases desplegadas son
+125 contenedores de columna, cada uno con su tanda. Se descubrió midiendo: `columna-*` apareció 125
+veces en el DOM con **cinco** identificadores distintos, cada uno veinticinco veces, y por un momento
+pareció un defecto de duplicación. No lo es — es el diseño de la vista por fases.
+
+Lo que la paginación garantiza es que **ninguna columna sola** pueda reventar la página, que es el
+caso que rompía: 1 243 tarjetas vivían casi todas en «Backlog».
+
+### Lo que NO se midió, y conviene decirlo
+
+El tiempo de montaje. El ayudante que lleva la página al tablero **duerme once segundos por
+construcción** antes de mirar, así que los «veinte segundos» que salían son en su mayor parte mis
+propias esperas. Decir que la paginación bajó el tiempo de montaje sería atribuirme una mejora que
+no he medido. Lo que sí está medido es el DOM.
