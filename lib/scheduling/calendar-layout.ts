@@ -463,3 +463,64 @@ export function agendaDelRango(
 function diasDelMesDe(anio: number, mes: number): number {
   return new Date(Date.UTC(anio, mes, 0)).getUTCDate()
 }
+
+/**
+ * El rango que queda tras arrastrar de un día a otro (§7.2).
+ *
+ * Se ordena, porque arrastrar hacia atrás es tan natural como hacia adelante y nadie debería tener
+ * que pensarlo: quien empieza en el 20 y suelta en el 15 está pidiendo del 15 al 20.
+ */
+export function rangoSeleccionado(
+  desde: IsoDate,
+  hasta: IsoDate,
+): { readonly from: IsoDate; readonly to: IsoDate } {
+  return desde <= hasta ? { from: desde, to: hasta } : { from: hasta, to: desde }
+}
+
+/**
+ * Por qué no se puede crear una línea en este rango, o `null` si se puede.
+ *
+ * La única razón real es que el rango no tenga **ningún** día laborable. Un rango que empieza en
+ * sábado sí vale: el motor empuja el arranque al lunes, que es lo correcto y lo que ya hace con
+ * cualquier fecha. Lo que no vale es un fin de semana entero, porque entonces no hay ningún día en
+ * que la línea pueda ocurrir y la fecha que se guardara no significaría nada.
+ */
+export function porQueNoSePuedeCrearAhi(
+  from: IsoDate,
+  to: IsoDate,
+  calendar: WorkCalendar,
+): string | null {
+  const desde = toDayNumber(from)
+  const hasta = toDayNumber(to)
+  if (hasta < desde) return 'El rango está al revés.'
+  for (let d = desde; d <= hasta; d += 1) {
+    if (calendar.isWorkingDay(d)) return null
+  }
+  return 'Ese rango no tiene ningún día laborable, así que la línea no podría ocurrir en él.'
+}
+
+/**
+ * Las fechas con que nace una línea creada arrastrando: el primer y el último día **hábil** del
+ * rango.
+ *
+ * Se recortan a hábiles a propósito. Arrastrar de viernes a lunes selecciona cuatro casillas pero
+ * son dos días de trabajo, y guardar el sábado como inicio dejaría una línea cuya fecha el motor
+ * corrige sola en cuanto alguien reprograma — una fecha que cambia sin que nadie la toque.
+ */
+export function fechasDelRango(
+  from: IsoDate,
+  to: IsoDate,
+  calendar: WorkCalendar,
+): { readonly start: IsoDate; readonly finish: IsoDate } | null {
+  const desde = toDayNumber(from)
+  const hasta = toDayNumber(to)
+  let primero: DayNumber | null = null
+  let ultimo: DayNumber | null = null
+  for (let d = desde; d <= hasta; d += 1) {
+    if (!calendar.isWorkingDay(d)) continue
+    if (primero === null) primero = d
+    ultimo = d
+  }
+  if (primero === null || ultimo === null) return null
+  return { start: toIsoDate(primero), finish: toIsoDate(ultimo) }
+}

@@ -30,6 +30,8 @@ import {
   type ModoDeCalendario,
   agendaDelRango,
   anclaTrasAvanzar,
+  fechasDelRango,
+  rangoSeleccionado,
   calendarLayout,
   rangoDelModo,
   hiddenTasksOfDay,
@@ -60,6 +62,15 @@ export interface CalendarViewProps {
    * sitio es peor que una que no se mueve.
    */
   readonly onMoverLinea?: (taskId: string, nuevoInicio: string) => void
+  /**
+   * Crear una línea arrastrando un rango de días (§7.2).
+   *
+   * Recibe el primer y el último día **hábil** del rango, no las casillas que se pintaron: arrastrar
+   * de viernes a lunes selecciona cuatro y son dos días de trabajo. Sin esta prop no hay gesto, que
+   * es lo correcto donde no se puede crear — pintar un rango que no lleva a nada es peor que no
+   * poder pintarlo.
+   */
+  readonly onCrearEnRango?: (start: string, finish: string) => void
 }
 
 const NOMBRES_DE_MES = [
@@ -94,8 +105,11 @@ export function CalendarView({
   today,
   onSelectTask,
   onMoverLinea,
+  onCrearEnRango,
 }: CalendarViewProps) {
   const [diaDesplegado, setDiaDesplegado] = useState<string | null>(null)
+  /** El gesto en curso: dónde empezó y dónde va el ratón ahora. */
+  const [pintando, setPintando] = useState<{ desde: string; hasta: string } | null>(null)
 
   const [anio, mes] = ancla.split('-').map(Number)
   const { from: primerDia, to: ultimoDia } = rangoDelModo(modo, ancla as never)
@@ -134,6 +148,34 @@ export function CalendarView({
     () => (modo === 'AGENDA' ? agendaDelRango(tasks, primerDia, ultimoDia, calendar) : []),
     [modo, tasks, primerDia, ultimoDia, calendar],
   )
+
+  /**
+   * El gesto de pintar un rango.
+   *
+   * Se cierra en `SUELTA` y también si el ratón sale de la rejilla —ver el `onMouseLeave` de abajo—
+   * porque un rango a medio pintar que se queda encendido al soltar fuera es un estado del que no se
+   * sale sin recargar.
+   */
+  const seleccionar = (dia: string | null, gesto: 'EMPIEZA' | 'EXTIENDE' | 'SUELTA') => {
+    if (dia === null || gesto === 'EMPIEZA') {
+      setPintando(dia === null ? null : { desde: dia, hasta: dia })
+      return
+    }
+    if (pintando === null) return
+    if (gesto === 'EXTIENDE') {
+      setPintando({ ...pintando, hasta: dia })
+      return
+    }
+
+    const { from, to } = rangoSeleccionado(pintando.desde as never, dia as never)
+    setPintando(null)
+    const fechas = fechasDelRango(from, to, calendar)
+    // Sin días hábiles no se crea nada y no se avisa: quien pinta un fin de semana entero ve que no
+    // pasa nada, que es la respuesta correcta a un gesto sin sentido — un aviso ahí sería regañar.
+    if (fechas) onCrearEnRango?.(fechas.start, fechas.finish)
+  }
+
+  const seleccion = pintando ? rangoSeleccionado(pintando.desde as never, pintando.hasta as never) : null
 
   const irA = (delta: number) => {
     onAnclaChange(anclaTrasAvanzar(modo, ancla as never, delta))
@@ -219,7 +261,10 @@ export function CalendarView({
       {modo === 'AGENDA' ? (
         <Agenda dias={agenda} today={today} onSelectTask={onSelectTask} />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-800 bg-[#18181b]">
+        <div
+          className="overflow-hidden rounded-xl border border-zinc-800 bg-[#18181b]"
+          onMouseLeave={() => setPintando(null)}
+        >
           <div className="grid grid-cols-7 border-b border-zinc-800">
             {DIAS.map((dia) => (
               <div key={dia} className="px-2 py-2 text-center text-xs uppercase tracking-wide text-zinc-500">
@@ -236,6 +281,8 @@ export function CalendarView({
               onSelectTask={onSelectTask}
               onExpandirDia={setDiaDesplegado}
               onMoverLinea={onMoverLinea}
+              seleccion={seleccion}
+              {...(onCrearEnRango ? { onSeleccionar: seleccionar } : {})}
             />
           ))}
         </div>
@@ -325,12 +372,18 @@ function Semana({
   onSelectTask,
   onExpandirDia,
   onMoverLinea,
+  seleccion,
+  onSeleccionar,
 }: {
   semana: CalendarWeek
   today: string
   onSelectTask?: (taskId: string) => void
   onExpandirDia: (dia: string) => void
   onMoverLinea?: (taskId: string, nuevoInicio: string) => void
+  /** El rango que se está pintando ahora mismo, para resaltarlo mientras se arrastra. */
+  seleccion: { readonly from: string; readonly to: string } | null
+  /** `null` cierra la selección; una fecha la empieza o la extiende. */
+  onSeleccionar?: (dia: string | null, gesto: 'EMPIEZA' | 'EXTIENDE' | 'SUELTA') => void
 }) {
   // El alto lo fija el carril más alto que **se dibujó**, no el tope de carriles visibles.
   //
@@ -371,9 +424,28 @@ function Semana({
           key={dia.date}
           data-testid={`dia-${dia.date}`}
           data-dia={dia.date}
+          {...(onSeleccionar
+            ? {
+                // Se arranca en `mousedown` y no en `click` porque un rango es un gesto continuo:
+                // esperar al clic obligaría a dos pulsaciones y a inventar cuál es «la primera».
+                onMouseDown: (e: React.MouseEvent) => {
+                  // Si el gesto empieza sobre una barra, es un arrastre de barra, no una selección.
+                  // Sin esto, coger una tarea para moverla pintaba además un rango detrás.
+                  if ((e.target as HTMLElement).closest('[draggable="true"]')) return
+                  if (e.button !== 0) return
+                  onSeleccionar(dia.date, 'EMPIEZA')
+                },
+                onMouseEnter: () => onSeleccionar(dia.date, 'EXTIENDE'),
+                onMouseUp: () => onSeleccionar(dia.date, 'SUELTA'),
+              }
+            : {})}
           className={`min-h-[104px] border-r border-zinc-800 px-1.5 pb-1.5 last:border-r-0 ${
             dia.isWorking ? '' : 'bg-[#111113]'
-          } ${dia.isOutsideMonth ? 'opacity-40' : ''}`}
+          } ${dia.isOutsideMonth ? 'opacity-40' : ''} ${
+            seleccion && seleccion.from <= dia.date && dia.date <= seleccion.to
+              ? 'bg-indigo-600/15 ring-1 ring-inset ring-indigo-600/60'
+              : ''
+          }`}
         >
           <div
             className="flex items-baseline justify-between"

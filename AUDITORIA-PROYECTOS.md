@@ -86,7 +86,7 @@ tiempo real y deshacer.
 | 13 | Vista Gantt (§4) | **CERRADA** | `components/plan/gantt-chart.tsx`, `plan-workspace.tsx`, `fields-panel.tsx`, `lib/plan/gantt-columns.ts` | **8 de 8 criterios del §4.8, cada uno demostrado en pantalla** (ver la bitácora). Del §4.2 queda fuera el catálogo completo de columnas —presupuesto, tiempo registrado, campos personalizados— porque necesita modelos que no existen. Del §4.3 están ya las **cinco** escalas que este motor puede dibujar —día, semana, mes, trimestre y año, con cabecera de dos filas y el ancho de día atado al zoom—; la sexta, la hora, no cabe contra un motor de ordinales de día hábil y eso es del §2.1 | L | Medio |
 | 14 | Vista Tablero (§5) | **CERRADA** | `components/projects/kanban-board.tsx`, `lib/projects/kanban-group.ts`, `columnas-del-tablero.tsx` | Arrastre, urgencias, avance, atraso, y las dos que faltaban: agrupar por estado, prioridad o responsable —comprobado en pantalla, la barra se reconstruye sin recargar: 5 columnas por estado, 4 por prioridad, 5 por responsable— y columnas configurables desde el propio tablero | M | Bajo |
 | 15 | Vista Lista (§6) | **CERRADA** | `work-items-outline.tsx`, `work-items-list.tsx`, `lib/projects/list-totals.ts` | **5 de 5 criterios del §6.3, cada uno demostrado en pantalla** (ver la bitácora). Del §6.2 queda fuera el panel de Campos propio y la exportación de la vista; de los totales, presupuesto y costo real, que no existen como campos | S | Bajo |
-| 16 | Vista Calendario (§7) | **CERRADA (con una corrección)** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx`, `services/reschedule.service.ts` | **6 de 6 criterios del §7.5 demostrados en pantalla — pero el 5 se dio por bueno de más y hubo que volver.** Mi demostración soltaba la barra sobre casillas vacías; un auditor cuyo encargo era refutarme encontró que soltar sobre **otra barra** no hacía nada, y eso es el 21 % de la rejilla y más de la mitad del alto útil de un día cargado. Corregido y vuelto a medir: de 0 % a 100 % de aceptación en los puntos que caen sobre una barra. La lección no es del Calendario: una demostración en pantalla que no busca el caso denso no es una demostración. Del §7.2 están ya la **vista semanal** y la de **agenda** —`calendarLayout` recibía `from` y `to` desde el principio, así que la semanal es el mismo cálculo con otro rango; la agenda no pasa por la rejilla porque una lista no tiene carriles—. Queda crear una tarea arrastrando un rango. Y el calendario del proyecto sólo se puede **leer**: no hay pantalla ni ruta para crearlo — brecha 27 | L | Bajo |
+| 16 | Vista Calendario (§7) | **CERRADA (con una corrección)** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx`, `services/reschedule.service.ts` | **6 de 6 criterios del §7.5 demostrados en pantalla — pero el 5 se dio por bueno de más y hubo que volver.** Mi demostración soltaba la barra sobre casillas vacías; un auditor cuyo encargo era refutarme encontró que soltar sobre **otra barra** no hacía nada, y eso es el 21 % de la rejilla y más de la mitad del alto útil de un día cargado. Corregido y vuelto a medir: de 0 % a 100 % de aceptación en los puntos que caen sobre una barra. La lección no es del Calendario: una demostración en pantalla que no busca el caso denso no es una demostración. Del §7.2 están ya la **vista semanal** y la de **agenda** —`calendarLayout` recibía `from` y `to` desde el principio, así que la semanal es el mismo cálculo con otro rango; la agenda no pasa por la rejilla porque una lista no tiene carriles—. Y **crear una tarea arrastrando un rango**, con las fechas recortadas a días hábiles. Y el calendario del proyecto sólo se puede **leer**: no hay pantalla ni ruta para crearlo — brecha 27 | L | Bajo |
 | 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | **6 de 6 criterios del §8.5, cada uno demostrado en pantalla** (ver la bitácora). Es la única vista que no necesitó tocar código: estaba bien y lo que faltaba era recorrerla. Del §8.2 queda fuera el calendario por recurso —hay jornada diaria y ausencias, no semana laboral propia— | L | Medio |
 | 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | **5 de 6 criterios del §9.3 demostrados en pantalla, y el sexto a medias** (ver la bitácora). Lo que falta no es del panel: la aplicación **no tiene modo claro** —ni `prefers-color-scheme`, ni clases `dark:`, ni conmutador— en ninguna de las seis vistas, así que «legibles en claro y oscuro» no se puede cumplir aquí. La otra mitad —accesibles sin depender sólo del color— sí | L | Bajo |
 | 27 | Calendario del proyecto | **CERRADA** | `app/api/v1/projects/[id]/calendar/`, `lib/scheduling/calendario-editable.ts` | Semana laborable, país de festivos y festivos propios, con ruta y reglas. Pide `edit_schedule` porque cambiarlo mueve las fechas de todo el plan. Comprobado: añadir el sábado hace que el motor pase a `[1,2,3,4,5,6]`, y borrar la fila devuelve al calendario de por omisión | M | Medio |
@@ -1712,3 +1712,52 @@ el arranque de la **primera línea**, que hay que calcular después del motor po
 servidor son duraciones y vínculos, no fechas.
 
 Queda la tercera del §7.2: crear una tarea arrastrando un rango de días.
+
+---
+
+## §7.2 — crear una línea arrastrando un rango, y con eso la sección entera
+
+La tercera del §7.2. El gesto es continuo —`mousedown`, arrastrar, `mouseup`— y no dos clics: esperar
+al clic obligaría a dos pulsaciones y a inventar cuál es «la primera».
+
+### Tres decisiones que no son de estilo
+
+**Arrastrar hacia atrás vale igual.** Quien empieza en el 20 y suelta en el 15 está pidiendo del 15
+al 20, y nadie debería tener que pensar en la dirección.
+
+**Las fechas se recortan a días hábiles.** Arrastrar de viernes a lunes pinta **cuatro** casillas y
+son **dos** días de trabajo. Guardar el sábado como inicio dejaría una línea cuya fecha el motor
+corrige sola en cuanto alguien reprograma — una fecha que cambia sin que nadie la toque es peor que
+una fecha mal puesta, porque nadie la busca.
+
+**Un fin de semana entero no crea nada, y no avisa.** Quien pinta sábado y domingo ve que no pasa
+nada, que es la respuesta correcta a un gesto sin sentido. Un aviso ahí sería regañar.
+
+### Y dos que evitan estados de los que no se sale
+
+Si el gesto empieza **sobre una barra**, es un arrastre de barra y no una selección: sin esa
+comprobación, coger una tarea para moverla pintaba además un rango detrás.
+
+Y el gesto se cierra también al salir el ratón de la rejilla. Un rango a medio pintar que se queda
+encendido al soltar fuera es un estado del que no se sale sin recargar.
+
+### En pantalla, con el ratón del protocolo
+
+```
+casillas a la vista      35, de 2026-06-01 a 2026-07-05
+se pinta de              2026-06-10 a 2026-06-12
+resaltadas al arrastrar  3
+¿se abrió el diálogo?    sí — «Crear Elemento de Trabajo»
+fechas que trae          10 de jun de 2026 · 12 de jun de 2026
+```
+
+Con el ratón de verdad y no con eventos sintéticos: lo que había que demostrar es que el **gesto
+llega**, no que el manejador funciona — eso ya lo dicen las siete pruebas de unidad.
+
+El diálogo de alta acepta ahora fechas por omisión. Quien pinta del 15 al 19 ya dijo las fechas, y
+pedirle que las teclee otra vez convierte un gesto en un formulario.
+
+Sin permiso para crear líneas **no hay gesto**: un rango que se pinta y no lleva a ningún sitio es
+peor que no poder pintarlo.
+
+Con esto el §7.2 queda entero: mes, semana, agenda y crear arrastrando.

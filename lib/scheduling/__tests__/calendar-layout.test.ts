@@ -7,8 +7,11 @@ import {
   anclaTrasAvanzar,
   calendarLayout,
   carrilesDibujados,
+  fechasDelRango,
   hiddenTasksOfDay,
+  porQueNoSePuedeCrearAhi,
   rangoDelModo,
+  rangoSeleccionado,
 } from '../calendar-layout'
 
 const calendar = createWorkCalendar()
@@ -539,5 +542,49 @@ describe('§7.2 · la agenda', () => {
 
   it('un rango al revés devuelve vacío en vez de reventar', () => {
     expect(agendaDelRango(TAREAS, '2026-06-19', '2026-06-15', calendar)).toEqual([])
+  })
+})
+
+describe('§7.2 · crear arrastrando un rango', () => {
+  it('arrastrar hacia atrás da el mismo rango que hacia adelante', () => {
+    // Nadie debería tener que pensar en la dirección: quien empieza en el 20 y suelta en el 15 está
+    // pidiendo del 15 al 20.
+    expect(rangoSeleccionado('2026-06-15', '2026-06-20')).toEqual({ from: '2026-06-15', to: '2026-06-20' })
+    expect(rangoSeleccionado('2026-06-20', '2026-06-15')).toEqual({ from: '2026-06-15', to: '2026-06-20' })
+  })
+
+  it('un solo día es un rango válido de un día', () => {
+    expect(rangoSeleccionado('2026-06-17', '2026-06-17')).toEqual({ from: '2026-06-17', to: '2026-06-17' })
+  })
+
+  it('un rango con algún día laborable se admite, aunque empiece en sábado', () => {
+    // El motor empuja el arranque al lunes, que es lo que ya hace con cualquier fecha.
+    expect(porQueNoSePuedeCrearAhi('2026-06-20', '2026-06-23', calendar)).toBeNull()
+  })
+
+  it('un fin de semana entero no: ahí la línea no podría ocurrir', () => {
+    // Sábado 20 y domingo 21 de junio de 2026.
+    expect(porQueNoSePuedeCrearAhi('2026-06-20', '2026-06-21', calendar)).toContain('laborable')
+  })
+
+  it('las fechas se recortan al primer y último día HÁBIL del rango', () => {
+    /**
+     * Arrastrar de viernes a lunes selecciona cuatro casillas y son dos días de trabajo. Guardar el
+     * sábado como inicio dejaría una línea cuya fecha el motor corrige sola en cuanto alguien
+     * reprograma — una fecha que cambia sin que nadie la toque.
+     */
+    expect(fechasDelRango('2026-06-19', '2026-06-22', calendar)).toEqual({
+      start: '2026-06-19', // viernes
+      finish: '2026-06-22', // lunes
+    })
+    // Empezando en sábado, el inicio se corre al lunes.
+    expect(fechasDelRango('2026-06-20', '2026-06-23', calendar)).toEqual({
+      start: '2026-06-22',
+      finish: '2026-06-23',
+    })
+  })
+
+  it('un rango sin días hábiles devuelve null en vez de una fecha inventada', () => {
+    expect(fechasDelRango('2026-06-20', '2026-06-21', calendar)).toBeNull()
   })
 })

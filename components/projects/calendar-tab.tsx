@@ -16,6 +16,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { CalendarView } from '@/components/projects/calendar-view'
+import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
 import { type ModoDeCalendario } from '@/lib/scheduling/calendar-layout'
 import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { ganttLayout } from '@/lib/scheduling/gantt'
@@ -80,6 +81,8 @@ type Estado =
 
 export interface CalendarTabProps {
   readonly projectId: string
+  /** Si quien mira puede crear líneas. Sin esto no hay gesto de arrastrar para crear (§7.2). */
+  readonly canCreateWorkItems?: boolean
   /** La barra del filtro unificado, montada arriba en el proyecto (§10.2). */
   readonly barraDeFiltro?: React.ReactNode
   /**
@@ -109,6 +112,7 @@ export interface CalendarTabProps {
 
 export function CalendarTab({
   projectId,
+  canCreateWorkItems = false,
   barraDeFiltro,
   idsVisibles,
   onReprogramado,
@@ -122,6 +126,8 @@ export function CalendarTab({
    */
   const [ancla, setAncla] = useState<string | null>(null)
   const [modo, setModo] = useState<ModoDeCalendario>('MES')
+  /** El rango que alguien acaba de pintar. Abre el diálogo de alta con las fechas puestas (§7.2). */
+  const [rangoNuevo, setRangoNuevo] = useState<{ start: string; finish: string } | null>(null)
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
   const [aplicando, setAplicando] = useState(false)
 
@@ -438,8 +444,33 @@ export function CalendarTab({
               today={hoyCivil()}
               onSelectTask={setAbierta}
               onMoverLinea={(taskId, nuevoInicio) => void proponerMovimiento(taskId, nuevoInicio)}
+              {...(canCreateWorkItems
+                ? { onCrearEnRango: (start, finish) => setRangoNuevo({ start, finish }) }
+                : {})}
             />
           </div>
+          {rangoNuevo ? (
+            <CreateWorkItemDialog
+              open
+              onOpenChange={(abierto) => { if (!abierto) setRangoNuevo(null) }}
+              projectId={projectId}
+              defaultStartDate={rangoNuevo.start}
+              defaultEndDate={rangoNuevo.finish}
+              onSuccess={() => {
+                setRangoNuevo(null)
+                // Se vuelve a pedir el plan entero, como tras una reprogramación: la línea nueva
+                // entra en la red de dependencias y el motor puede haber movido a otras. Parchear en
+                // local dibujaría una barra suelta sobre un plan que ya no es el que se calculó.
+                void (async () => {
+                  const recargado = await fetch('/api/v1/projects/' + projectId + '/schedule')
+                  if (!recargado.ok) return
+                  const { plan } = await recargado.json()
+                  if (plan) setEstado({ fase: 'listo', plan })
+                })()
+              }}
+            />
+          ) : null}
+
           {filaAbierta ? (
             <aside className="w-80 shrink-0" data-testid="detalle-calendario">
               <PlanDetailPanel

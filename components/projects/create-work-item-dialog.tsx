@@ -31,6 +31,14 @@ interface CreateWorkItemDialogProps {
   onSuccess: (creada?: { id: string; title: string; foto: Record<string, unknown> }) => void
   /** La línea de la que cuelga la nueva, cuando se crea desde un lugar que ya sabe el padre. */
   defaultParentId?: string | null
+  /**
+   * Fechas con que abre el formulario, cuando quien lo abre ya sabe cuáles (§7.2).
+   *
+   * Existe porque el Calendario deja crear arrastrando un rango: quien pinta del 15 al 19 ya dijo
+   * las fechas, y pedirle que las teclee otra vez convierte un gesto en un formulario.
+   */
+  defaultStartDate?: string | null
+  defaultEndDate?: string | null
 }
 
 interface User {
@@ -62,7 +70,15 @@ interface FormErrors {
   general?: string
 }
 
-export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess, defaultParentId = null }: CreateWorkItemDialogProps) {
+export function CreateWorkItemDialog({
+  open,
+  onOpenChange,
+  projectId,
+  onSuccess,
+  defaultParentId = null,
+  defaultStartDate = null,
+  defaultEndDate = null,
+}: CreateWorkItemDialogProps) {
   const t = useTranslations('workItems')
   const tAI = useTranslations('ai')
   const { data: session } = useSession()
@@ -101,9 +117,14 @@ export function CreateWorkItemDialog({ open, onOpenChange, projectId, onSuccess,
       fetchUsers()
       fetchPhasesAndParents()
       fetchProjectInfo()
-      // El padre sugerido se aplica al abrir, no al montar: el mismo diálogo se reutiliza para
-      // varias capturas seguidas y quien lo abre puede traer un padre distinto cada vez.
-      setFormData(prev => ({ ...prev, parentId: defaultParentId }))
+      // El padre y las fechas sugeridas se aplican al abrir, no al montar: el mismo diálogo se
+      // reutiliza para varias capturas seguidas y quien lo abre puede traer datos distintos cada vez.
+      setFormData(prev => ({
+        ...prev,
+        parentId: defaultParentId,
+        ...(defaultStartDate ? { startDate: defaultStartDate } : {}),
+        ...(defaultEndDate ? { estimatedEndDate: defaultEndDate } : {}),
+      }))
     } else {
       // Reset form when dialog closes
       resetForm()

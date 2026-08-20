@@ -1095,6 +1095,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {activeTab === 'calendar' && (
               <CalendarTab
                 projectId={projectId}
+                canCreateWorkItems={canCreateWorkItems}
                 // El deshacer va junto al filtro, como en las demás: el botón tiene que estar en la
                 // vista donde se hizo la acción. Apuntar la operación sin enseñar el botón dejaría
                 // el arreglo a medias — reversible, pero sólo si se cambia de pestaña para verlo.

@@ -384,3 +384,67 @@ describe('§7.2 · los tres modos', () => {
     expect(screen.getByTestId('agenda-vacia')).toBeInTheDocument()
   })
 })
+
+describe('§7.2 · crear arrastrando un rango', () => {
+  /** Pinta de un día a otro con el ratón, como lo haría alguien. */
+  function pintar(desde: string, hasta: string) {
+    fireEvent.mouseDown(screen.getByTestId(`dia-${desde}`), { button: 0 })
+    fireEvent.mouseEnter(screen.getByTestId(`dia-${hasta}`))
+    fireEvent.mouseUp(screen.getByTestId(`dia-${hasta}`))
+  }
+
+  it('sin la prop no hay gesto: pintar no llama a nadie', () => {
+    // Un rango que se pinta y no lleva a ningún sitio es peor que no poder pintarlo.
+    const { props } = dibujar({ ancla: '2026-08-15' })
+    pintar('2026-08-17', '2026-08-19')
+    expect(props.onCrearEnRango).toBeUndefined()
+  })
+
+  it('con la prop, arrastrar de lunes a miércoles pide crear con esas dos fechas', () => {
+    const onCrearEnRango = vi.fn()
+    dibujar({ ancla: '2026-08-15', onCrearEnRango })
+    pintar('2026-08-17', '2026-08-19')
+    expect(onCrearEnRango).toHaveBeenCalledWith('2026-08-17', '2026-08-19')
+  })
+
+  it('arrastrar hacia atrás da el mismo rango', () => {
+    const onCrearEnRango = vi.fn()
+    dibujar({ ancla: '2026-08-15', onCrearEnRango })
+    pintar('2026-08-19', '2026-08-17')
+    expect(onCrearEnRango).toHaveBeenCalledWith('2026-08-17', '2026-08-19')
+  })
+
+  it('las fechas se recortan a días hábiles: de viernes a lunes son dos días de trabajo', () => {
+    // Guardar el sábado como inicio dejaría una línea cuya fecha el motor corrige sola.
+    const onCrearEnRango = vi.fn()
+    dibujar({ ancla: '2026-08-15', onCrearEnRango })
+    pintar('2026-08-21', '2026-08-24') // viernes → lunes
+    expect(onCrearEnRango).toHaveBeenCalledWith('2026-08-21', '2026-08-24')
+  })
+
+  it('un fin de semana entero no crea nada, y no regaña', () => {
+    // Quien pinta un sábado y un domingo ve que no pasa nada, que es la respuesta correcta a un
+    // gesto sin sentido. Un aviso ahí sería regañar.
+    const onCrearEnRango = vi.fn()
+    dibujar({ ancla: '2026-08-15', onCrearEnRango })
+    pintar('2026-08-22', '2026-08-23')
+    expect(onCrearEnRango).not.toHaveBeenCalled()
+  })
+
+  it('un solo día también vale', () => {
+    const onCrearEnRango = vi.fn()
+    dibujar({ ancla: '2026-08-15', onCrearEnRango })
+    fireEvent.mouseDown(screen.getByTestId('dia-2026-08-18'), { button: 0 })
+    fireEvent.mouseUp(screen.getByTestId('dia-2026-08-18'))
+    expect(onCrearEnRango).toHaveBeenCalledWith('2026-08-18', '2026-08-18')
+  })
+
+  it('el botón derecho no pinta', () => {
+    const onCrearEnRango = vi.fn()
+    dibujar({ ancla: '2026-08-15', onCrearEnRango })
+    fireEvent.mouseDown(screen.getByTestId('dia-2026-08-17'), { button: 2 })
+    fireEvent.mouseEnter(screen.getByTestId('dia-2026-08-19'))
+    fireEvent.mouseUp(screen.getByTestId('dia-2026-08-19'))
+    expect(onCrearEnRango).not.toHaveBeenCalled()
+  })
+})
