@@ -13,8 +13,7 @@ import {
   alternarReserva,
   DIVISOR_MINIMO,
   moverDivisor,
-  posicionDelDivisor,
-} from '../gantt-columns'
+  posicionDelDivisor, moverColumna } from '../gantt-columns'
 
 /**
  * Las reglas de la rejilla del Gantt (§4.2, §4.8 criterio 8).
@@ -56,11 +55,25 @@ describe('§4.2 · qué columnas se dibujan', () => {
 })
 
 describe('§4.2 · encender y apagar columnas', () => {
-  it('encender una la coloca en el orden del catálogo, no al final', () => {
-    // Se guarda una lista, pero el orden lo manda el catálogo: así dos personas con las mismas
-    // columnas ven la misma rejilla.
+  it('encender una la pone al final, conservando el orden elegido', () => {
+    /**
+     * Esta prueba decía lo contrario —«la coloca en el orden del catálogo»— con este motivo: «así
+     * dos personas con las mismas columnas ven la misma rejilla».
+     *
+     * Era coherente mientras el orden **no se podía elegir**. Desde que se puede (§13: columnas
+     * «configurables, reordenables, redimensionables y persistidas»), reconstruir el orden del
+     * catálogo en cada gesto lo destruye: apagar una columna cualquiera devolvía todas a fábrica.
+     *
+     * Y al final, no en su hueco del catálogo: es donde quien la enciende espera verla aparecer.
+     */
     const p = alternarColumna(preferencia({ columnas: ['name', 'finish'] }), 'start')
-    expect(columnasVisibles(p).map((c) => c.id)).toEqual(['name', 'start', 'finish'])
+    expect(columnasVisibles(p).map((c) => c.id)).toEqual(['name', 'finish', 'start'])
+  })
+
+  it('apagar una NO reordena las que quedan', () => {
+    // Es la mitad que rompe el orden elegido sin que nadie lo pida.
+    const p = alternarColumna(preferencia({ columnas: ['name', 'finish', 'start', 'duration'] }), 'duration')
+    expect(columnasVisibles(p).map((c) => c.id)).toEqual(['name', 'finish', 'start'])
   })
 
   it('apagar una la quita', () => {
@@ -229,5 +242,42 @@ describe('El divisor entre la rejilla y la línea de tiempo (§4.1)', () => {
 
   it('un valor imposible no mueve nada', () => {
     expect(moverDivisor(GANTT_POR_OMISION, Number.NaN)).toEqual(GANTT_POR_OMISION)
+  })
+})
+
+
+describe('§13 · mover una columna de puesto', () => {
+  const cuatro = () => preferencia({ columnas: ['name', 'start', 'finish', 'duration'] })
+
+  it('a la izquierda intercambia con la anterior', () => {
+    const p = moverColumna(cuatro(), 'finish', 'IZQUIERDA')
+    expect(p.columnas).toEqual(['name', 'finish', 'start', 'duration'])
+  })
+
+  it('a la derecha, con la siguiente', () => {
+    const p = moverColumna(cuatro(), 'start', 'DERECHA')
+    expect(p.columnas).toEqual(['name', 'finish', 'start', 'duration'])
+  })
+
+  it('la última no se mueve a la derecha', () => {
+    expect(moverColumna(cuatro(), 'duration', 'DERECHA').columnas).toEqual(cuatro().columnas)
+  })
+
+  it('ninguna se pone delante de la columna del árbol', () => {
+    // Una rejilla cuya primera columna no dice de qué línea se habla no es una rejilla.
+    expect(moverColumna(cuatro(), 'start', 'IZQUIERDA').columnas).toEqual(cuatro().columnas)
+  })
+
+  it('la columna del árbol no se mueve', () => {
+    expect(moverColumna(cuatro(), 'name', 'DERECHA').columnas).toEqual(cuatro().columnas)
+  })
+
+  it('una columna que no está puesta no mueve nada', () => {
+    expect(moverColumna(cuatro(), 'float', 'IZQUIERDA').columnas).toEqual(cuatro().columnas)
+  })
+
+  it('mover y devolver deja el orden como estaba', () => {
+    const ida = moverColumna(cuatro(), 'finish', 'IZQUIERDA')
+    expect(moverColumna(ida, 'finish', 'DERECHA').columnas).toEqual(cuatro().columnas)
   })
 })

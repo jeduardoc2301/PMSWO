@@ -63,8 +63,7 @@ import {
   moverDivisor,
   posicionDelDivisor,
   columnasVisibles,
-  redimensionar,
-} from '@/lib/plan/gantt-columns'
+  redimensionar, moverColumna } from '@/lib/plan/gantt-columns'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import { toDayNumber, toIsoDate } from '@/lib/scheduling/date'
 import {
@@ -1011,6 +1010,7 @@ export function PlanWorkspace({
             <FieldsPanel
               visibles={preferencia.columnas}
               onAlternar={(id) => setPreferencia((prev) => alternarColumna(prev, id))}
+              onMover={(id, direccion) => setPreferencia((prev) => moverColumna(prev, id, direccion))}
             />
             <BaselinePicker
               baselines={fotos}

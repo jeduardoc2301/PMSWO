@@ -2336,3 +2336,44 @@ esconder a las hijas convertiría a su madre en una hoja y el formato plano empe
 resúmenes en cuanto alguien filtrara.
 
 Medido: el CSV dice ahora **1 243 de 1 368**, que es exactamente el número de hojas del plan.
+
+---
+
+## §13 — las columnas del Gantt ya se reordenan, y por qué no podían
+
+La casilla pide columnas «configurables, **reordenables**, redimensionables y persistidas». Tres de
+las cuatro estaban. La que faltaba no faltaba por falta de pantalla: **el modelo la pisaba**.
+
+`alternarColumna` y `alternarReserva` terminaban las dos igual:
+
+```ts
+columnas: COLUMNAS.filter((c) => puestas.has(c.id)).map((c) => c.id)
+```
+
+Es decir, reconstruían el orden del **catálogo** en cada gesto. Con eso, un orden elegido no podía
+existir ni un segundo: apagar una columna cualquiera devolvía todas a fábrica. Y la preferencia ya
+guardaba un array de identificadores, o sea que la base nunca estorbó.
+
+Había una prueba fijando ese comportamiento con su motivo escrito —«así dos personas con las mismas
+columnas ven la misma rejilla»—, que era coherente **mientras el orden no se podía elegir**.
+
+Ahora se conserva el orden elegido, y una columna que se enciende va **al final**: es donde quien la
+enciende espera verla aparecer, y meterla en su hueco del catálogo la escondera entre las que ya
+estaban.
+
+Ninguna se pone delante de la columna del nombre — una rejilla cuya primera columna no dice de qué
+línea se habla no es una rejilla.
+
+Las flechas sólo salen en las columnas **encendidas**: mover una apagada no significa nada. Y llevan
+`preventDefault`, porque viven dentro de la etiqueta de la casilla y sin eso pulsarlas apagaría la
+columna además de moverla.
+
+Medido en pantalla sobre la rejilla real:
+
+```
+orden inicial          name · start · finish
+pulsar «Mover Inicio después»
+orden después          name · finish · start
+```
+
+Con esto la casilla queda entera: configurables, reordenables, redimensionables y persistidas.

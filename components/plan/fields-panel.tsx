@@ -16,12 +16,20 @@ export interface FieldsPanelProps {
   /** Identificadores de las columnas encendidas. */
   readonly visibles: readonly string[]
   readonly onAlternar: (id: string) => void
+  /**
+   * Mover una columna de puesto (§13: columnas «reordenables»).
+   *
+   * Sin ella el orden no se puede tocar, que es como estuvo hasta ahora — y el comentario de la
+   * cabecera de este archivo decía «el orden lo manda el catálogo», que era cierto porque el modelo
+   * lo reconstruía en cada gesto.
+   */
+  readonly onMover?: (id: string, direccion: 'IZQUIERDA' | 'DERECHA') => void
 }
 
 /** Los grupos, en el orden del §4.2. */
 const GRUPOS: readonly ColumnaDelGantt['grupo'][] = ['Generales', 'Cronograma', 'Holgura']
 
-export function FieldsPanel({ visibles, onAlternar }: FieldsPanelProps) {
+export function FieldsPanel({ visibles, onAlternar, onMover }: FieldsPanelProps) {
   const [abierto, setAbierto] = useState(false)
   const caja = useRef<HTMLDivElement | null>(null)
 
@@ -86,7 +94,33 @@ export function FieldsPanel({ visibles, onAlternar }: FieldsPanelProps) {
                         data-testid={`campo-${columna.id}`}
                         className="h-3.5 w-3.5 accent-[#6366f1]"
                       />
-                      <span className="text-xs text-zinc-300">{columna.etiqueta}</span>
+                      <span className="flex-1 truncate text-xs text-zinc-300">{columna.etiqueta}</span>
+
+                      {/* Las flechas sólo en las encendidas: mover una columna apagada no significa
+                          nada, y enseñarlas en todas llena el panel de botones que no hacen nada. */}
+                      {onMover && !fija && puestas.has(columna.id) ? (
+                        <span className="flex shrink-0 items-center gap-0.5">
+                          {(['IZQUIERDA', 'DERECHA'] as const).map((direccion) => (
+                            <button
+                              key={direccion}
+                              type="button"
+                              data-testid={`mover-${direccion === 'IZQUIERDA' ? 'antes' : 'despues'}-${columna.id}`}
+                              aria-label={`Mover ${columna.etiqueta} ${direccion === 'IZQUIERDA' ? 'antes' : 'después'}`}
+                              title={`Mover «${columna.etiqueta}» ${direccion === 'IZQUIERDA' ? 'un puesto antes' : 'un puesto después'}`}
+                              onClick={(e) => {
+                                // El botón vive dentro de la etiqueta de la casilla: sin esto, pulsarlo
+                                // encendería o apagaría la columna además de moverla.
+                                e.preventDefault()
+                                e.stopPropagation()
+                                onMover(columna.id, direccion)
+                              }}
+                              className="rounded border border-zinc-700 px-1 text-[10px] leading-4 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                            >
+                              {direccion === 'IZQUIERDA' ? '←' : '→'}
+                            </button>
+                          ))}
+                        </span>
+                      ) : null}
                     </label>
                   )
                 })}

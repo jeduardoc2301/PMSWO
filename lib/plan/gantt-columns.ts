@@ -211,7 +211,17 @@ export function moverDivisor(
   return { ...preferencia, divisor: Math.max(DIVISOR_MINIMO, Math.round(posicion)) }
 }
 
-/** Enciende o apaga una columna, conservando el orden del catálogo. */
+/**
+ * Enciende o apaga una columna, **conservando el orden que tuviera**.
+ *
+ * Antes reconstruía el orden del catálogo en cada gesto —`COLUMNAS.filter(...)`—, y con eso el orden
+ * elegido no podía existir: apagar una columna cualquiera devolvía todas al orden de fábrica. El
+ * §13 pide columnas «configurables, **reordenables**, redimensionables y persistidas», y esa era la
+ * única de las cuatro que faltaba — no por falta de pantalla, sino porque el modelo la pisaba.
+ *
+ * Una columna que se enciende va **al final**: es donde quien la enciende espera verla aparecer, y
+ * meterla en su hueco del catálogo la escondera entre las que ya estaban.
+ */
 export function alternarColumna(
   preferencia: PreferenciaDelGantt,
   id: string,
@@ -220,14 +230,39 @@ export function alternarColumna(
   if (id === COLUMNA_FIJA) return preferencia
   if (!COLUMNAS_POR_ID.has(id)) return preferencia
 
-  const puestas = new Set(preferencia.columnas)
-  if (puestas.has(id)) puestas.delete(id)
-  else puestas.add(id)
+  const puestas = preferencia.columnas.includes(id)
+    ? preferencia.columnas.filter((c) => c !== id)
+    : [...preferencia.columnas, id]
 
-  return {
-    ...preferencia,
-    columnas: COLUMNAS.filter((columna) => puestas.has(columna.id)).map((columna) => columna.id),
-  }
+  return { ...preferencia, columnas: puestas }
+}
+
+/**
+ * Mueve una columna un puesto (§4.2, §13).
+ *
+ * Devuelve la preferencia sin tocar cuando el movimiento no existe —la primera hacia arriba, la
+ * última hacia abajo— y cuando el destino sería el puesto de la columna fija: el nombre de la línea
+ * va siempre delante, porque una rejilla cuya primera columna no dice de qué línea se habla no es
+ * una rejilla.
+ */
+export function moverColumna(
+  preferencia: PreferenciaDelGantt,
+  id: string,
+  direccion: 'IZQUIERDA' | 'DERECHA',
+): PreferenciaDelGantt {
+  if (id === COLUMNA_FIJA) return preferencia
+  const orden = [...preferencia.columnas]
+  const desde = orden.indexOf(id)
+  if (desde < 0) return preferencia
+
+  const hasta = direccion === 'IZQUIERDA' ? desde - 1 : desde + 1
+  if (hasta < 0 || hasta >= orden.length) return preferencia
+  if (orden[hasta] === COLUMNA_FIJA) return preferencia
+
+  const movida = orden[desde]
+  orden[desde] = orden[hasta]
+  orden[hasta] = movida
+  return { ...preferencia, columnas: orden }
 }
 
 /** Las dos columnas que el §4.6 llama «reserva». Van juntas: comparar total con libre es el dato. */
@@ -248,11 +283,13 @@ export function alternarReserva(preferencia: PreferenciaDelGantt): PreferenciaDe
     if (encendida) puestas.add(id)
     else puestas.delete(id)
   }
-  return {
-    ...preferencia,
-    reserva: encendida,
-    columnas: COLUMNAS.filter((columna) => puestas.has(columna.id)).map((columna) => columna.id),
+  // Como `alternarColumna`: se conserva el orden elegido y las nuevas van al final.
+  const orden = preferencia.columnas.filter((c) => puestas.has(c))
+  for (const id of COLUMNAS_DE_RESERVA) {
+    if (puestas.has(id) && !orden.includes(id)) orden.push(id)
   }
+
+  return { ...preferencia, reserva: encendida, columnas: orden }
 }
 
 /** Cambia el ancho de una columna, respetando su mínimo. */
