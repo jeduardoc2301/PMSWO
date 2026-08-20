@@ -393,7 +393,7 @@ export function WorkloadView({
       )}
 
       {celdaElegida !== null ? (
-        <div className="rounded-xl border border-zinc-800 bg-[#18181b] p-4">
+        <div data-testid="panel-del-dia" className="rounded-xl border border-zinc-800 bg-[#18181b] p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-medium text-zinc-100">
               {resources.find((r) => r.id === celdaElegida.resourceId)?.name} · {celdaElegida.date}
