@@ -209,7 +209,19 @@ export function PlanWorkspace({
   const setLinks = (flechas: LinkVisibility) => setPreferencia((p) => ({ ...p, flechas: flechas as PreferenciaDelGantt['flechas'] }))
   const setScale = (escala: AxisScale) => setPreferencia((p) => ({ ...p, escala: escala as PreferenciaDelGantt['escala'] }))
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  /**
+   * Lo que se abrió y lo que se cerró a mano, en **dos** conjuntos.
+   *
+   * Había uno solo, `abiertosAMano`, y se restaba del plegado automático del nivel de detalle. Con
+   * eso sólo se podía **abrir** lo que el nivel había cerrado: un resumen que el nivel ya mostraba
+   * abierto no estaba en esa lista, así que añadirlo no lo quitaba de ningún sitio y pulsar su ▾ no
+   * hacía nada.
+   *
+   * En nivel «Todo» el plegado automático es la lista vacía, así que **ningún** resumen se podía
+   * cerrar. Y «Todo» es justo el nivel desde el que alguien va a querer ir cerrando lo que no mira.
+   */
   const [abiertosAMano, setAbiertosAMano] = useState<ReadonlySet<string>>(new Set())
+  const [cerradosAMano, setCerradosAMano] = useState<ReadonlySet<string>>(new Set())
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
   const [aplicando, setAplicando] = useState(false)
   const [fotos, setFotos] = useState<readonly LineaBaseGuardada[]>([])
@@ -391,7 +403,9 @@ export function PlanWorkspace({
       // conmutador diría que hay menos tareas vencidas por haber cerrado una carpeta.
       hoy: hoyCivil(),
     })
-    const plegados = collapseToLevel(abierto.rows, level).filter((id) => !abiertosAMano.has(id))
+    // El nivel de detalle propone, y las dos listas a mano corrigen en los dos sentidos.
+    const plegados = new Set(collapseToLevel(abierto.rows, level).filter((id) => !abiertosAMano.has(id)))
+    for (const id of cerradosAMano) plegados.add(id)
 
     const trazado = ganttLayout({
       tasks,
@@ -400,7 +414,7 @@ export function PlanWorkspace({
       classified: base.classified,
       calendar: base.calendar,
       baseline: fechasDeLaFoto.size > 0 ? (fechasDeLaFoto as never) : undefined,
-      collapsed: plegados,
+      collapsed: [...plegados],
       links,
       selectedId,
       filter,
@@ -411,7 +425,7 @@ export function PlanWorkspace({
     })
 
     return { ...trazado, atrasadasEnTodoElPlan: abierto.rows.filter((f) => f.atrasada).length }
-  }, [tasks, dependencies, base, level, abiertosAMano, links, selectedId, filter, scale, fechasDeLaFoto])
+  }, [tasks, dependencies, base, level, abiertosAMano, cerradosAMano, links, selectedId, filter, scale, fechasDeLaFoto])
 
   // El filtro unificado recorta las filas ya trazadas, conservando los ancestros de lo que
   // sobrevive: una actividad colgando de una fase ausente dejaría de ser un esquema. Y va aquí,
@@ -797,14 +811,37 @@ export function PlanWorkspace({
       abrir.add(padre)
     }
     setAbiertosAMano(abrir)
+    // Y sacarlos de lo cerrado a mano: abrir un ancestro que está en las dos listas no lo abre.
+    setCerradosAMano((previos) => {
+      const quedan = new Set(previos)
+      for (const ancestro of abrir) quedan.delete(ancestro)
+      return quedan
+    })
     setSelectedId(id)
   }
 
-  const alternarPlegado = (id: string) => {
-    const abrir = new Set(abiertosAMano)
-    if (abrir.has(id)) abrir.delete(id)
-    else abrir.add(id)
-    setAbiertosAMano(abrir)
+  /**
+   * Abre o cierra un resumen, sea cual sea el nivel de detalle.
+   *
+   * Necesita saber cómo está **ahora** —y no basta con mirar un solo conjunto— porque el estado
+   * visible sale de tres cosas: el plegado del nivel, lo abierto a mano y lo cerrado a mano. El
+   * trazado ya lo sabe, así que lo dice él: cada fila lleva su `isCollapsed`.
+   *
+   * Al alternar se limpia el conjunto contrario. Sin eso, cerrar algo que se había abierto a mano lo
+   * dejaría en las dos listas, y el siguiente cambio de nivel decidiría por desempate.
+   */
+  const alternarPlegado = (id: string, estabaPlegada: boolean) => {
+    const abiertos = new Set(abiertosAMano)
+    const cerrados = new Set(cerradosAMano)
+    if (estabaPlegada) {
+      cerrados.delete(id)
+      abiertos.add(id)
+    } else {
+      abiertos.delete(id)
+      cerrados.add(id)
+    }
+    setAbiertosAMano(abiertos)
+    setCerradosAMano(cerrados)
   }
 
   /**

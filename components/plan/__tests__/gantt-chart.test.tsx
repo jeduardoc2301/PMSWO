@@ -225,12 +225,18 @@ describe('Plegar y seleccionar', () => {
     expect(screen.getByText(/2 sin mostrar/)).toBeInTheDocument()
   })
 
-  it('tocar el triángulo avisa cuál resumen se quiere plegar', () => {
+  it('tocar el triángulo avisa cuál resumen se quiere plegar, y cómo estaba', () => {
+    /**
+     * El segundo argumento no es redundante. Quién manda sobre el plegado son tres cosas —el nivel
+     * de detalle, lo abierto a mano y lo cerrado a mano— y quien escucha no puede deducir el estado
+     * visible de ninguna por separado. Sin él, `plan-workspace` sólo podía **abrir**: en nivel
+     * «Todo» el plegado automático es la lista vacía, así que ningún resumen se podía cerrar.
+     */
     const onToggle = vi.fn()
     render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} onToggle={onToggle} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar Preparación del ambiente' }))
-    expect(onToggle).toHaveBeenCalledWith('FASE')
+    expect(onToggle).toHaveBeenCalledWith('FASE', false)
   })
 
   it('tocar el nombre avisa cuál línea se eligió', () => {

@@ -101,7 +101,14 @@ export interface GanttChartProps {
   readonly marcadas?: ReadonlySet<string>
   readonly onMarcar?: (id: string, conMayusculas: boolean) => void
   /** Abrir o cerrar un resumen. Sin esto, los triángulos no se dibujan. */
-  readonly onToggle?: (id: string) => void
+  /**
+   * Abrir o cerrar un resumen. Recibe además **cómo estaba**, y no es redundante.
+   *
+   * Quién manda sobre el plegado son tres cosas —el nivel de detalle, lo abierto a mano y lo cerrado
+   * a mano— y quien escucha no puede deducir el estado visible de ninguna de ellas por separado. La
+   * fila sí lo sabe: es lo que dibuja. Así que lo dice ella.
+   */
+  readonly onToggle?: (id: string, estabaPlegada: boolean) => void
   /**
    * Soltar una barra en otra columna. Llega el desplazamiento en **días hábiles**, no una fecha.
    *
@@ -522,7 +529,7 @@ function NameCell({
   row: GanttRow
   height: number
   onSelect?: (id: string) => void
-  onToggle?: (id: string) => void
+  onToggle?: (id: string, estabaPlegada: boolean) => void
   onEditarNombre?: (id: string, valor: string) => void
 }) {
   return (
@@ -535,7 +542,7 @@ function NameCell({
           type="button"
           aria-label={row.isCollapsed ? `Abrir ${row.name}` : `Cerrar ${row.name}`}
           aria-expanded={!row.isCollapsed}
-          onClick={() => onToggle(row.id)}
+          onClick={() => onToggle(row.id, row.isCollapsed)}
           className="w-4 shrink-0 text-zinc-400"
         >
           {row.isCollapsed ? '▸' : '▾'}

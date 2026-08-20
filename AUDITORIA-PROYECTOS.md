@@ -2114,3 +2114,54 @@ leer, y la matriz debajo con su fila de huérfanos y las filas de los recursos v
 libre es la mitad de la respuesta a «¿a quién le paso esto?».
 
 Tres pruebas nuevas sobre la vista con `assignments: []`.
+
+---
+
+## §4.1 — contraer un resumen no hacía nada, y en el nivel «Todo» nunca podía hacerlo
+
+Lo encontró el agente que auditó el Gantt contra la lista del §13, y es un defecto de bulto en una
+interacción central: el triángulo de un resumen.
+
+El plegado salía de **una** lista:
+
+```ts
+const plegados = collapseToLevel(abierto.rows, level).filter((id) => !abiertosAMano.has(id))
+```
+
+`abiertosAMano` sólo podía **restar** de lo que el nivel de detalle había cerrado. Un resumen que el
+nivel ya mostraba abierto no estaba en esa lista, así que añadirlo no lo quitaba de ningún sitio y
+pulsar su ▾ no hacía nada.
+
+Y en nivel **«Todo»** el plegado automático es la lista vacía, o sea que **ningún** resumen se podía
+cerrar — y «Todo» es justo el nivel desde el que alguien va a querer ir cerrando lo que no mira.
+
+Ahora hay **dos** listas, abierto a mano y cerrado a mano, y el nivel de detalle propone mientras
+ellas corrigen en los dos sentidos. Al alternar se limpia la contraria: dejar un id en las dos
+haría que el siguiente cambio de nivel decidiera por desempate.
+
+El triángulo manda además **cómo estaba**, y no es redundante: el estado visible sale de tres cosas
+—el nivel, lo abierto y lo cerrado— y quien escucha no puede deducirlo de ninguna por separado. La
+fila sí lo sabe, porque es lo que dibuja.
+
+### En pantalla, sobre las 1368
+
+```
+1. al llegar                                        1 368 de 1 368 líneas
+2. cerrar «BANCO UNIÓN · ETAPA MOBILIZE…»            1 178 de 1 368 líneas
+3. volver a abrirlo                                 1 368 de 1 368 líneas
+```
+
+### Nota de método: seis selectores mal en una noche
+
+Esta medición costó tres intentos, los tres míos:
+
+1. Conté `[data-testid^="celda-name-"]` y salía **28 antes y 28 después**. Son las filas
+   **dibujadas**, y el Gantt virtualiza: el número es el de la ventana, no el del plan.
+2. Busqué los triángulos por `button[aria-expanded]` y estuve pulsando «Exportar Proyecto»,
+   «Analizar Proyecto» y «Filtro ▾», que llevan el mismo atributo. Se localizan por su `aria-label`:
+   «Abrir X» / «Cerrar X».
+3. El rótulo del total lo encontré con un `indexOf(' de ')` que casaba antes con la descripción del
+   plan importado —que también lleva «de» y nunca cambia—.
+
+Van **seis** veces esta sesión que una sonda «encuentra» algo que es suyo. Las seis, la reacción
+correcta fue ir a leer el componente.
