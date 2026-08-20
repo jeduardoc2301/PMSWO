@@ -3516,3 +3516,41 @@ cambia es que caben en pantalla.
 Vale la pena anotar que el informe señaló el síntoma correcto y la causa equivocada. Arreglar lo que
 decía —acotar los hitos— habría escondido hitos para tapar un carril fantasma.
 
+---
+
+## §6.2 — la cabecera de grupo hablaba en enum, y una celda de más
+
+Dos defectos en el mismo bloque de la Lista, y los dos se ven al mirar.
+
+### El mismo dato con dos nombres, a dos centímetros
+
+La cabecera de grupo enseñaba **el valor crudo**: «TODO», «CRITICAL». Las celdas de las filas de
+debajo, en la misma pantalla, decían «Por hacer» y «Crítica». El crudo encima, en la línea que las
+titula.
+
+Se traduce con **las mismas funciones** que las celdas, no con una copia: dos tablas de nombres
+acaban divergiendo, y la que se olvida es siempre la del sitio menos mirado. Responsable y fase salen
+tal cual porque son texto libre.
+
+### Y una celda que no existía
+
+`colSpan={columnasDeLaFila}` seguido de otra celda, cuando `columnasDeLaFila` **ya incluye** la de
+acciones. La fila de cabecera emitía una columna más que la tabla, en **todas** las configuraciones
+del panel de Campos. Un `colSpan` de más no da error: estira la fila y descuadra los bordes, que es
+de las cosas que se ven y no se miran.
+
+### Por qué sobrevivieron
+
+**La Lista no tenía ninguna prueba de componente.** Es la vista con más código de las seis —mil
+cuatrocientas líneas— y la única sin un solo `render()`. Los dos defectos son de los que una prueba
+de siete líneas caza.
+
+Ahora hay siete, y tres de ellas comprueban la cuenta de celdas **en tres configuraciones distintas
+del panel de Campos**, que es donde el `colSpan` fijo se rompe.
+
+### Demostrado en pantalla
+
+Agrupando por Estado sobre las 1 368: la clave del grupo sigue siendo `TODO` —es el dato— y lo que
+se lee es **«POR HACER»**. Y la fila de cabecera suma **10 celdas** contra las **10 columnas** de la
+tabla.
+

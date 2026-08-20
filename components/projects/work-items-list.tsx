@@ -11,6 +11,7 @@ import {
   type CampoDeGrupo,
   type LineaSumable,
   type Totales,
+  SIN_VALOR,
   agrupar,
   esResumen,
   totalizar,
@@ -454,6 +455,26 @@ export function WorkItemsList({
     }
     const clave = priorityMap[priority]
     return clave ? t(`priority.${clave}`) : String(priority ?? '—')
+  }
+
+  /**
+   * Cómo se llama un grupo en pantalla.
+   *
+   * La cabecera enseñaba **el valor crudo del enum** —«TODO», «CRITICAL»— mientras las celdas de las
+   * filas de debajo, en la misma pantalla y a dos centímetros, decían «Por hacer» y «Crítica». El
+   * mismo dato con dos nombres, y el crudo encima en la línea que lo titula.
+   *
+   * Se traduce con **las mismas funciones** que las celdas, no con una copia: dos tablas de nombres
+   * acaban divergiendo, y la que se olvida es siempre la del sitio menos mirado.
+   *
+   * Responsable y fase salen tal cual porque son texto libre: no hay nada que traducir, y
+   * `SIN_VALOR` ya viene en palabras.
+   */
+  const etiquetaDeGrupo = (clave: string): string => {
+    if (clave === SIN_VALOR) return clave
+    if (agruparPor === 'status') return getStatusLabel(clave as WorkItemStatus)
+    if (agruparPor === 'priority') return getPriorityLabel(clave as WorkItemPriority)
+    return clave
   }
 
   const toggleStatusFilter = (status: WorkItemStatus) => {
@@ -1218,9 +1239,14 @@ export function WorkItemsList({
                           style={{ height: ALTO_DE_FILA }}
                           className="border-b border-borde bg-superficie/30"
                         >
-                          <td colSpan={columnasDeLaFila} className="px-6 py-0">
+                          {/*
+                            `columnasDeLaFila` **ya incluye** la de acciones (`+ 1`), y después de
+                            esta celda va otra: la fila emitía una celda más que columnas tiene la
+                            tabla, en todas las configuraciones del panel de Campos.
+                          */}
+                          <td colSpan={columnasDeLaFila - 1} className="px-6 py-0">
                             <span className="text-xs font-semibold uppercase tracking-wide text-tinta-2">
-                              {entrada.clave}
+                              {etiquetaDeGrupo(entrada.clave)}
                             </span>
                             <span className="ml-2 text-xs text-tinta-3">
                               {entrada.subtotal.lineas} {entrada.subtotal.lineas === 1 ? 'línea' : 'líneas'}
