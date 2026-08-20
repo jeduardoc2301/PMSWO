@@ -2197,3 +2197,26 @@ noviembre.
 De esa casilla queda el **sombreado de días no laborables**, y no es barato: el eje son ordinales
 hábiles, así que los fines de semana y los festivos **ni se dibujan**. Sombrearlos exige pasar el
 eje a días civiles, que es rehacer el trazado entero.
+
+---
+
+## §6.2 — la fila de totales sólo cuadraba con las seis columnas de por omisión
+
+Cuarta del barrido del §13, y el **mismo descuido** que tenía la exportación: el panel de Campos
+llegó después que estas filas y nadie volvió a mirarlas.
+
+Los tramos estaban escritos a mano —`colSpan={4}`, `colSpan={2}`, `colSpan={7}`, `colSpan={6}`— y
+suman siempre siete. La tabla tiene tantas columnas como el panel de Campos diga, **más una** de
+acciones. Encender tres columnas más dejaba la fila de totales tres celdas corta, con los bordes sin
+alinear; apagar dos la desbordaba por la derecha.
+
+Ahora los tramos salen de las columnas elegidas. Medido en pantalla, cuatro configuraciones:
+
+| el panel dice | celdas de la cabecera | celdas de la fila de totales |
+|---|---:|---:|
+| Campos (9) | 10 | **10** |
+| Campos (6) | 7 | **7** |
+| Campos (4) | 5 | **5** |
+| Campos (9) | 10 | **10** |
+
+Antes eran siete en las cuatro.

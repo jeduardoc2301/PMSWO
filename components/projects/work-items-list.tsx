@@ -494,6 +494,22 @@ export function WorkItemsList({
   const [camposAbierto, setCamposAbierto] = useState(false)
   const columnasDeLaTabla = useMemo(() => columnasVisiblesDeLaLista(columnasElegidas), [columnasElegidas])
   const encendidas = useMemo(() => new Set(columnasDeLaTabla.map((c) => c.id)), [columnasDeLaTabla])
+
+  /**
+   * Cuántas celdas ocupa cada tramo de las filas de total y subtotal (§6.2).
+   *
+   * Estaban escritos a mano —`colSpan={4}`, `colSpan={2}`, `colSpan={7}`, `colSpan={6}`— y sólo
+   * cuadraban con las **seis** columnas de por omisión. Encender tres más dejaba la fila de totales
+   * tres columnas corta, con los bordes sin alinear; apagar dos la desbordaba por la derecha.
+   *
+   * El panel de Campos llegó después que estas filas, y nadie volvió a mirarlas — el mismo descuido
+   * que tenía la exportación.
+   *
+   * La columna de acciones no está en el catálogo pero sí en la tabla, por eso el `+ 1`.
+   */
+  const columnasDeLaFila = columnasDeLaTabla.length + 1
+  const tramoDelAvance = Math.min(2, columnasDeLaFila - 1)
+  const tramoDelMedio = columnasDeLaFila - 1 - tramoDelAvance
   const visible = (id: string) => encendidas.has(id)
 
   const renombrar = async (id: string, titulo: string): Promise<void> => {
@@ -1036,14 +1052,16 @@ export function WorkItemsList({
                         {total.lineas}
                       </span>
                     </td>
-                    <td className="px-6 py-2" colSpan={4}>
+                    {tramoDelMedio > 0 ? (
+                    <td className="px-6 py-2" colSpan={tramoDelMedio}>
                       <span className="text-xs text-zinc-500">
                         {total.horas > 0
                           ? `${total.horas} h estimadas`
                           : 'sin horas estimadas capturadas'}
                       </span>
                     </td>
-                    <td className="px-6 py-2" colSpan={2}>
+                    ) : null}
+                    <td className="px-6 py-2" colSpan={tramoDelAvance}>
                       <span
                         data-testid="total-avance"
                         title={
@@ -1061,7 +1079,7 @@ export function WorkItemsList({
                 {huecoArriba > 0 ? <tr aria-hidden style={{ height: huecoArriba }} /> : null}
                 {lineasPlanas.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: '#71717a', fontSize: 14 }}>
+                    <td colSpan={columnasDeLaFila} style={{ padding: '48px 24px', textAlign: 'center', color: '#71717a', fontSize: 14 }}>
                       {searchQuery || statusFilters.length > 0 || priorityFilters.length > 0
                         ? t('noResultsFound', { defaultValue: 'No se encontraron resultados' })
                         : t('noWorkItems')
@@ -1078,7 +1096,7 @@ export function WorkItemsList({
                           style={{ height: ALTO_DE_FILA }}
                           className="border-b border-zinc-800 bg-zinc-900/30"
                         >
-                          <td colSpan={6} className="px-6 py-0">
+                          <td colSpan={columnasDeLaFila} className="px-6 py-0">
                             <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
                               {entrada.clave}
                             </span>
