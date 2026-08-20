@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { createWorkCalendar } from '../calendar'
 import {
   type CalendarTask,
+  agendaDelRango,
+  anclaTrasAvanzar,
   calendarLayout,
   carrilesDibujados,
   hiddenTasksOfDay,
+  rangoDelModo,
 } from '../calendar-layout'
 
 const calendar = createWorkCalendar()
@@ -427,5 +430,114 @@ describe('§7.5 · el alto de la fila y la cuenta de la cabecera dicen la verdad
     })
     expect(layout.tasksInRange).toBe(1)
     expect(layout.outOfRange).toBe(1)
+  })
+})
+
+describe('§7.2 · qué rango cubre cada modo', () => {
+  it('el mes va del día 1 al último, contando bisiestos', () => {
+    expect(rangoDelModo('MES', '2026-06-15')).toEqual({ from: '2026-06-01', to: '2026-06-30' })
+    expect(rangoDelModo('MES', '2024-02-10')).toEqual({ from: '2024-02-01', to: '2024-02-29' })
+    expect(rangoDelModo('MES', '2026-02-10')).toEqual({ from: '2026-02-01', to: '2026-02-28' })
+  })
+
+  it('la semana va de lunes a domingo, y el ancla es cualquier día de dentro', () => {
+    // El 2026-06-17 es miércoles.
+    expect(rangoDelModo('SEMANA', '2026-06-17')).toEqual({ from: '2026-06-15', to: '2026-06-21' })
+    // Desde el propio lunes o desde el domingo, la misma semana.
+    expect(rangoDelModo('SEMANA', '2026-06-15')).toEqual({ from: '2026-06-15', to: '2026-06-21' })
+    expect(rangoDelModo('SEMANA', '2026-06-21')).toEqual({ from: '2026-06-15', to: '2026-06-21' })
+  })
+
+  it('con la semana abriendo en domingo, se corre un día', () => {
+    expect(rangoDelModo('SEMANA', '2026-06-17', 0)).toEqual({ from: '2026-06-14', to: '2026-06-20' })
+  })
+
+  it('la agenda cubre el mismo mes: cambiar de modo no salta a otra parte del plan', () => {
+    expect(rangoDelModo('AGENDA', '2026-06-15')).toEqual(rangoDelModo('MES', '2026-06-15'))
+  })
+})
+
+describe('§7.2 · las flechas', () => {
+  it('por semanas suman siete días', () => {
+    expect(anclaTrasAvanzar('SEMANA', '2026-06-17', 1)).toBe('2026-06-24')
+    expect(anclaTrasAvanzar('SEMANA', '2026-06-17', -1)).toBe('2026-06-10')
+  })
+
+  it('por meses no suman días: suman meses', () => {
+    expect(anclaTrasAvanzar('MES', '2026-06-15', 1)).toBe('2026-07-15')
+    expect(anclaTrasAvanzar('MES', '2026-01-15', -1)).toBe('2025-12-15')
+  })
+
+  it('desde un día 31 sujeta el día en vez de saltarse un mes', () => {
+    // El 31 de enero más un mes no es el 31 de febrero. Sin sujetarlo, avanzar desde un día 31
+    // saltaba meses enteros y las flechas dejaban de ser reversibles.
+    expect(anclaTrasAvanzar('MES', '2026-01-31', 1)).toBe('2026-02-28')
+    expect(anclaTrasAvanzar('MES', '2026-03-31', -1)).toBe('2026-02-28')
+    expect(anclaTrasAvanzar('MES', '2024-01-31', 1)).toBe('2024-02-29')
+  })
+
+  it('cruza el año en los dos sentidos', () => {
+    expect(anclaTrasAvanzar('MES', '2026-12-15', 1)).toBe('2027-01-15')
+    expect(anclaTrasAvanzar('SEMANA', '2026-12-31', 1)).toBe('2027-01-07')
+  })
+})
+
+describe('§7.2 · la agenda', () => {
+  const TAREAS: CalendarTask[] = [
+    tarea('larga', '2026-06-15', '2026-06-19', 'Migrar los datos'),
+    tarea('corta', '2026-06-17', '2026-06-17', 'Revisar el respaldo'),
+    { id: 'hito', name: 'Cierre de la ola', start: '2026-06-19', finish: '2026-06-19', isMilestone: true },
+    tarea('otra', '2026-06-16', '2026-06-18', 'Ajustar la red'),
+  ]
+
+  it('cada día dice qué empieza, qué termina y qué sigue en curso', () => {
+    const dias = agendaDelRango(TAREAS, '2026-06-15', '2026-06-19', calendar)
+    const porFecha = new Map(dias.map((d) => [d.date, d]))
+
+    expect(porFecha.get('2026-06-15')!.empiezan.map((t) => t.id)).toEqual(['larga'])
+    expect(porFecha.get('2026-06-16')!.empiezan.map((t) => t.id)).toEqual(['otra'])
+    expect(porFecha.get('2026-06-16')!.enCurso.map((t) => t.id)).toEqual(['larga'])
+    expect(porFecha.get('2026-06-18')!.terminan.map((t) => t.id)).toEqual(['otra'])
+  })
+
+  it('una tarea de un día empieza y NO termina: no se cuenta dos veces', () => {
+    // Contarla en los dos grupos haría que la agenda dijera «2 eventos» donde hay uno.
+    const dia = agendaDelRango(TAREAS, '2026-06-17', '2026-06-17', calendar)[0]
+    expect(dia.empiezan.map((t) => t.id)).toContain('corta')
+    expect(dia.terminan.map((t) => t.id)).not.toContain('corta')
+  })
+
+  it('los hitos van primero dentro de su grupo', () => {
+    // Mismo motivo que en la rejilla: un hito es un compromiso, y en una lista larga lo que va al
+    // final no se lee.
+    const dia = agendaDelRango(TAREAS, '2026-06-19', '2026-06-19', calendar)[0]
+    expect(dia.empiezan[0].id).toBe('hito')
+  })
+
+  it('los días sin nada se omiten', () => {
+    // Veinte renglones vacíos entre dos eventos obligan a desplazarse para no encontrar nada.
+    const dias = agendaDelRango(TAREAS, '2026-06-01', '2026-06-30', calendar)
+    expect(dias.map((d) => d.date)).toEqual([
+      '2026-06-15',
+      '2026-06-16',
+      '2026-06-17',
+      '2026-06-18',
+      '2026-06-19',
+    ])
+  })
+
+  it('dice si el día es laborable, para poder atenuarlo', () => {
+    const finde = agendaDelRango(
+      [tarea('x', '2026-06-19', '2026-06-22', 'Cruza el fin de semana')],
+      '2026-06-19',
+      '2026-06-22',
+      calendar,
+    )
+    expect(finde.find((d) => d.date === '2026-06-20')!.isWorking).toBe(false)
+    expect(finde.find((d) => d.date === '2026-06-22')!.isWorking).toBe(true)
+  })
+
+  it('un rango al revés devuelve vacío en vez de reventar', () => {
+    expect(agendaDelRango(TAREAS, '2026-06-19', '2026-06-15', calendar)).toEqual([])
   })
 })

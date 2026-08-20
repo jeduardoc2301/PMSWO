@@ -333,3 +333,133 @@ function estaFueraDelMes(iso: IsoDate, month?: number, year?: number): boolean {
   if (month === undefined || year === undefined) return false
   return Number(iso.slice(0, 4)) !== year || Number(iso.slice(5, 7)) !== month
 }
+
+/**
+ * Cómo se está mirando el calendario (§7.2).
+ *
+ * El spec pide tres. `calendarLayout` ya servía para las dos primeras sin tocarlo —recibe `from` y
+ * `to`, no un mes— así que lo único que faltaba era decir qué rango pide cada modo. La tercera no
+ * usa la rejilla: una agenda es una lista, y meterla por el mismo camino la obligaría a inventarse
+ * carriles que nadie va a ver.
+ */
+export type ModoDeCalendario = 'MES' | 'SEMANA' | 'AGENDA'
+
+/**
+ * Qué rango cubre cada modo alrededor de un día.
+ *
+ * El día de referencia es cualquiera **dentro** del periodo, no su primer día: así el mismo valor
+ * sirve para los tres modos y cambiar de modo no salta a otra parte del plan. Pasar de la semana
+ * del 15 al mes deja el mes del 15, que es donde estaba mirando quien cambió.
+ *
+ * `calendarLayout` expande hacia atrás hasta el lunes y hacia adelante hasta el domingo, así que
+ * aquí no hace falta redondear a semanas: se dice el periodo y él completa las filas.
+ */
+export function rangoDelModo(
+  modo: ModoDeCalendario,
+  ancla: IsoDate,
+  weekStartsOn: 0 | 1 = 1,
+): { readonly from: IsoDate; readonly to: IsoDate } {
+  if (modo === 'SEMANA') {
+    const lunes = inicioDeSemana(toDayNumber(ancla), weekStartsOn)
+    return { from: toIsoDate(lunes), to: toIsoDate(lunes + 6) }
+  }
+  // Mes y agenda comparten periodo: la agenda es el mismo mes leído como lista, y darle otro
+  // periodo haría que las flechas movieran distinto según el modo sin motivo visible.
+  const anio = Number(ancla.slice(0, 4))
+  const mes = Number(ancla.slice(5, 7))
+  return {
+    from: `${ancla.slice(0, 7)}-01` as IsoDate,
+    to: `${ancla.slice(0, 7)}-${String(diasDelMesDe(anio, mes)).padStart(2, '0')}` as IsoDate,
+  }
+}
+
+/** El día de referencia tras pulsar una flecha. */
+export function anclaTrasAvanzar(modo: ModoDeCalendario, ancla: IsoDate, pasos: number): IsoDate {
+  if (modo === 'SEMANA') return toIsoDate(toDayNumber(ancla) + pasos * 7)
+
+  // Por meses no se puede sumar días: los meses no miden lo mismo. Y hay que sujetar el día del mes,
+  // porque el 31 de enero más un mes no es el 31 de febrero — sin esto, avanzar desde un día 31
+  // saltaba meses enteros.
+  const anio = Number(ancla.slice(0, 4))
+  const mes = Number(ancla.slice(5, 7))
+  const dia = Number(ancla.slice(8, 10))
+  const total = anio * 12 + (mes - 1) + pasos
+  const nuevoAnio = Math.floor(total / 12)
+  const nuevoMes = (total % 12) + 1
+  const diaFinal = Math.min(dia, diasDelMesDe(nuevoAnio, nuevoMes))
+  return `${nuevoAnio}-${String(nuevoMes).padStart(2, '0')}-${String(diaFinal).padStart(2, '0')}` as IsoDate
+}
+
+/** Una entrada de la agenda: un día con lo que ocurre en él. */
+export interface DiaDeAgenda {
+  readonly date: IsoDate
+  readonly isWorking: boolean
+  /** Las que **empiezan** ese día. */
+  readonly empiezan: readonly CalendarTask[]
+  /** Las que **terminan** ese día y no empezaron en él. */
+  readonly terminan: readonly CalendarTask[]
+  /** Las que vienen de antes y siguen después: en curso, sin evento propio ese día. */
+  readonly enCurso: readonly CalendarTask[]
+}
+
+/**
+ * La agenda: qué pasa cada día del rango, en orden.
+ *
+ * Se separan las que **empiezan**, las que **terminan** y las que sólo están en curso, y esa
+ * separación es la razón de que la agenda exista. Una lista que dijera «estas 63 tareas tocan el
+ * martes» no dice nada: en un plan de 1368 líneas casi todos los días tocan decenas de tareas
+ * porque duran semanas. Lo que se quiere saber al mirar un día es **qué arranca y qué vence**, que
+ * es lo accionable; lo demás es contexto y va contado, no listado por quien lo consume.
+ *
+ * Los días sin nada se omiten: una agenda con veinte renglones vacíos entre dos eventos obliga a
+ * desplazarse para no encontrar nada.
+ */
+export function agendaDelRango(
+  tasks: readonly CalendarTask[],
+  from: IsoDate,
+  to: IsoDate,
+  calendar: WorkCalendar,
+): readonly DiaDeAgenda[] {
+  const desde = toDayNumber(from)
+  const hasta = toDayNumber(to)
+  if (hasta < desde) return []
+
+  const dias: DiaDeAgenda[] = []
+  for (let d = desde; d <= hasta; d += 1) {
+    const iso = toIsoDate(d)
+    const empiezan: CalendarTask[] = []
+    const terminan: CalendarTask[] = []
+    const enCurso: CalendarTask[] = []
+
+    for (const t of tasks) {
+      const arranca = t.start === iso
+      const acaba = t.finish === iso
+      if (arranca) empiezan.push(t)
+      else if (acaba) terminan.push(t)
+      else if (t.start < iso && iso < t.finish) enCurso.push(t)
+    }
+
+    if (empiezan.length === 0 && terminan.length === 0 && enCurso.length === 0) continue
+
+    const porNombre = (a: CalendarTask, b: CalendarTask) => a.name.localeCompare(b.name, 'es')
+    dias.push({
+      date: iso,
+      isWorking: calendar.isWorkingDay(d),
+      // Los hitos primero dentro de cada grupo, por lo mismo que en la rejilla: un hito es un
+      // compromiso, y en una lista larga lo que va al final no se lee.
+      empiezan: [...empiezan].sort((a, b) =>
+        (b.isMilestone ? 1 : 0) - (a.isMilestone ? 1 : 0) || porNombre(a, b),
+      ),
+      terminan: [...terminan].sort((a, b) =>
+        (b.isMilestone ? 1 : 0) - (a.isMilestone ? 1 : 0) || porNombre(a, b),
+      ),
+      enCurso: [...enCurso].sort(porNombre),
+    })
+  }
+  return dias
+}
+
+/** Cuántos días tiene un mes. Bisiestos incluidos, que es de lo que se olvida quien lo escribe a mano. */
+function diasDelMesDe(anio: number, mes: number): number {
+  return new Date(Date.UTC(anio, mes, 0)).getUTCDate()
+}

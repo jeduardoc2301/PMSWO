@@ -86,7 +86,7 @@ tiempo real y deshacer.
 | 13 | Vista Gantt (§4) | **CERRADA** | `components/plan/gantt-chart.tsx`, `plan-workspace.tsx`, `fields-panel.tsx`, `lib/plan/gantt-columns.ts` | **8 de 8 criterios del §4.8, cada uno demostrado en pantalla** (ver la bitácora). Del §4.2 queda fuera el catálogo completo de columnas —presupuesto, tiempo registrado, campos personalizados— porque necesita modelos que no existen. Del §4.3 están ya las **cinco** escalas que este motor puede dibujar —día, semana, mes, trimestre y año, con cabecera de dos filas y el ancho de día atado al zoom—; la sexta, la hora, no cabe contra un motor de ordinales de día hábil y eso es del §2.1 | L | Medio |
 | 14 | Vista Tablero (§5) | **CERRADA** | `components/projects/kanban-board.tsx`, `lib/projects/kanban-group.ts`, `columnas-del-tablero.tsx` | Arrastre, urgencias, avance, atraso, y las dos que faltaban: agrupar por estado, prioridad o responsable —comprobado en pantalla, la barra se reconstruye sin recargar: 5 columnas por estado, 4 por prioridad, 5 por responsable— y columnas configurables desde el propio tablero | M | Bajo |
 | 15 | Vista Lista (§6) | **CERRADA** | `work-items-outline.tsx`, `work-items-list.tsx`, `lib/projects/list-totals.ts` | **5 de 5 criterios del §6.3, cada uno demostrado en pantalla** (ver la bitácora). Del §6.2 queda fuera el panel de Campos propio y la exportación de la vista; de los totales, presupuesto y costo real, que no existen como campos | S | Bajo |
-| 16 | Vista Calendario (§7) | **CERRADA (con una corrección)** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx`, `services/reschedule.service.ts` | **6 de 6 criterios del §7.5 demostrados en pantalla — pero el 5 se dio por bueno de más y hubo que volver.** Mi demostración soltaba la barra sobre casillas vacías; un auditor cuyo encargo era refutarme encontró que soltar sobre **otra barra** no hacía nada, y eso es el 21 % de la rejilla y más de la mitad del alto útil de un día cargado. Corregido y vuelto a medir: de 0 % a 100 % de aceptación en los puntos que caen sobre una barra. La lección no es del Calendario: una demostración en pantalla que no busca el caso denso no es una demostración. Del §7.2 quedan fuera la vista semanal, la de agenda y crear tarea arrastrando un rango: son mejoras propuestas, no criterios. Y el calendario del proyecto sólo se puede **leer**: no hay pantalla ni ruta para crearlo — brecha 27 | L | Bajo |
+| 16 | Vista Calendario (§7) | **CERRADA (con una corrección)** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx`, `services/reschedule.service.ts` | **6 de 6 criterios del §7.5 demostrados en pantalla — pero el 5 se dio por bueno de más y hubo que volver.** Mi demostración soltaba la barra sobre casillas vacías; un auditor cuyo encargo era refutarme encontró que soltar sobre **otra barra** no hacía nada, y eso es el 21 % de la rejilla y más de la mitad del alto útil de un día cargado. Corregido y vuelto a medir: de 0 % a 100 % de aceptación en los puntos que caen sobre una barra. La lección no es del Calendario: una demostración en pantalla que no busca el caso denso no es una demostración. Del §7.2 están ya la **vista semanal** y la de **agenda** —`calendarLayout` recibía `from` y `to` desde el principio, así que la semanal es el mismo cálculo con otro rango; la agenda no pasa por la rejilla porque una lista no tiene carriles—. Queda crear una tarea arrastrando un rango. Y el calendario del proyecto sólo se puede **leer**: no hay pantalla ni ruta para crearlo — brecha 27 | L | Bajo |
 | 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | **6 de 6 criterios del §8.5, cada uno demostrado en pantalla** (ver la bitácora). Es la única vista que no necesitó tocar código: estaba bien y lo que faltaba era recorrerla. Del §8.2 queda fuera el calendario por recurso —hay jornada diaria y ausencias, no semana laboral propia— | L | Medio |
 | 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | **5 de 6 criterios del §9.3 demostrados en pantalla, y el sexto a medias** (ver la bitácora). Lo que falta no es del panel: la aplicación **no tiene modo claro** —ni `prefers-color-scheme`, ni clases `dark:`, ni conmutador— en ninguna de las seis vistas, así que «legibles en claro y oscuro» no se puede cumplir aquí. La otra mitad —accesibles sin depender sólo del color— sí | L | Bajo |
 | 27 | Calendario del proyecto | **CERRADA** | `app/api/v1/projects/[id]/calendar/`, `lib/scheduling/calendario-editable.ts` | Semana laborable, país de festivos y festivos propios, con ruta y reglas. Pide `edit_schedule` porque cambiarlo mueve las fechas de todo el plan. Comprobado: añadir el sábado hace que el motor pase a `[1,2,3,4,5,6]`, y borrar la fila devuelve al calendario de por omisión | M | Medio |
@@ -1606,3 +1606,109 @@ componente, no anotar el defecto.
 
 Lo que sí era real y salió de ahí: el `z.enum(['MES', 'SEMANA'])` del servicio de preferencias
 rechazaba las tres escalas nuevas en silencio.
+
+---
+
+## §5 — lo que encontró un refutador sobre el reorden que acababa de escribir
+
+El reorden se cerró con su medición en pantalla y su commit. Después, un agente cuyo único encargo
+era **refutar el mapa** de esa tarea encontró tres cosas que ni el mapa ni yo habíamos mirado. Dos
+eran reales.
+
+### 1. Hay un tercer lector de `order`, y es el único donde reordenar cambia el comportamiento
+
+`order` lo leen el GET de las columnas y el tablero — los dos para **dibujar**. El tercero es
+`app/api/v1/work-items/[id]/route.ts`, que pasa las columnas ordenadas a `columnaAlCambiarProgreso`,
+y esa función elige **la primera intermedia en el orden recibido**.
+
+O sea: mover «Blockers» delante de «In Progress» cambia a dónde salta una tarea al capturar el
+primer avance.
+
+No es un efecto que haya que tapar — es la consecuencia correcta: si el tablero se reordena, «la
+siguiente columna después de la inicial» es otra. Pero tenía que dejar de ser un accidente, así que
+ahora hay cuatro pruebas que lo fijan, incluida la que dice que **reordenar no mueve a las que ya
+están en una intermedia**: quien arrastró una tarjeta a «Blockers» tomó una decisión y reordenar el
+tablero no la deshace.
+
+### 2. `recolocar` validaba contra una foto caducada
+
+Leía las columnas **fuera** de la transacción y validaba la lista contra esa foto; los `update` iban
+dentro. Basta con que otra petición añada o quite una columna en ese hueco para que la lista deje de
+ser completa a mitad del corrimiento — y entonces la segunda vuelta abandona una columna en un
+puesto **negativo**, que el tablero dibujaría antes que todas para siempre.
+
+Ventana de milisegundos, daño permanente y silencioso: la combinación que hace que estas cosas se
+descubran tarde. La lectura y la comprobación están ya dentro de la transacción, y salir sin escribir
+la deshace entera — o se recolocan todas o no se toca ninguna.
+
+### 3. Lo que el refutador señaló y NO era del §5
+
+Que el tablero de verdad no permite arrastrar las cabeceras de columna. Es cierto —no hay `dnd-kit`
+en `kanban-board.tsx`, sólo arrastre nativo de tarjetas— pero el §5 no lo pide: habla de agrupar, de
+arrastrar **tarjetas** y de virtualización. Las flechas cumplen el criterio; el arrastre de cabeceras
+sería una ampliación.
+
+### Y una debilidad de la prueba de guardias, dicha aquí para que no se olvide
+
+`guardias-antes-de-escribir.test.ts` corta por funciones de primer nivel, así que `recolocar` —que
+escribe y **no** pregunta por sí misma— le parece un manejador sin escrituras que vigilar. Está
+guardada de verdad, porque `patchHandler` pregunta antes de delegar en ella, pero la prueba no lo
+comprueba: no sigue llamadas. Es un punto ciego conocido, no una cobertura.
+
+---
+
+## §7.2 — la vista semanal y la agenda, que salían casi gratis
+
+`calendarLayout` recibe `from` y `to`, no un mes. Estaba escrito así desde el principio, así que la
+**vista semanal es el mismo cálculo con otro rango**: lo único que faltaba era decir qué rango pide
+cada modo.
+
+### El ancla es un día, no un mes
+
+Era `AAAA-MM`. Con sólo el mes no se puede decir qué semana, y con un ancla de día los tres modos
+comparten referencia: pasar de la semana del 15 al mes deja el mes del 15, que es donde estaba
+mirando quien cambió.
+
+De ahí salió una prueba que no existía: **el 31 de enero más un mes no es el 31 de febrero**. Sin
+sujetar el día, avanzar desde un día 31 saltaba meses enteros y las flechas dejaban de ser
+reversibles.
+
+### Por semanas caben más carriles, y no es estética
+
+La rejilla del mes reparte su alto entre cinco o seis filas; la de una semana tiene **una**. Con el
+mismo tope de tres carriles, la vista semanal desperdiciaría casi todo su alto mandando al «N tareas
+más» cosas que caben de sobra — y el sentido de acercarse a una semana es justamente ver lo que el
+mes esconde. Por semanas el tope es cuatro veces mayor.
+
+### La agenda no pasa por la rejilla
+
+Una agenda es una lista, y meterla por el mismo camino la obligaría a inventarse carriles que nadie
+va a ver.
+
+Lo que la hace útil sobre 1368 líneas es la separación entre lo que **arranca**, lo que **vence** y
+lo que sólo sigue en curso. Un renglón que dijera «el martes tocan 63 tareas» no dice nada: en un
+plan real casi todos los días tocan decenas de tareas porque duran semanas. Lo accionable es qué
+empieza y qué termina; lo demás va **contado**, no listado. Y los días sin nada se omiten: veinte
+renglones vacíos entre dos eventos obligan a desplazarse para no encontrar nada.
+
+### Medido en pantalla
+
+| modo | periodo | rótulo | lo que dibuja |
+|---|---|---|---|
+| Mes | junio 2026 | 25 de 1368 caen en este mes | 35 casillas |
+| Semana | 2026-06-08 → 2026-06-14 | **3** de 1368 caen en esta semana | 7 casillas |
+| Agenda | junio 2026 | 25 de 1368 caen en este mes | **19 días con algo, 24 entradas** |
+
+### Un defecto que sólo se ve cuando existe una vista estrecha
+
+La primera medición abrió la semanal en **2026-06-01 → 06-07 con cero líneas**. El calendario ancla
+en el arranque del plan, y «el arranque del plan» era la fecha del **proyecto** — 1 de junio—,
+mientras la primera línea arranca el **12**. Once días de hueco que la vista de mes tapaba y la de
+semana cabía entera dentro.
+
+Es exactamente el mismo error que el comentario de al lado ya prevencía —«un plan que empieza en
+junio no se mira por primera vez en agosto con la rejilla vacía»— un piso más abajo. Ahora ancla en
+el arranque de la **primera línea**, que hay que calcular después del motor porque lo que llega del
+servidor son duraciones y vínculos, no fechas.
+
+Queda la tercera del §7.2: crear una tarea arrastrando un rango de días.

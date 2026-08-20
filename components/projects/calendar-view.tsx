@@ -26,16 +26,30 @@ import {
   carrilesDibujados,
   type CalendarTask,
   type CalendarWeek,
+  type DiaDeAgenda,
+  type ModoDeCalendario,
+  agendaDelRango,
+  anclaTrasAvanzar,
   calendarLayout,
+  rangoDelModo,
   hiddenTasksOfDay,
 } from '@/lib/scheduling/calendar-layout'
 
 export interface CalendarViewProps {
   readonly tasks: readonly CalendarTask[]
   readonly calendar: WorkCalendar
-  /** Mes que se está mirando, en formato `AAAA-MM`. */
-  readonly month: string
-  readonly onMonthChange: (month: string) => void
+  /**
+   * El día alrededor del cual se mira, en `AAAA-MM-DD`.
+   *
+   * Era el mes en `AAAA-MM`. Pasó a día completo al llegar la vista semanal: con sólo el mes no se
+   * puede decir qué semana, y con un ancla de día los tres modos comparten referencia — cambiar de
+   * semana a mes deja el mes de esa semana, que es donde estaba mirando quien cambió.
+   */
+  readonly ancla: string
+  readonly onAnclaChange: (ancla: string) => void
+  /** Rejilla del mes, rejilla de una semana o lista cronológica (§7.2). */
+  readonly modo: ModoDeCalendario
+  readonly onModoChange: (modo: ModoDeCalendario) => void
   /** Hoy, en fecha civil, para marcar la casilla. Llega de fuera para que la vista sea predecible. */
   readonly today: string
   readonly onSelectTask?: (taskId: string) => void
@@ -61,23 +75,40 @@ const CARRILES_VISIBLES = 3
 
 const ALTO_CARRIL = 22
 
+const MODOS: readonly { readonly value: ModoDeCalendario; readonly label: string }[] = [
+  { value: 'MES', label: 'Mes' },
+  { value: 'SEMANA', label: 'Semana' },
+  { value: 'AGENDA', label: 'Agenda' },
+]
+
 /** Alto que ocupa el número del día antes de que empiecen las barras. */
 const CABECERA_DIA = 26
 
 export function CalendarView({
   tasks,
   calendar,
-  month,
-  onMonthChange,
+  ancla,
+  onAnclaChange,
+  modo,
+  onModoChange,
   today,
   onSelectTask,
   onMoverLinea,
 }: CalendarViewProps) {
   const [diaDesplegado, setDiaDesplegado] = useState<string | null>(null)
 
-  const [anio, mes] = month.split('-').map(Number)
-  const primerDia = `${month}-01`
-  const ultimoDia = `${month}-${String(diasDelMes(anio, mes)).padStart(2, '0')}`
+  const [anio, mes] = ancla.split('-').map(Number)
+  const { from: primerDia, to: ultimoDia } = rangoDelModo(modo, ancla as never)
+
+  /**
+   * Por semanas caben más carriles, y no es un ajuste estético.
+   *
+   * La rejilla del mes reparte su alto entre cinco o seis filas; la de una semana tiene **una**, así
+   * que con el mismo tope de tres carriles la vista semanal desperdiciaría casi todo su alto
+   * mandando al «N tareas más» cosas que caben de sobra. Y el sentido de acercarse a una semana es
+   * justamente ver lo que el mes esconde.
+   */
+  const carriles = modo === 'SEMANA' ? CARRILES_VISIBLES * 4 : CARRILES_VISIBLES
 
   const layout = useMemo(
     () =>
@@ -86,23 +117,26 @@ export function CalendarView({
         from: primerDia,
         to: ultimoDia,
         calendar,
-        maxLanes: CARRILES_VISIBLES,
-        month: mes,
-        year: anio,
+        maxLanes: carriles,
+        // Atenuar los días de fuera sólo tiene sentido en el mes: en la semana no hay «fuera», y
+        // pasarle el mes haría que una semana a caballo entre dos saliera medio apagada.
+        ...(modo === 'MES' ? { month: mes, year: anio } : {}),
       }),
-    [tasks, primerDia, ultimoDia, calendar, mes, anio],
+    [tasks, primerDia, ultimoDia, calendar, carriles, modo, mes, anio],
   )
 
   const ocultas = useMemo(
-    () => (diaDesplegado === null ? [] : hiddenTasksOfDay(tasks, diaDesplegado, CARRILES_VISIBLES)),
-    [tasks, diaDesplegado],
+    () => (diaDesplegado === null ? [] : hiddenTasksOfDay(tasks, diaDesplegado, carriles)),
+    [tasks, diaDesplegado, carriles],
+  )
+
+  const agenda = useMemo(
+    () => (modo === 'AGENDA' ? agendaDelRango(tasks, primerDia, ultimoDia, calendar) : []),
+    [modo, tasks, primerDia, ultimoDia, calendar],
   )
 
   const irA = (delta: number) => {
-    const total = (anio * 12 + (mes - 1)) + delta
-    const nuevoAnio = Math.floor(total / 12)
-    const nuevoMes = (total % 12) + 1
-    onMonthChange(`${nuevoAnio}-${String(nuevoMes).padStart(2, '0')}`)
+    onAnclaChange(anclaTrasAvanzar(modo, ancla as never, delta))
     setDiaDesplegado(null)
   }
 
@@ -118,8 +152,13 @@ export function CalendarView({
           >
             ‹
           </button>
-          <span className="min-w-[168px] text-center text-sm font-medium text-zinc-100">
-            {NOMBRES_DE_MES[mes - 1]} {anio}
+          <span
+            data-testid="periodo-del-calendario"
+            className="min-w-[210px] text-center text-sm font-medium text-zinc-100"
+          >
+            {modo === 'SEMANA'
+              ? `${primerDia} → ${ultimoDia}`
+              : `${NOMBRES_DE_MES[mes - 1]} ${anio}`}
           </span>
           <button
             type="button"
@@ -132,17 +171,41 @@ export function CalendarView({
           <button
             type="button"
             onClick={() => {
-              onMonthChange(today.slice(0, 7))
+              onAnclaChange(today)
               setDiaDesplegado(null)
             }}
             className="ml-1 rounded-lg border border-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
           >
             Hoy
           </button>
+
+          {/* Los tres modos del §7.2. Van aquí, junto a las flechas, porque cambian lo mismo: qué
+              trozo del plan se está mirando. */}
+          <div role="group" aria-label="Modo del calendario" className="ml-2 flex items-center gap-1">
+            {MODOS.map((m) => (
+              <button
+                key={m.value}
+                type="button"
+                data-testid={`modo-${m.value}`}
+                aria-pressed={modo === m.value}
+                onClick={() => {
+                  onModoChange(m.value)
+                  setDiaDesplegado(null)
+                }}
+                className={`rounded-lg border px-3 py-1.5 text-sm ${
+                  modo === m.value
+                    ? 'border-indigo-600 bg-indigo-600/15 text-indigo-200'
+                    : 'border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
         </div>
         <p className="text-xs text-zinc-500">
           {layout.tasksInRange} de {tasks.length} {tasks.length === 1 ? 'línea' : 'líneas'} caen en
-          este mes
+          {modo === 'SEMANA' ? ' esta semana' : ' este mes'}
           {layout.tasksInRange > layout.placedTasks ? (
             <>
               {' · '}
@@ -153,26 +216,30 @@ export function CalendarView({
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-800 bg-[#18181b]">
-        <div className="grid grid-cols-7 border-b border-zinc-800">
-          {DIAS.map((dia) => (
-            <div key={dia} className="px-2 py-2 text-center text-xs uppercase tracking-wide text-zinc-500">
-              {dia}
-            </div>
+      {modo === 'AGENDA' ? (
+        <Agenda dias={agenda} today={today} onSelectTask={onSelectTask} />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-zinc-800 bg-[#18181b]">
+          <div className="grid grid-cols-7 border-b border-zinc-800">
+            {DIAS.map((dia) => (
+              <div key={dia} className="px-2 py-2 text-center text-xs uppercase tracking-wide text-zinc-500">
+                {dia}
+              </div>
+            ))}
+          </div>
+
+          {layout.weeks.map((semana) => (
+            <Semana
+              key={semana.start}
+              semana={semana}
+              today={today}
+              onSelectTask={onSelectTask}
+              onExpandirDia={setDiaDesplegado}
+              onMoverLinea={onMoverLinea}
+            />
           ))}
         </div>
-
-        {layout.weeks.map((semana) => (
-          <Semana
-            key={semana.start}
-            semana={semana}
-            today={today}
-            onSelectTask={onSelectTask}
-            onExpandirDia={setDiaDesplegado}
-            onMoverLinea={onMoverLinea}
-          />
-        ))}
-      </div>
+      )}
 
       {diaDesplegado !== null ? (
         <div className="rounded-xl border border-zinc-800 bg-[#18181b] p-4">
@@ -391,4 +458,105 @@ function Semana({
 /** Cuántos días trae un mes, con el año bisiesto bien resuelto. */
 function diasDelMes(anio: number, mes: number): number {
   return new Date(Date.UTC(anio, mes, 0)).getUTCDate()
+}
+
+/**
+ * La agenda: qué pasa cada día, en orden (§7.2).
+ *
+ * No pasa por la rejilla. Una agenda es una lista, y meterla por el mismo camino la obligaría a
+ * inventarse carriles que nadie va a ver.
+ *
+ * Lo que la hace útil sobre un plan de 1368 líneas es la separación entre lo que **arranca**, lo que
+ * **vence** y lo que sólo sigue en curso. Un renglón que dijera «el martes tocan 63 tareas» no dice
+ * nada: en un plan real casi todos los días tocan decenas de tareas porque duran semanas. Lo
+ * accionable es qué empieza y qué termina; lo demás va contado, no listado.
+ */
+function Agenda({
+  dias,
+  today,
+  onSelectTask,
+}: {
+  dias: readonly DiaDeAgenda[]
+  today: string
+  onSelectTask?: (taskId: string) => void
+}) {
+  if (dias.length === 0) {
+    return (
+      <p data-testid="agenda-vacia" className="rounded-xl border border-zinc-800 bg-[#18181b] p-6 text-center text-sm text-zinc-500">
+        En este periodo no empieza ni termina ninguna línea.
+      </p>
+    )
+  }
+
+  return (
+    <ol data-testid="agenda" className="flex flex-col gap-2">
+      {dias.map((dia) => (
+        <li
+          key={dia.date}
+          data-dia-de-agenda={dia.date}
+          className={`rounded-xl border p-3 ${
+            dia.date === today
+              ? 'border-indigo-700 bg-indigo-950/20'
+              : dia.isWorking
+                ? 'border-zinc-800 bg-[#18181b]'
+                : 'border-zinc-900 bg-zinc-950/40'
+          }`}
+        >
+          <div className="mb-1.5 flex items-baseline gap-2">
+            <span className="text-sm font-medium text-zinc-100">{dia.date}</span>
+            {dia.date === today ? (
+              <span className="rounded bg-indigo-600/20 px-1.5 text-[10px] uppercase tracking-wide text-indigo-200">
+                hoy
+              </span>
+            ) : null}
+            {!dia.isWorking ? (
+              <span className="text-[11px] text-zinc-500">no laborable</span>
+            ) : null}
+            {dia.enCurso.length > 0 ? (
+              <span data-testid={`en-curso-${dia.date}`} className="ml-auto text-[11px] text-zinc-500">
+                {dia.enCurso.length} en curso
+              </span>
+            ) : null}
+          </div>
+
+          <GrupoDeAgenda titulo="Empieza" tareas={dia.empiezan} onSelectTask={onSelectTask} />
+          <GrupoDeAgenda titulo="Termina" tareas={dia.terminan} onSelectTask={onSelectTask} />
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** Un grupo de la agenda. No se dibuja cuando está vacío: un rótulo sin nada debajo es ruido. */
+function GrupoDeAgenda({
+  titulo,
+  tareas,
+  onSelectTask,
+}: {
+  titulo: string
+  tareas: readonly CalendarTask[]
+  onSelectTask?: (taskId: string) => void
+}) {
+  if (tareas.length === 0) return null
+  return (
+    <div className="mt-1">
+      <p className="text-[11px] uppercase tracking-wide text-zinc-500">{titulo}</p>
+      <ul className="mt-0.5 flex flex-col gap-0.5">
+        {tareas.map((t) => (
+          <li key={`${titulo}-${t.id}`}>
+            <button
+              type="button"
+              data-agenda-tarea={t.id}
+              title={t.name}
+              onClick={() => onSelectTask?.(t.id)}
+              className="flex w-full items-center gap-1.5 truncate rounded px-1 py-0.5 text-left text-sm text-zinc-200 hover:bg-zinc-800"
+            >
+              {t.isMilestone ? <span className="shrink-0 text-amber-300">◆</span> : null}
+              <span className="truncate">{t.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }

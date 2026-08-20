@@ -29,8 +29,12 @@ function dibujar(sobre: Partial<React.ComponentProps<typeof CalendarView>> = {})
   const props = {
     tasks: TAREAS,
     calendar,
-    month: '2026-08',
-    onMonthChange: vi.fn(),
+    // El ancla es un día completo desde que existe la vista semanal (§7.2): con sólo el mes no se
+    // puede decir qué semana abrir.
+    ancla: '2026-08-15',
+    onAnclaChange: vi.fn(),
+    modo: 'MES' as const,
+    onModoChange: vi.fn(),
     today: '2026-08-17',
     onSelectTask: vi.fn(),
     ...sobre,
@@ -172,28 +176,28 @@ describe('La navegación', () => {
     const { props } = dibujar()
 
     fireEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }))
-    expect(props.onMonthChange).toHaveBeenCalledWith('2026-09')
+    expect(props.onAnclaChange).toHaveBeenCalledWith('2026-09-15')
 
     fireEvent.click(screen.getByRole('button', { name: 'Mes anterior' }))
-    expect(props.onMonthChange).toHaveBeenCalledWith('2026-07')
+    expect(props.onAnclaChange).toHaveBeenCalledWith('2026-07-15')
   })
 
   it('cruzar el año se resuelve bien en las dos direcciones', () => {
-    const { props } = dibujar({ month: '2026-12' })
+    const { props } = dibujar({ ancla: '2026-12-15' })
     fireEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }))
-    expect(props.onMonthChange).toHaveBeenCalledWith('2027-01')
+    expect(props.onAnclaChange).toHaveBeenCalledWith('2027-01-15')
 
-    const enero = dibujar({ month: '2026-01' })
+    const enero = dibujar({ ancla: '2026-01-15' })
     fireEvent.click(screen.getAllByRole('button', { name: 'Mes anterior' })[1])
-    expect(enero.props.onMonthChange).toHaveBeenCalledWith('2025-12')
+    expect(enero.props.onAnclaChange).toHaveBeenCalledWith('2025-12-15')
   })
 
   it('«Hoy» lleva al mes de hoy', () => {
-    const { props } = dibujar({ month: '2026-02' })
+    const { props } = dibujar({ ancla: '2026-02-15' })
 
     fireEvent.click(screen.getByText('Hoy'))
 
-    expect(props.onMonthChange).toHaveBeenCalledWith('2026-08')
+    expect(props.onAnclaChange).toHaveBeenCalledWith('2026-08-17')
   })
 
   it('el mes se nombra en español', () => {
@@ -326,5 +330,57 @@ describe('§7.5 · arrastrar una barra a otro día', () => {
     fireEvent.drop(screen.getByTestId('dia-2026-08-11'), { dataTransfer })
 
     expect(onMoverLinea).toHaveBeenCalledWith('hito', '2026-08-11')
+  })
+})
+
+describe('§7.2 · los tres modos', () => {
+  it('la barra ofrece Mes, Semana y Agenda', () => {
+    dibujar()
+    for (const nombre of ['Mes', 'Semana', 'Agenda']) {
+      expect(screen.getByRole('button', { name: nombre })).toBeInTheDocument()
+    }
+  })
+
+  it('elegir un modo lo comunica hacia arriba', () => {
+    const { props } = dibujar()
+    fireEvent.click(screen.getByRole('button', { name: 'Semana' }))
+    expect(props.onModoChange).toHaveBeenCalledWith('SEMANA')
+  })
+
+  it('por semanas el rótulo dice el rango, no el nombre del mes', () => {
+    // «agosto 2026» no distingue una semana de otra, y en la semanal es lo único que hay que saber.
+    dibujar({ modo: 'SEMANA', ancla: '2026-08-19' })
+    expect(screen.getByTestId('periodo-del-calendario').textContent).toContain('2026-08-17')
+  })
+
+  it('por semanas las flechas mueven siete días, no un mes', () => {
+    const { props } = dibujar({ modo: 'SEMANA', ancla: '2026-08-19' })
+    fireEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }))
+    expect(props.onAnclaChange).toHaveBeenCalledWith('2026-08-26')
+  })
+
+  it('la agenda no dibuja la rejilla, y la rejilla no dibuja la agenda', () => {
+    // Son dos formas de leer lo mismo, no dos capas: verlas a la vez sería decir dos veces lo mismo
+    // ocupando el doble.
+    const enAgenda = dibujar({ modo: 'AGENDA' })
+    expect(screen.queryByText('LU')).not.toBeInTheDocument()
+    // Se desmonta antes del segundo caso: dos vistas montadas a la vez hacen que las consultas
+    // globales encuentren las dos y la prueba mida un DOM que nadie ve.
+    enAgenda.unmount()
+
+    dibujar({ modo: 'MES' })
+    expect(screen.queryByTestId('agenda')).not.toBeInTheDocument()
+  })
+
+  it('la agenda lista los días con algo, y dice cuántas siguen en curso', () => {
+    const { container } = dibujar({ modo: 'AGENDA', ancla: '2026-08-15' })
+    const agenda = container.querySelector('[data-testid="agenda"]')
+    expect(agenda).not.toBeNull()
+    expect(agenda!.querySelectorAll('[data-dia-de-agenda]').length).toBeGreaterThan(0)
+  })
+
+  it('un periodo sin nada lo dice en vez de dejar el hueco', () => {
+    dibujar({ modo: 'AGENDA', ancla: '2030-01-15' })
+    expect(screen.getByTestId('agenda-vacia')).toBeInTheDocument()
   })
 })

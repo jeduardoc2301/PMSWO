@@ -124,3 +124,58 @@ describe('Los dos sentidos cierran el círculo', () => {
     }
   })
 })
+
+describe('§5 · reordenar el tablero cambia dónde aterriza una tarea que arranca', () => {
+  /**
+   * Esto no es un efecto colateral que haya que tapar: es la consecuencia correcta, y se fija aquí
+   * para que sea una decisión y no un accidente.
+   *
+   * `columnaAlCambiarProgreso` elige **la primera intermedia en el orden recibido**, y ese orden es
+   * el del tablero. Desde que las columnas se pueden reordenar (§5), mover «Blockers» delante de
+   * «In Progress» cambia a dónde salta una tarea al capturar el primer avance.
+   *
+   * Lo salvó un agente cuyo encargo era refutar el mapa de la tarea: el análisis decía que `order`
+   * lo leían dos sitios —el GET de las columnas y el tablero— y hay un tercero, y es el único donde
+   * reordenar cambia el **comportamiento** y no sólo el dibujo.
+   */
+  const enElOrdenDelTablero = (...columnas: ColumnaDeEstado[]) => columnas
+
+  it('con el tablero por omisión, arrancar lleva a «In Progress»', () => {
+    const destino = columnaAlCambiarProgreso(
+      0.3,
+      BACKLOG,
+      enElOrdenDelTablero(BACKLOG, EN_CURSO, BLOQUEADAS, TERMINADO),
+    )
+    expect(destino?.name).toBe('In Progress')
+  })
+
+  it('con «Blockers» movido delante, arrancar lleva a «Blockers»', () => {
+    const destino = columnaAlCambiarProgreso(
+      0.3,
+      BACKLOG,
+      enElOrdenDelTablero(BACKLOG, BLOQUEADAS, EN_CURSO, TERMINADO),
+    )
+    expect(destino?.name).toBe('Blockers')
+  })
+
+  it('y reordenar NO mueve a las que ya están en una intermedia', () => {
+    // Quien arrastró una tarjeta a «Blockers» tomó una decisión, y reordenar el tablero no la
+    // deshace: la regla sólo elige destino cuando la tarea viene de la inicial.
+    const destino = columnaAlCambiarProgreso(
+      0.6,
+      EN_CURSO,
+      enElOrdenDelTablero(BACKLOG, BLOQUEADAS, EN_CURSO, TERMINADO),
+    )
+    expect(destino).toBeNull()
+  })
+
+  it('el 100 % sigue yendo a la terminal, la mueva quien la mueva', () => {
+    // Las terminales se eligen por `isDone`, no por puesto, así que el orden no las afecta.
+    const destino = columnaAlCambiarProgreso(
+      1,
+      EN_CURSO,
+      enElOrdenDelTablero(TERMINADO, BACKLOG, BLOQUEADAS, EN_CURSO),
+    )
+    expect(destino?.name).toBe('Done')
+  })
+})

@@ -16,6 +16,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { CalendarView } from '@/components/projects/calendar-view'
+import { type ModoDeCalendario } from '@/lib/scheduling/calendar-layout'
 import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { ganttLayout } from '@/lib/scheduling/gantt'
 import { hoyCivil } from '@/lib/formato-fecha'
@@ -113,7 +114,14 @@ export function CalendarTab({
   onReprogramado,
 }: CalendarTabProps) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
-  const [mes, setMes] = useState<string | null>(null)
+  /**
+   * El día alrededor del cual se mira, y cómo se mira (§7.2).
+   *
+   * Era el mes en `AAAA-MM`. Pasó a día completo con la vista semanal: con sólo el mes no se puede
+   * decir qué semana, y con un ancla de día los tres modos comparten referencia.
+   */
+  const [ancla, setAncla] = useState<string | null>(null)
+  const [modo, setModo] = useState<ModoDeCalendario>('MES')
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
   const [aplicando, setAplicando] = useState(false)
 
@@ -131,9 +139,8 @@ export function CalendarTab({
         if (!plan || !Array.isArray(plan.tasks)) throw new Error('La respuesta no trae un plan.')
         if (!vigente) return
         setEstado({ fase: 'listo', plan })
-        // Abre en el mes donde arranca el plan, no en el de hoy: un plan que empieza en junio no se
-        // mira por primera vez en agosto con la rejilla vacía.
-        setMes((anterior) => anterior ?? plan.start.slice(0, 7))
+        // El ancla se pone más abajo, cuando el motor ya calculó las fechas: las tareas del plan
+        // remoto traen duración y vínculos, no fechas.
       } catch (error) {
         if (vigente) {
           setEstado({
@@ -211,6 +218,28 @@ export function CalendarTab({
   }, [estado, idsVisibles])
 
   const tareas = programado.tareas
+
+  /**
+   * Abre en el día en que arranca la **primera línea**, no en hoy ni en el arranque del proyecto.
+   *
+   * No en hoy, porque un plan que empieza en junio no se mira por primera vez en agosto con la
+   * rejilla vacía. Y no en la fecha del **proyecto**, porque puede ir por delante de la primera
+   * tarea: en el plan de referencia el proyecto abre el 1 de junio y la primera línea arranca el 12,
+   * así que la vista semanal abría en una semana sin nada. Es el mismo error un piso más abajo, y
+   * sólo se ve cuando existe una vista tan estrecha como para caber entera en el hueco.
+   *
+   * Va aquí y no al cargar porque las fechas las calcula el motor: lo que llega del servidor son
+   * duraciones y vínculos.
+   */
+  useEffect(() => {
+    if (tareas.length === 0) return
+    setAncla((anterior) => {
+      if (anterior !== null) return anterior
+      let primera = tareas[0].start
+      for (const t of tareas) if (t.start < primera) primera = t.start
+      return primera
+    })
+  }, [tareas])
 
   /**
    * La línea abierta en el panel de detalle (§10.3).
@@ -402,8 +431,10 @@ export function CalendarTab({
             <CalendarView
               tasks={tareas}
               calendar={calendario}
-              month={mes ?? hoyCivil().slice(0, 7)}
-              onMonthChange={setMes}
+              ancla={ancla ?? hoyCivil()}
+              onAnclaChange={setAncla}
+              modo={modo}
+              onModoChange={setModo}
               today={hoyCivil()}
               onSelectTask={setAbierta}
               onMoverLinea={(taskId, nuevoInicio) => void proponerMovimiento(taskId, nuevoInicio)}

@@ -215,28 +215,40 @@ async function patchHandler(
  * puesto negativo y el tablero la dibuja antes que todas para siempre.
  */
 async function recolocar(projectId: string, orden: readonly string[]): Promise<NextResponse> {
-  const actuales = await prisma.kanbanColumn.findMany({
-    where: { projectId },
-    orderBy: { order: 'asc' },
-    select: { id: true, name: true, order: true, isInitial: true, isDone: true },
-  })
-
-  const motivo = porQueNoEsUnOrdenValido(
-    actuales.map((c) => ({
-      id: c.id,
-      nombre: c.name,
-      orden: c.order,
-      esInicial: c.isInitial,
-      esTerminado: c.isDone,
-      tarjetas: 0,
-    })),
-    orden,
-  )
-  if (motivo) {
-    return NextResponse.json({ error: 'Validation Error', message: motivo }, { status: 400 })
-  }
+  /**
+   * La comprobación va **dentro** de la transacción, con las columnas leídas dentro.
+   *
+   * Leídas fuera, la foto contra la que se valida puede haber caducado antes de la primera
+   * escritura: basta con que otra petición añada o quite una columna en ese hueco. Y la consecuencia
+   * no es un 400 tardío — es que la lista deja de ser completa a mitad del corrimiento y la segunda
+   * vuelta abandona una columna en un puesto **negativo**, que el tablero dibujaría antes que todas
+   * para siempre. La ventana es de milisegundos y el daño es permanente y silencioso, que es la
+   * combinación que hace que estas cosas se descubran tarde.
+   */
+  let motivo: string | null = null
 
   await prisma.$transaction(async (tx) => {
+    const actuales = await tx.kanbanColumn.findMany({
+      where: { projectId },
+      orderBy: { order: 'asc' },
+      select: { id: true, name: true, order: true, isInitial: true, isDone: true },
+    })
+
+    motivo = porQueNoEsUnOrdenValido(
+      actuales.map((c) => ({
+        id: c.id,
+        nombre: c.name,
+        orden: c.order,
+        esInicial: c.isInitial,
+        esTerminado: c.isDone,
+        tarjetas: 0,
+      })),
+      orden,
+    )
+    // Salir sin escribir deshace la transacción entera, que es justo lo que se quiere: o se recolocan
+    // todas o no se toca ninguna.
+    if (motivo) return
+
     for (let i = 0; i < orden.length; i += 1) {
       await tx.kanbanColumn.update({ where: { id: orden[i] }, data: { order: -(i + 1) } })
     }
@@ -244,6 +256,10 @@ async function recolocar(projectId: string, orden: readonly string[]): Promise<N
       await tx.kanbanColumn.update({ where: { id: orden[i] }, data: { order: i } })
     }
   })
+
+  if (motivo) {
+    return NextResponse.json({ error: 'Validation Error', message: motivo }, { status: 400 })
+  }
 
   return NextResponse.json({ ok: true, orden }, { status: 200 })
 }
