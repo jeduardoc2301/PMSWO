@@ -55,7 +55,7 @@ export default function GlobalError({
 
               {/* Error digest (for debugging) */}
               {error.digest && (
-                <div className="mb-6 rounded-md bg-zinc-100 p-3 dark:bg-superficie">
+                <div className="mb-6 rounded-md bg-tinta p-3 dark:bg-superficie">
                   <p className="text-xs text-tinta-3 dark:text-tinta-3">
                     Error ID: {error.digest}
                   </p>
@@ -66,7 +66,7 @@ export default function GlobalError({
               <div className="flex flex-col gap-3">
                 <button
                   onClick={reset}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-superficie px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-50"
+                  className="flex items-center justify-center gap-2 rounded-lg bg-superficie px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-tinta dark:focus:ring-zinc-50"
                 >
                   <RefreshCw className="h-4 w-4" />
                   Intentar nuevamente

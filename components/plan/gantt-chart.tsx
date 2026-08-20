@@ -777,7 +777,7 @@ function Bar({
         {row.progressWidth > 0 ? (
           <div
             data-testid={`avance-${row.id}`}
-            className="h-full bg-zinc-100/40"
+            className="h-full bg-tinta/40"
             style={{ width: row.progressWidth * dayWidth }}
           />
         ) : null}
@@ -792,7 +792,7 @@ function Bar({
             role="separator"
             aria-label={`Cambiar la duración de «${row.name}», ahora ${row.width} días`}
             onPointerDown={alApretarElBorde}
-            className="absolute right-0 top-0 h-full w-2 cursor-ew-resize opacity-0 hover:bg-zinc-100/40 hover:opacity-100"
+            className="absolute right-0 top-0 h-full w-2 cursor-ew-resize opacity-0 hover:bg-tinta/40 hover:opacity-100"
           />
         ) : null}
       </div>

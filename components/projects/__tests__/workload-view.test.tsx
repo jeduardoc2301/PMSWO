@@ -428,3 +428,49 @@ describe('§9.3 C6 · la sobrecarga no depende sólo del color', () => {
     expect(screen.getByTestId('celda-banco-2026-06-03').getAttribute('title')).toContain('SOBRECARGADA')
   })
 })
+
+describe('§9.3 C6 · la cifra se lee encima de su propia celda', () => {
+  /**
+   * Una rampa se cruza con el texto que lleva escrito: donde el relleno se aclara, la tinta clara
+   * desaparece. Con la tinta de siempre —`#fafafa`— la cifra daba **7.76 · 4.23 · 2.40 · 1.47**
+   * sobre los cuatro pasos: la celda **llena**, que es justo la que se busca de un vistazo, era
+   * ilegible en el tema para el que se diseñó la rampa.
+   *
+   * El punto donde la tinta cambia de bando no es el mismo en los dos temas —en oscuro salta tras el
+   * primer paso, en claro tras el segundo—, así que van emparejadas en `globals.css` y aquí sólo se
+   * comprueba que **cada celda con relleno lleve su tinta**.
+   */
+  it('cada celda con relleno declara su propia tinta', () => {
+    dibujar()
+    const llena = screen.getByTestId('celda-luis-2026-06-01')
+    expect(llena.style.backgroundColor).toContain('--carga-')
+    expect(llena.style.color).toContain('-tinta')
+  })
+
+  it('y la sobrecargada lleva la del velo, no la de la rampa', () => {
+    dibujar()
+    const roja = screen.getByTestId('celda-ana-2026-06-01')
+    expect(roja.style.backgroundColor).toBe('var(--velo-critico)')
+    expect(roja.style.color).toBe('var(--velo-critico-tinta)')
+  })
+
+  it('una celda vacía no impone tinta: manda la de la tabla', () => {
+    dibujar()
+    const vacia = screen.getByTestId('celda-ana-2026-06-06')
+    expect(vacia.style.backgroundColor).toBe('')
+  })
+
+  it('el fondo y la tinta salen del mismo paso, nunca de dos distintos', () => {
+    // Es lo que garantiza el contraste: emparejarlos a mano se desemparejaría al primer cambio.
+    dibujar()
+    for (const clave of ['ana', 'luis', 'banco']) {
+      for (const dia of ['2026-06-01', '2026-06-02', '2026-06-03']) {
+        const celda = screen.getByTestId(`celda-${clave}-${dia}`)
+        const fondo = celda.style.backgroundColor
+        if (!fondo.startsWith('var(--carga-')) continue
+        const paso = fondo.slice('var(--carga-'.length, fondo.indexOf(')'))
+        expect(celda.style.color).toBe(`var(--carga-${paso}-tinta)`)
+      }
+    }
+  })
+})

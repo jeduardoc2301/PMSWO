@@ -318,7 +318,7 @@ function WidgetCalendario({ metricas }: { readonly metricas: PanelDeProyecto['me
               <span className="tabular-nums text-tinta-3">{porcentaje(real, 1)}</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <span aria-hidden className="inline-block h-3 w-[3px] rounded-full bg-zinc-100" />
+              <span aria-hidden className="inline-block h-3 w-[3px] rounded-full bg-tinta" />
               <span className="text-tinta-2">Planificado</span>
               <span className="tabular-nums text-tinta-3">{porcentaje(planificado, 1)}</span>
             </span>

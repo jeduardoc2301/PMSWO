@@ -44,7 +44,12 @@ import React from 'react'
  * Comprobada con el validador contra la superficie real de la tarjeta (`#18181b`): luminosidad
  * monótona, hueco de al menos 0.06 entre pasos y el extremo oscuro despegado del fondo (2.19:1).
  */
-export const RAMPA_AZUL = ['#b7d3f6', '#6da7ec', '#2a78d6', '#184f95'] as const
+export const RAMPA_AZUL = [
+  'var(--rampa-1)',
+  'var(--rampa-2)',
+  'var(--rampa-3)',
+  'var(--rampa-4)',
+] as const
 
 /**
  * El embudo de estados, del más lejos de terminar al más cerca.
@@ -62,14 +67,34 @@ export const RAMPA_DEL_EMBUDO: Record<string, string> = {
 
 /** Colores de estado, reservados: nunca se reutilizan como «una serie más». */
 export const COLORES_DE_ESTADO = {
-  bien: '#0ca30c',
-  aviso: '#fab219',
-  grave: '#ec835a',
-  critico: '#d03b3b',
+  bien: 'var(--estado-bien)',
+  aviso: 'var(--estado-aviso)',
+  grave: 'var(--estado-serio)',
+  critico: 'var(--estado-critico)',
 } as const
 
+/**
+ * El crítico cuando es **texto** y no relleno.
+ *
+ * `#d03b3b` sobre la superficie oscura da 3.69:1 y un texto pequeño necesita 4.5:1. Es la misma
+ * partición que ya tiene el acento, y por el mismo motivo.
+ */
+export const CRITICO_COMO_TINTA = 'var(--estado-critico-tinta)'
+
+/**
+ * El velo de la celda sobrecargada, **ya compuesto** por tema.
+ *
+ * Se armaba concatenando alfa —`${critico}44`— y con un token eso no vale: `var(--x)44` no es un
+ * color. Componerlo por tema es además lo correcto: el mismo rojo al 27 % da `#492124` sobre el
+ * fondo oscuro y `#f2cbcb` sobre el blanco.
+ */
+export const VELO_CRITICO = 'var(--velo-critico)'
+/** La tinta que se lee **encima** del velo, que ahora es un relleno macizo. */
+export const VELO_CRITICO_TINTA = 'var(--velo-critico-tinta)'
+export const VELO_CRITICO_SUAVE = 'var(--velo-critico-suave)'
+
 /** Un estado que no está en el embudo se dibuja en gris apagado, no en un color inventado. */
-const GRIS = '#52525b'
+const GRIS = 'var(--tinta-3)'
 
 export function colorDeEstado(estado: string): string {
   if (estado === 'BLOCKED') return COLORES_DE_ESTADO.critico
@@ -126,7 +151,7 @@ export function BarraApilada({
       <div
         role="img"
         aria-label={`${etiqueta}: sin líneas`}
-        className="flex h-6 items-center justify-center rounded bg-zinc-800/60 text-[11px] text-zinc-500"
+        className="flex h-6 items-center justify-center rounded bg-superficie-3/60 text-[11px] text-tinta-3"
       >
         sin líneas
       </div>
@@ -159,11 +184,11 @@ export function BarraApilada({
               className="inline-block h-2.5 w-2.5 shrink-0 rounded-[2px]"
               style={{ backgroundColor: colorDeEstado(rebanada.estado) }}
             />
-            <span className="text-zinc-300">
+            <span className="text-tinta-2">
               {iconoDeEstado(rebanada.estado)}
               {nombreDeEstado(rebanada.estado)}
             </span>
-            <span className="tabular-nums text-zinc-500">
+            <span className="tabular-nums text-tinta-3">
               {rebanada.cantidad} · {porcentaje(rebanada.fraccion)}
             </span>
           </li>
@@ -198,7 +223,7 @@ export function Medidor({
     <div
       role="img"
       aria-label={`${etiqueta}: ${porcentaje(relleno, 1)}${marca === null ? '' : `, ${etiquetaObjetivo ?? 'objetivo'} ${porcentaje(marca, 1)}`}`}
-      className="relative h-3 w-full rounded-full bg-zinc-800"
+      className="relative h-3 w-full rounded-full bg-superficie-3"
     >
       <div
         data-testid="medidor-relleno"
@@ -211,7 +236,7 @@ export function Medidor({
           title={`${etiquetaObjetivo ?? 'Objetivo'}: ${porcentaje(marca, 1)}`}
           // El anillo de 2 px del color de la superficie despega la marca del relleno cuando caen
           // encima una de otra, que es justo cuando el proyecto va exactamente en tiempo.
-          className="absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-zinc-100 ring-2 ring-[#18181b]"
+          className="absolute top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-tinta ring-2 ring-superficie"
           style={{ left: `calc(${marca * 100}% - 1.5px)` }}
         />
       )}
@@ -237,10 +262,10 @@ export function Cifra({
     // «atrasadas» del Panel coincide con el conmutador del Gantt (§9.3 C3) obliga a adivinar por
     // posición en el texto, que es como se cuelan los errores de medición.
     <div data-cifra={pie}>
-      <p className="text-3xl font-semibold tabular-nums text-zinc-100" style={color ? { color } : undefined}>
+      <p className="text-3xl font-semibold tabular-nums text-tinta" style={color ? { color } : undefined}>
         {valor}
       </p>
-      <p className="mt-0.5 text-xs text-zinc-500">{pie}</p>
+      <p className="mt-0.5 text-xs text-tinta-3">{pie}</p>
     </div>
   )
 }
@@ -253,8 +278,8 @@ export function Cifra({
  */
 export function SinDatos({ children }: { readonly children: React.ReactNode }) {
   return (
-    <div className="flex min-h-[92px] items-center justify-center rounded-lg border border-dashed border-zinc-800 px-4 py-6 text-center">
-      <p className="max-w-sm text-xs leading-relaxed text-zinc-500">{children}</p>
+    <div className="flex min-h-[92px] items-center justify-center rounded-lg border border-dashed border-borde px-4 py-6 text-center">
+      <p className="max-w-sm text-xs leading-relaxed text-tinta-3">{children}</p>
     </div>
   )
 }
@@ -270,9 +295,9 @@ export function Widget({
   readonly children: React.ReactNode
 }) {
   return (
-    <section className="min-w-0 rounded-xl border border-zinc-800 bg-[#18181b] p-5">
+    <section className="min-w-0 rounded-xl border border-borde bg-superficie p-5">
       <header className="mb-4 flex items-baseline justify-between gap-3">
-        <h3 className="text-xs uppercase tracking-wide text-zinc-500">{titulo}</h3>
+        <h3 className="text-xs uppercase tracking-wide text-tinta-3">{titulo}</h3>
         {extra}
       </header>
       {children}

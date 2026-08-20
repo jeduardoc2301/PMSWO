@@ -18,7 +18,7 @@ export default function NotFound() {
         <div className="rounded-lg border border-zinc-200 bg-white p-8 shadow-sm dark:border-borde dark:bg-fondo">
           {/* 404 icon */}
           <div className="mb-4 flex justify-center">
-            <div className="rounded-full bg-zinc-100 p-3 dark:bg-superficie">
+            <div className="rounded-full bg-tinta p-3 dark:bg-superficie">
               <FileQuestion className="h-8 w-8 text-tinta-3 dark:text-tinta-2" />
             </div>
           </div>
@@ -36,7 +36,7 @@ export default function NotFound() {
           {/* Action button */}
           <Link
             href="/dashboard"
-            className="flex items-center justify-center gap-2 rounded-lg bg-superficie px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-50"
+            className="flex items-center justify-center gap-2 rounded-lg bg-superficie px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-tinta dark:focus:ring-zinc-50"
           >
             <Home className="h-4 w-4" />
             {t('goHome')}

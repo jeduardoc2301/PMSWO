@@ -73,6 +73,77 @@
   */
   --grave-tinta:    #f87171;
   --sobre-color:    #09090b;  /* lo que se escribe ENCIMA de un bien/aviso/grave lleno */
+
+  /* ── Los colores de DATO (§9.3 C6) ───────────────────────────────────────────────────────
+
+     Estos no decoran: **dicen algo**. Cambiarlos cambia lo que la pantalla afirma, y por eso viven
+     aquí en vez de salir de una sustitución mecánica.
+
+     La rampa es una escala **ordinal** —pendiente → por hacer → en curso → terminada—, un solo tono
+     azul con la luminosidad repartida en pasos iguales. Construida en OKLCH y no a ojo: tono clavado
+     en 255° en los cuatro pasos y huecos de luminosidad de 0,13.                                  */
+
+  --rampa-1:  #b7d3f6;  /* el paso más claro */
+  --rampa-2:  #6da7ec;
+  --rampa-3:  #2a78d6;
+  --rampa-4:  #184f95;  /* el más oscuro */
+
+  /*
+    La ocupación de la matriz de carga: **más carga, más ruidosa** la celda.
+
+    Y «ruidoso» no es un color fijo, es **distancia al fondo**: sobre un fondo oscuro grita lo claro,
+    sobre uno claro grita lo oscuro. Por eso esta rampa va aquí en un orden y en el tema claro en el
+    contrario — no es la misma escala pintada distinto, es la misma **regla** aplicada a dos fondos.
+
+    Estaba resuelto invirtiendo el arreglo en JavaScript, que sirve mientras haya un solo tema.
+  */
+  --carga-1:  #184f95;  /* la menos llena */
+  --carga-2:  #2a78d6;
+  --carga-3:  #6da7ec;
+  --carga-4:  #b7d3f6;  /* la más llena */
+
+  /*
+    La tinta de la cifra **encima** de cada paso, que no es la del resto de la pantalla.
+
+    Una rampa se cruza con el texto que lleva escrito: donde el relleno se aclara, la tinta clara
+    desaparece. Medido, con la tinta de siempre (`#fafafa`): 7.76 sobre el paso 1, y luego **4.23,
+    2.40 y 1.47**. La cifra de una celda llena —que es justo la que se busca de un vistazo— era
+    ilegible en el tema para el que se diseñó la rampa.
+
+    El punto donde la tinta cambia de bando **no** es el mismo en los dos temas: aquí salta después
+    del primer paso, en claro después del segundo. Por eso van emparejadas, y no como una regla.
+  */
+  --carga-1-tinta: #fafafa;  /* 7.76:1 */
+  --carga-2-tinta: #09090b;  /* 4.51:1 */
+  --carga-3-tinta: #09090b;  /* 7.95:1 */
+  --carga-4-tinta: #09090b;  /* 12.94:1 */
+
+  /*
+    El velo de la celda sobrecargada, **ya compuesto**.
+
+    Se armaba concatenando alfa —`${critico}44`— y con un token eso no vale: `var(--x)44` no es un
+    color.
+
+    Pero componerlo por tema tampoco bastaba, y el motivo es más interesante: **un tinte pesa al
+    revés**. Medida la luminancia de la parrilla en oscuro, los cuatro pasos van de 0,080 a 0,633 —y
+    el tinte rojo se queda en **0,026**, por debajo del más vacío—. En claro pasa lo mismo del otro
+    lado: 0,659 contra 0,429. En los dos temas, la celda con problema quedaba siendo **la más ligera
+    de la parrilla**: parecía la más vacía justo la que está desbordada.
+
+    Un relleno macizo no depende del fondo y no tiene ese fallo: `#f87171` (0,330) cae entre el
+    segundo y el tercer paso, o sea que la celda rota **pesa como una celda llena**, que es lo que es.
+  */
+  --velo-critico: #f87171;
+  --velo-critico-tinta: #09090b;  /* 7.19:1 encima */
+  --velo-critico-suave: #2c191c;  /* el mismo al 13 %, para la insignia del desglose */
+
+  /* Los cuatro estados reservados. Nunca se reutilizan como «una serie más». */
+  --estado-bien:    #0ca30c;
+  --estado-aviso:   #fab219;
+  --estado-serio:   #ec835a;
+  --estado-critico: #d03b3b;
+  /* El crítico como TEXTO: `#d03b3b` sobre la superficie da 3.69:1 y hace falta 4.5:1. */
+  --estado-critico-tinta: #f87171;
 }
 
 /* ── Modo claro ────────────────────────────────────────────────────────────────────────────────
@@ -114,6 +185,45 @@
   --grave-tinta:    #b91c1c;
   --sobre-color:    #ffffff;
 
+  /*
+    La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
+    blanco — invisible. Ésta da 2.19 / 3.57 / 6.17 / 10.77, monotónica, y con el mismo tono.
+
+    El sentido **no se invierte**: sigue yendo de claro a oscuro. Lo que cambia es quién paga el
+    suelo de contraste — sobre blanco lo paga el paso pálido, que es PENDIENTE: trabajo que ni ha
+    empezado. TERMINADA se queda con 10.77:1, que es la etapa que se busca de un vistazo.
+  */
+  --rampa-1:  #77b2fd;
+  --rampa-2:  #4189e0;
+  --rampa-3:  #1561b4;
+  --rampa-4:  #053d79;
+
+  /* Aquí sí se da la vuelta: sobre blanco, lo que grita es lo oscuro. */
+  --carga-1:  #77b2fd;
+  --carga-2:  #4189e0;
+  --carga-3:  #1561b4;
+  --carga-4:  #053d79;
+
+  /* Y la tinta salta **después del segundo** paso, no del primero: 8.07 · 4.96 · 6.17 · 10.77. */
+  --carga-1-tinta: #18181b;
+  --carga-2-tinta: #18181b;
+  --carga-3-tinta: #ffffff;
+  --carga-4-tinta: #ffffff;
+
+  --velo-critico: #b91c1c;
+  --velo-critico-tinta: #ffffff;  /* 6.47:1 encima */
+  --velo-critico-suave: #fbeaea;
+
+  /*
+    Los estados, rehechos: sobre blanco el ámbar `#fab219` da **1.83:1** y el naranja `#ec835a`
+    **2.64:1**. Los dos estaban rotos en claro antes de que existiera el tema claro.
+  */
+  --estado-bien:    #15803d;
+  --estado-aviso:   #b45309;
+  --estado-serio:   #c2410c;
+  --estado-critico: #b91c1c;
+  --estado-critico-tinta: #b91c1c;
+
   --bg:       #f4f4f7;
   --surface:  #ffffff;
   --surface2: #fafafb;
@@ -154,6 +264,45 @@
     --grave:          #b91c1c;
     --grave-tinta:    #b91c1c;
     --sobre-color:    #ffffff;
+
+    /*
+      La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
+      blanco — invisible. Ésta da 2.19 / 3.57 / 6.17 / 10.77, monotónica, y con el mismo tono.
+
+      El sentido **no se invierte**: sigue yendo de claro a oscuro. Lo que cambia es quién paga el
+      suelo de contraste — sobre blanco lo paga el paso pálido, que es PENDIENTE: trabajo que ni ha
+      empezado. TERMINADA se queda con 10.77:1, que es la etapa que se busca de un vistazo.
+    */
+    --rampa-1:  #77b2fd;
+    --rampa-2:  #4189e0;
+    --rampa-3:  #1561b4;
+    --rampa-4:  #053d79;
+
+    /* Aquí sí se da la vuelta: sobre blanco, lo que grita es lo oscuro. */
+    --carga-1:  #77b2fd;
+    --carga-2:  #4189e0;
+    --carga-3:  #1561b4;
+    --carga-4:  #053d79;
+
+    /* Y la tinta salta **después del segundo** paso, no del primero: 8.07 · 4.96 · 6.17 · 10.77. */
+    --carga-1-tinta: #18181b;
+    --carga-2-tinta: #18181b;
+    --carga-3-tinta: #ffffff;
+    --carga-4-tinta: #ffffff;
+
+    --velo-critico: #b91c1c;
+    --velo-critico-tinta: #ffffff;  /* 6.47:1 encima */
+    --velo-critico-suave: #fbeaea;
+
+    /*
+      Los estados, rehechos: sobre blanco el ámbar `#fab219` da **1.83:1** y el naranja `#ec835a`
+      **2.64:1**. Los dos estaban rotos en claro antes de que existiera el tema claro.
+    */
+    --estado-bien:    #15803d;
+    --estado-aviso:   #b45309;
+    --estado-serio:   #c2410c;
+    --estado-critico: #b91c1c;
+    --estado-critico-tinta: #b91c1c;
 
     --bg:       #f4f4f7;
     --surface:  #ffffff;

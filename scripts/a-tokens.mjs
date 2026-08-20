@@ -15,10 +15,11 @@
  *
  * ## Lo que NO toca
  *
- * Ni pruebas ni guiones —ahí el color literal suele ser lo que se está comprobando—, ni los archivos
- * que el inventario marcó como delicados, donde el color **codifica un dato**: el rojo de sobrecarga
- * de la matriz de carga, la rampa de ocupación, la del embudo del panel. En esos, cambiar el color
- * cambia lo que la pantalla dice, y eso se decide mirando, no sustituyendo.
+ * Ni pruebas ni guiones: ahí el color literal suele ser lo que se está comprobando.
+ *
+ * Tampoco los colores de **dato** —la rampa del embudo, la de ocupación, los estados reservados—,
+ * pero ya no por una lista de archivos: porque esos dejaron de ser literales y son `var(--rampa-1)`,
+ * `var(--carga-3)`, `var(--estado-critico)`… y ninguna regla de aquí busca eso. Ver `DELICADOS`.
  *
  *   node scripts/a-tokens.mjs            dice qué haría, sin tocar nada
  *   node scripts/a-tokens.mjs --escribe  lo hace
@@ -28,17 +29,19 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { readdirSync, statSync } from 'node:fs'
 import { join, sep } from 'node:path'
 
-/** Donde el color significa un dato: se mira, no se sustituye. */
-const DELICADOS = [
-  // Sólo éste. Aquí **se declaran** los colores de dato —la rampa del embudo y los estados
-  // reservados— y ninguna regla mecánica sabe distinguirlos de una superficie.
-  //
-  // Los otros dos que estaban en esta lista salían sobrando: `workload-view.tsx` y `gantt.ts`
-  // **importan** los colores de dato, no los escriben, así que sus literales son todos superficies
-  // y textos — saltarlos enteros dejó sin convertir dos vistas por proteger un color que no estaba
-  // ahí. Y `conmutador-de-tema.tsx` no tiene ningún color: eso lo fija su propia prueba.
-  'components/projects/dashboard-charts.tsx',
-]
+/**
+ * Donde el color significa un dato: se mira, no se sustituye.
+ *
+ * **Está vacía, y eso es el final del camino, no un descuido.** Los colores de dato —la rampa del
+ * embudo, la de ocupación, los cuatro estados reservados, el velo de sobrecarga— ya no son
+ * literales: son `var(--rampa-1)`, `var(--carga-3)`, `var(--estado-critico)`… y ninguna regla de
+ * aquí los toca, porque todas buscan hexadecimales y clases `zinc-*`.
+ *
+ * Mientras la lista tuvo entradas, protegió de más: saltar un archivo entero por un color deja sin
+ * convertir todas sus superficies y todas sus tintas. Así se quedaron dos vistas en oscuro, y un
+ * `text-zinc-300` en la leyenda del panel que sobre blanco es prácticamente invisible.
+ */
+const DELICADOS = []
 
 const REGLAS = [
   // ── superficies ───────────────────────────────────────────────────────────────────────────────
@@ -49,6 +52,12 @@ const REGLAS = [
   [/\bbg-zinc-950\b/g, 'bg-fondo'],
   [/\bbg-zinc-900\b/g, 'bg-superficie'],
   [/\bbg-zinc-800\b/g, 'bg-superficie-3'],
+  // El tirador de un deslizador y cosas por el estilo: relleno claro sobre fondo oscuro. Es
+  // «lo que resalta», o sea la tinta, no una superficie.
+  [/\bbg-zinc-100\b/g, 'bg-tinta'],
+  [/\bbg-zinc-200\b/g, 'bg-tinta'],
+  [/\bring-\[#18181b\]/g, 'ring-superficie'],
+  [/\bring-\[#27272a\]/g, 'ring-borde'],
   // ── bordes ────────────────────────────────────────────────────────────────────────────────────
   [/\bborder-\[#27272a\]/g, 'border-borde'],
   [/\bborder-zinc-800\b/g, 'border-borde'],

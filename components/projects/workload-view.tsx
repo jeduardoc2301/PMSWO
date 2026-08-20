@@ -25,7 +25,13 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
-import { COLORES_DE_ESTADO, RAMPA_AZUL } from '@/components/projects/dashboard-charts'
+import {
+  COLORES_DE_ESTADO,
+  CRITICO_COMO_TINTA,
+  VELO_CRITICO,
+  VELO_CRITICO_TINTA,
+  VELO_CRITICO_SUAVE,
+} from '@/components/projects/dashboard-charts'
 import { type WorkCalendar } from '@/lib/scheduling/calendar'
 import {
   type AsignacionDeCarga,
@@ -96,17 +102,47 @@ export interface WorkloadViewProps {
  * validador —el más oscuro quedaba en 1.24:1 contra la tarjeta, indistinguible del fondo—, que es
  * justo el motivo de tener una rampa comprobada en vez de elegir cuatro azules a ojo.
  */
-const RAMPA = [RAMPA_AZUL[3], RAMPA_AZUL[2], RAMPA_AZUL[1], RAMPA_AZUL[0]] as const
+/**
+ * Los cuatro pasos de ocupación, cada uno con **la tinta que se lee encima**.
+ *
+ * Van emparejados porque una rampa se cruza con el texto que lleva escrito: donde el relleno se
+ * aclara, la tinta clara desaparece. La cifra de una celda llena daba **1.47:1** con la tinta de
+ * siempre — y es justo la celda que se busca de un vistazo.
+ *
+ * El punto donde la tinta cambia de bando no es el mismo en los dos temas, así que la pareja se
+ * resuelve en `globals.css` y aquí no hay ninguna regla que mantener al día.
+ */
+const RAMPA = [
+  { fondo: 'var(--carga-1)', tinta: 'var(--carga-1-tinta)' },
+  { fondo: 'var(--carga-2)', tinta: 'var(--carga-2-tinta)' },
+  { fondo: 'var(--carga-3)', tinta: 'var(--carga-3-tinta)' },
+  { fondo: 'var(--carga-4)', tinta: 'var(--carga-4-tinta)' },
+] as const
 
 /** El color de fondo de una celda según lo llena que esté. */
-function fondoDeCelda(celda: CeldaDeCarga): string | undefined {
-  if (celda.sobrecargado) return `${COLORES_DE_ESTADO.critico}44`
+function pasoDeCelda(celda: CeldaDeCarga): (typeof RAMPA)[number] | undefined {
   if (celda.capacidadMin === 0 || celda.cargaMin === 0) return undefined
   const ocupacion = celda.cargaMin / celda.capacidadMin
   if (ocupacion >= 0.99) return RAMPA[3]
   if (ocupacion >= 0.66) return RAMPA[2]
   if (ocupacion >= 0.33) return RAMPA[1]
   return RAMPA[0]
+}
+
+/** El color de fondo de una celda según lo llena que esté. */
+function fondoDeCelda(celda: CeldaDeCarga): string | undefined {
+  if (celda.sobrecargado) return VELO_CRITICO
+  return pasoDeCelda(celda)?.fondo
+}
+
+/**
+ * La tinta que se lee encima de esa celda.
+ *
+ * `undefined` cuando la celda no lleva relleno: entonces manda la tinta normal de la tabla.
+ */
+function tintaDeCelda(celda: CeldaDeCarga): string | undefined {
+  if (celda.sobrecargado) return VELO_CRITICO_TINTA
+  return pasoDeCelda(celda)?.tinta
 }
 
 function textoDeCelda(celda: CeldaDeCarga, modo: ModoDeCarga): string {
@@ -356,7 +392,7 @@ export function WorkloadView({
                         <tr>
                           <td
                             colSpan={matriz.days.length + 1}
-                            className="border-b border-borde bg-[#141416] px-3 py-2 text-[11px] text-tinta-3"
+                            className="border-b border-borde bg-superficie-3 px-3 py-2 text-[11px] text-tinta-3"
                           >
                             Este recurso no tiene ninguna línea activa en el periodo visible.
                           </td>
@@ -567,11 +603,11 @@ function FilaDeLaMatriz({
   readonly onAbrirCalendario?: () => void
 }) {
   return (
-    <tr data-testid={`fila-${clave}`} className={destacada ? 'bg-[#1c1c20]' : ''}>
+    <tr data-testid={`fila-${clave}`} className={destacada ? 'bg-superficie-2' : ''}>
       <th
         scope="row"
         className={`sticky left-0 z-10 w-56 min-w-56 border-b border-r border-borde px-3 py-1.5 text-left font-normal ${
-          destacada ? 'bg-[#1c1c20]' : 'bg-superficie'
+          destacada ? 'bg-superficie-2' : 'bg-superficie'
         }`}
       >
         <div className="flex items-center gap-1.5">
@@ -617,7 +653,7 @@ function FilaDeLaMatriz({
               data-testid={`sobrecarga-${clave}`}
               title={`${diasSobrecargados} días sobrecargados en el periodo`}
               className="shrink-0 rounded px-1.5 py-0.5 text-[11px] tabular-nums"
-              style={{ color: COLORES_DE_ESTADO.critico, backgroundColor: `${COLORES_DE_ESTADO.critico}22` }}
+              style={{ color: CRITICO_COMO_TINTA, backgroundColor: VELO_CRITICO_SUAVE }}
             >
               ⚠ {diasSobrecargados}
             </span>
@@ -629,6 +665,7 @@ function FilaDeLaMatriz({
         const dia = dias[i]
         const texto = textoDeCelda(celda, modo)
         const fondo = apagada ? undefined : fondoDeCelda(celda)
+        const tinta = apagada ? undefined : tintaDeCelda(celda)
         return (
           <td
             key={dia.date}
@@ -675,13 +712,9 @@ function FilaDeLaMatriz({
             } ${onElegirCelda ? 'cursor-pointer hover:ring-1 hover:ring-inset hover:ring-borde-fuerte' : ''} ${
               celda.sobrecargado ? 'font-semibold' : ''
             } ${apagada ? 'text-tinta-3' : 'text-tinta'}`}
-            style={fondo ? { backgroundColor: fondo } : undefined}
+            style={fondo ? { backgroundColor: fondo, color: tinta } : undefined}
           >
-            {celda.sobrecargado ? (
-              <span style={{ color: COLORES_DE_ESTADO.critico }}>{texto}</span>
-            ) : (
-              texto
-            )}
+            {texto}
           </td>
         )
       })}
@@ -711,10 +744,10 @@ function FilaDeDesgloseDeTarea({
   readonly onAbrirDetalle?: (id: string) => void
 }) {
   return (
-    <tr data-testid={`desglose-${linea.taskId}`} className="bg-[#141416]">
+    <tr data-testid={`desglose-${linea.taskId}`} className="bg-superficie-3">
       <th
         scope="row"
-        className="sticky left-0 z-10 w-56 min-w-56 border-b border-r border-borde bg-[#141416] py-1 pl-9 pr-3 text-left font-normal"
+        className="sticky left-0 z-10 w-56 min-w-56 border-b border-r border-borde bg-superficie-3 py-1 pl-9 pr-3 text-left font-normal"
       >
         {/* El nombre abre el panel de detalle del §10.3 — el mismo de las otras cinco vistas.
             Aquí importa más que en ninguna: quien mira la carga ve que alguien está al 140 % y lo
@@ -758,7 +791,7 @@ function FilaDeDesgloseDeTarea({
             data-minutos={minutos}
             title={`${linea.name} · ${dia.date} · ${minutosLegibles(minutos)}`}
             className={`w-8 min-w-8 border-b border-borde/60 py-1 text-center text-[11px] tabular-nums text-tinta-3 ${
-              dia.isWorking ? '' : 'bg-[#0f0f11]'
+              dia.isWorking ? '' : 'bg-fondo'
             }`}
           >
             {texto}

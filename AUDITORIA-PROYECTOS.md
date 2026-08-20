@@ -3039,3 +3039,78 @@ Corregida la lista —queda sólo `dashboard-charts.tsx`, que es donde **se decl
 para unificar las **nueve superficies hundidas** que el inventario encontró haciendo el mismo papel
 (`#141416`, `#0e0e12`, `#0f0f11`, `#131316`…): **100 sustituciones más en 15 archivos**.
 
+---
+
+## §9.3 C6 — cerrado, y de camino tres defectos que ya estaban
+
+Los colores que **codifican un dato** —la rampa del embudo, la de ocupación, los cuatro estados
+reservados, el velo de sobrecarga— pasan a ser tokens con valor por tema. Y al medirlos aparecieron
+tres cosas que fallaban **antes** de que existiera el modo claro.
+
+### La rampa no servía sobre blanco
+
+`#b7d3f6` da **1.54:1** sobre blanco: invisible. La rampa clara se construyó en OKLCH —tono clavado
+en 255°, huecos de luminosidad de 0,13— y da **2.19 / 3.57 / 6.17 / 10.77**, monotónica.
+
+El sentido **no se invierte**: sigue yendo de claro a oscuro. Lo que cambia es quién paga el suelo de
+contraste — sobre blanco lo paga el paso pálido, que es PENDIENTE: trabajo que ni ha empezado.
+
+### La inversión de la matriz de carga se resuelve en CSS, sin JavaScript
+
+La matriz usaba la rampa **al revés** —más carga, más claro— porque sobre fondo oscuro lo que grita
+es lo claro. Sobre blanco el argumento se da la vuelta. Estaba resuelto invirtiendo el arreglo en
+JavaScript, que sirve mientras haya un solo tema.
+
+Ahora la rampa de carga se **declara** en un orden en cada tema. No es la misma escala pintada
+distinto: es la misma **regla** —distancia al fondo— aplicada a dos fondos.
+
+### La cifra escrita sobre la celda: 1.47:1, en el tema para el que se diseñó
+
+El peor de los tres, y anterior a todo esto. Una rampa se cruza con el texto que lleva escrito, y con
+la tinta de siempre:
+
+| paso | tinta clara, oscuro | tinta oscura, claro |
+|---|---:|---:|
+| carga-1 | 7.76 | 8.07 |
+| carga-2 | **4.23** | 4.96 |
+| carga-3 | **2.40** | **2.87** |
+| carga-4 | **1.47** | **1.65** |
+
+La celda **llena** —que es justo la que se busca de un vistazo— tenía el número ilegible. Cada paso
+va ahora emparejado con su tinta, y el punto donde la tinta cambia de bando **no es el mismo en los
+dos temas**: en oscuro salta tras el primer paso, en claro tras el segundo. Un `if` con índice fijo
+acierta en un tema y falla en el otro.
+
+### Y el velo de sobrecarga pesaba al revés
+
+Un tinte hereda la luminancia del fondo. Medida la parrilla en oscuro, los cuatro pasos van de 0,080
+a 0,633 — y el tinte rojo se quedaba en **0,026**, por debajo del más vacío. En claro, 0,659 contra
+0,429: lo mismo del otro lado.
+
+En los dos temas la celda con problema era **la más ligera de la parrilla**: parecía la más vacía
+justo la que está desbordada. Ahora es un relleno macizo, que no depende del fondo: `#f87171` en
+oscuro cae entre el segundo y el tercer paso — pesa como una celda llena, que es lo que es.
+
+### Seis fondos que dejaban el desglose ilegible en claro
+
+`bg-[#141416]` y compañía seguían escritos a mano: las reglas de conversión miraban el hexadecimal
+**entrecomillado** y éstos van entre corchetes. En tema claro dejaban la tinta a **1.04:1** — el
+desglose entero, un rectángulo negro. Añadidas las reglas para que no vuelva a colarse.
+
+### Demostrado en pantalla, en los dos temas
+
+| | oscuro | claro |
+|---|---|---|
+| paso más vacío de la carga | `#184f95` | `#77b2fd` |
+| paso más lleno | `#b7d3f6` | `#053d79` |
+| velo de sobrecarga | `#f87171` | `#b91c1c` |
+| tinta encima del velo | `#09090b` | `#ffffff` |
+| celdas con carga que llevan **su propia tinta** | **83 de 83** | **83 de 83** |
+| celdas sobrecargadas que dicen **la palabra** | **61 de 61** | **61 de 61** |
+
+### Y la novena acusación caída
+
+El informe decía que `var()` no resuelve en un atributo de presentación SVG, y que por eso los
+gráficos de recharts se romperían. Comprobado en el navegador: `fill="var(--acento)"` computa a
+`rgb(79, 70, 229)`. **Sí resuelve.**
+
