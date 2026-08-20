@@ -59,10 +59,22 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
     try {
       setLoading(true); setError(null)
       const res = await fetch(`/api/v1/projects/${projectId}/agreements`)
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to fetch agreements') }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || `No se pudieron cargar los acuerdos de este proyecto (HTTP ${res.status}).`) }
       const d = await res.json(); setAgreements(d.agreements || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      /**
+       * Un mensaje que diga **qué** no se pudo hacer, no «ocurrió un error» (§13: «mensajes de error
+       * concretos, nunca genéricos»).
+       *
+       * Lo que llega aquí sin ser `Error` es lo imprevisto — una promesa rechazada con un valor
+       * suelto, un fallo de red sin cuerpo. Aun así se puede decir **qué** se estaba intentando, que
+       * es lo que le dice a quien lo lee dónde mirar y qué contar si llama a soporte.
+       */
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudieron cargar los acuerdos. Vuelve a intentarlo; si sigue igual, el servidor no está respondiendo.',
+      )
     } finally { setLoading(false) }
   }
 

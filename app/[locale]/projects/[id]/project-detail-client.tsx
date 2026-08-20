@@ -258,7 +258,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       )
 
       const projectRes = await pProject
-      if (!projectRes.ok) { const d = await projectRes.json(); throw new Error(d.message || 'Failed to fetch project') }
+      if (!projectRes.ok) { const d = await projectRes.json(); throw new Error(d.message || `No se pudo cargar el proyecto (HTTP ${projectRes.status}).`) }
       const projectData = await projectRes.json()
       setProject(projectData.project)
       setLoading(false)
@@ -266,8 +266,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       const resto = await pResto
       if (!resto.bien) throw resto.fallo
       const [metricsRes, kanbanRes, agreementsRes] = resto.respuestas
-      if (!metricsRes.ok) { const d = await metricsRes.json(); throw new Error(d.message || 'Failed to fetch metrics') }
-      if (!kanbanRes.ok)  { const d = await kanbanRes.json();  throw new Error(d.message || 'Failed to fetch Kanban') }
+      if (!metricsRes.ok) { const d = await metricsRes.json(); throw new Error(d.message || `No se pudieron cargar las métricas del proyecto (HTTP ${metricsRes.status}).`) }
+      if (!kanbanRes.ok)  { const d = await kanbanRes.json();  throw new Error(d.message || `No se pudo cargar el tablero (HTTP ${kanbanRes.status}).`) }
       const metricsData = await metricsRes.json()
       const kanbanData  = await kanbanRes.json()
       const agreementsData = agreementsRes.ok ? await agreementsRes.json() : { agreements: [] }
@@ -275,7 +275,20 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       setKanbanBoard(kanbanData.kanbanBoard)
       calculateTacticalMetrics(kanbanData.kanbanBoard, agreementsData.agreements || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      /**
+       * Un mensaje que diga **qué** no se pudo hacer, no «ocurrió un error» (§13).
+       *
+       * Lo que llega aquí sin ser `Error` es lo imprevisto — una promesa rechazada con un valor
+       * suelto, un fallo de red sin cuerpo. Aun así se puede decir algo útil: **qué** se estaba
+       * intentando. «No se pudo cargar este proyecto» no resuelve nada por sí solo, pero le dice a
+       * quien lo lee dónde mirar y qué contar si llama a soporte; «An error occurred» no dice
+       * siquiera en qué idioma está la aplicación.
+       */
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo cargar este proyecto. Vuelve a intentarlo; si sigue igual, el servidor no está respondiendo.',
+      )
     } finally {
       setLoading(false)
     }

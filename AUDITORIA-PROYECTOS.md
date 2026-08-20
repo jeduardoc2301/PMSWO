@@ -2220,3 +2220,45 @@ Ahora los tramos salen de las columnas elegidas. Medido en pantalla, cuatro conf
 | Campos (9) | 10 | **10** |
 
 Antes eran siete en las cuatro.
+
+---
+
+## §13 · transversal — «mensajes de error concretos, nunca genéricos»
+
+Las cuatro pestañas del proyecto caían en el mismo patrón:
+
+```ts
+setError(err instanceof Error ? err.message : 'An error occurred')
+```
+
+Lo que llega ahí sin ser `Error` es lo imprevisto —una promesa rechazada con un valor suelto, un
+fallo de red sin cuerpo— y aun así se puede decir **qué se estaba intentando**. «No se pudieron
+cargar los bloqueadores de este proyecto» no resuelve nada por sí solo, pero dice dónde mirar y qué
+contar si alguien llama a soporte; «An error occurred» no dice siquiera en qué idioma está la
+aplicación.
+
+Y los `throw` de respaldo llevan el código HTTP, que es lo único que distingue «el servidor dijo que
+no» de «el servidor no está».
+
+Corregidas: el detalle del proyecto y las pestañas de acuerdos, bloqueadores y riesgos.
+
+---
+
+## §9 — el caché del panel: medido, y por eso no se pone
+
+La lista del §13 pide «un solo server action, **con caché**». Lo primero está; lo segundo se midió
+antes de construirlo:
+
+```
+cinco medidas: 26 · 27 · 28 · 28 · 29 ms      mediana 28 ms
+```
+
+Veintiocho milisegundos para las 1368 líneas. Un caché de proceso ahí no compra nada medible — y
+cuesta algo real: con sesenta segundos de vida, el panel **mentiría hasta un minuto** después de que
+alguien capture avance, que es justo el gesto que lleva a mirarlo.
+
+Un caché con invalidación en cada escritura sí sería correcto, pero es más código y más formas de
+equivocarse por veintiocho milisegundos.
+
+Se deja **sin caché a propósito**, con el número escrito. Lo que cambiaría la decisión: que la
+medida suba de unos cientos de milisegundos, o que el panel pase a leerse muchas veces por minuto.
