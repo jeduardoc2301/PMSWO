@@ -81,7 +81,7 @@ tiempo real y deshacer.
 | 8 | CPM: ruta crítica y holgura (§3.3) | **EXISTE** | `lib/scheduling/cpm.ts`, `critical-path.ts` | Nada. Holgura total, crítica y súper crítica, con 22 pruebas | — | — |
 | 9 | Restricciones de tarea (§3.4) | **PARCIAL** | `WorkItem.constraintType/constraintDate`, `lib/scheduling/reschedule.ts` | Persistidos los dos tipos que el motor aplica; las otras seis del §3.4 no, a propósito | M | Bajo |
 | 10 | Roll-up a resúmenes (§3.6) | **EXISTE** | `lib/scheduling/progress.ts` | Nada. Ponderado por trabajo, con hitos en peso cero | — | — |
-| 11 | Carga y sobrecarga de recursos (§3.7) | **PARCIAL** | `Resource`, `Assignment`, `ResourceAbsence`, `services/resource.service.ts` | Falta `Assignment.work`; no hay alta/baja de asignación; la fórmula del §3.7 usa una constante en vez de minutos laborables | L | Medio |
+| 11 | Carga y sobrecarga de recursos (§3.7) | **PARCIAL · lo que falta es modelo** | `Resource`, `Assignment`, `services/resource.service.ts`, `app/api/v1/work-items/[id]/assignments/` | Ya hay alta y baja de asignación por ruta, con la misma regla de dedicación en servidor y pantalla. La fórmula **no** usa una constante: usa `dailyMinutes` del recurso, que es lo que el modelo permite. Falta `Assignment.work` y franjas horarias por día para que `minutosLaborables(cal, d)` pueda variar — las dos son del §2, que espera decisión | M | Medio |
 | 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | **El EDT ya es estable**: la línea nueva nace con puesto al final, así que añadir una no renumera nada. Falta `sortOrder` como columna propia con su índice (hoy es `templateOrder`, nulable y global al proyecto) y el tope de 16 niveles. El EDT sí está en el Gantt, como columna del catálogo | M | Medio |
 | 13 | Vista Gantt (§4) | **CERRADA** | `components/plan/gantt-chart.tsx`, `plan-workspace.tsx`, `fields-panel.tsx`, `lib/plan/gantt-columns.ts` | **8 de 8 criterios del §4.8, cada uno demostrado en pantalla** (ver la bitácora). Del §4.2 queda fuera el catálogo completo de columnas —presupuesto, tiempo registrado, campos personalizados— porque necesita modelos que no existen; del §4.3, las escalas de hora, día, trimestre y año. Son ampliaciones, no criterios | L | Medio |
 | 14 | Vista Tablero (§5) | **CERRADA** | `components/projects/kanban-board.tsx`, `lib/projects/kanban-group.ts`, `columnas-del-tablero.tsx` | Arrastre, urgencias, avance, atraso, y las dos que faltaban: agrupar por estado, prioridad o responsable —comprobado en pantalla, la barra se reconstruye sin recargar: 5 columnas por estado, 4 por prioridad, 5 por responsable— y columnas configurables desde el propio tablero | M | Bajo |
@@ -89,7 +89,7 @@ tiempo real y deshacer.
 | 16 | Vista Calendario (§7) | **CERRADA (con una corrección)** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx`, `services/reschedule.service.ts` | **6 de 6 criterios del §7.5 demostrados en pantalla — pero el 5 se dio por bueno de más y hubo que volver.** Mi demostración soltaba la barra sobre casillas vacías; un auditor cuyo encargo era refutarme encontró que soltar sobre **otra barra** no hacía nada, y eso es el 21 % de la rejilla y más de la mitad del alto útil de un día cargado. Corregido y vuelto a medir: de 0 % a 100 % de aceptación en los puntos que caen sobre una barra. La lección no es del Calendario: una demostración en pantalla que no busca el caso denso no es una demostración. Del §7.2 quedan fuera la vista semanal, la de agenda y crear tarea arrastrando un rango: son mejoras propuestas, no criterios. Y el calendario del proyecto sólo se puede **leer**: no hay pantalla ni ruta para crearlo — brecha 27 | L | Bajo |
 | 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | **6 de 6 criterios del §8.5, cada uno demostrado en pantalla** (ver la bitácora). Es la única vista que no necesitó tocar código: estaba bien y lo que faltaba era recorrerla. Del §8.2 queda fuera el calendario por recurso —hay jornada diaria y ausencias, no semana laboral propia— | L | Medio |
 | 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | **5 de 6 criterios del §9.3 demostrados en pantalla, y el sexto a medias** (ver la bitácora). Lo que falta no es del panel: la aplicación **no tiene modo claro** —ni `prefers-color-scheme`, ni clases `dark:`, ni conmutador— en ninguna de las seis vistas, así que «legibles en claro y oscuro» no se puede cumplir aquí. La otra mitad —accesibles sin depender sólo del color— sí | L | Bajo |
-| 27 | Calendario del proyecto: sólo lectura | **NO EXISTE** | `services/project-calendar.service.ts` (sólo `load*`) | El sombreado de festivos propios funciona —medido—, pero `ProjectCalendar` y `ProjectHoliday` sólo se pueden crear escribiendo en la base. No hay ruta `/calendar` ni pantalla. Descubierto al demostrar el criterio 2 del §7.5 | M | Medio |
+| 27 | Calendario del proyecto | **CERRADA** | `app/api/v1/projects/[id]/calendar/`, `lib/scheduling/calendario-editable.ts` | Semana laborable, país de festivos y festivos propios, con ruta y reglas. Pide `edit_schedule` porque cambiarlo mueve las fechas de todo el plan. Comprobado: añadir el sábado hace que el motor pase a `[1,2,3,4,5,6]`, y borrar la fila devuelve al calendario de por omisión | M | Medio |
 | 19 | Estados configurables (§5) | **CERRADA** | `KanbanColumn.isInitial/isDone`, `lib/projects/columnas-del-tablero.ts`, `app/api/v1/projects/[id]/columns/` | Alta y baja de columnas desde el propio tablero, con las dos protegidas —la inicial y la de terminado— y con destino obligatorio para las tarjetas de la que se quita. Reordenar columnas no está: `@@unique([projectId, order])` lo convierte en un corrimiento con transacción, y hacerlo a medias es peor que no ofrecerlo | M | Medio |
 | 20 | Líneas base (§3) | **CERRADA** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts`, `gantt.ts` | Las dos mitades del §4.6 conmutador 4: la barra fina bajo cada barra —28 dibujadas, comprobado— y el valor original en la rejilla junto al de hoy, en rojo lo que se fue tarde y en verde lo que se adelantó. El selector sí estaba en el Gantt; la matriz decía que no | M | Bajo |
 | 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
@@ -1045,3 +1045,41 @@ Justo en el plazo, ni antes ni mucho después.
 La decisión vive en `lib/auth-refresco.ts` y no dentro del callback de NextAuth, por una razón
 práctica: es aritmética con un reloj, y probarla dentro pediría levantar media autenticación o
 esperar cinco minutos de reloj real **por caso**. Fuera son trece pruebas instantáneas.
+
+## §3.1 y §3.7 — el calendario y las asignaciones, sin entrar a la base
+
+Dos cosas que existían en el modelo, que el motor leía, y que sólo se podían crear con un cliente de
+MySQL.
+
+**El calendario del proyecto (brecha 27).** Semana laborable, país de festivos y festivos propios.
+Pide `edit_schedule` y no un permiso de ajustes, porque cambiarlo **mueve fechas**: quitar el viernes
+de la semana corre el cierre de mil líneas. Es la decisión de plan más silenciosa que hay, porque el
+efecto no se ve donde se pulsa.
+
+Comprobado contra el servidor:
+
+| | resultado |
+|---|---|
+| leer sin fila guardada | 200 con lunes a viernes y `guardado: false` |
+| semana vacía | **400** · «no alarga el proyecto: lo hace imposible de programar» |
+| festivo el 30 de febrero | **400** · «2026-02-30: Esa fecha no existe» |
+| añadir el sábado | 200, y el motor pasa a `[1,2,3,4,5,6]` |
+| borrar la fila | vuelve al calendario de por omisión |
+
+Sin fila se devuelven los valores de por omisión y **no un 404**: el proyecto tiene calendario
+—lunes a viernes— aunque nadie haya escrito la fila, y un 404 haría creer que no lo tiene. Se
+distingue con `guardado`, porque quien administra necesita saber si mira lo guardado o lo heredado.
+
+Y una regla que parece de detalle: `2026-02-30` **parsea** a marzo, así que validar el formato no
+basta; hay que comprobar la ida y vuelta.
+
+**Las asignaciones (parte de la brecha 11).** Asignar y desasignar recursos a una línea. Lo que se
+impide es una dedicación imposible —cero, negativa, o más del doble de una jornada, que casi siempre
+es un dedo que resbaló—. Lo que **no** se impide es pasarse del 100 %: porque pasa, y entonces la
+persona sale sobrecargada, que es exactamente lo que la vista de carga existe para enseñar.
+Impedirlo aquí escondería el problema.
+
+**Y una corrección a la matriz.** Decía que la fórmula del §3.7 «usa una constante en vez de minutos
+laborables». No es cierto: usa `dailyMinutes` **del recurso**, que es lo que el modelo permite. Lo
+que falta para que `minutosLaborables(cal, d)` varíe por día son las franjas horarias, y ésas son
+del §2.
