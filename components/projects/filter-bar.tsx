@@ -22,7 +22,7 @@
 import React, { useMemo, useState } from 'react'
 
 import {
-  CAMPOS,
+  CAMPOS_BASE,
   type Condicion,
   FILTRO_VACIO,
   type Filtro,
@@ -51,6 +51,14 @@ export interface FilterBarProps {
   readonly onBorrar?: (id: string) => void
   /** Cuántas líneas quedan y cuántas había. Se enseña siempre que haya filtro puesto. */
   readonly conteo?: { readonly visibles: number; readonly total: number }
+  /**
+   * Los campos personalizados que este proyecto declara (§2, §10.2).
+   *
+   * Sólo los **vivos**: ofrecer uno archivado para un filtro nuevo sería invitar a seguir usando
+   * algo que alguien decidió retirar. Los archivados siguen valiendo para **evaluar** un filtro
+   * guardado, y eso ocurre en otro sitio.
+   */
+  readonly camposPropios?: Readonly<Record<string, { readonly tipo: string; readonly etiqueta: string }>>
 }
 
 const NOMBRES_DE_OPERADOR: Record<Operador, string> = {
@@ -71,12 +79,14 @@ const NOMBRES_DE_OPERADOR: Record<Operador, string> = {
 /** Los operadores que no llevan valor: enseñar un campo de texto al lado sería una trampa. */
 const SIN_VALOR: readonly Operador[] = ['is_empty', 'is_not_empty']
 
-function tipoDe(field: string): keyof typeof OPERADORES_POR_TIPO {
-  return (CAMPOS[field]?.tipo ?? 'texto') as keyof typeof OPERADORES_POR_TIPO
+type Catalogo = Readonly<Record<string, { readonly tipo: string; readonly etiqueta: string }>>
+
+function tipoDe(field: string, catalogo: Catalogo): keyof typeof OPERADORES_POR_TIPO {
+  return (catalogo[field]?.tipo ?? 'texto') as keyof typeof OPERADORES_POR_TIPO
 }
 
-function condicionNueva(field = 'status'): Condicion {
-  const operadores = OPERADORES_POR_TIPO[tipoDe(field)]
+function condicionNueva(catalogo: Catalogo, field = 'status'): Condicion {
+  const operadores = OPERADORES_POR_TIPO[tipoDe(field, catalogo)]
   return { field, operator: operadores[0], value: '' }
 }
 
@@ -94,7 +104,18 @@ export function FilterBar({
   onGuardar,
   onBorrar,
   conteo,
+  camposPropios,
 }: FilterBarProps) {
+  /**
+   * Los campos que se ofrecen: los de siempre más los que declare el proyecto (§2, §10.2).
+   *
+   * Los propios van **primero** en el objeto para que el orden de mezcla no pueda taparlos, pero
+   * las claves de los personalizados llevan prefijo `cf:` y no pueden chocar de todas formas.
+   */
+  const catalogo = React.useMemo(
+    () => ({ ...(camposPropios ?? {}), ...CAMPOS_BASE }) as Catalogo,
+    [camposPropios],
+  )
   const [abierto, setAbierto] = useState(false)
   const [nombreNuevo, setNombreNuevo] = useState('')
   const [compartir, setCompartir] = useState(false)
@@ -234,6 +255,7 @@ export function FilterBar({
                 {sueltas.map((condicion, i) => (
                   <li key={i}>
                     <FilaDeCondicion
+                      catalogo={catalogo}
                       condicion={condicion}
                       onCambiar={(nueva) => {
                         const copia = [...sueltas]
@@ -268,6 +290,7 @@ export function FilterBar({
                     {(grupo.conditions as Condicion[]).map((condicion, i) => (
                       <li key={i}>
                         <FilaDeCondicion
+                          catalogo={catalogo}
                           condicion={condicion}
                           onCambiar={(nueva) => {
                             const copia = [...(grupo.conditions as Condicion[])]
@@ -287,7 +310,7 @@ export function FilterBar({
                   <button
                     type="button"
                     onClick={() =>
-                      rehacer(sueltas, { ...grupo, conditions: [...grupo.conditions, condicionNueva()] })
+                      rehacer(sueltas, { ...grupo, conditions: [...grupo.conditions, condicionNueva(catalogo)] })
                     }
                     className="mt-1.5 rounded px-1.5 py-0.5 text-xs text-tinta-2 hover:bg-superficie-3"
                   >
@@ -299,7 +322,7 @@ export function FilterBar({
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => rehacer([...sueltas, condicionNueva()], grupo)}
+                  onClick={() => rehacer([...sueltas, condicionNueva(catalogo)], grupo)}
                   className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
                 >
                   + condición
@@ -307,7 +330,7 @@ export function FilterBar({
                 {!grupo ? (
                   <button
                     type="button"
-                    onClick={() => rehacer(sueltas, { op: 'OR', conditions: [condicionNueva('priority')] })}
+                    onClick={() => rehacer(sueltas, { op: 'OR', conditions: [condicionNueva(catalogo, 'priority')] })}
                     className="rounded border border-borde-fuerte px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
                   >
                     + grupo
@@ -375,12 +398,14 @@ function FilaDeCondicion({
   condicion,
   onCambiar,
   onQuitar,
+  catalogo,
 }: {
   readonly condicion: Condicion
   readonly onCambiar: (condicion: Condicion) => void
   readonly onQuitar: () => void
+  readonly catalogo: Catalogo
 }) {
-  const tipo = tipoDe(condicion.field)
+  const tipo = tipoDe(condicion.field, catalogo)
   const operadores = OPERADORES_POR_TIPO[tipo]
   const llevaValor = !SIN_VALOR.includes(condicion.operator)
   const esLista = condicion.operator === 'in' || condicion.operator === 'not_in'
@@ -391,10 +416,10 @@ function FilaDeCondicion({
       <select
         aria-label="Campo"
         value={condicion.field}
-        onChange={(e) => onCambiar(condicionNueva(e.target.value))}
+        onChange={(e) => onCambiar(condicionNueva(catalogo, e.target.value))}
         className="rounded border border-borde-fuerte bg-superficie px-1.5 py-1 text-xs text-tinta"
       >
-        {Object.entries(CAMPOS).map(([clave, campo]) => (
+        {Object.entries(catalogo).map(([clave, campo]) => (
           <option key={clave} value={clave}>
             {campo.etiqueta}
           </option>

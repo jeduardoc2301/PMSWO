@@ -18,7 +18,7 @@ import { type Cambio, type LadoDeOperacion, operacionDesde, vaPorLaRutaDeReprogr
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { BotonDeActualizar } from '@/components/projects/boton-de-actualizar'
 import { type CampoPersonalizado } from '@/lib/projects/campos-personalizados'
-import { declararCampos } from '@/lib/projects/campos-en-el-filtro'
+import { declararCampos, paraElegir } from '@/lib/projects/campos-en-el-filtro'
 import { ConmutadorDeTema } from '@/components/projects/conmutador-de-tema'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
@@ -654,6 +654,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       onGuardar={guardarFiltro}
       onBorrar={borrarFiltroGuardado}
       conteo={{ visibles: idsFiltrados.size, total: kanbanBoard?.workItems.length ?? 0 }}
+      camposPropios={declararCampos(paraElegir(camposPropios))}
     />
   )
 
