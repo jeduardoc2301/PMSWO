@@ -78,7 +78,7 @@ export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
             style={{
               background: 'var(--superficie)',
               border: '1px solid var(--borde)',
-              color: '#e4e4e7',
+              color: 'var(--tinta)',
             }}
             value={filters.status || ''}
             onChange={(e) => handleFilterChange('status', e.target.value)}

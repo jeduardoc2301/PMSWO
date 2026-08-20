@@ -103,7 +103,7 @@ const formatDate = (date?: string) => {
 const inputStyle: React.CSSProperties = {
   background: 'var(--superficie)',
   border: '1px solid var(--borde)',
-  color: '#e4e4e7',
+  color: 'var(--tinta)',
   borderRadius: 8,
   fontSize: 13,
   outline: 'none',
@@ -1003,7 +1003,7 @@ export function WorkItemsList({
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {!isNoPhase && <Layers className="h-4 w-4" style={{ color: 'var(--acento)' }} />}
-                          <span style={{ fontSize: 15, fontWeight: 600, color: '#e4e4e7' }}>{displayName}</span>
+                          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--tinta)' }}>{displayName}</span>
                         </div>
                         <span style={{ fontSize: 12, color: 'var(--tinta-3)' }}>
                           {items.length} {items.length === 1 ? 'elemento' : 'elementos'}
@@ -1259,7 +1259,7 @@ export function WorkItemsList({
                             <span
                               title={item.title}
                               className={plana ? 'block max-w-[42ch] truncate' : ''}
-                              style={{ fontSize: 14, fontWeight: 500, color: '#e4e4e7' }}
+                              style={{ fontSize: 14, fontWeight: 500, color: 'var(--tinta)' }}
                             >
                               {item.title}
                             </span>

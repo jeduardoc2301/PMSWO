@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!d) return null
   return (
     <div style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
-      <p style={{ fontWeight: 600, color: '#e4e4e7', marginBottom: 4 }}>{d.phase}</p>
+      <p style={{ fontWeight: 600, color: 'var(--tinta)', marginBottom: 4 }}>{d.phase}</p>
       <p style={{ color: 'var(--tinta-3)' }}>Inicio: <span style={{ color: 'var(--tinta-2)', fontWeight: 500 }}>{d.startLabel}</span></p>
       <p style={{ color: 'var(--tinta-3)' }}>Fin: <span style={{ color: 'var(--tinta-2)', fontWeight: 500 }}>{d.endLabel}</span></p>
       <p style={{ color: 'var(--tinta-3)' }}>Duración: <span style={{ color: 'var(--tinta-2)', fontWeight: 500 }}>{d.durationLabel}</span></p>

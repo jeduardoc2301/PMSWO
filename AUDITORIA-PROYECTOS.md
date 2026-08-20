@@ -3001,3 +3001,41 @@ ajuste **del proyecto**: lo ven todos los que lo abran.
 
 Sin permiso para cambiarlo, el selector no se dibuja — la vista lo enseña pero no deja tocarlo.
 
+---
+
+## §9.3 C6 — la sobrecarga dependía del color, y el color nunca fue una señal fuerte
+
+El criterio tiene dos mitades: «los gráficos son legibles en modo claro y oscuro **y accesibles sin
+depender sólo del color**». Al ir a por la primera apareció un agujero en la segunda.
+
+La celda sobrecargada de la matriz de carga llevaba **tres** señales —fondo rojo, cifra en rojo y
+negrita— y las tres son visuales. El título decía «8 h de 8 h · 3 líneas» y **en ningún sitio decía
+la palabra**. Quien no distingue el rojo tenía la negrita, que es sutil; quien escucha la pantalla no
+tenía nada — había que restar dos cifras de cabeza.
+
+Y midiendo el velo rojo salió algo peor: `#d03b3b` al 27 % da
+
+| sobre | compuesto | contra su fondo |
+|---|---|---:|
+| oscuro `#18181b` | `#492124` | **1.29:1** |
+| claro `#ffffff` | `#f2cbcb` | **1.48:1** |
+
+Una señal que no es texto necesita **3:1**. O sea que el color de la sobrecarga **nunca** fue una
+señal fuerte, ni en el tema para el que se diseñó. Lo que sostiene el aviso es la palabra.
+
+Ahora la celda lleva `aria-label` con la frase entera —«2026-06-01: 10 h de 8 h, sobrecargada»— y el
+título termina en `· SOBRECARGADA`. Va en `aria-label` y **no** en un `<span className="sr-only">`
+porque el añadido invisible ensucia el texto de la celda —y con él cualquier prueba y cualquier copia
+al portapapeles—; la etiqueta sustituye lo que se anuncia, que aquí es lo que se quiere: «diez» no
+significa nada sin «sobre ocho».
+
+### Y dos vistas que se saltaron por proteger un color que no estaba ahí
+
+La lista de archivos «delicados» tenía cuatro entradas y sobraban tres. `workload-view.tsx` y
+`gantt.ts` **importan** los colores de dato, no los escriben: sus literales son todos superficies y
+textos. Saltarlos enteros dejó dos vistas sin convertir por proteger algo que vivía en otro archivo.
+
+Corregida la lista —queda sólo `dashboard-charts.tsx`, que es donde **se declaran**— y aprovechado
+para unificar las **nueve superficies hundidas** que el inventario encontró haciendo el mismo papel
+(`#141416`, `#0e0e12`, `#0f0f11`, `#131316`…): **100 sustituciones más en 15 archivos**.
+

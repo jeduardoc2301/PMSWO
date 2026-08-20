@@ -27,7 +27,7 @@ const STATUS_STYLE: Record<AgreementStatus, { bg: string; color: string; border:
   [AgreementStatus.CANCELLED]:   { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)', label: 'cancelled'  },
 }
 
-const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: '#e4e4e7' }
+const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta)' }
 
 export function AgreementsTab({ projectId }: AgreementsTabProps) {
   const t = useTranslations('agreements')

@@ -31,7 +31,7 @@ const SEV_STYLE: Record<BlockerSeverity, { bg: string; color: string; border: st
   [BlockerSeverity.LOW]:      { bg: 'rgba(59,130,246,0.12)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
 }
 
-const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: '#e4e4e7' }
+const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta)' }
 
 export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, onBlockerDataUsed }: BlockersTabProps) {
   const t = useTranslations('blockers')

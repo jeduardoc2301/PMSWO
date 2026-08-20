@@ -30,10 +30,14 @@ import { join, sep } from 'node:path'
 
 /** Donde el color significa un dato: se mira, no se sustituye. */
 const DELICADOS = [
+  // Sólo éste. Aquí **se declaran** los colores de dato —la rampa del embudo y los estados
+  // reservados— y ninguna regla mecánica sabe distinguirlos de una superficie.
+  //
+  // Los otros dos que estaban en esta lista salían sobrando: `workload-view.tsx` y `gantt.ts`
+  // **importan** los colores de dato, no los escriben, así que sus literales son todos superficies
+  // y textos — saltarlos enteros dejó sin convertir dos vistas por proteger un color que no estaba
+  // ahí. Y `conmutador-de-tema.tsx` no tiene ningún color: eso lo fija su propia prueba.
   'components/projects/dashboard-charts.tsx',
-  'components/projects/workload-view.tsx',
-  'lib/scheduling/gantt.ts',
-  'components/projects/conmutador-de-tema.tsx',
 ]
 
 const REGLAS = [
@@ -77,6 +81,21 @@ const REGLAS = [
   [/(['"])#1c1c1f\1/g, "$1var(--superficie-2)$1"],
   [/(['"])#09090b\1/g, "$1var(--fondo)$1"],
   [/(['"])#111113\1/g, "$1var(--superficie)$1"],
+  // Las «hundidas»: nueve grises casi iguales que el inventario encontró haciendo el mismo papel
+  // —cabecera de tabla, campo, celda de día no laborable—. Se unifican en un token.
+  [/(['"])#141416\1/g, "$1var(--superficie-3)$1"],
+  [/(['"])#1c1c20\1/g, "$1var(--superficie-2)$1"],
+  [/(['"])#0e0e12\1/g, "$1var(--superficie-3)$1"],
+  [/(['"])#0f0f11\1/g, "$1var(--superficie-3)$1"],
+  [/(['"])#131316\1/g, "$1var(--superficie-3)$1"],
+  [/(['"])#0d0d11\1/g, "$1var(--superficie-3)$1"],
+  [/(['"])#0c0c0f\1/g, "$1var(--superficie-3)$1"],
+  [/(['"])#0a0a0c\1/g, "$1var(--fondo)$1"],
+  [/(['"])#232327\1/g, "$1var(--borde)$1"],
+  [/(['"])#2a2a30\1/g, "$1var(--borde)$1"],
+  [/(['"])#1f1f23\1/g, "$1var(--borde)$1"],
+  [/(['"])#3a3a45\1/g, "$1var(--borde-fuerte)$1"],
+  [/(['"])#e4e4e7\1/g, "$1var(--tinta)$1"],
   [/(['"])#27272a\1/g, "$1var(--borde)$1"],
   [/(['"])#3f3f46\1/g, "$1var(--borde-fuerte)$1"],
   [/(['"])#a1a1aa\1/g, "$1var(--tinta-2)$1"],

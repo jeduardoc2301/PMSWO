@@ -106,14 +106,14 @@ function SingleUserSelect({
           style={{
             background: 'var(--superficie)',
             border: '1px solid var(--borde)',
-            color: value ? '#e4e4e7' : 'var(--tinta-3)',
+            color: value ? 'var(--tinta)' : 'var(--tinta-3)',
           }}
         >
           <option value="" disabled style={{ background: 'var(--superficie)', color: 'var(--tinta-3)' }}>
             {placeholder}
           </option>
           {users.map((u) => (
-            <option key={u.id} value={u.id} style={{ background: 'var(--superficie)', color: '#e4e4e7' }}>
+            <option key={u.id} value={u.id} style={{ background: 'var(--superficie)', color: 'var(--tinta)' }}>
               {u.name}
             </option>
           ))}

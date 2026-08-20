@@ -201,7 +201,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full h-9 px-3 rounded-lg text-sm text-tinta appearance-none cursor-pointer outline-none transition-all"
-              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', color: categoryId ? '#e4e4e7' : 'var(--tinta-3)' }}
+              style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', color: categoryId ? 'var(--tinta)' : 'var(--tinta-3)' }}
             >
               <option value="" disabled>Seleccionar categoría...</option>
               {categories.map((c) => (

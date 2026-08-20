@@ -389,3 +389,42 @@ describe('§8.4 · nivelación manual asistida: mover una línea desde la propia
     expect(screen.getByRole('button', { name: /a Luis Pérez/ })).toBeInTheDocument()
   })
 })
+
+describe('§9.3 C6 · la sobrecarga no depende sólo del color', () => {
+  /**
+   * La celda sobrecargada llevaba tres señales —fondo rojo, cifra en rojo, negrita— y las tres son
+   * visuales. Decía «8 h de 8 h · 3 líneas» y en ningún sitio decía **«sobrecargada»**.
+   *
+   * Y el color nunca fue una señal fuerte: el velo rojo da **1.29:1** contra el fondo oscuro y
+   * 1.48:1 contra el claro, cuando una señal que no es texto necesita 3:1. Lo que lo sostiene es la
+   * palabra.
+   */
+  it('lo dice con la palabra, en el título', () => {
+    dibujar()
+    // Ana está al 125 % el 1 de junio: diez horas en un día de ocho.
+    expect(screen.getByTestId('celda-ana-2026-06-01').getAttribute('title')).toContain('SOBRECARGADA')
+  })
+
+  it('y para quien escucha la pantalla, con la frase entera', () => {
+    // La cifra sola no dice de cuánto es: «diez» no significa nada sin «sobre ocho».
+    dibujar()
+    const celda = screen.getByTestId('celda-ana-2026-06-01')
+    expect(celda.getAttribute('aria-label')).toContain('sobrecargada')
+    expect(celda.getAttribute('aria-label')).toContain('de 8 h')
+    // Y sin ensuciar lo que se ve, que es la cifra y nada más.
+    expect(celda.textContent).toBe('10')
+  })
+
+  it('una celda que no se pasa no lo dice: un aviso que sale siempre deja de leerse', () => {
+    dibujar()
+    const suave = screen.getByTestId('celda-luis-2026-06-01')
+    expect(suave.getAttribute('title')).not.toContain('SOBRECARGADA')
+    expect(suave.getAttribute('aria-label')).not.toContain('sobrecargada')
+  })
+
+  it('el día sin capacidad con trabajo encima también lo dice', () => {
+    // El área del cliente tiene trabajo justo el día que no está.
+    dibujar()
+    expect(screen.getByTestId('celda-banco-2026-06-03').getAttribute('title')).toContain('SOBRECARGADA')
+  })
+})

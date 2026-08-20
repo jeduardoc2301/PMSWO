@@ -258,7 +258,7 @@ export function UsersManagementClient() {
     setCreateFormData((p) => ({ ...p, roles: p.roles.includes(role) ? p.roles.filter((r) => r !== role) : [...p.roles, role] }))
 
   const inputStyle = {
-    background: 'var(--superficie)', border: '1px solid var(--borde)', color: '#e4e4e7',
+    background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta)',
   } as React.CSSProperties
 
   if (loading) return (

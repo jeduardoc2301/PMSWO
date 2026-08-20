@@ -165,7 +165,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
         className="overflow-hidden"
         style={{
           width: 'min(1080px, 96vw)', height: 'min(720px, 92vh)',
-          background: '#0c0c0f', border: '1px solid #232327', borderRadius: 20,
+          background: 'var(--superficie-3)', border: '1px solid #232327', borderRadius: 20,
           boxShadow: '0 30px 80px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.08)',
           display: 'grid', gridTemplateColumns: '320px 1fr',
           animation: 'modalRise .24s cubic-bezier(.2,.8,.2,1)',
@@ -225,7 +225,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
         </aside>
 
         {/* ─── Main ─── */}
-        <section className="flex flex-col min-w-0 overflow-hidden" style={{ background: '#0c0c0f' }}>
+        <section className="flex flex-col min-w-0 overflow-hidden" style={{ background: 'var(--superficie-3)' }}>
           {/* Header */}
           <header className="flex items-center justify-between px-7 py-5" style={{ borderBottom: '1px solid #1c1c20' }}>
             <div>
@@ -302,7 +302,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
           </div>
 
           {/* Footer */}
-          <footer className="flex items-center justify-between px-7 py-4" style={{ borderTop: '1px solid #1c1c20', background: '#0a0a0c' }}>
+          <footer className="flex items-center justify-between px-7 py-4" style={{ borderTop: '1px solid #1c1c20', background: 'var(--fondo)' }}>
             <span className="text-[11px] text-tinta-3">
               Las reglas (días para "vence pronto", umbral de "estancada") son configurables en Ajustes → Workflow.
             </span>

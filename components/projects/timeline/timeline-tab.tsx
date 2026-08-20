@@ -192,7 +192,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
   return (
     <div className="space-y-4">
       {/* ── Toolbar ── */}
-      <div className="rounded-xl p-4" style={{ background: '#0c0c0f', border: '1px solid #232327' }}>
+      <div className="rounded-xl p-4" style={{ background: 'var(--superficie-3)', border: '1px solid #232327' }}>
         <div className="flex items-center justify-between flex-wrap gap-3">
           {/* Left */}
           <div>
@@ -233,7 +233,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                 <button key={g} onClick={() => setGranularity(g)}
                   className="px-3 py-1.5 font-medium transition-all"
                   style={granularity === g
-                    ? { background: 'var(--borde)', color: '#e4e4e7' }
+                    ? { background: 'var(--borde)', color: 'var(--tinta)' }
                     : { color: 'var(--tinta-3)' }}>
                   {g === 'week' ? 'Semana' : g === 'month' ? 'Mes' : 'Trimestre'}
                 </button>
@@ -271,7 +271,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
             { l: 'Próximos hitos',  v: upcoming, c: '#f59e0b', Icon: Flag         },
           ].map(({ l, v, c, Icon }) => (
             <div key={l} className="flex items-center gap-3 p-3 rounded-xl"
-              style={{ background: '#0e0e12', border: '1px solid #232327' }}>
+              style={{ background: 'var(--superficie-3)', border: '1px solid #232327' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: `${c}1f`, border: `1px solid ${c}40` }}>
                 <Icon size={14} style={{ color: c }} />
@@ -292,7 +292,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
 
             {/* Sticky header */}
             <div className="sticky top-0 z-20 grid"
-              style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, background: '#0c0c0f', borderBottom: '1px solid var(--borde)' }}>
+              style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, background: 'var(--superficie-3)', borderBottom: '1px solid var(--borde)' }}>
               <div className="px-4 py-3 text-xs text-tinta-3 uppercase tracking-wider font-semibold flex items-center gap-2"
                 style={{ borderRight: '1px solid var(--borde)' }}>
                 <Layers size={13} /> Fases / Tareas
@@ -347,7 +347,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                       <button type="button" onClick={() => toggle(g.name)}
                         aria-expanded={isOpen}
                         className="px-4 py-2.5 flex items-center gap-2.5 text-left w-full hover:bg-superficie/60 transition-colors"
-                        style={{ background: '#0d0d11', borderRight: '1px solid var(--borde)' }}>
+                        style={{ background: 'var(--superficie-3)', borderRight: '1px solid var(--borde)' }}>
                         {isOpen
                           ? <ChevronDown size={14} className="text-tinta-3 flex-shrink-0" />
                           : <ChevronRight size={14} className="text-tinta-3 flex-shrink-0" />}
@@ -359,7 +359,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                           </div>
                         </div>
                       </button>
-                      <div className="relative" style={{ background: '#0d0d11', height: 44 }}>
+                      <div className="relative" style={{ background: 'var(--superficie-3)', height: 44 }}>
                         {cols.map((_, i) => (
                           <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: i * colWidth, width: 1, background: 'rgba(39,39,42,0.4)' }} />
                         ))}
@@ -449,7 +449,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
               })}
 
               {/* Milestones strip */}
-              <div className="grid" style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, background: '#0d0d11' }}>
+              <div className="grid" style={{ gridTemplateColumns: `${LABEL_W}px ${totalWidth}px`, background: 'var(--superficie-3)' }}>
                 <div className="px-4 py-3 text-xs text-tinta-3 uppercase tracking-wider font-semibold flex items-center gap-2"
                   style={{ borderRight: '1px solid var(--borde)' }}>
                   <Flag size={12} className="text-amber-400" /> Hitos

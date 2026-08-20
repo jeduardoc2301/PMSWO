@@ -234,24 +234,24 @@ export function WorkloadView({
             type="button"
             aria-label="Periodo anterior"
             onClick={() => mover(-1)}
-            className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+            className="rounded-lg border border-borde px-2.5 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3"
           >
             ‹
           </button>
-          <span className="min-w-[188px] text-center text-sm text-zinc-300">
+          <span className="min-w-[188px] text-center text-sm text-tinta-2">
             {from} → {to}
           </span>
           <button
             type="button"
             aria-label="Periodo siguiente"
             onClick={() => mover(1)}
-            className="rounded-lg border border-zinc-800 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+            className="rounded-lg border border-borde px-2.5 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3"
           >
             ›
           </button>
         </div>
 
-        <div className="flex items-center gap-1 rounded-lg border border-zinc-800 p-0.5">
+        <div className="flex items-center gap-1 rounded-lg border border-borde p-0.5">
           {(
             [
               ['horas', 'Horas'],
@@ -265,7 +265,7 @@ export function WorkloadView({
               aria-pressed={modo === clave}
               onClick={() => setModo(clave)}
               className={`rounded-md px-3 py-1 text-sm ${
-                modo === clave ? 'bg-[#6366f1] text-white' : 'text-zinc-400 hover:bg-zinc-800'
+                modo === clave ? 'bg-acento text-white' : 'text-tinta-2 hover:bg-superficie-3'
               }`}
             >
               {rotulo}
@@ -275,21 +275,21 @@ export function WorkloadView({
       </div>
 
       {matriz.rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
-          <p className="text-sm text-zinc-400">
+        <div className="rounded-xl border border-dashed border-borde p-8 text-center">
+          <p className="text-sm text-tinta-2">
             Este proyecto todavía no tiene a nadie asignado a ninguna línea.
           </p>
         </div>
       ) : (
         // La matriz desborda por la derecha a propósito: noventa columnas no caben. Lo que no puede
         // desbordar es la página, así que el rodillo vive en esta caja y no en el documento.
-        <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-[#18181b]">
+        <div className="overflow-x-auto rounded-xl border border-borde bg-superficie">
           <table className="border-collapse text-xs" style={{ minWidth: 'max-content' }}>
             <thead>
               <tr>
                 <th
                   rowSpan={2}
-                  className="sticky left-0 z-20 w-56 min-w-56 border-b border-r border-zinc-800 bg-[#18181b] px-3 py-2 text-left font-normal text-zinc-500"
+                  className="sticky left-0 z-20 w-56 min-w-56 border-b border-r border-borde bg-superficie px-3 py-2 text-left font-normal text-tinta-3"
                 >
                   Recurso
                 </th>
@@ -297,7 +297,7 @@ export function WorkloadView({
                   <th
                     key={tramo.mes}
                     colSpan={tramo.ancho}
-                    className="border-b border-l border-zinc-800 px-2 py-1 text-left font-normal text-zinc-400"
+                    className="border-b border-l border-borde px-2 py-1 text-left font-normal text-tinta-2"
                   >
                     {tramo.mes}
                   </th>
@@ -308,9 +308,9 @@ export function WorkloadView({
                   <th
                     key={dia.date}
                     title={dia.date}
-                    className={`w-8 min-w-8 border-b border-zinc-800 py-1 text-center font-normal ${
-                      dia.isWorking ? 'text-zinc-500' : 'bg-[#111113] text-zinc-700'
-                    } ${dia.date === today ? 'text-[#a5b4fc]' : ''}`}
+                    className={`w-8 min-w-8 border-b border-borde py-1 text-center font-normal ${
+                      dia.isWorking ? 'text-tinta-3' : 'bg-superficie text-tinta-3'
+                    } ${dia.date === today ? 'text-acento-tinta' : ''}`}
                   >
                     {Number(dia.date.slice(8, 10))}
                   </th>
@@ -356,7 +356,7 @@ export function WorkloadView({
                         <tr>
                           <td
                             colSpan={matriz.days.length + 1}
-                            className="border-b border-zinc-800 bg-[#141416] px-3 py-2 text-[11px] text-zinc-500"
+                            className="border-b border-borde bg-[#141416] px-3 py-2 text-[11px] text-tinta-3"
                           >
                             Este recurso no tiene ninguna línea activa en el periodo visible.
                           </td>
@@ -393,9 +393,9 @@ export function WorkloadView({
       )}
 
       {celdaElegida !== null ? (
-        <div data-testid="panel-del-dia" className="rounded-xl border border-zinc-800 bg-[#18181b] p-4">
+        <div data-testid="panel-del-dia" className="rounded-xl border border-borde bg-superficie p-4">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-zinc-100">
+            <p className="text-sm font-medium text-tinta">
               {resources.find((r) => r.id === celdaElegida.resourceId)?.name} · {celdaElegida.date}
             </p>
             <button
@@ -406,24 +406,24 @@ export function WorkloadView({
                 setLineaAMover(null)
                 setErrorAlMover(null)
               }}
-              className="rounded px-2 py-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              className="rounded px-2 py-1 text-tinta-2 hover:bg-superficie-3 hover:text-tinta"
             >
               ✕
             </button>
           </div>
 
           {desglose.length === 0 ? (
-            <p className="text-sm text-zinc-500">Ese día no tiene ninguna línea activa.</p>
+            <p className="text-sm text-tinta-3">Ese día no tiene ninguna línea activa.</p>
           ) : (
             <ul className="mb-4 flex max-h-56 flex-col gap-1 overflow-y-auto">
               {desglose.map((linea) => {
                 const elegida = lineaAMover === linea.taskId
                 const fila = (
                   <>
-                    <span className="min-w-0 flex-1 truncate text-sm text-zinc-200" title={linea.name}>
+                    <span className="min-w-0 flex-1 truncate text-sm text-tinta" title={linea.name}>
                       {linea.name}
                     </span>
-                    <span className="shrink-0 tabular-nums text-xs text-zinc-500">
+                    <span className="shrink-0 tabular-nums text-xs text-tinta-3">
                       {Math.round(linea.unitsBp / 100)} % · {minutosLegibles(linea.minutos)}
                     </span>
                   </>
@@ -446,8 +446,8 @@ export function WorkloadView({
                         setErrorAlMover(null)
                         setLineaAMover(elegida ? null : linea.taskId)
                       }}
-                      className={`flex w-full items-baseline gap-3 rounded px-1 py-0.5 text-left hover:bg-zinc-800 ${
-                        elegida ? 'bg-zinc-800 ring-1 ring-zinc-600' : ''
+                      className={`flex w-full items-baseline gap-3 rounded px-1 py-0.5 text-left hover:bg-superficie-3 ${
+                        elegida ? 'bg-superficie-3 ring-1 ring-borde-fuerte' : ''
                       }`}
                     >
                       {fila}
@@ -460,21 +460,21 @@ export function WorkloadView({
 
           {/* La mejora sobre la referencia (§8.4): enseñar la sobrecarga sin ofrecer nada para
               resolverla deja el problema donde estaba. */}
-          <div className="border-t border-zinc-800 pt-3">
-            <p className="mb-1.5 text-xs text-zinc-500">
+          <div className="border-t border-borde pt-3">
+            <p className="mb-1.5 text-xs text-tinta-3">
               {onMover && lineaAMover !== null
                 ? 'Mover esa línea a quién'
                 : 'Quién tiene hueco ese día'}
             </p>
             {conHueco.length === 0 ? (
-              <p className="text-sm text-zinc-500">Nadie del equipo tiene capacidad libre ese día.</p>
+              <p className="text-sm text-tinta-3">Nadie del equipo tiene capacidad libre ese día.</p>
             ) : (
               <ul className="flex flex-wrap gap-2">
                 {conHueco.slice(0, 8).map((candidato) => {
                   const etiqueta = (
                     <>
                       {candidato.resource.name}{' '}
-                      <span className="tabular-nums text-zinc-500">
+                      <span className="tabular-nums text-tinta-3">
                         {minutosLegibles(candidato.libreMin)} libres
                       </span>
                     </>
@@ -486,7 +486,7 @@ export function WorkloadView({
                     return (
                       <li
                         key={candidato.resource.id}
-                        className="rounded-lg border border-zinc-800 px-2.5 py-1 text-xs text-zinc-300"
+                        className="rounded-lg border border-borde px-2.5 py-1 text-xs text-tinta-2"
                       >
                         {etiqueta}
                       </li>
@@ -511,7 +511,7 @@ export function WorkloadView({
                           if (motivo) setErrorAlMover(motivo)
                           else setLineaAMover(null)
                         }}
-                        className="rounded-lg border border-zinc-700 bg-zinc-800/60 px-2.5 py-1 text-xs text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50"
+                        className="rounded-lg border border-borde-fuerte bg-superficie-3/60 px-2.5 py-1 text-xs text-tinta hover:border-borde-fuerte hover:bg-superficie-3 disabled:opacity-50"
                       >
                         {etiqueta}
                       </button>
@@ -526,7 +526,7 @@ export function WorkloadView({
               </p>
             ) : null}
             {onMover && lineaAMover === null && desglose.length > 0 ? (
-              <p className="mt-2 text-xs text-zinc-600">
+              <p className="mt-2 text-xs text-tinta-3">
                 Elige una línea de arriba para poder movérsela a alguien.
               </p>
             ) : null}
@@ -570,8 +570,8 @@ function FilaDeLaMatriz({
     <tr data-testid={`fila-${clave}`} className={destacada ? 'bg-[#1c1c20]' : ''}>
       <th
         scope="row"
-        className={`sticky left-0 z-10 w-56 min-w-56 border-b border-r border-zinc-800 px-3 py-1.5 text-left font-normal ${
-          destacada ? 'bg-[#1c1c20]' : 'bg-[#18181b]'
+        className={`sticky left-0 z-10 w-56 min-w-56 border-b border-r border-borde px-3 py-1.5 text-left font-normal ${
+          destacada ? 'bg-[#1c1c20]' : 'bg-superficie'
         }`}
       >
         <div className="flex items-center gap-1.5">
@@ -581,7 +581,7 @@ function FilaDeLaMatriz({
               aria-label={desplegado ? `Plegar ${titulo}` : `Desplegar ${titulo}`}
               aria-expanded={desplegado}
               onClick={onDesplegar}
-              className="shrink-0 rounded px-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+              className="shrink-0 rounded px-1 text-tinta-3 hover:bg-superficie-3 hover:text-tinta"
             >
               {desplegado ? '▾' : '▸'}
             </button>
@@ -590,12 +590,12 @@ function FilaDeLaMatriz({
           )}
           <span className="min-w-0 flex-1">
             <span
-              className={`block truncate text-[13px] ${apagada ? 'text-zinc-500' : 'text-zinc-100'}`}
+              className={`block truncate text-[13px] ${apagada ? 'text-tinta-3' : 'text-tinta'}`}
               title={titulo}
             >
               {titulo}
             </span>
-            <span className="block truncate text-[11px] text-zinc-600">{subtitulo}</span>
+            <span className="block truncate text-[11px] text-tinta-3">{subtitulo}</span>
           </span>
           {/* La puerta al calendario individual del recurso (§8.1): sin ella, las vacaciones
               existían en el modelo y no había forma de ponerlas. */}
@@ -605,7 +605,7 @@ function FilaDeLaMatriz({
               aria-label={`Días libres de ${titulo}`}
               title={`Días libres de ${titulo}`}
               onClick={onAbrirCalendario}
-              className="shrink-0 rounded px-1 text-xs text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300"
+              className="shrink-0 rounded px-1 text-xs text-tinta-3 hover:bg-superficie-3 hover:text-tinta-2"
             >
               🗓
             </button>
@@ -634,17 +634,47 @@ function FilaDeLaMatriz({
             key={dia.date}
             data-testid={`celda-${clave}-${dia.date}`}
             data-sobrecargado={celda.sobrecargado ? 'sí' : 'no'}
+            /**
+             * Para quien escucha la pantalla, la frase entera en vez de la cifra suelta.
+             *
+             * Va en `aria-label` y no en un `<span className="sr-only">` a propósito: el añadido
+             * invisible ensucia el texto de la celda —y con él cualquier prueba y cualquier copia al
+             * portapapeles— mientras que la etiqueta **sustituye** lo que se anuncia, que aquí es lo
+             * que se quiere: la cifra sola no dice de cuánto es, y «diez» no significa nada sin
+             «sobre ocho».
+             */
+            aria-label={
+              celda.cargaMin === 0
+                ? undefined
+                : `${dia.date}: ${minutosLegibles(celda.cargaMin)} de ${minutosLegibles(
+                    celda.capacidadMin,
+                  )}${celda.sobrecargado ? ', sobrecargada' : ''}`
+            }
+            /**
+             * El título dice **la palabra**, no sólo los números (§9.3 C6, la mitad de accesibilidad).
+             *
+             * La celda sobrecargada llevaba tres señales —fondo rojo, cifra en rojo y negrita— y las
+             * tres son visuales: decía «8 h de 8 h · 3 líneas» y en ningún sitio decía
+             * **«sobrecargada»**. Quien no distingue el rojo tiene la negrita, que es sutil; quien
+             * escucha la pantalla no tenía nada — había que restar dos cifras de cabeza para saberlo.
+             *
+             * Y el velo rojo, medido, da **1.29:1** contra el fondo oscuro y 1.48:1 contra el claro:
+             * ninguno llega al 3:1 que necesita una señal que no es texto. O sea que el color nunca
+             * fue una señal fuerte — lo que lo sostiene es la palabra.
+             */
             title={
               celda.capacidadMin === 0 && celda.cargaMin > 0
-                ? `${dia.date} · ${minutosLegibles(celda.cargaMin)} comprometidas en un día sin capacidad`
-                : `${dia.date} · ${minutosLegibles(celda.cargaMin)} de ${minutosLegibles(celda.capacidadMin)} · ${celda.tareas} línea(s)`
+                ? `${dia.date} · ${minutosLegibles(celda.cargaMin)} comprometidas en un día sin capacidad · SOBRECARGADA`
+                : `${dia.date} · ${minutosLegibles(celda.cargaMin)} de ${minutosLegibles(celda.capacidadMin)} · ${celda.tareas} línea(s)${
+                    celda.sobrecargado ? ' · SOBRECARGADA' : ''
+                  }`
             }
             onClick={onElegirCelda ? () => onElegirCelda(dia.date) : undefined}
-            className={`w-8 min-w-8 border-b border-zinc-800/60 py-1.5 text-center tabular-nums ${
-              dia.isWorking ? '' : 'bg-[#111113]'
-            } ${onElegirCelda ? 'cursor-pointer hover:ring-1 hover:ring-inset hover:ring-zinc-600' : ''} ${
+            className={`w-8 min-w-8 border-b border-borde/60 py-1.5 text-center tabular-nums ${
+              dia.isWorking ? '' : 'bg-superficie'
+            } ${onElegirCelda ? 'cursor-pointer hover:ring-1 hover:ring-inset hover:ring-borde-fuerte' : ''} ${
               celda.sobrecargado ? 'font-semibold' : ''
-            } ${apagada ? 'text-zinc-500' : 'text-zinc-200'}`}
+            } ${apagada ? 'text-tinta-3' : 'text-tinta'}`}
             style={fondo ? { backgroundColor: fondo } : undefined}
           >
             {celda.sobrecargado ? (
@@ -684,7 +714,7 @@ function FilaDeDesgloseDeTarea({
     <tr data-testid={`desglose-${linea.taskId}`} className="bg-[#141416]">
       <th
         scope="row"
-        className="sticky left-0 z-10 w-56 min-w-56 border-b border-r border-zinc-800 bg-[#141416] py-1 pl-9 pr-3 text-left font-normal"
+        className="sticky left-0 z-10 w-56 min-w-56 border-b border-r border-borde bg-[#141416] py-1 pl-9 pr-3 text-left font-normal"
       >
         {/* El nombre abre el panel de detalle del §10.3 — el mismo de las otras cinco vistas.
             Aquí importa más que en ninguna: quien mira la carga ve que alguien está al 140 % y lo
@@ -693,17 +723,17 @@ function FilaDeDesgloseDeTarea({
           <button
             type="button"
             onClick={() => onAbrirDetalle(linea.taskId)}
-            className="block max-w-full truncate text-left text-[12px] text-zinc-400 hover:text-zinc-100 hover:underline"
+            className="block max-w-full truncate text-left text-[12px] text-tinta-2 hover:text-tinta hover:underline"
             title={linea.name}
           >
             {linea.name}
           </button>
         ) : (
-          <span className="block truncate text-[12px] text-zinc-400" title={linea.name}>
+          <span className="block truncate text-[12px] text-tinta-2" title={linea.name}>
             {linea.name}
           </span>
         )}
-        <span className="block text-[11px] tabular-nums text-zinc-600">
+        <span className="block text-[11px] tabular-nums text-tinta-3">
           {Math.round(linea.unitsBp / 100)} % · {minutosLegibles(linea.total)} en el periodo
         </span>
       </th>
@@ -727,7 +757,7 @@ function FilaDeDesgloseDeTarea({
             data-testid={`desglose-${linea.taskId}-${dia.date}`}
             data-minutos={minutos}
             title={`${linea.name} · ${dia.date} · ${minutosLegibles(minutos)}`}
-            className={`w-8 min-w-8 border-b border-zinc-800/60 py-1 text-center text-[11px] tabular-nums text-zinc-500 ${
+            className={`w-8 min-w-8 border-b border-borde/60 py-1 text-center text-[11px] tabular-nums text-tinta-3 ${
               dia.isWorking ? '' : 'bg-[#0f0f11]'
             }`}
           >

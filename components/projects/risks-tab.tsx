@@ -39,7 +39,7 @@ const STATUS_STYLE: Record<RiskStatus, { bg: string; color: string; border: stri
   [RiskStatus.CLOSED]:      { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)' },
 }
 
-const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: '#e4e4e7' }
+const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta)' }
 
 export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDataUsed }: RisksTabProps) {
   const t = useTranslations('risks')
