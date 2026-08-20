@@ -3604,3 +3604,47 @@ en orden. Con el alfabeto, sobre esos mismos 25 nombres:
 - el plan **empezaba por sus dos cierres** («Cierre de la etapa Migrate», «Cierre de Mobilize»);
 - las olas salían `Ola 0, Ola 1, Ola 10, Ola 2, Ola 3, …`;
 - y **no coincidía ni una** de las 25 posiciones con el orden real.
+
+## §5 · La paginación del Tablero se perdía al mover una tarjeta
+
+La columna devolvía su paginación al principio cuando cambiaba `workItemsInColumn.length`. El
+comentario de al lado explicaba bien el motivo —«al cambiar de agrupación o de filtro la columna trae
+otras tarjetas»— y el disparador era otra cosa: **mover una tarjeta cambia el largo de dos
+columnas**. Quien desplegaba ocho tandas para llegar a la suya y la arrastraba se encontraba las dos
+columnas plegadas a cincuenta otra vez, y su tarjeta —ya movida— fuera de la vista. Lo mismo al crear
+y al borrar.
+
+Y por el otro lado tampoco disparaba cuando debía: un filtro que cambia **qué** tarjetas hay sin
+cambiar cuántas dejaba la paginación como estaba.
+
+Ahora el disparador es la vista —agrupación, filtros y búsqueda—, que es lo que el motivo decía desde
+el principio. Que la lista mengüe no hace falta vigilarlo: un `slice` de más nunca esconde nada, y
+por eso el «o —peor— escondidas las únicas que quedan tras filtrar» del comentario viejo describía
+algo que no podía pasar.
+
+**Esta carga paginada del §5 no tenía ninguna prueba.** Ahora hay cinco, y una de ellas comprueba que
+el reajuste legítimo —al buscar— sigue ocurriendo, para que arreglar esto no lo quite.
+
+### Demostrado en pantalla
+
+Tablero agrupado por Estado, columna **Backlog** con 158 tarjetas, arrastrando una a «To Do»:
+
+| | tarjetas en la columna | dibujadas | el botón dice |
+|---|---|---|---|
+| al entrar | 158 | 50 | 108 tarjetas más |
+| tras desplegar una tanda | 158 | **100** | 58 tarjetas más |
+| tras mover una a «To Do» | **157** | **100** | 57 tarjetas más |
+
+Con el defecto puesto, la última fila decía **50 dibujadas** y «107 tarjetas más»: cien tarjetas
+escondidas de golpe, entre ellas la que se acababa de mover.
+
+### Y una cosa que salió al restaurar
+
+El arrastre de la medición movió una línea de verdad, así que tocó restaurar con el procedimiento de
+siempre. `import-plan-db --merge` dejó **dos cosas fuera de sitio**: conservó el avance de 0,01 que
+el propio movimiento había escrito —hace bien, es avance capturado— y **movió el `startDate` del
+proyecto** de `2026-06-01` a `2026-06-12`, la fecha de la primera línea.
+
+Es decir: el procedimiento de restauración rompe por su cuenta uno de los ocho controles del
+verificador. Restaurar es entonces tres pasos, no uno: limpiar el avance que dejó la medición,
+`--merge`, y devolver el `startDate` del proyecto.

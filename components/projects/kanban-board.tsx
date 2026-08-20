@@ -336,6 +336,13 @@ interface KanbanColumnProps {
   onAbrirDetalle?: (id: string) => void
   /** El EDT de cada línea, numerado sobre el plan entero (§5.1). */
   edt?: ReadonlyMap<string, string>
+  /**
+   * Qué está enseñando el tablero: agrupación, filtros y búsqueda, en una cadena.
+   *
+   * Es lo que dice si la columna trae **otras** tarjetas o **las mismas menos una**. Ver el efecto
+   * que devuelve la paginación al principio.
+   */
+  vista: string
 }
 
 /**
@@ -363,16 +370,28 @@ function KanbanColumn({
   column, workItemsInColumn, isDragTarget, noItemsLabel,
   draggedItemId, syncingItems,
   onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd,
-  cutoff, onEdit, onDelete, onAbrirDetalle, edt,
+  cutoff, onEdit, onDelete, onAbrirDetalle, edt, vista,
 }: KanbanColumnProps) {
   const [dibujadas, setDibujadas] = useState(TARJETAS_POR_TANDA)
 
-  // Al cambiar de agrupación o de filtro, la columna trae otras tarjetas: seguir en la tanda cuarta
-  // dejaría dibujadas doscientas de las tres que ahora hay, o —peor— escondidas las únicas que
-  // quedan tras filtrar.
+  /**
+   * Al cambiar de agrupación o de filtro la columna trae **otras** tarjetas, y seguir en la tanda
+   * cuarta dejaría dibujadas doscientas de las tres que ahora hay.
+   *
+   * El motivo es bueno; el disparador era `workItemsInColumn.length`, y eso es otra cosa. **Mover
+   * una tarjeta cambia el largo de dos columnas**: quien pulsaba «393 tarjetas más» ocho veces para
+   * llegar a la suya y la arrastraba se encontraba las dos columnas plegadas otra vez a cincuenta, y
+   * su tarjeta —ya movida— fuera de la vista. Lo mismo al crear y al borrar.
+   *
+   * Y por el otro lado no disparaba cuando debía: un filtro que cambia **qué** tarjetas hay sin
+   * cambiar cuántas dejaba la paginación como estaba.
+   *
+   * Aquí el disparador es la vista, que es lo que el motivo decía desde el principio. Que la lista
+   * mengue no hace falta vigilarlo: `slice` de más nunca esconde nada.
+   */
   useEffect(() => {
     setDibujadas(TARJETAS_POR_TANDA)
-  }, [column.id, workItemsInColumn.length])
+  }, [column.id, vista])
 
   return (
     <div
@@ -873,6 +892,17 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
   const handleDragEnd = () => { setDraggedItemId(null); setIsDraggingOver(null) }
 
   const noItemsLabel = t('noItems', { defaultValue: 'Sin elementos' })
+
+  /**
+   * Lo que hace que una columna traiga **otras** tarjetas, y no las mismas menos una.
+   *
+   * Es lo único que debe devolver la paginación de las columnas al principio. Mover, crear o borrar
+   * una tarjeta no está aquí a propósito: eso cambia cuántas hay, no cuáles se están mirando.
+   */
+  const vista = useMemo(
+    () => [criterioDeAgrupacion, activeFilter ?? '', searchQuery, filterAssignee, filterPriority, conResumenes].join('|'),
+    [criterioDeAgrupacion, activeFilter, searchQuery, filterAssignee, filterPriority, conResumenes],
+  )
   // Las columnas salen de agrupar, no de la lista de la base: agrupar por prioridad no puede
   // depender de que alguien haya creado una columna «CRITICAL» en `kanban_columns` (§5.1).
   // Agrupado por estado devuelve exactamente las configuradas, con su orden y sus indicadores.
@@ -1122,6 +1152,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
                             onDragStart={handleDragStart}
                             onDragEnd={handleDragEnd}
                             edt={edt}
+                            vista={vista}
                             cutoff={cutoff}
                             onEdit={setEditando}
                             onDelete={setBorrando}
@@ -1160,6 +1191,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
               edt={edt}
+              vista={vista}
               cutoff={cutoff}
               onEdit={setEditando}
               onDelete={setBorrando}

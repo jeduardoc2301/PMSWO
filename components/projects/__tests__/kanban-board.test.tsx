@@ -671,3 +671,74 @@ describe('§5.1 · el EDT y «ser resumen» se cuentan sobre el plan entero', ()
     expect(screen.getByTestId('conmutador-resumenes')).toBeInTheDocument()
   })
 })
+
+describe('§5 · la carga paginada por columna no se pierde al mover una tarjeta', () => {
+  /**
+   * La paginación se devolvía al principio cuando cambiaba `workItemsInColumn.length`, y **mover una
+   * tarjeta cambia el largo de dos columnas**: quien desplegaba ocho tandas para llegar a la suya y
+   * la arrastraba se encontraba las dos columnas plegadas a cincuenta otra vez, y su tarjeta —ya
+   * movida— fuera de la vista. Lo mismo al crear y al borrar.
+   *
+   * El motivo del efecto era bueno —al filtrar, la columna trae otras tarjetas— y el disparador era
+   * otra cosa. Esta carga paginada del §5 no tenía ninguna prueba.
+   */
+  const COLUMNAS = [
+    { id: 'col-2', name: 'To Do', order: 0, columnType: KanbanColumnType.TODO, workItemIds: [] },
+    { id: 'col-3', name: 'In Progress', order: 1, columnType: KanbanColumnType.IN_PROGRESS, workItemIds: [] },
+  ]
+
+  const muchas = (cuantas: number) =>
+    Array.from({ length: cuantas }, (_, i) => ({
+      id: `t${i}`,
+      title: `Tarea ${i}`,
+      status: WorkItemStatus.TODO,
+      priority: WorkItemPriority.MEDIUM,
+      kanbanColumnId: 'col-2',
+      ownerId: 'user-1',
+      ownerName: 'Ana Ruiz',
+    }))
+
+  const boton = () => screen.queryByTestId('mas-tarjetas-col-2')
+
+  it('empieza en cincuenta y ofrece el resto', () => {
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS as never} workItems={muchas(120) as never} />)
+    expect(boton()!.textContent).toContain('70 tarjetas más')
+  })
+
+  it('al desplegar una tanda más, la columna se queda donde la dejaron', () => {
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS as never} workItems={muchas(120) as never} />)
+    fireEvent.click(boton()!)
+    expect(boton()!.textContent).toContain('20 tarjetas más')
+  })
+
+  it('y sigue ahí cuando una tarjeta se va de la columna', () => {
+    // Es lo que pasa al soltar una tarjeta en otra columna: ésta pierde una.
+    const { rerender } = render(
+      <KanbanBoard projectId="p1" columns={COLUMNAS as never} workItems={muchas(120) as never} />,
+    )
+    fireEvent.click(boton()!)
+    rerender(<KanbanBoard projectId="p1" columns={COLUMNAS as never} workItems={muchas(119) as never} />)
+    // Con el defecto puesto volvía a «69 tarjetas más»: cien tarjetas escondidas de golpe.
+    expect(boton()!.textContent).toContain('19 tarjetas más')
+  })
+
+  it('y también cuando llega una nueva', () => {
+    const { rerender } = render(
+      <KanbanBoard projectId="p1" columns={COLUMNAS as never} workItems={muchas(120) as never} />,
+    )
+    fireEvent.click(boton()!)
+    rerender(<KanbanBoard projectId="p1" columns={COLUMNAS as never} workItems={muchas(121) as never} />)
+    expect(boton()!.textContent).toContain('21 tarjetas más')
+  })
+
+  it('pero al buscar sí vuelve al principio: son otras tarjetas', () => {
+    // De 200, «Tarea 1» casa con la 1, las 10-19 y las 100-199: 111. Si la paginación no volviera
+    // al principio se quedaría en 150 dibujadas y el botón no saldría.
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS as never} workItems={muchas(200) as never} />)
+    fireEvent.click(boton()!)
+    fireEvent.click(boton()!)
+    expect(boton()!.textContent).toContain('50 tarjetas más')
+    fireEvent.change(screen.getByPlaceholderText(/buscar/i), { target: { value: 'Tarea 1' } })
+    expect(boton()!.textContent).toContain('61 tarjetas más')
+  })
+})
