@@ -12,7 +12,7 @@
  * calendario necesita —rango de días, si es hito, y la fecha comprometida— y se le pasa la rejilla.
  */
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { EsqueletoDeMes } from './esqueleto'
 
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
@@ -126,7 +126,48 @@ export function CalendarTab({
    * decir qué semana, y con un ancla de día los tres modos comparten referencia.
    */
   const [ancla, setAncla] = useState<string | null>(null)
+  /**
+   * Mes, semana o agenda, y **se recuerda** (§10.4).
+   *
+   * El Calendario era la unica de las seis vistas que no guardaba nada, y la tuberia ya estaba
+   * hecha: `CALENDARIO` lleva desde el principio en la lista de vistas que admite
+   * `ViewPreference`, y nadie la usaba. Quien trabaja siempre en la semanal volvia al mes cada vez
+   * que entraba.
+   *
+   * Se guarda el modo y **no el ancla**: en que mes estas es de este rato, y abrir el calendario en
+   * marzo porque marzo fue lo ultimo que se miro seria una sorpresa, no una comodidad.
+   */
   const [modo, setModo] = useState<ModoDeCalendario>('MES')
+
+  // Se pide al entrar. Que falle no puede tumbar la vista: se sigue con el mes, que es lo de antes.
+  useEffect(() => {
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/preferences?view=CALENDARIO`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const guardado = d?.settings?.modo
+        if (vigente && (guardado === 'MES' || guardado === 'SEMANA' || guardado === 'AGENDA')) {
+          setModo(guardado)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      vigente = false
+    }
+  }, [projectId])
+
+  const cambiarModo = useCallback(
+    (nuevo: ModoDeCalendario) => {
+      // Se pinta ya y se confirma despues: pulsar «Semana» no deberia esperar a la red.
+      setModo(nuevo)
+      void fetch(`/api/v1/projects/${projectId}/preferences?view=CALENDARIO`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: { modo: nuevo } }),
+      }).catch(() => {})
+    },
+    [projectId],
+  )
   /** El rango que alguien acaba de pintar. Abre el diálogo de alta con las fechas puestas (§7.2). */
   const [rangoNuevo, setRangoNuevo] = useState<{ start: string; finish: string } | null>(null)
   const [propuesta, setPropuesta] = useState<Propuesta | null>(null)
@@ -460,7 +501,7 @@ export function CalendarTab({
               ancla={ancla ?? hoyCivil()}
               onAnclaChange={setAncla}
               modo={modo}
-              onModoChange={setModo}
+              onModoChange={cambiarModo}
               today={hoyCivil()}
               onSelectTask={setAbierta}
               onMoverLinea={(taskId, nuevoInicio) => void proponerMovimiento(taskId, nuevoInicio)}

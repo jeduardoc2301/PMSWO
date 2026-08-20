@@ -229,3 +229,41 @@ describe('La línea base activa (§4.6 conmutador 4, «toggles.baseline» del §
     expect(() => validarPreferencia('GANTT', { ...GANTT_BASE, baseline: 7 })).toThrow()
   })
 })
+
+describe('§10.4 · el Calendario también guarda lo suyo', () => {
+  /**
+   * Aquí había un comentario diciendo que el Calendario no guardaba nada y **que no era un olvido**:
+   * «sus únicas elecciones son el mes que se mira —que es dónde estás, no cómo lees— y el filtro».
+   * Era cierto cuando el Calendario sólo tenía el mes. Después llegaron la vista semanal y la de
+   * agenda del §7, y el modo es exactamente «cómo lees», que es el criterio que el propio comentario
+   * usaba para decidir.
+   *
+   * Sin esquema, la vista quedaba fuera del §10.4 entero: el guardado la rechazaba, así que quien
+   * trabajaba en la semanal volvía al mes en cada visita y nadie veía ningún error.
+   */
+  it('acepta los tres modos que el Calendario tiene', () => {
+    for (const modo of ['MES', 'SEMANA', 'AGENDA']) {
+      expect(validarPreferencia('CALENDARIO', { modo })).toEqual({ modo })
+    }
+  })
+
+  it('y rechaza uno que no existe, en vez de guardarlo y descubrirlo al leerlo', () => {
+    expect(() => validarPreferencia('CALENDARIO', { modo: 'TRIMESTRE' })).toThrow(z.ZodError)
+  })
+
+  it('por omisión el mes, que es como llega el calendario', () => {
+    expect(preferenciaPorOmision('CALENDARIO')).toEqual({ modo: 'MES' })
+  })
+
+  it('una fila vieja o corrupta se cae de pie al mes, no rompe la vista', async () => {
+    prisma.viewPreference.findUnique.mockResolvedValue({ settings: { modo: 'lo-que-sea' } })
+    await expect(leerPreferencia('u1', 'p1', 'CALENDARIO')).resolves.toEqual({ modo: 'MES' })
+  })
+
+  it('guardar la semanal llega a la base con la clave de las tres partes', async () => {
+    prisma.viewPreference.upsert.mockResolvedValue({ settings: { modo: 'SEMANA' } })
+    await guardarPreferencia('org-1', 'u1', 'p1', 'CALENDARIO', { modo: 'SEMANA' })
+    const llamada = prisma.viewPreference.upsert.mock.calls[0]![0]
+    expect(llamada.where).toEqual({ userId_projectId_view: { userId: 'u1', projectId: 'p1', view: 'CALENDARIO' } })
+  })
+})

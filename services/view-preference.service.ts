@@ -126,16 +126,32 @@ const esquemaDeLaCarga = z.object({
   modo: z.enum(['horas', 'tareas', 'porcentaje']),
 })
 
+/**
+ * Lo que el Calendario guarda por usuario (§10.4).
+ *
+ * Aquí decía que el Calendario no guardaba nada y **que no era un olvido**: «sus únicas elecciones
+ * son el mes que se mira —que es dónde estás, no cómo lees— y el filtro». Eso era cierto cuando el
+ * Calendario sólo tenía el mes. Después llegaron la vista semanal y la de agenda del §7, y el modo
+ * es exactamente «cómo lees», que es el criterio que el propio comentario usaba para decidir.
+ *
+ * Es el tercer comentario de esta sesión que defendía algo cierto el día que se escribió y falso
+ * desde que alguien añadió lo de al lado.
+ *
+ * El ancla sigue sin guardarse, y por la razón que el comentario viejo daba bien: en qué mes estás
+ * es dónde estás mirando. Abrir el calendario en marzo porque marzo fue lo último sería una
+ * sorpresa, no una comodidad.
+ */
+const esquemaDelCalendario = z.object({
+  modo: z.enum(['MES', 'SEMANA', 'AGENDA']),
+})
+
 const ESQUEMAS: Partial<Record<Vista, z.ZodTypeAny>> = {
   PANEL: esquemaDelPanel,
   GANTT: esquemaDelGantt,
   LISTA: esquemaDeLaLista,
   TABLERO: esquemaDelTablero,
   CARGA: esquemaDeLaCarga,
-  // CALENDARIO no tiene ninguno, y no es un olvido: sus únicas elecciones son el mes que se mira
-  // —que es dónde estás, no cómo lees— y el filtro, que ya vive en el proyecto por el §10.2.
-  // Inventarle una preferencia para que la cuenta diera seis sería peor que reconocer que no la
-  // necesita.
+  CALENDARIO: esquemaDelCalendario,
 }
 const POR_OMISION: Partial<Record<Vista, unknown>> = {
   PANEL: PANEL_POR_OMISION,
@@ -145,6 +161,8 @@ const POR_OMISION: Partial<Record<Vista, unknown>> = {
   // Por estado y en orden de EDT: es como llega el plan del archivo y como lo lee quien lo conoce.
   TABLERO: { agruparPor: 'estado', ordenarPor: 'wbs', sentido: 'asc' },
   CARGA: { modo: 'horas' },
+  // El mes, que es como llega el calendario y como lo lee quien no ha elegido otra cosa.
+  CALENDARIO: { modo: 'MES' },
 }
 
 /**

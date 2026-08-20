@@ -3902,3 +3902,46 @@ rojo**. La forma que sí soporta es `projects`.
 **El fichero de arranque cargaba `@testing-library/jest-dom` siempre**, y eso necesita un documento:
 con él sin condición, ninguna suite podía correr en `node` aunque no dibujara. Ahora se carga sólo
 donde hay DOM.
+
+## §10.4 · El Calendario era la única vista que no recordaba nada
+
+Cinco de las seis guardaban lo suyo —columnas y anchos, escala, divisor, agrupación, orden,
+formato—. El Calendario no guardaba nada, y **la tubería estaba hecha desde el principio**:
+`CALENDARIO` lleva desde siempre en la lista de vistas que admite `ViewPreference`, y nadie la usaba.
+Quien trabaja en la vista semanal volvía al mes cada vez que entraba.
+
+### El comentario que lo defendía
+
+En el servicio había esto, con todas las letras:
+
+> `CALENDARIO` no tiene ninguno, **y no es un olvido**: sus únicas elecciones son el mes que se mira
+> —que es dónde estás, no cómo lees— y el filtro, que ya vive en el proyecto por el §10.2.
+
+Era cierto **el día que se escribió**, cuando el Calendario sólo tenía el mes. Después llegaron la
+vista semanal y la de agenda del §7, y el modo es exactamente «cómo lees», que es el criterio que el
+propio comentario usaba para decidir. La frase seguía ahí, sonando a decisión pensada, defendiendo lo
+contrario de lo que su propia regla pedía.
+
+Van tres comentarios así en esta sesión —el de la paginación del Tablero, el del `abarcado` del Gantt
+y éste—: ciertos al escribirse y falsos desde que alguien añadió lo de al lado. Son los más caros de
+encontrar, porque leerlos convence.
+
+El ancla sigue sin guardarse, y por la razón que ese comentario daba bien: en qué mes estás es dónde
+estás mirando, no cómo lees.
+
+### El defecto tenía dos mitades
+
+Conectar la vista no bastaba: la primera medición en pantalla enseñó el modo volviendo al mes tras
+recargar, y en la base **no había fila de `CALENDARIO`**. El guardado la rechazaba por no tener
+esquema declarado, en silencio y sin que nadie viera un error.
+
+### Demostrado en pantalla
+
+| | antes | después |
+|---|---|---|
+| modo al entrar | Mes | Mes |
+| tras pulsar «Semana» | Semana | Semana |
+| **tras recargar la página entera** | **Mes** | **Semana** |
+
+Y en la base, una fila nueva: `CALENDARIO {"modo":"SEMANA"}`, con lo que las seis vistas guardan ya
+su preferencia.
