@@ -647,3 +647,73 @@ describe('§7 · la cabecera cuenta el mes, no la rejilla', () => {
     expect(deAgosto([cruza]).tasksInRange).toBe(1)
   })
 })
+
+describe('§7 · el repartidor de carriles necesita el orden por inicio', () => {
+  /**
+   * El voraz de reparto —«el primer carril cuyo último día ocupado sea anterior a mi inicio»— sólo
+   * da el **mínimo** de carriles si los intervalos entran ordenados por inicio. Fuera de ese orden
+   * sigue produciendo un dibujo válido —nada se solapa— pero abre carriles de más, y cada carril de
+   * más empuja tareas detrás del «N más».
+   *
+   * Aquí los hitos iban primero de todo para que no cayeran en el recorte. El motivo era bueno y la
+   * implementación sobraba: los hitos **ya están exentos** del recorte, así que adelantarlos no los
+   * protegía de nada y sí rompía el empaquetado. Medido sobre el plan real, en septiembre pasó de
+   * 37 a 44 líneas dibujadas.
+   */
+  const cal = createWorkCalendar()
+  const semana = (tasks: unknown[], maxLanes = 3) =>
+    calendarLayout({
+      tasks: tasks as never,
+      from: '2026-06-01' as never,
+      to: '2026-06-07' as never,
+      calendar: cal,
+      weekStartsOn: 1,
+      maxLanes,
+    })
+
+  const barra = (id: string, start: string, finish: string) =>
+    ({ id, name: id, start, finish }) as never
+  const hito = (id: string, dia: string) =>
+    ({ id, name: id, start: dia, finish: dia, isMilestone: true }) as never
+
+  it('tres barras que no se solapan caben en UN carril', () => {
+    const l = semana([barra('a', '2026-06-01', '2026-06-02'), barra('b', '2026-06-03', '2026-06-04'), barra('c', '2026-06-05', '2026-06-05')])
+    expect(l.weeks[0].laneCount).toBe(1)
+  })
+
+  it('y siguen cabiendo en uno con un hito tardío de por medio', () => {
+    // Adelantando el hito, el carril 0 quedaba ocupado hasta el viernes y las tres barras abrían
+    // tres carriles más: cuatro donde bastan dos.
+    const l = semana([
+      barra('a', '2026-06-01', '2026-06-02'),
+      hito('h', '2026-06-05'),
+      barra('b', '2026-06-03', '2026-06-04'),
+    ])
+    expect(l.weeks[0].laneCount).toBe(1)
+  })
+
+  it('con el orden roto, ninguna se pierde: lo que se pierde son carriles', () => {
+    // Lo importante de la invariante no es que dibuje distinto, es que dibuje en MENOS sitio.
+    const l = semana([
+      barra('a', '2026-06-01', '2026-06-02'),
+      hito('h', '2026-06-05'),
+      barra('b', '2026-06-03', '2026-06-04'),
+      barra('c', '2026-06-05', '2026-06-05'),
+    ])
+    expect(l.weeks[0].segments).toHaveLength(4)
+    expect(l.weeks[0].laneCount).toBeLessThanOrEqual(2)
+  })
+
+  it('un hito sigue sin recortarse aunque no quepa en los carriles', () => {
+    // Es lo que de verdad lo protege, y no el orden.
+    const muchas = [1, 2, 3, 4, 5].map((n) => barra(`b${n}`, '2026-06-01', '2026-06-05'))
+    const l = semana([...muchas, hito('h', '2026-06-03')], 2)
+    expect(l.weeks[0].segments.some((s) => s.taskId === 'h')).toBe(true)
+  })
+
+  it('entre dos que arrancan el mismo día, el hito va primero', () => {
+    // El orden entre iguales no toca la invariante, y ahí el hito sí es el que alguien vino a buscar.
+    const l = semana([barra('b', '2026-06-01', '2026-06-03'), hito('h', '2026-06-01')])
+    expect(l.weeks[0].segments[0].taskId).toBe('h')
+  })
+})

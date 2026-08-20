@@ -3434,3 +3434,47 @@ Sobre la misma población que la pantalla, en agosto de 2026:
 Ciento treinta y cuatro líneas de error, en la cifra que alguien lee para decidir si el mes está
 cargado.
 
+---
+
+## §7 — los hitos rompían el repartidor de carriles, y el motivo que lo just ificaba ya estaba cubierto
+
+El voraz de reparto —«el primer carril cuyo último día ocupado sea anterior a mi inicio»— sólo da el
+**mínimo** de carriles si los intervalos entran ordenados por inicio. El comparador ponía los hitos
+primero de todo, con el motivo escrito al lado:
+
+> «Así toman los carriles altos y nunca caen en el recorte.»
+
+El motivo era bueno. La implementación sobraba: **los hitos ya están exentos del recorte** unas
+líneas más abajo (`carril >= maxLanes && tarea.isMilestone !== true`). Adelantarlos no los protegía
+de nada — sólo rompía el empaquetado.
+
+Fuera de orden, el voraz sigue produciendo un dibujo **válido** —nada se solapa— pero abre carriles
+de más, y cada carril de más empuja tareas detrás del «N más». Medido sobre el plan de referencia:
+
+| mes | dibujadas antes | ahora | escondidas antes | ahora |
+|---|---:|---:|---:|---:|
+| agosto | 14 | 14 | 1 364 | 1 329 |
+| septiembre | 37 | **44** | 1 559 | **1 473** |
+| octubre | 36 | **38** | 1 098 | **1 015** |
+
+Los hitos siguen sin recortarse — lo garantiza la exención, que es donde siempre estuvo. Y entre dos
+que arrancan el **mismo día** el hito sigue yendo primero: el orden entre iguales no toca la
+invariante, y ahí sí es el que alguien vino a buscar.
+
+---
+
+## Y el intermitente que llevaba dos turnos anotado sin diagnosticar
+
+`template-structure.property.test.ts` falló en **dos de tres** corridas completas y en **cinco de
+cinco** corriendo sola pasó. Esa asimetría es la firma de un plazo corto, no de un defecto.
+
+La propiedad tarda **391 ms** y hace cien pasadas. El plazo de cinco segundos no se agotaba por
+trabajo sino por espera: la suite lanza ciento ochenta archivos en paralelo.
+
+Veinte segundos, y **no se bajan las cien pasadas** — eso arreglaría el síntoma debilitando lo único
+que la prueba aporta. Tres corridas completas seguidas en verde después.
+
+Es el segundo plazo de reloj que se rompe hoy en esta suite. El primero fue el caso 24 del §12, que
+acabó dejando de cronometrar. La lección se repite: **en una máquina compartida, un límite de tiempo
+mide la máquina.**
+

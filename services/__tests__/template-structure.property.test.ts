@@ -221,5 +221,18 @@ describe('Feature: activity-templates, Property 2: Template Structure Completene
       ),
       { numRuns: 100 }
     )
-  })
+  },
+  /**
+   * Veinte segundos, no los cinco de por omisión.
+   *
+   * La propiedad tarda **391 ms** corriendo sola y hace cien pasadas. El problema no es lo que
+   * cuesta: es que la suite lanza ciento ochenta archivos en paralelo, y ahí el plazo de cinco
+   * segundos se agota por espera, no por trabajo. Falló dos veces de tres corridas completas y
+   * **cinco de cinco en verde corriendo sola** — que es la firma de un plazo corto, no de un
+   * defecto.
+   *
+   * No se bajan las cien pasadas: eso arreglaría el síntoma debilitando lo único que la prueba
+   * aporta. Cincuenta veces de margen sobre lo que de verdad cuesta.
+   */
+  20_000)
 })
