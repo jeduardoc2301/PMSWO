@@ -408,21 +408,47 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     baseFinish?: IsoDate
     baseFinishDrift?: number
   } => {
-    const guardada = input.baseline?.get(id)
+    /**
+     * Para un resumen, **lo que abarcaban sus hijas en la foto**; para una hoja, lo suyo.
+     *
+     * La barra de hoy de un resumen se dibuja con lo que abarca su rama, no con las fechas que trae
+     * guardadas —eso está diez líneas más abajo y con su porqué—. La de la foto se dibujaba con las
+     * fechas guardadas del resumen, que son otra cosa: comparar una rama contra un campo almacenado
+     * enseña un corrimiento que nadie provocó.
+     *
+     * Medido en el plan de referencia con la foto «Plan comprometido con el banco», sobre las 28
+     * barras de foto que hay en pantalla: 27 coincidían y **una no**, la raíz del plan —la fila que
+     * queda cuando todo está plegado—, con la barra de foto **dos días hábiles más corta** que la de
+     * hoy. Y con `data-desvio` diciendo **cero**: el número negaba lo que el dibujo enseñaba, que es
+     * la peor de las dos maneras de estar mal.
+     *
+     * Se cae a lo guardado si la rama no está en la foto —una foto parcial, hijas creadas
+     * después—: mejor la referencia vieja que ninguna.
+     */
+    const rama = abarcadoBase.get(id)
+    const guardada = rama ?? input.baseline?.get(id)
     if (!guardada) return {}
     const inicio = calendar.ordinalOf(toDayNumber(guardada.start))
     const fin = calendar.ordinalOf(toDayNumber(guardada.finish))
     const baseX = inicio - originOrdinal
+    // El corrimiento se mide entre las dos barras que se ven, y la de hoy de un resumen es su rama.
+    const hoyTramo = abarcado.get(id)
+    const hoyInicio = hoyTramo
+      ? calendar.ordinalOf(toDayNumber(hoyTramo.start))
+      : (schedule.earlyStart.get(id) ?? originOrdinal)
+    const hoyFin = hoyTramo
+      ? calendar.ordinalOf(toDayNumber(hoyTramo.finish))
+      : (schedule.earlyFinish.get(id) ?? originOrdinal)
     return {
       baseX,
       // Ambos extremos cuentan, como `NETWORKDAYS`: del lunes al viernes son cinco días, no cuatro.
       baseWidth: Math.max(0, fin - inicio + 1),
-      baseDrift: (schedule.earlyStart.get(id) ?? originOrdinal) - inicio,
+      baseDrift: hoyInicio - inicio,
       baseStart: guardada.start,
       baseFinish: guardada.finish,
       // El corrimiento del cierre se calcula aparte del de arranque: una línea puede empezar a
       // tiempo y acabar tarde —porque se alargó— y con un solo número eso no se ve.
-      baseFinishDrift: (schedule.earlyFinish.get(id) ?? originOrdinal) - fin,
+      baseFinishDrift: hoyFin - fin,
     }
   }
 
@@ -485,6 +511,25 @@ export function ganttLayout(input: GanttInput): GanttLayout {
         .flatMap((t) => {
           const s = schedule.byId.get(t.id)
           return s ? [[t.id, { start: s.start, finish: s.finish }] as const] : []
+        }),
+    ),
+  )
+
+  /**
+   * Lo mismo, pero con las fechas de la foto: qué abarcaba cada resumen **cuando se sacó**.
+   *
+   * Se arma con la misma función y de la misma manera —sólo las hojas, y que ella suba—, porque las
+   * dos barras del resumen tienen que estar midiendo lo mismo. Con las fechas guardadas del resumen
+   * enfrente de la rama de hoy, el corrimiento que se lee no es de nadie.
+   */
+  const abarcadoBase = fechasDeResumen(
+    tasks,
+    new Map(
+      tasks
+        .filter((t) => !children.has(t.id))
+        .flatMap((t) => {
+          const b = input.baseline?.get(t.id)
+          return b ? [[t.id, { start: b.start, finish: b.finish }] as const] : []
         }),
     ),
   )

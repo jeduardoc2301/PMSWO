@@ -3648,3 +3648,37 @@ proyecto** de `2026-06-01` a `2026-06-12`, la fecha de la primera línea.
 Es decir: el procedimiento de restauración rompe por su cuenta uno de los ocho controles del
 verificador. Restaurar es entonces tres pasos, no uno: limpiar el avance que dejó la medición,
 `--merge`, y devolver el `startDate` del proyecto.
+
+## §4.8 · La foto de un resumen no era la de su rama
+
+La barra de hoy de un resumen se dibuja con **lo que abarca su rama** —está así a propósito, y el
+porqué lleva escrito en `abarcado` desde que se puso: las fechas guardadas de un resumen envejecen en
+cuanto alguien mueve una hija—. La barra de la línea base se dibujaba con **las fechas guardadas del
+resumen**, que son justo lo que ese comentario dice que no sirve.
+
+Son dos cosas distintas puestas una encima de la otra. El corrimiento que se leía entre ellas no lo
+había provocado nadie.
+
+Ahora la foto de un resumen se calcula con la **misma función y de la misma manera** que su barra de
+hoy: sólo las hojas, y que ella suba. Y los dos corrimientos —el de arranque y el de cierre— se miden
+entre las dos barras que se ven, no contra `earlyStart`, que para un resumen es otra cifra. Si la
+rama no está en la foto —una foto parcial, hijas creadas después— se cae a lo guardado: mejor la
+referencia vieja que ninguna.
+
+### Demostrado en pantalla
+
+Con la foto real «Plan comprometido con el banco» (18 ago 2026) sobre el plan de referencia, contando
+las 28 barras de foto que hay en pantalla:
+
+| | coinciden | discrepan |
+|---|---|---|
+| antes | 27 | **1** |
+| después | **28** | 0 |
+
+La que discrepaba era **la raíz del plan**, la fila que queda cuando todo está plegado, con la barra
+de foto **dos días hábiles más corta** que la de hoy —648 px contra 664, a ocho píxeles el día— y con
+`data-desvio` diciendo **cero**. El número negaba lo que el dibujo enseñaba, que es la peor de las dos
+maneras de estar mal.
+
+El informe de auditoría hablaba de doce días. Medidos son dos, en esa fila. La forma del defecto era
+la descrita; la cifra no.

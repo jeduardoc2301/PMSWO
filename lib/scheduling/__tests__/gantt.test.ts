@@ -1032,3 +1032,72 @@ describe('§4.1 · la barra de un resumen se llena con el avance de sus hijas', 
     expect(trazar(rotas).rows.find((r) => r.id === 'x')!.progress).toBe(0.5)
   })
 })
+
+describe('§4.8 · la foto de un resumen es la de su rama, no la que traía guardada', () => {
+  /**
+   * La barra de hoy de un resumen se dibuja con **lo que abarca su rama** —está así a propósito, con
+   * su porqué escrito— y la de la foto se dibujaba con las fechas guardadas del propio resumen.
+   * Son dos cosas distintas puestas una encima de la otra: el corrimiento que se leía no lo había
+   * provocado nadie.
+   *
+   * Las fechas guardadas de un resumen envejecen en cuanto alguien mueve una hija, y por eso el
+   * mismo módulo ya calcula la barra de hoy subiendo desde las hojas.
+   */
+  const CON_RESUMEN: PlanTask[] = [
+    { id: 'R', name: 'Bloque', duration: 3, start: '2026-06-01', finish: '2026-06-03' },
+    { id: 'h1', name: 'Primera', duration: 3, parentId: 'R' },
+    { id: 'h2', name: 'Segunda', duration: 5, parentId: 'R' },
+  ]
+  const SEGUIDAS: Dependency[] = [{ predecessorId: 'h1', successorId: 'h2', type: 'FS', lag: 0 }]
+
+  /** La foto tiene a las dos hijas donde están hoy, y al resumen con unas fechas viejas y cortas. */
+  const FOTO_VIEJA = new Map([
+    ['R', { start: '2026-06-01' as const, finish: '2026-06-03' as const }],
+    ['h1', { start: '2026-06-01' as const, finish: '2026-06-03' as const }],
+    ['h2', { start: '2026-06-04' as const, finish: '2026-06-10' as const }],
+  ])
+
+  const filaDe = (id: string, foto: typeof FOTO_VIEJA) =>
+    trazar(CON_RESUMEN, SEGUIDAS, { baseline: foto }).rows.find((f) => f.id === id)!
+
+  it('el resumen no se movió: sus dos barras coinciden y no hay corrimiento', () => {
+    // Con las fechas guardadas del resumen enfrente, la barra de foto medía 3 días contra los 8 que
+    // abarca la rama, y el corrimiento salía de la nada.
+    const R = filaDe('R', FOTO_VIEJA)
+    expect(R.baseX).toBe(R.x)
+    expect(R.baseWidth).toBe(R.width)
+    expect(R.baseDrift).toBe(0)
+    expect(R.baseFinishDrift).toBe(0)
+  })
+
+  it('y las hojas siguen comparándose contra lo suyo', () => {
+    const h2 = filaDe('h2', FOTO_VIEJA)
+    expect(h2.baseX).toBe(h2.x)
+    expect(h2.baseDrift).toBe(0)
+  })
+
+  it('cuando una hija se corre, el resumen lo enseña: es su rama la que creció', () => {
+    const foto = new Map(FOTO_VIEJA)
+    // En la foto la segunda acababa dos días hábiles antes de donde acaba hoy.
+    foto.set('h2', { start: '2026-06-04' as const, finish: '2026-06-08' as const })
+    const R = filaDe('R', foto)
+    expect(R.baseDrift).toBe(0)
+    expect(R.baseFinishDrift).toBe(2)
+    expect(R.baseWidth).toBeLessThan(R.width)
+  })
+
+  it('si la rama no está en la foto se cae a lo guardado, que es mejor que nada', () => {
+    // Una foto parcial, o hijas creadas después de sacarla.
+    const soloElResumen = new Map([['R', { start: '2026-06-01' as const, finish: '2026-06-03' as const }]])
+    const R = filaDe('R', soloElResumen)
+    expect(R.baseX).toBe(0)
+    expect(R.baseWidth).toBe(3)
+  })
+
+  it('una foto que no conoce ni al resumen ni a su rama no dibuja barra fantasma', () => {
+    const ajena = new Map([['otra', { start: '2026-06-01' as const, finish: '2026-06-03' as const }]])
+    const R = filaDe('R', ajena as never)
+    expect(R.baseX).toBeUndefined()
+    expect(R.baseWidth).toBeUndefined()
+  })
+})
