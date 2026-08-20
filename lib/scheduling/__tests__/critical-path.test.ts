@@ -223,3 +223,47 @@ describe('Líneas de resumen', () => {
     expect(analisis.byId.has('bloque')).toBe(false)
   })
 })
+
+describe('§3.3 · excluir resúmenes del conteo: por hijas, no por kind', () => {
+  /**
+   * Quinta vez que las dos definiciones de «resumen» se separan en esta base. Aquí el efecto es que
+   * el informe cuenta como trabajo ejecutable líneas que sólo acumulan lo de sus hijas.
+   *
+   * Medido en el plan de referencia antes del arreglo: el conteo decía **1 247** y hay **1 243**
+   * ejecutables. Las cuatro coladas son compuertas con hijas —HAB-01 a HAB-04— marcadas
+   * `COMPUERTA` y no `RESUMEN`. Ninguna es crítica, así que en ese plan las demás cifras no se
+   * movían; en otro sí.
+   */
+  const calendar = createWorkCalendar()
+
+  const clasificar = (tasks: PlanTask[], deps: Dependency[] = []) => {
+    const schedule = schedulePlan({ tasks, dependencies: deps, calendar, start: '2026-06-01' })
+    return classifySuperCritical(analyzeCriticalPath(schedule), tasks, { excludeSummaries: true })
+  }
+
+  it('una línea CON hijas no cuenta, aunque su kind no diga RESUMEN', () => {
+    const tasks: PlanTask[] = [
+      { id: 'compuerta', name: 'HAB-01 · Ambiente listo', duration: 0, kind: 'COMPUERTA' },
+      { id: 'hija', name: 'Montar el ambiente', duration: 3, parentId: 'compuerta' },
+    ]
+    expect(clasificar(tasks).total).toBe(1)
+  })
+
+  it('una marcada RESUMEN sin hijas tampoco: las dos reglas suman, no se sustituyen', () => {
+    // Quien la marcó a mano sabe algo que el árbol no dice.
+    const tasks: PlanTask[] = [
+      { id: 'r', name: 'Marcada resumen, sin hijas', duration: 2, kind: 'RESUMEN' },
+      { id: 'a', name: 'Actividad', duration: 2 },
+    ]
+    expect(clasificar(tasks).total).toBe(1)
+  })
+
+  it('sin excluir, se cuentan todas', () => {
+    const tasks: PlanTask[] = [
+      { id: 'compuerta', name: 'HAB-01', duration: 0, kind: 'COMPUERTA' },
+      { id: 'hija', name: 'Montar', duration: 3, parentId: 'compuerta' },
+    ]
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    expect(classifySuperCritical(analyzeCriticalPath(schedule), tasks).total).toBe(2)
+  })
+})

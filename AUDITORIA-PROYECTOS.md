@@ -2377,3 +2377,47 @@ orden después          name · finish · start
 ```
 
 Con esto la casilla queda entera: configurables, reordenables, redimensionables y persistidas.
+
+---
+
+## §3.3 — la quinta aparición de «resumen», ahora en la ruta crítica
+
+Buscada a propósito: con la regla ya escrita en la memoria del proyecto, se barrió el código entero
+buscando `kind === 'RESUMEN'` en producción. Salió en `lib/scheduling/critical-path.ts:111`.
+
+El clasificador tiene una opción `excludeSummaries` para el informe ejecutivo, con este motivo
+escrito: «un resumen no se ejecuta: hereda las fechas de sus hijas, y contarlo infla la ruta crítica
+con líneas que nadie puede acelerar ni atrasar». Correcto. Pero la excluía **por el campo**.
+
+Medido en el plan de referencia:
+
+| | |
+|---|---:|
+| líneas del plan | 1 368 |
+| con hijas | 125 |
+| marcadas `RESUMEN` | 121 |
+| **coladas en el conteo** | **4** |
+
+Las cuatro son `COMPUERTA` con hijas —HAB-01 a HAB-04, los habilitadores de ambiente—. El informe
+decía **1 247 líneas ejecutables** donde hay **1 243**.
+
+Ninguna de las cuatro es crítica, así que en **este** plan las demás cifras no se movían. En otro
+donde una compuerta con hijas caiga en la ruta crítica, sí: la contaría como trabajo que alguien
+puede acelerar, y no lo es.
+
+Las dos reglas **suman**, no se sustituyen: una línea marcada `RESUMEN` sin hijas tampoco cuenta,
+porque quien la marcó a mano sabe algo que el árbol no dice.
+
+### Y las otras dos, cosméticas pero incoherentes consigo mismas
+
+El mismo barrido sacó dos usos más del campo en producción:
+
+**La columna «Clase» del Gantt** decía «Actividad» en las cuatro compuertas con hijas, mientras el
+resto de la misma fila las trataba de resumen — `GanttRow.isSummary` ya es «marcada o con hijas».
+Una fila que se contradice a sí misma en dos celdas contiguas.
+
+**El editor de vínculos** marca con un aviso «resumen» las candidatas, y ese aviso es lo único que
+impide vincular contra un resumen sin darse cuenta — y un vínculo contra algo que hereda sus fechas
+de otros no significa lo que parece. Las cuatro compuertas salían sin aviso.
+
+En los dos sitios las dos reglas **suman**: tener hijas o estar marcada.

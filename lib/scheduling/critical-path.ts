@@ -70,6 +70,14 @@ export interface ClassifyOptions {
   /**
    * Excluir las líneas de resumen del conteo. Un resumen no se ejecuta: hereda las fechas de sus
    * hijas, y contarlo infla la ruta crítica con líneas que nadie puede acelerar ni atrasar.
+   *
+   * **Resumen es tener hijas**, no llevar `kind: 'RESUMEN'`. Esto miraba el campo, y en el plan de
+   * referencia deja pasar **cuatro compuertas con hijas** —HAB-01 a HAB-04— que se contaban como
+   * trabajo: el informe decía 1 247 líneas donde hay 1 243 ejecutables. Ninguna de las cuatro es
+   * crítica, así que en este plan el resto de cifras no se movía; en otro sí.
+   *
+   * Es la quinta vez que las dos definiciones se separan en esta base. Las cinco, la buena fue
+   * «tiene hijas».
    */
   readonly excludeSummaries?: boolean
 }
@@ -89,6 +97,9 @@ export function classifySuperCritical(
   const excludeSummaries = options.excludeSummaries ?? false
 
   const source = new Map(tasks.map((task) => [task.id, task]))
+  // Quién tiene hijas. Se calcula sobre `tasks`, que es el plan entero: sobre una lista recortada,
+  // esconder a las hijas convertiría a su madre en trabajo ejecutable.
+  const conHijas = new Set(tasks.map((task) => task.parentId).filter((id): id is string => id !== undefined))
 
   const classified: ClassifiedTask[] = []
   const byReason: Record<Recoverability, number> = {
@@ -108,7 +119,7 @@ export function classifySuperCritical(
     const task = source.get(analyzed.id)
     const kind = task?.kind ?? 'ACTIVIDAD'
 
-    if (excludeSummaries && kind === 'RESUMEN') continue
+    if (excludeSummaries && (kind === 'RESUMEN' || conHijas.has(analyzed.id))) continue
     total += 1
 
     const party = partyOf(task, kind)

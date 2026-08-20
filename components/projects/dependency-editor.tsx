@@ -44,6 +44,19 @@ const TIPOS: readonly { valor: LinkType; texto: string }[] = [
 /** Cuántas coincidencias ofrece el buscador. Más es una lista que ya nadie lee. */
 const MAX_COINCIDENCIAS = 12
 
+/**
+ * Si una línea es un resumen: **tiene hijas**, no lleva `kind: 'RESUMEN'`.
+ *
+ * Marcaba por el campo, y en el plan de referencia eso deja sin marcar cuatro compuertas con hijas.
+ * Aquí importa porque el aviso es lo único que impide vincular contra un resumen sin darse cuenta —
+ * y un vínculo contra algo que hereda sus fechas de otros no significa lo que parece.
+ *
+ * Se construye desde `tasks`, que es el plan entero que ya recibe el componente.
+ */
+function resumenesDe(tasks: readonly { readonly id: string; readonly parentId?: string }[]): ReadonlySet<string> {
+  return new Set(tasks.map((t) => t.parentId).filter((id): id is string => id !== undefined))
+}
+
 export function DependencyEditor({
   task,
   tasks,
@@ -56,6 +69,9 @@ export function DependencyEditor({
 }: DependencyEditorProps) {
   const [busqueda, setBusqueda] = useState('')
   const [elegida, setElegida] = useState<PlanTask | null>(null)
+  const resumenes = useMemo(() => resumenesDe(tasks), [tasks])
+  /** Un resumen lo es por tener hijas o por estar marcado a mano: las dos reglas suman. */
+  const esResumen = (t: PlanTask) => resumenes.has(t.id) || t.kind === 'RESUMEN'
   const [tipo, setTipo] = useState<LinkType>('FS')
   const [desfase, setDesfase] = useState('0')
 
@@ -188,7 +204,7 @@ export function DependencyEditor({
                       className="flex w-full items-baseline gap-2 px-2 py-1.5 text-left text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
                     >
                       <span className="min-w-0 flex-1 truncate">{candidata.name}</span>
-                      {candidata.kind === 'RESUMEN' ? (
+                      {esResumen(candidata) ? (
                         <span className="shrink-0 text-xs text-amber-400">resumen</span>
                       ) : null}
                     </button>

@@ -167,7 +167,10 @@ function contenidoDe(row: GanttRow, columnaId: string, indice: number): string {
     case 'wbs':
       return row.wbs
     case 'kind':
-      return row.kind === 'RESUMEN' ? 'Resumen' : row.isMilestone ? 'Hito' : 'Actividad'
+      // `isSummary`, no `kind`: la fila ya sabe si es un resumen —lo es también cuando tiene hijas
+      // aunque su clase diga otra cosa— y esta celda decía «Actividad» en las cuatro compuertas con
+      // hijas del plan de referencia, mientras el resto de la misma fila la trataba de resumen.
+      return row.isSummary ? 'Resumen' : row.isMilestone ? 'Hito' : 'Actividad'
     case 'party':
       return row.party === 'CLIENTE' ? 'Cliente' : 'Nuestro'
     case 'progress':
