@@ -72,6 +72,7 @@ export async function loadProjectWorkload(
       select: {
         id: true,
         title: true,
+        kind: true,
         startDate: true,
         estimatedEndDate: true,
         // Las asignaciones viajan con la línea: una ida en vez de dos, y ya emparejadas.
@@ -96,6 +97,9 @@ export async function loadProjectWorkload(
     name: item.title,
     start: isoDe(item.startDate),
     finish: isoDe(item.estimatedEndDate),
+    // Un hito no aporta carga. Ver `TareaDeCarga.isMilestone`: no se puede deducir de las fechas,
+    // porque 1 064 de las 1 243 hojas del plan de referencia duran un solo día.
+    isMilestone: item.kind === 'HITO',
   }))
 
   const assignments: AsignacionDeCarga[] = items.flatMap((item) =>

@@ -97,10 +97,28 @@ export function estimacionDesdeDuracion(dias: number, asignados: readonly Asigna
  * a la jornada de cada cual sería otra política defendible, pero no es la que el §3.5 describe —su
  * fórmula divide entre el número de asignados, no entre la suma de sus jornadas—.
  *
- * El resto de la división no se pierde: se reparte de a un minuto entre los primeros, para que la
- * suma de las dedicaciones dé exactamente el trabajo comprometido. Sin eso, ocho horas entre tres
- * personas se convertirían en siete horas y cincuenta y siete minutos, y nadie sabría dónde se
+ * El resto de la división **entre las personas** no se pierde: se reparte de a un minuto entre las
+ * primeras, para que la suma del día dé exactamente lo que toca ese día. Sin eso, ocho horas entre
+ * tres personas se convertirían en siete horas y cincuenta y siete minutos, y nadie sabría dónde se
  * fueron los tres restantes.
+ *
+ * ## Qué invariante se cumple, y cuál no puede cumplirse
+ *
+ * Se cumple: `suma(reparto) === redondeo(minutosDeTrabajo / dias)`. Comprobado por fuerza bruta
+ * sobre **22 880 combinaciones** de trabajo, días y personas: cero excepciones.
+ *
+ * **No** se cumple, y no puede: `suma(reparto) × dias === minutosDeTrabajo`. Se rompe en 19 012 de
+ * esas 22 880, y la razón es la firma, no la aritmética: esta función devuelve **una sola cifra por
+ * persona**, la misma todos los días, así que el trabajo total sólo puede cuadrar cuando divide
+ * exacto entre los días. Un minuto repartido en dos días es medio minuto al día o no es nada.
+ *
+ * El comentario anterior prometía el segundo invariante, que es el que la gente esperaría leyendo
+ * «el resto no se pierde». Lo encontró una auditoría con agentes; el diagnóstico que dio era
+ * «pierde e inventa minutos», y midiéndolo resultó ser «la promesa era otra».
+ *
+ * Cambiar la firma para devolver un reparto por día —y así poder cuadrar el total— sólo tiene
+ * sentido el día que el modelo guarde el trabajo en minutos (§2.1), que es de lo que cuelga todo
+ * esto.
  */
 export function dedicacionDiaria(
   minutosDeTrabajo: number,

@@ -2448,3 +2448,98 @@ propio estado y su propio ciclo.
 Se deja el conjunto de `urgency.ts` como está: tres entradas de las que sobran dos no hacen daño, y el
 día que el modelo gane un estado de cierre la función ya lo trata bien. Queda anotado para que nadie
 vuelva a investigarlo: **se miró, y la tasa de avance está bien**.
+
+---
+
+## §10.6 — dos escrituras de la Lista que no se apuntaban, y una que se tragaba el fallo
+
+Veta nueva: comparar, archivo por archivo, cuántas escrituras hace un componente contra cuántas
+apunta en la pila de deshacer. `work-items-list.tsx` salía **2 escrituras y 0 apuntes**.
+
+### Renombrar desde la celda no se podía deshacer
+
+Y renombrar **desde el panel de detalle** sí — se conectó anoche. La misma acción, reversible o no
+según por dónde entres. Es literalmente la clase de incoherencia que otro comentario de esta misma
+base llama «la que hace que nadie se fíe del Ctrl+Z».
+
+Ahora apunta, por el mismo canal y con la misma etiqueta.
+
+### Reordenar arrastrando se tragó el fallo en la consola
+
+```ts
+} catch (e) {
+  console.error('Failed to save order', e)
+}
+```
+
+La tabla se quedaba enseñando un orden que la base no tenía. Y el orden de la Lista **es el EDT**:
+los números que la gente se dice por teléfono. Una pantalla que miente sobre eso es peor que una que
+no deja arrastrar.
+
+Ahora revierte al orden anterior y lo dice, pegado a la tabla y no en la barra de filtros — el aviso
+es de lo que hay debajo.
+
+Deshacer un reorden completo sigue sin estar: escribe `templateOrder` en cientos de líneas y su
+inversa es otro reorden, no un campo que devolver, así que pide un canal propio en la pila como lo
+pidieron en su día los vínculos y las bajas. Queda dicho, no hecho.
+
+---
+
+## §3.5 — un hito cargaba una jornada completa, y 86 de ellos
+
+De la auditoría del motor con agentes. `Work = Duration × Units`, y la duración de un hito es cero:
+la línea que lo dice está escrita en tres sitios de esta base. La matriz de carga le cobraba una
+**jornada entera** el día que cae.
+
+Medido sobre el plan de referencia:
+
+| | |
+|---|---:|
+| hitos en el plan | **86** |
+| de ellos con asignación | **86** |
+| carga total del corte, antes | 999 360 min |
+| carga total, ahora | **958 080 min** |
+| diferencia | **41 280 min = 86 × 480** |
+
+Al minuto. Eran 86 jornadas completas de trabajo que nadie hace.
+
+### Por qué no se podía deducir de las fechas
+
+`TareaDeCarga` sólo llevaba `id`, `name`, `start` y `finish`. La tentación es decir «si empieza y
+acaba el mismo día, es un hito» — y es falso: **1 064 de las 1 243 hojas del plan duran un solo
+día**. Un hito y una tarea de un día tienen las mismas fechas y no son lo mismo, así que hacía falta
+traer la clase desde la base.
+
+### El hito sigue en el corte
+
+Se salta en el bucle de carga, no al construir el corte: el desglose de un día lo enumera, y quien
+mira quiere ver **qué vence** ese día aunque no pese.
+
+Tener a alguien asignado a un hito significa «esta persona responde de este punto de control», y
+responder de un punto de control no es trabajo que ocupe una jornada.
+
+### Lo que NO cambió
+
+Las celdas marcadas como sobrecarga son **169 antes y 169 después**, igual que con las asignaciones
+fantasma de los resúmenes: la carga de esos recursos ya estaba por encima de la línea. El 4,1 % de
+la carga del corte era falso y no movía ninguna celda de color — en este plan.
+
+---
+
+## §3.5 — el reparto diario: la promesa del comentario era otra
+
+El mismo informe decía que `dedicacionDiaria` «pierde e inventa minutos». Medido por fuerza bruta
+sobre **22 880 combinaciones** de trabajo, días y personas:
+
+- el total **del día** se conserva en las **22 880**: cero excepciones;
+- el total **comprometido** se rompe en **19 012**.
+
+O sea: la aritmética está bien y **el comentario prometía otra cosa**. Decía «para que la suma de
+las dedicaciones dé exactamente el trabajo comprometido», y eso no puede cumplirse con esta firma:
+devuelve **una sola cifra por persona**, la misma todos los días, así que el total sólo cuadra cuando
+el trabajo divide exacto entre los días. Un minuto repartido en dos días es medio minuto al día o no
+es nada.
+
+Corregido el comentario con los dos números, y cuatro pruebas que fijan **las dos mitades**: la que
+vale y la que provablemente no puede valer. Cambiar la firma para poder cuadrar el total sólo tiene
+sentido el día que el modelo guarde el trabajo en minutos (§2.1).

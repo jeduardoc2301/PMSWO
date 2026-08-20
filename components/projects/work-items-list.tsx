@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2, GripVertical } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
+import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import {
   type CampoDeGrupo,
@@ -236,6 +237,15 @@ interface WorkItemsListProps {
   /** Al soltar el tirador de una columna. Sin esto, las columnas no se redimensionan. */
   onAnchoChange?: (id: string, ancho: number) => void
   onWorkItemCreated?: () => void
+  /**
+   * Apuntar una operación en la pila de deshacer (§10.6).
+   *
+   * Hacía falta porque esta tabla escribe dos cosas que no se apuntaban: renombrar desde la celda y
+   * reordenar arrastrando. Y renombrar **desde el panel de detalle** sí se apunta — la misma acción,
+   * reversible o no según por dónde entres, que es la clase de incoherencia que hace que nadie se
+   * fíe del Ctrl+Z.
+   */
+  onApuntarOperacion?: (operacion: Operacion | null) => void
   editDatesData?: {
     workItemId: string
     workItemTitle: string
@@ -269,6 +279,7 @@ export function WorkItemsList({
   projectId,
   workItems,
   onWorkItemCreated,
+  onApuntarOperacion,
   editDatesData,
   onEditDatesDataUsed,
   onAbrirDetalle,
@@ -328,13 +339,30 @@ export function WorkItemsList({
     setLocalOrder(prev => new Map(prev).set(phaseKey, newItems))
 
     try {
-      await fetch(`/api/v1/projects/${projectId}/work-items/reorder`, {
+      const r = await fetch(`/api/v1/projects/${projectId}/work-items/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderedIds: newItems.map(i => i.id) }),
       })
+      if (!r.ok) {
+        const cuerpo = await r.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+      }
+      setErrorDeOrden(null)
     } catch (e) {
-      console.error('Failed to save order', e)
+      /**
+       * Se **revierte y se dice**, en vez de tragarse el fallo en la consola.
+       *
+       * Esto hacía `console.error` y nada más, con lo que la tabla se quedaba enseñando un orden
+       * que la base no tenía — y el orden de la Lista es el EDT, o sea los números que la gente se
+       * dice por teléfono. Una pantalla que miente sobre eso es peor que una que no deja arrastrar.
+       */
+      setLocalOrder(prev => new Map(prev).set(phaseKey, currentItems))
+      setErrorDeOrden(
+        e instanceof Error
+          ? `No se pudo guardar el orden: ${e.message}`
+          : 'No se pudo guardar el orden. La tabla vuelve a como estaba.',
+      )
     }
   }
 
@@ -516,6 +544,8 @@ export function WorkItemsList({
    * estado, prioridad y responsable, que son de seguimiento.
    */
   const [camposAbierto, setCamposAbierto] = useState(false)
+  /** Por qué no se guardó el orden, cuando no se guarda. */
+  const [errorDeOrden, setErrorDeOrden] = useState<string | null>(null)
   const columnasDeLaTabla = useMemo(() => columnasVisiblesDeLaLista(columnasElegidas), [columnasElegidas])
   const encendidas = useMemo(() => new Set(columnasDeLaTabla.map((c) => c.id)), [columnasDeLaTabla])
 
@@ -537,6 +567,17 @@ export function WorkItemsList({
   const visible = (id: string) => encendidas.has(id)
 
   const renombrar = async (id: string, titulo: string): Promise<void> => {
+    const anterior = workItems.find((w) => w.id === id)?.title
+    if (anterior === titulo) return
+    // Se apunta **antes** de escribir, como el resto de la pila: si la escritura falla, la recarga
+    // de abajo devuelve la pantalla a lo que hay en la base y el apunte queda inocuo.
+    onApuntarOperacion?.(
+      operacionDesde(
+        `Renombrar «${(anterior ?? id).slice(0, 40)}»`,
+        [{ id, title: anterior }],
+        [{ id, title: titulo }],
+      ),
+    )
     try {
       const r = await fetch(`/api/v1/work-items/${id}`, {
         method: 'PATCH',
@@ -1011,6 +1052,18 @@ export function WorkItemsList({
             className="overflow-auto"
             style={plana ? { maxHeight: ALTO_VISIBLE } : undefined}
           >
+            {/* El aviso de que el orden no se guardó, pegado a la tabla y no en la barra: es de lo
+                que hay debajo, y arriba se perdería entre los filtros. */}
+            {errorDeOrden !== null ? (
+              <p
+                role="alert"
+                data-testid="error-de-orden"
+                className="mb-2 rounded border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200"
+              >
+                {errorDeOrden}
+              </p>
+            ) : null}
+
             {/* `table-fixed`: sin esto el navegador reparte el ancho a su gusto y los anchos
                 guardados no se notan — la tabla se «arregla» sola y el tirador parece roto. */}
             <table className={onAnchoChange ? 'w-full table-fixed' : 'w-full'}>

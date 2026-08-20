@@ -171,3 +171,55 @@ describe('Cero horas no es una estimación de cero', () => {
     expect(comprobarCoherencia(0, 1, [COMPLETA]).cuadra).toBe(false)
   })
 })
+
+describe('§3.5 · qué invariante cumple el reparto diario, y cuál no puede', () => {
+  /**
+   * El comentario de `dedicacionDiaria` prometía que «la suma de las dedicaciones dé exactamente el
+   * trabajo comprometido». No es cierto y no puede serlo: la función devuelve **una sola cifra por
+   * persona**, la misma todos los días, así que el total sólo cuadra cuando el trabajo divide exacto
+   * entre los días.
+   *
+   * Medido por fuerza bruta sobre 22 880 combinaciones: el invariante del día se cumple en las
+   * 22 880; el del total se rompe en 19 012.
+   *
+   * Estas dos pruebas fijan las dos mitades — la que vale y la que no— para que nadie vuelva a leer
+   * el comentario y creer que el total cuadra.
+   */
+  const combinaciones: [number, number, number][] = []
+  for (let min = 1; min <= 600; min += 13) {
+    for (let dias = 1; dias <= 12; dias += 1) {
+      for (let n = 1; n <= 4; n += 1) combinaciones.push([min, dias, n])
+    }
+  }
+
+  it('la suma del día es exactamente lo que toca ese día, siempre', () => {
+    for (const [min, dias, n] of combinaciones) {
+      const suma = dedicacionDiaria(min, dias, n).reduce((a, b) => a + b, 0)
+      expect(suma, `${min}min / ${dias}d / ${n}p`).toBe(Math.round(min / dias))
+    }
+  })
+
+  it('y el reparto entre personas nunca difiere en más de un minuto', () => {
+    // Es lo que «se reparte de a un minuto entre las primeras» significa: nadie carga con dos
+    // minutos más que su compañero por un resto de división.
+    for (const [min, dias, n] of combinaciones) {
+      const r = dedicacionDiaria(min, dias, n)
+      expect(Math.max(...r) - Math.min(...r), `${min}min / ${dias}d / ${n}p`).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('el total comprometido NO cuadra cuando el trabajo no divide exacto entre los días', () => {
+    // Un minuto repartido en dos días es medio minuto al día, o no es nada. Se fija con un caso
+    // concreto para que quede claro que es una consecuencia de la firma, no un descuido.
+    const r = dedicacionDiaria(1, 2, 1)
+    expect(r.reduce((a, b) => a + b, 0)).toBe(1)
+    expect(r.reduce((a, b) => a + b, 0) * 2).not.toBe(1)
+  })
+
+  it('cuando sí divide exacto, cuadra todo', () => {
+    // 480 minutos en 4 días son 120 al día; entre 3 personas, 40 cada una.
+    const r = dedicacionDiaria(480, 4, 3)
+    expect(r).toEqual([40, 40, 40])
+    expect(r.reduce((a, b) => a + b, 0) * 4).toBe(480)
+  })
+})

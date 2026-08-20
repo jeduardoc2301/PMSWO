@@ -462,3 +462,58 @@ describe('§8.5 · el desglose de un recurso a lo largo del rango', () => {
     expect(desglosePorTarea(conVarias, conVarias.resources, 'nadie')).toEqual([])
   })
 })
+
+describe('§3.5 · un hito no aporta carga', () => {
+  /**
+   * `Work = Duration × Units`, y la duración de un hito es cero. Cargaba una jornada completa el día
+   * que cae.
+   *
+   * Medido en el plan de referencia: **86 hitos, los 86 con asignación**, y la carga total del corte
+   * baja de **999 360 a 958 080 minutos** — exactamente 41 280, que son 86 × 480. Al minuto.
+   *
+   * No se puede deducir de las fechas: **1 064 de las 1 243 hojas duran un solo día**, así que un
+   * hito y una tarea de un día tienen `start === finish` y no son lo mismo.
+   */
+  const calendar = createWorkCalendar()
+  const RECURSO = { id: 'ana', name: 'Ana', kind: 'PERSONA' as const, dailyMinutes: 480, absences: [] }
+
+  const matriz = (tasks: TareaDeCarga[]) =>
+    workloadMatrix({
+      resources: [RECURSO],
+      tasks,
+      assignments: tasks.map((t) => ({ taskId: t.id, resourceId: 'ana', unitsBp: 10_000 })),
+      calendar,
+      from: '2026-06-01',
+      to: '2026-06-05',
+    })
+
+  it('una tarea de un día carga su jornada', () => {
+    const m = matriz([{ id: 't', name: 'Un día', start: '2026-06-02', finish: '2026-06-02' }])
+    expect(m.rows[0].celdas[1].cargaMin).toBe(480)
+  })
+
+  it('un hito el mismo día no carga nada', () => {
+    const m = matriz([
+      { id: 'h', name: 'Cierre de la ola', start: '2026-06-02', finish: '2026-06-02', isMilestone: true },
+    ])
+    expect(m.rows[0].celdas[1].cargaMin).toBe(0)
+  })
+
+  it('y las dos cosas juntas suman sólo la tarea', () => {
+    // Es el caso real: un hito y el trabajo que lo produce caen el mismo día.
+    const m = matriz([
+      { id: 't', name: 'El trabajo', start: '2026-06-02', finish: '2026-06-02' },
+      { id: 'h', name: 'El hito', start: '2026-06-02', finish: '2026-06-02', isMilestone: true },
+    ])
+    expect(m.rows[0].celdas[1].cargaMin).toBe(480)
+  })
+
+  it('el hito sigue en el corte aunque no pese', () => {
+    // El desglose de un día lo enumera, y quien mira quiere ver qué vence ese día.
+    const tasks: TareaDeCarga[] = [
+      { id: 'h', name: 'El hito', start: '2026-06-02', finish: '2026-06-02', isMilestone: true },
+    ]
+    expect(matriz(tasks).rows[0].celdas[1].tareas).toBe(0)
+    expect(tasks).toHaveLength(1)
+  })
+})

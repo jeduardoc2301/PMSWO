@@ -48,6 +48,19 @@ export interface TareaDeCarga {
   readonly name: string
   readonly start: IsoDate
   readonly finish: IsoDate
+  /**
+   * Un hito no consume calendario, así que **no aporta carga** (§3.5: `Work = Duration × Units`, y
+   * la duración de un hito es cero).
+   *
+   * Sin este campo, un hito con asignación cargaba **una jornada completa** el día que cae. En el
+   * plan de referencia son **86 hitos, los 86 con asignación: 86 jornadas de carga que nadie
+   * trabaja**. Y no se podía deducir de las fechas, porque **1 064 de las 1 243 hojas duran un solo
+   * día**: un hito y una tarea de un día tienen `start === finish` y no son lo mismo.
+   *
+   * Tener a alguien asignado a un hito significa «esta persona responde de este punto de control», y
+   * responder de un punto de control no es trabajo que ocupe una jornada.
+   */
+  readonly isMilestone?: boolean
 }
 
 export interface AsignacionDeCarga {
@@ -176,6 +189,11 @@ export function workloadMatrix(entrada: EntradaDeCarga): MatrizDeCarga {
     // Una asignación a una tarea o a un recurso que no vienen en el corte se ignora sin ruido: el
     // corte está acotado a un proyecto y a un rango, y lo de fuera no es un error.
     if (!tarea || !recurso) continue
+
+    // Un hito no aporta carga: su duración es cero y `Work = Duration × Units` (§3.5). Se salta aquí
+    // y no al construir el corte para que el hito siga existiendo en `tasks` — el desglose de un día
+    // lo enumera, y quien mira quiere ver qué vence ese día aunque no pese.
+    if (tarea.isMilestone) continue
 
     const filaCarga = carga.get(recurso.id)!
     const filaCuenta = cuenta.get(recurso.id)!

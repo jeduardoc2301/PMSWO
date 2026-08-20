@@ -673,6 +673,7 @@ export function WorkItemsView({
           // Comprobado en pantalla: escrito el 26 de junio, el panel seguía diciendo el 22.
           // Es el criterio 4 del §6.3 —«editar una fecha en Lista dispara el mismo recálculo que en
           // el Gantt»— y era la mitad que faltaba.
+          onApuntarOperacion={onApuntarOperacion}
           onWorkItemCreated={() => {
             onWorkItemCreated?.()
             void cargarPlan()
