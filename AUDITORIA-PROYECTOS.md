@@ -2262,3 +2262,37 @@ equivocarse por veintiocho milisegundos.
 
 Se deja **sin caché a propósito**, con el número escrito. Lo que cambiaría la decisión: que la
 medida suba de unos cientos de milisegundos, o que el panel pase a leerse muchas veces por minuto.
+
+---
+
+## §4.7 — los vínculos ya se editan desde el detalle del Gantt
+
+Casilla del §13: «Dependencias FS/SS/FF/SF con lag, creadas arrastrando **y editables en el
+detalle**». Las dos primeras estaban; la tercera no.
+
+`DependencyEditor` existía —con los cuatro tipos y el campo de desfase— y **sólo lo montaba la
+Lista**. Desde el Gantt se podía crear un vínculo arrastrando de conector a conector, pero con
+desfase **cero y sin poder tocarlo**: para poner un `FS+3` había que irse a otra vista.
+
+Se monta el mismo componente, no una copia — dos editores de vínculos con reglas distintas sería
+peor que uno solo en menos sitios— y va como cajón flotante: un aside de 440 px junto al Gantt
+desbordaría la página, que ya vive apretada entre la rejilla y el lienzo.
+
+Los dos manejadores nuevos apuntan en la **misma** pila de deshacer y por el mismo canal de
+vínculos, con el tipo y el desfase leídos **antes** de borrar: para deshacer hay que reponer el
+vínculo igual que estaba, no uno parecido.
+
+Comprobado en pantalla:
+
+```
+1. panel abierto, con botón de editar vínculos
+2. el cajón trae: «Buscar la línea predecesora» · «Tipo de vínculo» (FS, SS, FF, SF)
+                  · «Desfase en días hábiles»
+```
+
+### Nota de método, la séptima
+
+La primera medición dijo «panel abierto **SIN** botón», y por un momento pareció que el botón no se
+dibujaba. El panel no estaba abierto: mi sonda buscaba el nombre con
+`[data-testid^="celda-name-"]` y luego un `span, button, div` **dentro**, y daba con un envoltorio
+que no escucha el clic. La celda del nombre es un `span` con `role="button"` y `data-editable`.

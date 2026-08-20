@@ -29,6 +29,7 @@ import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
 import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
+import { DependencyEditor } from '@/components/projects/dependency-editor'
 import { hoyCivil } from '@/lib/formato-fecha'
 import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
 import { RowContextMenu } from '@/components/plan/row-context-menu'
@@ -608,6 +609,14 @@ export function PlanWorkspace({
   const conectandoRef = useRef<{ id: string; extremo: ExtremoDeBarra } | null>(null)
   const [vinculoPropuesto, setVinculoPropuesto] = useState<VinculoPropuesto | null>(null)
   const [errorDeVinculo, setErrorDeVinculo] = useState<string | null>(null)
+  /**
+   * La línea cuyos vínculos se están editando (§4.7: «editables en el detalle»).
+   *
+   * El editor existía y sólo lo montaba la Lista. Arrastrando desde un conector se crea un vínculo
+   * con desfase **cero y sin poder tocarlo**; para poner un `FS+3` no había más remedio que irse a
+   * otra vista. Es el mismo componente, no una copia.
+   */
+  const [editandoVinculos, setEditandoVinculos] = useState<string | null>(null)
   const [escribiendoVinculo, setEscribiendoVinculo] = useState(false)
 
   const gestoDeConector = (
@@ -639,6 +648,68 @@ export function PlanWorkspace({
       return
     }
     setVinculoPropuesto(propuesto)
+  }
+
+  /** Añadir un vínculo desde el editor del detalle. Misma ruta y mismo canal de deshacer. */
+  const capturarVinculo = async (link: { predecessorId: string; type: string; lag: number }) => {
+    if (editandoVinculos === null || !projectId) return
+    setEscribiendoVinculo(true)
+    setErrorDeVinculo(null)
+    try {
+      const r = await fetch(`/api/v1/projects/${projectId}/dependencies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ successorId: editandoVinculos, ...link }),
+      })
+      if (!r.ok) {
+        const cuerpo = await r.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+      }
+      const v = { predecessorId: link.predecessorId, successorId: editandoVinculos, type: link.type, lag: link.lag }
+      onOperacion?.({
+        etiqueta: `Vincular con «${nombres.get(editandoVinculos) ?? 'la línea'}»`,
+        hacer: [],
+        deshacer: [],
+        vinculos: { hacer: [{ ...v, poner: true }], deshacer: [{ ...v, poner: false }] },
+      })
+      onPlanCambiado?.()
+    } catch (e) {
+      setErrorDeVinculo(e instanceof Error ? e.message : 'No se pudo capturar el vínculo.')
+    } finally {
+      setEscribiendoVinculo(false)
+    }
+  }
+
+  /** Quitar uno. El tipo y el desfase se leen ANTES de borrar: para deshacer hay que reponerlo igual. */
+  const quitarVinculo = async (predecessorId: string) => {
+    if (editandoVinculos === null || !projectId) return
+    setEscribiendoVinculo(true)
+    setErrorDeVinculo(null)
+    const original = dependencies.find(
+      (d) => d.predecessorId === predecessorId && d.successorId === editandoVinculos,
+    )
+    try {
+      const consulta = new URLSearchParams({ predecessorId, successorId: editandoVinculos })
+      const r = await fetch(`/api/v1/projects/${projectId}/dependencies?${consulta}`, { method: 'DELETE' })
+      if (!r.ok) {
+        const cuerpo = await r.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+      }
+      if (original) {
+        const v = { predecessorId, successorId: editandoVinculos, type: original.type, lag: original.lag }
+        onOperacion?.({
+          etiqueta: `Quitar el vínculo con «${nombres.get(editandoVinculos) ?? 'la línea'}»`,
+          hacer: [],
+          deshacer: [],
+          vinculos: { hacer: [{ ...v, poner: false }], deshacer: [{ ...v, poner: true }] },
+        })
+      }
+      onPlanCambiado?.()
+    } catch (e) {
+      setErrorDeVinculo(e instanceof Error ? e.message : 'No se pudo quitar el vínculo.')
+    } finally {
+      setEscribiendoVinculo(false)
+    }
   }
 
   const escribirVinculo = async () => {
@@ -1306,9 +1377,47 @@ export function PlanWorkspace({
                 onNavigate={irA}
                 onClose={() => setSelectedId(null)}
               />
+              {projectId ? (
+                <button
+                  type="button"
+                  data-testid="editar-vinculos"
+                  onClick={() => setEditandoVinculos(seleccionada.id)}
+                  className="mt-2 w-full rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                >
+                  Editar vínculos de esta línea
+                </button>
+              ) : null}
             </aside>
           ) : null}
         </div>
+
+        {/* El editor de vínculos, como cajón flotante y no como columna: el aside de 440 px junto al
+            Gantt desbordaría la página, y el Gantt ya vive apretado entre la rejilla y el lienzo.
+            Es el mismo componente que monta la Lista — dos editores de vínculos con reglas distintas
+            sería peor que uno solo en menos sitios. */}
+        {editandoVinculos !== null
+          ? (() => {
+              const tarea = tasks.find((x) => x.id === editandoVinculos)
+              if (!tarea) return null
+              return (
+                <div className="fixed inset-0 z-40" role="presentation">
+                  <div className="absolute inset-0 bg-black/50" onClick={() => setEditandoVinculos(null)} />
+                  <aside className="absolute right-0 top-0 h-full w-full max-w-[440px] overflow-y-auto p-4">
+                    <DependencyEditor
+                      task={tarea}
+                      tasks={tasks}
+                      dependencies={dependencies}
+                      onAdd={capturarVinculo}
+                      onRemove={quitarVinculo}
+                      onClose={() => setEditandoVinculos(null)}
+                      busy={escribiendoVinculo}
+                      error={errorDeVinculo}
+                    />
+                  </aside>
+                </div>
+              )
+            })()
+          : null}
       </section>
     </div>
   )
