@@ -210,6 +210,67 @@ async function updateWorkItemHandler(
       }
     }
 
+    /**
+     * Mover fechas es tocar el plan, y el plan pide el permiso del plan (§10.1).
+     *
+     * Es la distinción `edit_schedule` / `edit_tracking` que el spec llama «el permiso más útil de
+     * todo el sistema»: quien ejecuta actualiza el estado y el avance de sus líneas sin poder
+     * alterar el cronograma.
+     *
+     * **Esta pregunta estuvo colocada después del `update`**, y ahí no servía de nada: se medía el
+     * código de respuesta, salía 403, y la fecha ya estaba escrita. Medido contra el servidor con un
+     * colaborador —que tiene `edit_tracking` y no `edit_schedule`—: la línea pasaba de 2026-06-12 a
+     * 2027-03-15 y la respuesta decía «no puedes cambiar las fechas». Peor aún, sólo se escribía el
+     * inicio: la línea quedaba empezando nueve meses después de terminar.
+     *
+     * Una guardia que responde después de escribir no es una guardia, es un cartel. Va antes de
+     * cualquier escritura, como la de `edit_tracking`.
+     */
+    const tocaElCronograma =
+      updateData.startDate !== undefined || updateData.estimatedEndDate !== undefined
+    if (tocaElCronograma) {
+      /**
+       * Una línea no puede empezar después de terminar.
+       *
+       * Parece obvio y no lo comprobaba nadie: el esquema valida cada fecha por separado, y esta
+       * ruta admite mandar **una sola**. Mandando sólo el inicio se escribía contra el fin guardado
+       * sin mirarlo, y la línea quedaba empezando nueve meses después de acabar — medido: 2027-03-15
+       * → 2026-06-18 sobre el plan de referencia, con un 200 y sin una palabra.
+       *
+       * De ahí en adelante todo lo que la toque miente: el motor le calcula una duración negativa y
+       * la corrige a 1 día, el Gantt le dibuja una barra de ancho raro, y la holgura sale de una
+       * tarea que no existe. Se compara contra lo guardado cuando sólo llega una de las dos, que es
+       * el caso en que el error aparece.
+       */
+      const inicio = updateData.startDate ?? isoDeFecha(workItem.startDate)
+      const fin = updateData.estimatedEndDate ?? isoDeFecha(workItem.estimatedEndDate)
+      if (inicio > fin) {
+        return NextResponse.json(
+          {
+            error: 'Bad Request',
+            message: `Una línea no puede empezar después de terminar: ${inicio} va después de ${fin}. Manda las dos fechas si quieres mover la línea entera.`,
+          },
+          { status: 400 },
+        )
+      }
+
+      try {
+        await authorize(authContext.userId, workItem.projectId, 'edit_schedule')
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AuthorizationError') {
+          return NextResponse.json(
+            {
+              error: 'Forbidden',
+              message:
+                'Cambiar las fechas mueve el cronograma y el trabajo que depende de él. Puedes actualizar estado y avance, pero no las fechas.',
+            },
+            { status: 403 },
+          )
+        }
+        throw error
+      }
+    }
+
     // Update work item
     const updatedWorkItem = await prisma.workItem.update({
       where: { id },
@@ -257,39 +318,7 @@ async function updateWorkItemHandler(
      * Sólo empuja: una sucesora con holgura se queda donde está.
      */
     let empujadas = 0
-    if (updateData.startDate !== undefined || updateData.estimatedEndDate !== undefined) {
-      /**
-       * Mover fechas es tocar el plan, y el plan pide el permiso del plan (§10.1).
-       *
-       * Es la distinción `edit_schedule` / `edit_tracking` que el spec llama «el permiso más útil
-       * de todo el sistema»: quien ejecuta actualiza el estado y el avance de sus líneas sin poder
-       * alterar el cronograma. Aquí se expresa con los permisos que ya existen — el mismo que exige
-       * la ruta de reprogramar.
-       *
-       * Hacía falta desde el momento en que esta ruta empezó a reprogramar: `INTERNAL_CONSULTANT`
-       * tiene `WORK_ITEM_UPDATE` y no `PROJECT_UPDATE`, así que no puede llamar a `/reschedule`
-       * pero sí llegaba aquí — y desde aquí movía las mismas cientos de líneas. La guardia de la
-       * otra ruta se saltaba por la puerta de al lado.
-       *
-       * Empezó preguntando por el permiso de organización, que es lo que había. Ahora pregunta por
-       * el de proyecto, que es más estrecho y por tanto más seguro: el mismo cargo puede llevar el
-       * cronograma de un proyecto y ser invitado en otro, y sólo esta pregunta los distingue.
-       */
-      try {
-        await authorize(authContext.userId, workItem.projectId, 'edit_schedule')
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AuthorizationError') {
-          return NextResponse.json(
-            {
-              error: 'Forbidden',
-              message:
-                'Cambiar las fechas mueve el cronograma y el trabajo que depende de él. Puedes actualizar estado y avance, pero no las fechas.',
-            },
-            { status: 403 },
-          )
-        }
-        throw error
-      }
+    if (tocaElCronograma) {
       const resultado = await confirmar(
         workItem.projectId,
         organizationId,

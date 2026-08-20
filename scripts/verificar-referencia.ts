@@ -18,6 +18,7 @@ const ESPERADO = {
   cierre: '2026-11-30',
   conRestriccionRara: 0,
   conAvance: 0,
+  alReves: 0,
 }
 
 async function main(): Promise<void> {
@@ -48,12 +49,33 @@ async function main(): Promise<void> {
     where: { projectId, progressPct: { gt: 0 } },
   })
 
+  /**
+   * Líneas con el inicio después del fin.
+   *
+   * No es una comprobación de adorno: midiendo la guardia de `edit_schedule` se escribió un inicio
+   * de 2027 sobre una línea que terminaba en 2026, y el plan quedó con una línea degenerada que
+   * ninguna de las otras cuatro cuentas habría delatado — el total de líneas, los vínculos y el
+   * cierre seguían clavados. Una medición destructiva puede dejar el plan roto por dentro sin
+   * cambiar ninguna cifra de tamaño.
+   */
+  const fechas = await prisma.workItem.findMany({
+    where: { projectId },
+    select: { id: true, title: true, startDate: true, estimatedEndDate: true },
+  })
+  const alReves = fechas.filter((f) => f.startDate > f.estimatedEndDate)
+  for (const f of alReves) {
+    console.log(
+      `     ${f.title.slice(0, 60)}  ${f.startDate.toISOString().slice(0, 10)} → ${f.estimatedEndDate.toISOString().slice(0, 10)}`,
+    )
+  }
+
   const real = {
     lineas,
     vinculos,
     cierre: cierre._max.estimatedEndDate ? cierre._max.estimatedEndDate.toISOString().slice(0, 10) : '(sin fechas)',
     conRestriccionRara,
     conAvance,
+    alReves: alReves.length,
   }
 
   let todoBien = true

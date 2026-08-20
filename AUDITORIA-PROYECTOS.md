@@ -95,7 +95,7 @@ tiempo real y deshacer.
 | 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
-| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. La pantalla de reparto ya existe (`components/projects/reparto-de-papeles.tsx`, en el Resumen). Falta llevar la guardia al resto de rutas de escritura menores | M | Alto |
+| 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. **La de las fechas preguntaba después de escribir**: devolvía 403 con la fecha ya guardada, y la medición de entonces no lo vio porque comprobó el código de respuesta y no el dato — corregido y vuelto a medir contra el servidor. La pantalla de reparto ya existe (`components/projects/reparto-de-papeles.tsx`, en el Resumen). Falta llevar la guardia al resto de rutas de escritura menores | M | Alto |
 | 30 | Revocar un rol tarda en surtir efecto | **CERRADA · acotada a 5 minutos** | `lib/auth.ts`, `lib/auth-refresco.ts` | Los roles se releen de la base cuando el token lleva más de cinco minutos sin refrescarse. Antes valían los treinta días del token, así que quitarle un permiso a alguien no se lo quitaba. Medido con el reloj: a t=240 s la sesión seguía con los roles viejos y a **t=300 s** ya tenía los nuevos. Una cuenta dada de baja se queda sin ninguno | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
@@ -1195,3 +1195,62 @@ Con esto el §3.4 queda entero: las ocho.
 El plan de referencia quedó como estaba, y ahora eso se cuenta en vez de afirmarse
 (`scripts/verificar-referencia.ts`): **1368 líneas, 1665 vínculos, cierre 2026-11-30, 0 restricciones
 guardadas, 0 avance capturado**.
+
+---
+
+## §10.1 — el 403 de las fechas llegaba **después** de escribirlas
+
+Esta guardia ya estaba dada por buena en esta misma bitácora, con su medición y todo. La medición
+comprobó el **código de respuesta** y no el dato, y el código de respuesta era correcto.
+
+Salió al ir a añadir la casilla de restricción al diálogo de fechas: leyendo la ruta para saber dónde
+enchufarla, la pregunta por `edit_schedule` estaba **debajo** del `prisma.workItem.update`. Medido
+contra el servidor, con un colaborador del proyecto —que tiene `edit_tracking` y no `edit_schedule`—
+sobre una línea del plan de referencia:
+
+| | |
+|---|---|
+| fecha antes | 2026-06-12 → 2026-06-18 |
+| se pidió | 2027-03-15 |
+| respuesta | **403** «Cambiar las fechas mueve el cronograma… no las fechas» |
+| fecha luego | **2027-03-15** → 2026-06-18 |
+
+Una guardia que responde después de escribir no es una guardia, es un cartel. Y el 403 hacía el daño
+peor de todos: dejaba a quien lo leía —y a quién lo midió— convencido de que no había pasado nada.
+Ahora pregunta antes de cualquier escritura, como ya hacía la de `edit_tracking`. Vuelto a medir:
+403 y **la fecha no cambia**. Y el dueño sigue pudiendo: 200, la línea se mueve y arrastra a su
+sucesora.
+
+### Y de paso, una línea podía empezar después de terminar
+
+En la misma medición, ya como dueño, el 200 dejaba la línea en **2027-03-15 → 2026-06-18**. La ruta
+admite mandar **una sola** de las dos fechas y el esquema valida cada una por separado, así que el
+inicio se escribía contra el fin guardado sin mirarlo. De ahí en adelante todo lo que la toque
+miente: duración negativa que el motor corrige a 1, barra de ancho raro, holgura de una tarea que no
+existe. Ahora responde 400 nombrando las dos fechas. Empezar y terminar el mismo día sigue valiendo:
+es una tarea de un día, no un error.
+
+### Las pruebas se comprobaron rompiendo el arreglo
+
+Siete pruebas nuevas, y **ninguna mira el código de respuesta para lo que importa**: miran si
+`prisma.workItem.update` llegó a llamarse, que es lo único que distingue una guardia de un cartel.
+Para saber que no son decorado se volvieron a poner los dos defectos a propósito: se pusieron rojas
+las tres que los apuntan y siguieron verdes las cuatro del camino legítimo.
+
+### Lo que esto enseña sobre las mediciones anteriores
+
+**Comprobar el código de respuesta no es comprobar que no se escribió.** Las ocho puertas del §10.1
+se midieron así, una por una, y esa medición no distingue «bloqueó» de «escribió y luego se quejó».
+Las otras siete piden el permiso antes de tocar nada —se revisó—, pero eso se sabe ahora por haber
+mirado, no por la medición de entonces.
+
+Y el plan de referencia lo demostró en carne propia: al comprobar el camino legítimo, mover una
+línea temprana reprogramó el plan entero y el cierre se fue de 2026-11-30 a **2027-05-25**. Lo
+devolvió `import-plan-db.ts --merge`, que refresca desde el archivo sin pisar lo capturado: 1368
+actualizados, cierre 2026-11-30.
+
+Eso obligó a mejorar la verificación. `scripts/verificar-referencia.ts` contaba líneas, vínculos,
+cierre, restricciones y avance —y las **cinco daban «ok»** con una línea que empezaba en 2027 y
+terminaba en 2026. Ahora cuenta también las líneas con el inicio después del fin, y fue lo primero
+que cantó. Una medición destructiva puede dejar el plan roto por dentro sin mover ninguna cifra de
+tamaño.
