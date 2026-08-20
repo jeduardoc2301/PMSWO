@@ -3717,3 +3717,34 @@ Las 227 barras llevaban su barra de foto en los dos casos: el defecto era sólo 
 La banda de holgura sale 0 de 21 en los dos, y no es un defecto: los 21 hitos muestreados son los
 cierres de ola y están todos en la ruta crítica, con holgura cero. La prueba de componente sí monta
 un hito con margen y comprueba que la banda se le dibuja.
+
+## §4.4 · El arrastre a la izquierda: la acusación no se sostiene
+
+El informe decía que arrastrar una barra hacia la izquierda promete una fecha que el plan no puede
+cumplir. **No se reproduce.**
+
+`reprogramarDesde` coloca la arrastrada exactamente donde se soltó —está escrito así a propósito, con
+su porqué, y hay una prueba que lo fija—, `confirmar()` la clava con `DEBE_EMPEZAR_EL`, y el motor
+respeta esa restricción **por encima de la predecesora**: `schedule.ts` lo dice con todas las letras
+—«la única que pisa hacia atrás… es lo que hace MS Project»— y `schedule.test.ts` ya lo comprobaba con
+una predecesora de diez días.
+
+### Lo que sí pasó, y de quién fue
+
+Mi primera reproducción **daba la razón al informe**: la línea se iba al `2026-06-15` habiendo
+prometido el `2026-06-03`. El fallo era del montaje, no del código: puse `constraintType` y
+`constraintDate` sueltos en la tarea, y el motor lee `constraint: { type, date }`. La restricción
+nunca llegó, así que la predecesora mandó. Con la forma buena, la línea empieza el `2026-06-03`.
+
+Van diez acusaciones caídas al reproducirlas. Ésta es la primera que me la fabriqué yo.
+
+### Lo que deja el error
+
+Al equivocarme simulé **exactamente** el fallo que sí rompería la promesa: que la restricción no
+llegue de la base al motor. Ese eslabón —`restriccionDe`, que traduce las dos columnas de `WorkItem`
+a lo que el motor lee— **no tenía ninguna prueba**, ni en el servicio ni en ningún sitio. El motor
+estaba probado, y la traducción hasta él no.
+
+Ahora hay cinco, incluida la del recorrido entero: lo que el arrastre escribe, traducido y
+programado, empezando el día que se prometió. Rompiendo el reparto entre `constraint` y `compromiso`,
+dos se ponen rojas.

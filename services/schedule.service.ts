@@ -257,7 +257,16 @@ const EMPUJAN = new Set(['NO_ANTES_DE', 'DEBE_EMPEZAR_EL', 'NO_TERMINA_ANTES_DE'
  * - Una que solo **compromete** va en `compromiso` y el ancla se queda: la promesa no debe mover
  *   la línea, y sin ancla se iría a su arranque más temprano, que es justo lo contrario.
  */
-function restriccionDe(
+/**
+ * Se exporta para poder comprobarlo, no para usarlo fuera.
+ *
+ * Es el eslabon entre lo que el arrastre escribe y lo que el motor lee: la base guarda
+ * `constraintType`/`constraintDate` y el motor lee `constraint: {type, date}`. Que el motor respete
+ * `DEBE_EMPEZAR_EL` por encima de una predecesora esta probado; que la restriccion **llegue** hasta
+ * el no lo estaba, y sin ese eslabon el arrastre promete una fecha y la pantalla ensena otra en
+ * cuanto se recarga. Lo comprobe simulando ese fallo por error y el sintoma fue exactamente ese.
+ */
+export function restriccionDe(
   tipo: string | null | undefined,
   fecha: Date | null | undefined,
   anclaje: string,
