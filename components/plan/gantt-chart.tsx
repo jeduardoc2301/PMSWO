@@ -715,18 +715,37 @@ function Bar({
     tirador.addEventListener('pointercancel', alSoltar)
   }
 
-  if (row.isMilestone) {
-    return (
-      <div
-        data-testid={`hito-${row.id}`}
-        data-movible={movible ? 'sí' : 'no'}
-        title={`${row.name} · ${row.start}`}
-        onPointerDown={movible ? alApretar : undefined}
-        className={`absolute rotate-45 ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${row.isSuperCritical ? 'bg-red-400' : row.isCritical ? 'bg-orange-400' : 'bg-zinc-300'}`}
-        style={{ left: row.x * dayWidth - alto / 2, top: y, width: alto, height: alto }}
-      />
-    )
-  }
+  /**
+   * El rombo del hito.
+   *
+   * **Iba en un `return` propio, antes de todo lo demás**, y eso lo dejaba fuera de tres cosas que
+   * el motor sí le calcula: la banda de holgura, la barra de la línea base y el vencimiento. Las
+   * tres son del §4.6 y las tres importan más en un hito que en una tarea —un hito *es* una fecha
+   * comprometida—; `gantt.ts` incluso lo dice con todas las letras: «un hito vencido también cuenta:
+   * es una fecha que pasó sin ocurrir, que es peor que una tarea a medias». Lo calculaba y aquí se
+   * tiraba. De regalo se quedaba también sin los conectores del §4.4, así que un hito no se podía
+   * vincular arrastrando aunque es el destino de vínculo más común que hay.
+   *
+   * Ahora el rombo ocupa **el sitio de la barra**, no el de la fila entera: lo que cambia entre un
+   * hito y una tarea es la forma, no qué se dibuja alrededor.
+   */
+  const marca = row.isMilestone ? (
+    <div
+      data-testid={`hito-${row.id}`}
+      data-movible={movible ? 'sí' : 'no'}
+      data-atrasada={row.atrasada ? 'sí' : 'no'}
+      title={row.atrasada ? `${row.name} · ${row.start} · venció sin ocurrir` : `${row.name} · ${row.start}`}
+      onPointerDown={movible ? alApretar : undefined}
+      className={`absolute rotate-45 ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
+        row.isSuperCritical ? 'bg-red-400' : row.isCritical ? 'bg-orange-400' : 'bg-zinc-300'
+      } ${
+        // El anillo va sin `ring-offset`: sobre un rombo girado 45° el hueco del offset se ve como
+        // un cuadrado torcido alrededor, y lo que hace falta es que se note que venció.
+        resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400' : ''
+      }`}
+      style={{ left: row.x * dayWidth - alto / 2, top: y, width: alto, height: alto }}
+    />
+  ) : null
 
   return (
     <React.Fragment>
@@ -757,6 +776,8 @@ function Bar({
           }}
         />
       ) : null}
+      {marca}
+      {row.isMilestone ? null : (
       <div
         data-testid={`barra-${row.id}`}
         data-movible={movible ? 'sí' : 'no'}
@@ -796,6 +817,7 @@ function Bar({
           />
         ) : null}
       </div>
+      )}
 
       {/* Los conectores (§4.4). Uno por extremo, porque el tipo del vínculo sale de por dónde se
           agarra y dónde se suelta. Un resumen no los lleva: sus fechas son las de sus hijas, y
@@ -817,7 +839,12 @@ function Bar({
               }}
               className="absolute z-10 rounded-full border border-zinc-300 bg-superficie opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100"
               style={{
-                left: (extremo === 'INICIO' ? row.x : row.x + row.width) * dayWidth - 4,
+                // Un hito mide cero, así que los dos conectores caerían exactamente encima y sólo
+                // uno se podría agarrar. Se abren a las puntas del rombo, que es donde la mano va.
+                left:
+                  (extremo === 'INICIO' ? row.x : row.x + row.width) * dayWidth -
+                  4 +
+                  (row.isMilestone ? (extremo === 'INICIO' ? -alto / 2 : alto / 2) : 0),
                 top: y + alto / 2 - 4,
                 width: 8,
                 height: 8,

@@ -3682,3 +3682,38 @@ maneras de estar mal.
 
 El informe de auditoría hablaba de doce días. Medidos son dos, en esa fila. La forma del defecto era
 la descrita; la cifra no.
+
+## §4.6 · Un hito no llevaba nada de lo que lleva una barra
+
+El rombo se dibujaba en un `return` propio, **antes de todo lo demás**. Eso lo dejaba fuera de tres
+cosas que el motor sí le calcula —la banda de holgura, la barra de la línea base y el vencimiento— y,
+de regalo, de los conectores del §4.4.
+
+Las tres del §4.6 importan **más** en un hito que en una tarea, porque un hito *es* una fecha
+comprometida. El propio `gantt.ts` lo dice con todas las letras al calcular `atrasada`: «un hito
+vencido también cuenta: es una fecha que pasó sin ocurrir, que es peor que una tarea a medias». Lo
+calculaba, y la vista lo tiraba.
+
+Y sin conectores no se podía vincular un hito arrastrando, siendo el destino de vínculo más común que
+hay en un plan de olas.
+
+Ahora el rombo ocupa **el sitio de la barra**, no el de la fila entera: lo que cambia entre un hito y
+una tarea es la forma, no qué se dibuja alrededor. Los dos conectores se abren a las puntas del rombo
+porque un hito mide cero y, sin separarlos, los dos caían en el mismo píxel y sólo uno se podía
+agarrar.
+
+### Demostrado en pantalla
+
+Sobre el plan de referencia con la foto puesta, muestreando siete profundidades del diagrama —21
+hitos distintos y 227 barras—:
+
+| | hitos | con barra de foto | con conectores | dicen si vencieron |
+|---|---|---|---|---|
+| antes | 21 | **0** | **0** | **0** |
+| después | 21 | **21** | **21** | **21** |
+
+Las 227 barras llevaban su barra de foto en los dos casos: el defecto era sólo de los hitos.
+
+La banda de holgura sale 0 de 21 en los dos, y no es un defecto: los 21 hitos muestreados son los
+cierres de ola y están todos en la ruta crítica, con holgura cero. La prueba de componente sí monta
+un hito con margen y comprueba que la banda se le dibuja.

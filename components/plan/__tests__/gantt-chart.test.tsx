@@ -312,3 +312,76 @@ describe('El conmutador 3 del §4.6 en el trazado', () => {
     expect(container.querySelectorAll('[data-testid^="holgura-"]')).toHaveLength(0)
   })
 })
+
+describe('§4.6 · un hito lleva lo mismo que una barra alrededor', () => {
+  /**
+   * El rombo se dibujaba en un `return` propio, **antes de todo lo demás**, y eso lo dejaba fuera de
+   * tres cosas que el motor sí le calcula: la banda de holgura, la barra de la línea base y el
+   * vencimiento. Las tres importan más en un hito que en una tarea —un hito *es* una fecha
+   * comprometida— y `gantt.ts` ya lo dice con todas las letras: «un hito vencido también cuenta: es
+   * una fecha que pasó sin ocurrir, que es peor que una tarea a medias».
+   *
+   * De regalo se quedaba sin los conectores del §4.4, así que un hito no se podía vincular
+   * arrastrando siendo el destino de vínculo más común que hay.
+   */
+  // El hito cuelga del camino corto y desemboca en el cierre, que espera tambien al camino largo:
+  // asi el hito tiene margen de verdad, que es lo que la banda de holgura tiene que ensenar.
+  const CON_HOLGURA: PlanTask[] = [
+    { id: 'larga', name: 'Camino largo', duration: 8 },
+    { id: 'corta', name: 'Camino corto', duration: 2 },
+    { id: 'meta', name: 'Ambiente listo', duration: 0, kind: 'HITO' },
+    { id: 'cierre', name: 'Cierre', duration: 1 },
+  ]
+  const HACIA_LA_META: Dependency[] = [
+    { predecessorId: 'corta', successorId: 'meta', type: 'FS', lag: 0 },
+    { predecessorId: 'meta', successorId: 'cierre', type: 'FS', lag: 0 },
+    { predecessorId: 'larga', successorId: 'cierre', type: 'FS', lag: 0 },
+  ]
+
+  it('sigue siendo un rombo y no una barra', () => {
+    render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} />)
+    expect(screen.getByTestId('hito-hito')).toBeInTheDocument()
+    expect(screen.queryByTestId('barra-hito')).not.toBeInTheDocument()
+  })
+
+  it('la banda de holgura se le dibuja como a cualquier otra línea', () => {
+    // El hito tiene seis días de margen contra el camino largo; sin la banda, la única manera de
+    // saberlo es leer una columna.
+    const layout = trazar(CON_HOLGURA, HACIA_LA_META)
+    expect(layout.rows.find((r) => r.id === 'meta')!.totalFloat).toBeGreaterThan(0)
+    render(<GanttChart layout={layout} dayWidth={DIA} reserva />)
+    expect(screen.getByTestId('holgura-meta')).toBeInTheDocument()
+  })
+
+  it('y la barra de la línea base, que en un hito es el dato entero', () => {
+    const foto = new Map([
+      ['larga', { start: '2026-06-01' as const, finish: '2026-06-10' as const }],
+      ['corta', { start: '2026-06-01' as const, finish: '2026-06-02' as const }],
+      ['meta', { start: '2026-06-01' as const, finish: '2026-06-01' as const }],
+    ])
+    render(<GanttChart layout={trazar(CON_HOLGURA, HACIA_LA_META, { baseline: foto })} dayWidth={DIA} />)
+    const base = screen.getByTestId('base-meta')
+    // El hito se corrió contra lo comprometido, y eso es justo lo que no se veía.
+    expect(Number(base.getAttribute('data-desvio'))).toBeGreaterThan(0)
+  })
+
+  it('un hito vencido lo dice, como lo dice una barra vencida', () => {
+    // El motor ya marcaba `atrasada` en los hitos; la vista lo tiraba.
+    const layout = trazar(CON_HOLGURA, HACIA_LA_META, { hoy: '2026-12-31' })
+    render(<GanttChart layout={layout} dayWidth={DIA} resaltarAtrasadas />)
+    expect(layout.rows.find((r) => r.id === 'meta')!.atrasada).toBe(true)
+    expect(screen.getByTestId('hito-meta').getAttribute('data-atrasada')).toBe('sí')
+  })
+
+  it('y lleva sus dos conectores, que es como se vincula un hito', () => {
+    render(
+      <GanttChart layout={trazar(CON_HOLGURA, HACIA_LA_META)} dayWidth={DIA} onConectar={vi.fn()} />,
+    )
+    const inicio = document.querySelector('[data-conector="meta:INICIO"]')
+    const fin = document.querySelector('[data-conector="meta:FIN"]')
+    expect(inicio).not.toBeNull()
+    expect(fin).not.toBeNull()
+    // Un hito mide cero: sin separarlos, los dos caen en el mismo píxel y sólo uno se agarra.
+    expect((inicio as HTMLElement).style.left).not.toBe((fin as HTMLElement).style.left)
+  })
+})
