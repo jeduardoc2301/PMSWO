@@ -182,12 +182,24 @@ export function calendarLayout(input: CalendarLayoutInput): CalendarLayout {
     })
   }
 
-  // Una tarea puede estar recortada en una semana y visible en otra; cuenta como colocada si
-  // aparece al menos una vez. Las que no aparecen nunca es que caen fuera del rango pedido.
+  /**
+   * Las que caen dentro del rango **pedido**, no dentro de la rejilla.
+   *
+   * No es lo mismo, y la diferencia no es pequeña. Una rejilla de mes empieza el lunes anterior al
+   * día 1 y acaba el domingo posterior al último: hasta doce días de más, y esos días se dibujan
+   * atenuados **precisamente porque no son de este mes**.
+   *
+   * Contando contra la rejilla, la cabecera decía «300 líneas caen en este mes» cuando en agosto de
+   * 2026 caen **171**. En septiembre, 549 contra 490. La cifra que se enseña responde a la pregunta
+   * que hace quien la lee —«¿cuánto hay este mes?»— y no a la que le resulta cómoda al repartidor
+   * de carriles.
+   */
+  const desde = toDayNumber(input.from)
+  const hasta = toDayNumber(input.to)
   const dentroDelRango = input.tasks.filter((tarea) => {
     const inicio = toDayNumber(tarea.start)
     const fin = toDayNumber(tarea.finish)
-    return fin >= primerDia && inicio <= ultimoDia
+    return fin >= desde && inicio <= hasta
   })
 
   return {

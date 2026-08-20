@@ -588,3 +588,62 @@ describe('§7.2 · crear arrastrando un rango', () => {
     expect(fechasDelRango('2026-06-20', '2026-06-21', calendar)).toBeNull()
   })
 })
+
+describe('§7 · la cabecera cuenta el mes, no la rejilla', () => {
+  /**
+   * Una rejilla de mes empieza el lunes anterior al día 1 y acaba el domingo posterior al último:
+   * hasta **doce días de más**, que la propia vista dibuja atenuados *precisamente porque no son de
+   * este mes*.
+   *
+   * Contando contra la rejilla, la cabecera decía «300 líneas caen en este mes» cuando en agosto de
+   * 2026 caen **171**. En septiembre, 549 contra 490.
+   */
+  const cal = createWorkCalendar()
+
+  // Agosto de 2026 empieza en sábado, así que la rejilla arranca el lunes 27 de julio.
+  const soloEnLaOrilla = {
+    id: 'orilla',
+    name: 'Cae en julio, se dibuja en la rejilla de agosto',
+    start: '2026-07-28' as never,
+    finish: '2026-07-29' as never,
+  }
+  const enElMes = {
+    id: 'dentro',
+    name: 'Ésta sí es de agosto',
+    start: '2026-08-10' as never,
+    finish: '2026-08-12' as never,
+  }
+
+  const deAgosto = (tasks: unknown[]) =>
+    calendarLayout({
+      tasks: tasks as never,
+      from: '2026-08-01' as never,
+      to: '2026-08-31' as never,
+      calendar: cal,
+      weekStartsOn: 1,
+    })
+
+  it('una línea que sólo cae en la orilla de la rejilla no cuenta como del mes', () => {
+    expect(deAgosto([soloEnLaOrilla]).tasksInRange).toBe(0)
+  })
+
+  it('y sale como fuera de rango, que es lo que es', () => {
+    expect(deAgosto([soloEnLaOrilla]).outOfRange).toBe(1)
+  })
+
+  it('una que sí cae en el mes cuenta', () => {
+    expect(deAgosto([enElMes]).tasksInRange).toBe(1)
+  })
+
+  it('con las dos, la cuenta es uno y no dos', () => {
+    const l = deAgosto([soloEnLaOrilla, enElMes])
+    expect(l.tasksInRange).toBe(1)
+    expect(l.outOfRange).toBe(1)
+  })
+
+  it('una que empieza en la orilla y entra en el mes sí cuenta', () => {
+    // Cruzar la frontera es estar en el mes: lo que no cuenta es quedarse fuera del todo.
+    const cruza = { id: 'x', name: 'Cruza', start: '2026-07-29' as never, finish: '2026-08-03' as never }
+    expect(deAgosto([cruza]).tasksInRange).toBe(1)
+  })
+})

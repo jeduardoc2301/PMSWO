@@ -3397,3 +3397,26 @@ Lo que lo prueba no es que los números coincidan, es **cuáles son**: `1.2.1.5.
 seis niveles, y con 189 líneas visibles casi ninguno de sus ascendientes está dibujado. Un EDT
 calculado sobre lo visible no puede producir ese número — se habría acortado a dos o tres niveles.
 
+---
+
+## §7 — la cabecera del Calendario contaba la rejilla y lo llamaba «este mes»
+
+Una rejilla de mes empieza el **lunes anterior** al día 1 y acaba el **domingo posterior** al último:
+hasta doce días de más. La propia vista los dibuja atenuados — precisamente porque no son de este
+mes. Y la cifra de la cabecera los contaba.
+
+Medido sobre el plan de referencia:
+
+| mes | la cabecera decía | caen de verdad | error |
+|---|---:|---:|---:|
+| agosto de 2026 | **300** | 171 | **129** |
+| septiembre de 2026 | **549** | 490 | **59** |
+
+Ciento veintinueve líneas de diferencia en un mes. La cifra que se enseña tiene que responder a la
+pregunta que hace quien la lee —«¿cuánto hay este mes?»— y no a la que le resulta cómoda al repartidor
+de carriles.
+
+Cruzar la frontera **sí** cuenta: una línea que empieza el 29 de julio y termina el 3 de agosto está
+en agosto. Lo que no cuenta es quedarse fuera del todo y aparecer dibujada sólo porque la rejilla
+tiene orillas.
+
