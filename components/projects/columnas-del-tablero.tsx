@@ -18,6 +18,7 @@ import {
   type ColumnaDelTablero,
   avisoDeBorrado,
   destinosPosibles,
+  ordenTrasMover,
   porQueNoSePuedeBorrar,
 } from '@/lib/projects/columnas-del-tablero'
 
@@ -95,6 +96,22 @@ export function ColumnasDelTablero({
     }
   }
 
+  /**
+   * Manda el orden **completo**, calculado aquí con la misma función que valida el servidor.
+   *
+   * Se manda la lista entera y no «esta al puesto 2» porque el índice único de la tabla obliga al
+   * servidor a recolocarlas todas de todos modos; dárselas ya ordenadas le ahorra adivinar.
+   */
+  const recolocar = async (orden: readonly string[]) => {
+    await escribir(() =>
+      fetch(`/api/v1/projects/${projectId}/columns`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orden }),
+      }),
+    )
+  }
+
   if (estado.fase === 'cargando') {
     return (
       <p aria-busy="true" aria-live="polite" className="text-sm text-zinc-500">
@@ -160,6 +177,25 @@ export function ColumnasDelTablero({
 
               {puedeAdministrar ? (
                 <div className="flex items-center gap-2">
+                  {/* Mover con flechas y no arrastrando: el orden de las columnas se cambia una vez
+                      cada mucho, se hace con el teclado y se deshace mirando, y un arrastre horizontal
+                      dentro de una lista vertical de administración confunde más de lo que ayuda.
+                      El tablero de verdad sigue arrastrándose; esto es su cuarto de máquinas. */}
+                  <Mover
+                    columna={c}
+                    columnas={columnas}
+                    direccion="ARRIBA"
+                    enCurso={enCurso}
+                    onMover={recolocar}
+                  />
+                  <Mover
+                    columna={c}
+                    columnas={columnas}
+                    direccion="ABAJO"
+                    enCurso={enCurso}
+                    onMover={recolocar}
+                  />
+
                   {/* No hay «desmarcar»: se marca otra y esa se lleva la marca. Desmarcar dejaría al
                       proyecto sin columna inicial, y el fallo aparecería al crear una tarea. */}
                   {!c.esInicial ? (
@@ -300,5 +336,50 @@ export function ColumnasDelTablero({
         </div>
       ) : null}
     </section>
+  )
+}
+
+/**
+ * Un botón para mover una columna un puesto.
+ *
+ * Se deshabilita en los extremos en vez de esconderse: un botón que aparece y desaparece según la
+ * fila hace que la columna de acciones baile, y con cinco filas eso es peor que un botón apagado.
+ * El `title` dice a dónde va, porque «▲» solo no distingue «sube una» de «sube al principio».
+ */
+function Mover({
+  columna,
+  columnas,
+  direccion,
+  enCurso,
+  onMover,
+}: {
+  columna: ColumnaDelTablero
+  columnas: readonly ColumnaDelTablero[]
+  direccion: 'ARRIBA' | 'ABAJO'
+  enCurso: boolean
+  onMover: (orden: readonly string[]) => void | Promise<void>
+}) {
+  const orden = ordenTrasMover(columnas, columna.id, direccion)
+  const arriba = direccion === 'ARRIBA'
+  return (
+    <button
+      type="button"
+      data-testid={`mover-${arriba ? 'arriba' : 'abajo'}-${columna.id}`}
+      disabled={enCurso || orden === null}
+      title={
+        orden === null
+          ? arriba
+            ? 'Ya es la primera'
+            : 'Ya es la última'
+          : `Mover «${columna.nombre}» ${arriba ? 'un puesto antes' : 'un puesto después'}`
+      }
+      aria-label={`Mover ${columna.nombre} ${arriba ? 'arriba' : 'abajo'}`}
+      onClick={() => {
+        if (orden) void onMover(orden)
+      }}
+      className="rounded border border-zinc-700 px-1.5 py-0.5 text-xs text-zinc-300 hover:border-zinc-500 disabled:cursor-not-allowed disabled:opacity-30"
+    >
+      {arriba ? '▲' : '▼'}
+    </button>
   )
 }

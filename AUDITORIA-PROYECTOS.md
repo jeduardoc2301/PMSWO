@@ -90,7 +90,7 @@ tiempo real y deshacer.
 | 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | **6 de 6 criterios del §8.5, cada uno demostrado en pantalla** (ver la bitácora). Es la única vista que no necesitó tocar código: estaba bien y lo que faltaba era recorrerla. Del §8.2 queda fuera el calendario por recurso —hay jornada diaria y ausencias, no semana laboral propia— | L | Medio |
 | 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | **5 de 6 criterios del §9.3 demostrados en pantalla, y el sexto a medias** (ver la bitácora). Lo que falta no es del panel: la aplicación **no tiene modo claro** —ni `prefers-color-scheme`, ni clases `dark:`, ni conmutador— en ninguna de las seis vistas, así que «legibles en claro y oscuro» no se puede cumplir aquí. La otra mitad —accesibles sin depender sólo del color— sí | L | Bajo |
 | 27 | Calendario del proyecto | **CERRADA** | `app/api/v1/projects/[id]/calendar/`, `lib/scheduling/calendario-editable.ts` | Semana laborable, país de festivos y festivos propios, con ruta y reglas. Pide `edit_schedule` porque cambiarlo mueve las fechas de todo el plan. Comprobado: añadir el sábado hace que el motor pase a `[1,2,3,4,5,6]`, y borrar la fila devuelve al calendario de por omisión | M | Medio |
-| 19 | Estados configurables (§5) | **CERRADA** | `KanbanColumn.isInitial/isDone`, `lib/projects/columnas-del-tablero.ts`, `app/api/v1/projects/[id]/columns/` | Alta y baja de columnas desde el propio tablero, con las dos protegidas —la inicial y la de terminado— y con destino obligatorio para las tarjetas de la que se quita. Reordenar columnas no está: `@@unique([projectId, order])` lo convierte en un corrimiento con transacción, y hacerlo a medias es peor que no ofrecerlo | M | Medio |
+| 19 | Estados configurables (§5) | **CERRADA** | `KanbanColumn.isInitial/isDone`, `lib/projects/columnas-del-tablero.ts`, `app/api/v1/projects/[id]/columns/` | Alta y baja de columnas desde el propio tablero, con las dos protegidas —la inicial y la de terminado— y con destino obligatorio para las tarjetas de la que se quita. Y **reordenar**, que estaba puesta como imposible: el corrimiento se hace en dos vueltas dentro de la transacción —a puestos negativos y de ahí a los definitivos— porque el índice único no admite ni un instante con dos columnas en el mismo sitio. Con flechas, no arrastrando, y exigiendo la lista completa. Comprobado en pantalla: el tablero se reordena él | M | Medio |
 | 20 | Líneas base (§3) | **CERRADA** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts`, `gantt.ts` | Las dos mitades del §4.6 conmutador 4: la barra fina bajo cada barra —28 dibujadas, comprobado— y el valor original en la rejilla junto al de hoy, en rojo lo que se fue tarde y en verde lo que se adelantó. El selector sí estaba en el Gantt; la matriz decía que no | M | Bajo |
 | 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
@@ -1475,3 +1475,76 @@ cuentas de tamaño seguían diciendo «ok» con las dos cosas mal. Ya las cuenta
 
 Es la segunda vez esta sesión que el verificador crece por el mismo motivo: **lo que se restaura a
 mano una vez, se olvida la siguiente**.
+
+---
+
+## §5 — reordenar las columnas del tablero, que llevaba meses puesta como «hacerla a medias es peor»
+
+La matriz decía: «Reordenar columnas no está: `@@unique([projectId, order])` lo convierte en un
+corrimiento con transacción, y hacerlo a medias es peor que no ofrecerlo». La frase era correcta y
+la conclusión no: el corrimiento tiene una solución exacta, no aproximada.
+
+### Dos vueltas, y por qué no cabe una
+
+MySQL comprueba la unicidad **por sentencia**, no al cerrar la transacción. Escribir los puestos
+finales de uno en uno choca en cuanto la primera columna aterriza donde todavía está otra — y da
+igual el orden en que se escriban, porque cualquier permutación que no sea la identidad tiene al
+menos un par que se cruza.
+
+Así que primero se aparcan **todas** en puestos negativos y después se bajan a su sitio:
+
+- En la primera vuelta no chocan entre sí —cada una recibe un negativo distinto— ni con las que
+  aún están en positivo, porque los signos no se cruzan.
+- En la segunda, todas vienen de negativo, así que el destino está libre.
+
+Los negativos son seguros porque el alta reparte desde cero hacia arriba: ninguna columna real
+ocupa nunca un puesto negativo.
+
+### Y se exige la lista completa
+
+La ruta admite `{ orden: [...ids] }` con **todas** las columnas, no «pon esta en el puesto 2». Dos
+razones, y la segunda es la de fondo:
+
+1. Con un único puesto, el servidor tendría que adivinar qué hacer con la que ya estaba ahí, y las
+   dos respuestas razonables —empujar hacia abajo, intercambiar— dan tableros distintos.
+2. Con una lista **parcial**, la segunda vuelta dejaría a las que faltan en su puesto viejo y a las
+   enviadas encima: choque de clave única a mitad de la transacción, o —peor— una columna
+   abandonada en un puesto negativo, que el tablero dibujaría antes que todas para siempre.
+
+`porQueNoEsUnOrdenValido` lo comprueba, y es la **misma función** que usa la pantalla para calcular
+el orden que manda.
+
+### Flechas, no arrastre
+
+El orden de las columnas se cambia una vez cada mucho, se hace con el teclado y se deshace mirando.
+Un arrastre horizontal dentro de una lista vertical de administración confunde más de lo que ayuda.
+El tablero de verdad sigue arrastrándose; esto es su cuarto de máquinas.
+
+Los botones de los extremos se **apagan** en vez de esconderse —con cinco filas, una acción que
+aparece y desaparece hace bailar la columna entera— y dicen por qué: «Ya es la primera».
+
+### En pantalla, sobre el tablero de referencia
+
+```
+1. de entrada
+   tablero: BACKLOG · TO DO · IN PROGRESS · BLOCKERS · DONE
+   lista  : Backlog · To Do · In Progress · Blockers · Done
+
+2. subir «Blockers» un puesto
+   tablero: BACKLOG · TO DO · BLOCKERS · IN PROGRESS · DONE
+   lista  : Backlog · To Do · Blockers · In Progress · Done
+
+3. los extremos
+   la primera hacia arriba → apagado: «Ya es la primera»
+   la última hacia abajo   → apagado: «Ya es la última»
+
+4. devolverla con ▼
+   tablero: BACKLOG · TO DO · IN PROGRESS · BLOCKERS · DONE
+```
+
+Lo que había que ver no era la lista de administración, era **el tablero**: se reordena él, porque
+lo que cambió es el dato, no una preferencia de pantalla.
+
+Mover la inicial o la de terminado se permite a propósito: lo protegido es el **borrado**, no el
+puesto. Un tablero que empieza por «Hecho» es raro, pero es una decisión de quien lo lleva, no un
+estado imposible.

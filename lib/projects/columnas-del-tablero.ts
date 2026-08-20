@@ -73,3 +73,62 @@ export function avisoDeBorrado(columna: ColumnaDelTablero, destino?: ColumnaDelT
 export function sePuedeDesmarcar(): boolean {
   return false
 }
+
+/**
+ * El orden nuevo tras mover una columna un puesto (§5).
+ *
+ * Devuelve la lista **entera** de identificadores en su orden final, no sólo la que se movió, y esa
+ * decisión es la que hace posible la operación: `KanbanColumn` tiene `@@unique([projectId, order])`,
+ * así que mover una columna a un puesto ocupado no es escribir un campo, es recolocarlas todas. Un
+ * servidor que recibiera «pon esta en el puesto 2» tendría que adivinar qué hacer con la que ya
+ * estaba ahí; recibiendo la lista completa no adivina nada.
+ *
+ * Devuelve `null` cuando el movimiento no existe —el primero hacia arriba, el último hacia abajo—
+ * en vez de devolver la misma lista: quien llama tiene que poder distinguir «no se movió» de «se
+ * movió y quedó igual», que son dos cosas distintas para deshacer y para la pantalla.
+ */
+export function ordenTrasMover(
+  columnas: readonly ColumnaDelTablero[],
+  id: string,
+  direccion: 'ARRIBA' | 'ABAJO',
+): readonly string[] | null {
+  const ordenadas = [...columnas].sort((a, b) => a.orden - b.orden)
+  const desde = ordenadas.findIndex((c) => c.id === id)
+  if (desde < 0) return null
+
+  const hasta = direccion === 'ARRIBA' ? desde - 1 : desde + 1
+  if (hasta < 0 || hasta >= ordenadas.length) return null
+
+  const movida = ordenadas[desde]
+  ordenadas[desde] = ordenadas[hasta]
+  ordenadas[hasta] = movida
+  return ordenadas.map((c) => c.id)
+}
+
+/**
+ * Por qué no se admite este orden, o `null` si se admite.
+ *
+ * Exige la lista **completa y sin repetir**. No es celo: el servidor recoloca en dos fases —primero
+ * a puestos negativos, luego a los definitivos— porque el índice único no deja pasar por un estado
+ * intermedio con dos columnas en el mismo puesto. Si la lista viniera incompleta, la segunda fase
+ * dejaría a las que faltan en su puesto viejo y a las enviadas encima: choque de clave única a
+ * mitad de la transacción, o peor, una columna abandonada en un puesto negativo.
+ */
+export function porQueNoEsUnOrdenValido(
+  columnas: readonly ColumnaDelTablero[],
+  orden: readonly string[],
+): string | null {
+  if (orden.length === 0) return 'No llegó ninguna columna.'
+
+  const unicos = new Set(orden)
+  if (unicos.size !== orden.length) return 'Hay una columna repetida en el orden.'
+
+  const conocidas = new Set(columnas.map((c) => c.id))
+  for (const id of orden) {
+    if (!conocidas.has(id)) return `La columna ${id} no es de este tablero.`
+  }
+  if (orden.length !== columnas.length) {
+    return `El orden tiene ${orden.length} columnas y el tablero tiene ${columnas.length}: hacen falta todas.`
+  }
+  return null
+}

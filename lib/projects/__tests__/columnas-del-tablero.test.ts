@@ -5,6 +5,8 @@ import {
   avisoDeBorrado,
   destinosPosibles,
   hayQuePreguntarDestino,
+  ordenTrasMover,
+  porQueNoEsUnOrdenValido,
   porQueNoSePuedeBorrar,
 } from '../columnas-del-tablero'
 
@@ -92,5 +94,87 @@ describe('Una respuesta rara no tira la pantalla', () => {
     const sola = col({ id: 'x' })
     expect(porQueNoSePuedeBorrar(sola, [])).toContain('no es un tablero')
     expect(destinosPosibles(sola, [])).toEqual([])
+  })
+})
+
+describe('§5 · reordenar las columnas', () => {
+  const TABLERO = [
+    col({ id: 'a', nombre: 'Backlog', orden: 0, esInicial: true }),
+    col({ id: 'b', nombre: 'En curso', orden: 1 }),
+    col({ id: 'c', nombre: 'Revisión', orden: 2 }),
+    col({ id: 'd', nombre: 'Hecho', orden: 3, esTerminado: true }),
+  ]
+
+  it('subir una columna la intercambia con la de arriba', () => {
+    expect(ordenTrasMover(TABLERO, 'c', 'ARRIBA')).toEqual(['a', 'c', 'b', 'd'])
+  })
+
+  it('bajarla, con la de abajo', () => {
+    expect(ordenTrasMover(TABLERO, 'b', 'ABAJO')).toEqual(['a', 'c', 'b', 'd'])
+  })
+
+  it('devuelve la lista ENTERA, no sólo la que se movió', () => {
+    // Es lo que hace posible la operación: el índice único obliga al servidor a recolocarlas todas,
+    // así que dárselas ya ordenadas le ahorra adivinar qué hacer con la que ocupaba el puesto.
+    expect(ordenTrasMover(TABLERO, 'a', 'ABAJO')).toHaveLength(TABLERO.length)
+  })
+
+  it('la primera no sube y la última no baja: devuelve null, no la misma lista', () => {
+    // Distinguir «no se movió» de «se movió y quedó igual» importa para la pantalla y para deshacer.
+    expect(ordenTrasMover(TABLERO, 'a', 'ARRIBA')).toBeNull()
+    expect(ordenTrasMover(TABLERO, 'd', 'ABAJO')).toBeNull()
+  })
+
+  it('una columna que no es del tablero devuelve null en vez de reventar', () => {
+    expect(ordenTrasMover(TABLERO, 'no-existe', 'ARRIBA')).toBeNull()
+  })
+
+  it('ordena por el campo orden, no por cómo venga el array', () => {
+    // El servidor devuelve ordenado, pero una pantalla que filtre o reordene por otra cosa no debe
+    // cambiar lo que significa «arriba».
+    const revuelto = [TABLERO[2], TABLERO[0], TABLERO[3], TABLERO[1]]
+    expect(ordenTrasMover(revuelto, 'c', 'ARRIBA')).toEqual(['a', 'c', 'b', 'd'])
+  })
+
+  it('mover la inicial o la de terminado se permite: su puesto no es su papel', () => {
+    // La protegida es contra el BORRADO, no contra el orden. Un tablero que empieza por «Hecho» es
+    // raro, pero es una decisión de quien lo lleva, no un estado imposible.
+    expect(ordenTrasMover(TABLERO, 'd', 'ARRIBA')).toEqual(['a', 'b', 'd', 'c'])
+  })
+})
+
+describe('§5 · qué órdenes admite el servidor', () => {
+  const TABLERO = [
+    col({ id: 'a', orden: 0 }),
+    col({ id: 'b', orden: 1 }),
+    col({ id: 'c', orden: 2 }),
+  ]
+
+  it('la lista completa y sin repetir, sí', () => {
+    expect(porQueNoEsUnOrdenValido(TABLERO, ['c', 'a', 'b'])).toBeNull()
+  })
+
+  it('vacía, no', () => {
+    expect(porQueNoEsUnOrdenValido(TABLERO, [])).toContain('ninguna columna')
+  })
+
+  it('con una repetida, no', () => {
+    expect(porQueNoEsUnOrdenValido(TABLERO, ['a', 'a', 'b'])).toContain('repetida')
+  })
+
+  it('con una que no es del tablero, no, y la nombra', () => {
+    expect(porQueNoEsUnOrdenValido(TABLERO, ['a', 'b', 'zzz'])).toContain('zzz')
+  })
+
+  it('incompleta, no — y ésta es la que importa', () => {
+    /**
+     * Con una lista parcial, la segunda vuelta del corrimiento dejaría a las que faltan en su puesto
+     * viejo y a las enviadas encima: choque de clave única a mitad de la transacción, o —peor— una
+     * columna abandonada en un puesto negativo, que el tablero dibujaría antes que todas para
+     * siempre.
+     */
+    const motivo = porQueNoEsUnOrdenValido(TABLERO, ['a', 'b'])
+    expect(motivo).toContain('2')
+    expect(motivo).toContain('3')
   })
 })

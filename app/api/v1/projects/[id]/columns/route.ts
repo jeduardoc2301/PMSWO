@@ -25,6 +25,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
+import { porQueNoEsUnOrdenValido } from '@/lib/projects/columnas-del-tablero'
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import prisma from '@/lib/prisma'
 import { Permission } from '@/types'
@@ -40,17 +41,29 @@ const alta = z.object({
 /**
  * Lo que se puede cambiar de una columna.
  *
- * **El orden no está**, y no es un olvido: `KanbanColumn` tiene `@@unique([projectId, order])`, así
- * que mover una columna a un puesto ocupado no es un `update` sino un corrimiento de todas las que
- * hay en medio, dentro de una transacción. Aceptar aquí un `order` suelto daría un error de clave
- * única disfrazado de fallo del servidor. Reordenar es otra tarea, y hacerla a medias es peor que
- * no ofrecerla.
+ * **El orden no está aquí**, y no es un olvido: `KanbanColumn` tiene `@@unique([projectId, order])`,
+ * así que mover una columna a un puesto ocupado no es un `update` sino recolocarlas todas. Aceptar
+ * un `order` suelto en este cuerpo daría un error de clave única disfrazado de fallo del servidor.
+ *
+ * Reordenar entra por el otro cuerpo que admite este mismo `PATCH`: `{ orden: [...ids] }`, la lista
+ * **completa** en su orden final. Se resuelve más abajo, en `recolocar`.
  */
 const cambio = z.object({
   columnId: z.string().uuid(),
   name: z.string().trim().min(1).max(60).optional(),
   isInitial: z.boolean().optional(),
   isDone: z.boolean().optional(),
+})
+
+/**
+ * El otro cuerpo que admite el `PATCH`: la lista completa de columnas en su orden final.
+ *
+ * Se pide la lista entera y no «mueve esta al puesto 2» porque con un único puesto el servidor
+ * tendría que adivinar qué hacer con la que ya estaba ahí — y las dos respuestas razonables
+ * (empujar hacia abajo, intercambiar) dan tableros distintos. Con la lista no adivina nada.
+ */
+const reorden = z.object({
+  orden: z.array(z.string().uuid()).min(1),
 })
 
 async function getHandler(
@@ -140,10 +153,18 @@ async function patchHandler(
   const negado = await exigirPermiso(authContext.userId, id, 'manage_project_settings', MOTIVO)
   if (negado) return negado
 
-  const datos = cambio.safeParse(await request.json().catch(() => null))
+  const cuerpo = await request.json().catch(() => null)
+
+  // Dos cuerpos, un verbo. El de reordenar se reconoce por traer `orden` y se resuelve aparte:
+  // mezclarlo con el cambio de campos haría un manejador que hace dos cosas distintas según qué
+  // llaves trae, y esa clase de rama es la que acaba escribiendo lo que no toca.
+  const queRecoloca = reorden.safeParse(cuerpo)
+  if (queRecoloca.success) return await recolocar(id, queRecoloca.data.orden)
+
+  const datos = cambio.safeParse(cuerpo)
   if (!datos.success) {
     return NextResponse.json(
-      { error: 'Validation Error', message: 'Se espera columnId y al menos un campo a cambiar.' },
+      { error: 'Validation Error', message: 'Se espera columnId y al menos un campo a cambiar, o bien orden con todas las columnas.' },
       { status: 400 },
     )
   }
@@ -170,6 +191,61 @@ async function patchHandler(
   })
 
   return NextResponse.json({ ok: true }, { status: 200 })
+}
+
+/**
+ * Recoloca las columnas del tablero en el orden recibido (§5).
+ *
+ * ## Por qué son dos vueltas y no una
+ *
+ * `@@unique([projectId, order])` no admite ni un instante con dos columnas en el mismo puesto, y
+ * MySQL comprueba la unicidad **por sentencia**, no al cerrar la transacción. Escribir los puestos
+ * finales de uno en uno choca en cuanto la primera columna aterriza donde aún está otra.
+ *
+ * Así que primero se aparcan todas en puestos **negativos** —que ninguna columna real ocupa nunca,
+ * porque el alta reparte desde cero hacia arriba— y después se bajan a su sitio. En la primera
+ * vuelta no chocan entre sí porque cada una recibe un negativo distinto, y no chocan con las que
+ * todavía están en positivo porque los signos no se cruzan. En la segunda, todas vienen de negativo,
+ * así que el destino está libre.
+ *
+ * ## Y por qué se exige la lista completa
+ *
+ * Con una lista parcial, la segunda vuelta dejaría a las que faltan en su puesto viejo y a las
+ * enviadas encima. O choca la clave única a mitad, o —peor— una columna se queda abandonada en un
+ * puesto negativo y el tablero la dibuja antes que todas para siempre.
+ */
+async function recolocar(projectId: string, orden: readonly string[]): Promise<NextResponse> {
+  const actuales = await prisma.kanbanColumn.findMany({
+    where: { projectId },
+    orderBy: { order: 'asc' },
+    select: { id: true, name: true, order: true, isInitial: true, isDone: true },
+  })
+
+  const motivo = porQueNoEsUnOrdenValido(
+    actuales.map((c) => ({
+      id: c.id,
+      nombre: c.name,
+      orden: c.order,
+      esInicial: c.isInitial,
+      esTerminado: c.isDone,
+      tarjetas: 0,
+    })),
+    orden,
+  )
+  if (motivo) {
+    return NextResponse.json({ error: 'Validation Error', message: motivo }, { status: 400 })
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < orden.length; i += 1) {
+      await tx.kanbanColumn.update({ where: { id: orden[i] }, data: { order: -(i + 1) } })
+    }
+    for (let i = 0; i < orden.length; i += 1) {
+      await tx.kanbanColumn.update({ where: { id: orden[i] }, data: { order: i } })
+    }
+  })
+
+  return NextResponse.json({ ok: true, orden }, { status: 200 })
 }
 
 async function deleteHandler(
