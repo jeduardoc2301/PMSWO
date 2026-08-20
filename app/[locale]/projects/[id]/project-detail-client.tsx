@@ -18,6 +18,7 @@ import { type Cambio, type LadoDeOperacion, operacionDesde } from '@/lib/project
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
+import { ColumnasDelTablero } from '@/components/projects/columnas-del-tablero'
 import { BlockersTab } from '@/components/projects/blockers-tab'
 import { RisksTab } from '@/components/projects/risks-tab'
 import { AgreementsTab } from '@/components/projects/agreements-tab'
@@ -1026,6 +1027,14 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       workItems={kanbanBoard.workItems.filter(w => idsFiltrados.has(w.id))}
                       onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
                       cutoff={cutoffResuelto(project)} />
+                    {/* Las columnas son los estados del proyecto (§5.5), así que se administran
+                        desde el propio tablero y no desde un ajuste lejano: quien ve que le falta
+                        una columna la está viendo faltar aquí. */}
+                    <ColumnasDelTablero
+                      projectId={projectId}
+                      puedeAdministrar={(permisosDelProyecto ?? []).includes('manage_project_settings')}
+                      onCambio={handleWorkItemCreated}
+                    />
                   </div>
                 : <div className="text-center py-12 text-zinc-500">{t('loadingKanbanBoard')}</div>
             )}

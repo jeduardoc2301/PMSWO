@@ -90,7 +90,7 @@ tiempo real y deshacer.
 | 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | **6 de 6 criterios del §8.5, cada uno demostrado en pantalla** (ver la bitácora). Es la única vista que no necesitó tocar código: estaba bien y lo que faltaba era recorrerla. Del §8.2 queda fuera el calendario por recurso —hay jornada diaria y ausencias, no semana laboral propia— | L | Medio |
 | 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | **5 de 6 criterios del §9.3 demostrados en pantalla, y el sexto a medias** (ver la bitácora). Lo que falta no es del panel: la aplicación **no tiene modo claro** —ni `prefers-color-scheme`, ni clases `dark:`, ni conmutador— en ninguna de las seis vistas, así que «legibles en claro y oscuro» no se puede cumplir aquí. La otra mitad —accesibles sin depender sólo del color— sí | L | Bajo |
 | 27 | Calendario del proyecto: sólo lectura | **NO EXISTE** | `services/project-calendar.service.ts` (sólo `load*`) | El sombreado de festivos propios funciona —medido—, pero `ProjectCalendar` y `ProjectHoliday` sólo se pueden crear escribiendo en la base. No hay ruta `/calendar` ni pantalla. Descubierto al demostrar el criterio 2 del §7.5 | M | Medio |
-| 19 | Estados configurables (§5) | **PARCIAL** | `KanbanColumn.isInitial/isDone`, `lib/projects/status-progress.ts` | El acoplamiento funciona; falta el alta/baja de columnas desde la pantalla | M | Medio |
+| 19 | Estados configurables (§5) | **CERRADA** | `KanbanColumn.isInitial/isDone`, `lib/projects/columnas-del-tablero.ts`, `app/api/v1/projects/[id]/columns/` | Alta y baja de columnas desde el propio tablero, con las dos protegidas —la inicial y la de terminado— y con destino obligatorio para las tarjetas de la que se quita. Reordenar columnas no está: `@@unique([projectId, order])` lo convierte en un corrimiento con transacción, y hacerlo a medias es peor que no ofrecerlo | M | Medio |
 | 20 | Líneas base (§3) | **PARCIAL** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | El motor y la rejilla, sí. Falta la barra bajo la barra del Gantt (§4.6) y el selector no está en el Gantt | M | Bajo |
 | 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
@@ -930,3 +930,45 @@ Al final y no al principio porque lo que se acaba de añadir es lo último que s
 proyecto en vez de entre hermanas — el `sortOrder` del §2.2 es otra cosa y entra en la lista del §2
 que espera decisión. Y dos altas simultáneas pueden empatar en el mismo puesto: no rompe nada, el
 orden entre esas dos queda indefinido y estable, y resolverlo pediría una secuencia por proyecto.
+
+## §5.5 — dar de alta y de baja columnas del tablero
+
+El spec lo pide con esta frase: «los estados son configurables por proyecto, no un enum fijo: el
+Tablero se agrupa por ellos y **el usuario necesita poder añadir columnas**». La tabla existía desde
+el principio; lo que faltaba era poder tocarla sin entrar a la base.
+
+Va en el propio tablero y no en un ajuste lejano: quien nota que le falta una columna la está
+notando faltar ahí.
+
+**Las dos columnas que no se pueden quedar sin dueño.** La **inicial** —donde nacen las tareas— y la
+de **terminado** —de la que depende el avance al 100 %—. Borrar cualquiera de las dos dejaría el
+proyecto sin sitio donde poner una tarea nueva o sin forma de decir que algo acabó, y el fallo
+aparecería mucho después de la decisión, al crear. Medido en pantalla: las dos salen con «Quitar»
+apagado y el motivo en el título.
+
+Y no hay «desmarcar»: se marca otra, y esa se lleva la marca. Desmarcar sería la forma de dejar el
+proyecto sin columna inicial en un solo clic.
+
+**Una columna con tarjetas no se borra a la ligera.** Hay que decir **a dónde** van primero, y el
+aviso dice cuántas son —«"To Do" tiene 1 tarjeta»— porque borrar una columna vacía y una con treinta
+tareas son dos decisiones distintas y el número es lo único que las distingue. Mover y borrar van en
+**una transacción**: si no, existiría el instante en que las tarjetas apuntan a una columna que ya
+no está.
+
+Comprobado en pantalla: añadir «En revisión» la deja en la lista con 0 tarjetas, el aviso dice «Se
+quita la columna «En revisión», que está vacía», y quitarla devuelve el tablero a sus cinco.
+
+**Lo que no hace, y por qué.** Reordenar. `KanbanColumn` tiene `@@unique([projectId, order])`, así
+que mover una columna a un puesto ocupado no es un `update` sino un corrimiento de todas las de en
+medio dentro de una transacción. Aceptar un `order` suelto daría un error de clave única disfrazado
+de fallo del servidor.
+
+**Un defecto encontrado por una prueba, no por la pantalla.** El componente hacía `.map` sobre la
+respuesta sin comprobar su forma, y como vive dentro de la pestaña del tablero, una respuesta 200
+con otra cosa dentro se llevaba por delante la página entera —incluida la barra de pestañas—. Lo
+cazó la prueba de cambio de pestañas: dejó de encontrar «Elementos de Trabajo». Un trozo que no sabe
+qué enseñar dice que no lo sabe; no tira la pantalla.
+
+**Y un choque de nombres que ensució mi propia medición.** Marqué las filas con `data-columna`, que
+es el atributo que el tablero ya usa para sus columnas: la primera medición devolvió las dos cosas
+mezcladas, 130 filas donde había cinco. Renombrado a `data-columna-del-tablero`.
