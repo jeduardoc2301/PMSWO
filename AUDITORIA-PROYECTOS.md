@@ -2421,3 +2421,30 @@ impide vincular contra un resumen sin darse cuenta — y un vínculo contra algo
 de otros no significa lo que parece. Las cuatro compuertas salían sin aviso.
 
 En los dos sitios las dos reglas **suman**: tener hijas o estar marcada.
+
+---
+
+## Comprobado y **no** es un defecto: «terminada» en el panel ejecutivo
+
+Buscando más vetas de «dos definiciones de lo mismo» apareció una que parecía del mismo tipo:
+
+- `lib/urgency.ts:16` — `ESTADOS_TERMINALES = new Set(['DONE', 'CLOSED', 'CANCELLED'])`
+- `services/dashboard.service.ts` — la tasa de avance cuenta sólo `status === DONE`
+
+Con eso, una línea `CANCELLED` viviría en el denominador para siempre sin poder estar nunca en el
+numerador, y la salud del proyecto quedaría topeándose por debajo del 100 % sin motivo.
+
+**No ocurre, porque esos dos estados no son alcanzables.** Comprobado por cuatro caminos:
+
+1. `WorkItemStatus` tiene cinco valores: `BACKLOG`, `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`.
+2. `estadoDeLaColumna` —la única función que deriva estado de una columna del tablero— sólo puede
+   devolver esos cinco.
+3. La ruta de la línea valida con `z.nativeEnum(WorkItemStatus)`.
+4. En **toda** la base local hay un único estado: `TODO` × 1368.
+
+Las apariciones de `'CLOSED'` en el resto del código son del modelo de **riesgos**, que tiene su
+propio estado y su propio ciclo.
+
+Se deja el conjunto de `urgency.ts` como está: tres entradas de las que sobran dos no hacen daño, y el
+día que el modelo gane un estado de cierre la función ya lo trata bien. Queda anotado para que nadie
+vuelva a investigarlo: **se miró, y la tasa de avance está bien**.
