@@ -200,11 +200,34 @@ export class WorkItemService {
     }
 
     // Create work item
+    /**
+     * El puesto de la línea nueva: detrás de todas (§2.3).
+     *
+     * Sin esto nacía con `templateOrder` nulo, y el plan se lee ordenado por ese campo: en MySQL los
+     * nulos van **primeros**, así que cada línea creada a mano se colaba al principio del plan y
+     * renumeraba el EDT entero. Se vio midiendo: un plan de «Línea 1, 2, 3» pasaba a «Línea nueva,
+     * Línea 1, 2, 3», y con él todas las referencias que alguien hubiera escrito en un acta.
+     *
+     * El EDT sirve para una sola cosa —nombrar una línea en una reunión y que todos miren la
+     * misma— y eso exige que no baile. Al final y no al principio porque lo que se acaba de añadir
+     * es lo último que se pensó.
+     *
+     * Dos altas simultáneas pueden empatar en el mismo puesto. No rompe nada —el orden entre esas
+     * dos queda indefinido y estable— y resolverlo pediría una secuencia por proyecto, que es
+     * bastante más máquina para un caso que no cambia lo que alguien lee.
+     */
+    const ultima = await prisma.workItem.aggregate({
+      where: { projectId: data.projectId },
+      _max: { templateOrder: true },
+    })
+    const puesto = (ultima._max.templateOrder ?? 0) + 1
+
     const workItem = await prisma.workItem.create({
       data: {
         organizationId: project.organizationId,
         projectId: data.projectId,
         ownerId: data.ownerId,
+        templateOrder: puesto,
         title: data.title.trim(),
         description: data.description.trim(),
         phase: data.phase?.trim() || null,

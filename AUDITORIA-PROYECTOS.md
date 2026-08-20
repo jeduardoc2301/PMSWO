@@ -82,7 +82,7 @@ tiempo real y deshacer.
 | 9 | Restricciones de tarea (§3.4) | **PARCIAL** | `WorkItem.constraintType/constraintDate`, `lib/scheduling/reschedule.ts` | Persistidos los dos tipos que el motor aplica; las otras seis del §3.4 no, a propósito | M | Bajo |
 | 10 | Roll-up a resúmenes (§3.6) | **EXISTE** | `lib/scheduling/progress.ts` | Nada. Ponderado por trabajo, con hitos en peso cero | — | — |
 | 11 | Carga y sobrecarga de recursos (§3.7) | **PARCIAL** | `Resource`, `Assignment`, `ResourceAbsence`, `services/resource.service.ts` | Falta `Assignment.work`; no hay alta/baja de asignación; la fórmula del §3.7 usa una constante en vez de minutos laborables | L | Medio |
-| 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | El EDT no es estable: `templateOrder` nace nulo y añadir una línea renumera el plan. Falta `sortOrder`, el tope de 16 niveles y el EDT en el Gantt | M | Medio |
+| 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | **El EDT ya es estable**: la línea nueva nace con puesto al final, así que añadir una no renumera nada. Falta `sortOrder` como columna propia con su índice (hoy es `templateOrder`, nulable y global al proyecto) y el tope de 16 niveles. El EDT sí está en el Gantt, como columna del catálogo | M | Medio |
 | 13 | Vista Gantt (§4) | **CERRADA** | `components/plan/gantt-chart.tsx`, `plan-workspace.tsx`, `fields-panel.tsx`, `lib/plan/gantt-columns.ts` | **8 de 8 criterios del §4.8, cada uno demostrado en pantalla** (ver la bitácora). Del §4.2 queda fuera el catálogo completo de columnas —presupuesto, tiempo registrado, campos personalizados— porque necesita modelos que no existen; del §4.3, las escalas de hora, día, trimestre y año. Son ampliaciones, no criterios | L | Medio |
 | 14 | Vista Tablero (§5) | **PARCIAL** | `components/projects/kanban-board.tsx` | Kanban con arrastre, urgencias, avance y atraso. Falta: agrupar por algo distinto de la fase, columnas configurables | M | Bajo |
 | 15 | Vista Lista (§6) | **CERRADA** | `work-items-outline.tsx`, `work-items-list.tsx`, `lib/projects/list-totals.ts` | **5 de 5 criterios del §6.3, cada uno demostrado en pantalla** (ver la bitácora). Del §6.2 queda fuera el panel de Campos propio y la exportación de la vista; de los totales, presupuesto y costo real, que no existen como campos | S | Bajo |
@@ -905,3 +905,28 @@ del proyecto de referencia, que es de otro proyecto. El síntoma parecía un def
 Con esto el §10.6 queda cerrado salvo arrastrar fechas, que está fuera **a propósito**: pasa por la
 previsualización, y prometer con un doble clic lo que la previsualización avisa sería saltarse el
 aviso.
+
+## §2.3 — el EDT dejaba de servir en cuanto alguien añadía una línea
+
+`createWorkItem` nunca ponía `templateOrder`, así que toda línea creada a mano nacía con el campo
+nulo. Y el plan se lee ordenado por ese campo: **en MySQL los nulos van primeros**. Resultado: cada
+alta se colaba al **principio** del plan y renumeraba el EDT entero.
+
+Medido en pantalla, sobre un proyecto de tres líneas:
+
+| | el plan, en orden |
+|---|---|
+| antes del alta | Línea 1 · Línea 2 · Línea 3 |
+| tras el alta, **antes** del arreglo | **Línea nueva** · Línea 1 · Línea 2 · Línea 3 |
+| tras el alta, **después** | Línea 1 · Línea 2 · Línea 3 · **Línea nueva** |
+
+Por qué importa más de lo que parece: el EDT sirve para una sola cosa —nombrar una línea en una
+reunión y que todos miren la misma— y eso exige que no baile. Con el defecto, cualquier acta que
+dijera «la 4.7» dejaba de señalar lo mismo en cuanto alguien creaba una tarea.
+
+Al final y no al principio porque lo que se acaba de añadir es lo último que se pensó.
+
+**Lo que queda de esta brecha.** `templateOrder` sigue siendo nulable, sin índice y global al
+proyecto en vez de entre hermanas — el `sortOrder` del §2.2 es otra cosa y entra en la lista del §2
+que espera decisión. Y dos altas simultáneas pueden empatar en el mismo puesto: no rompe nada, el
+orden entre esas dos queda indefinido y estable, y resolverlo pediría una secuencia por proyecto.

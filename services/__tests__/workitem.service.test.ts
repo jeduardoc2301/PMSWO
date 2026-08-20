@@ -9,6 +9,8 @@ vi.mock('@/lib/prisma', () => ({
   default: {
     workItem: {
       create: vi.fn(),
+      // Lo consulta el alta para saber en qué puesto va la línea nueva (§2.3).
+      aggregate: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
@@ -79,6 +81,8 @@ describe('WorkItemService', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockOwner as any)
       vi.mocked(prisma.kanbanColumn.findFirst).mockResolvedValue(mockKanbanColumn as any)
       vi.mocked(prisma.workItem.create).mockResolvedValue(mockWorkItem as any)
+      // Ya hay siete líneas en el proyecto: la nueva tiene que ir detrás, en el puesto 8.
+      vi.mocked(prisma.workItem.aggregate).mockResolvedValue({ _max: { templateOrder: 7 } } as any)
 
       const result = await workItemService.createWorkItem(
         {
@@ -105,6 +109,73 @@ describe('WorkItemService', () => {
           priority: WorkItemPriority.MEDIUM,
           kanbanColumnId: 'column-1',
         }),
+      })
+    })
+
+    it('la línea nueva va al final del plan, no al principio', async () => {
+      /**
+       * Sin puesto, `templateOrder` nacía nulo, y el plan se lee ordenado por ese campo: en MySQL
+       * los nulos van **primeros**. Cada línea creada a mano se colaba al principio y renumeraba el
+       * EDT entero — «Línea 1, 2, 3» pasaba a «Línea nueva, 1, 2, 3»— y con él todas las
+       * referencias que alguien hubiera escrito en un acta.
+       */
+      vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p1', organizationId: 'org-1' } as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'u1', organizationId: 'org-1' } as any)
+      vi.mocked(prisma.kanbanColumn.findFirst).mockResolvedValue({
+        id: 'c1',
+        columnType: KanbanColumnType.BACKLOG,
+        isInitial: true,
+        isDone: false,
+      } as any)
+      vi.mocked(prisma.workItem.create).mockResolvedValue({ id: 'nueva' } as any)
+      vi.mocked(prisma.workItem.aggregate).mockResolvedValue({ _max: { templateOrder: 42 } } as any)
+
+      await workItemService.createWorkItem(
+        {
+          projectId: 'p1',
+          ownerId: 'u1',
+          title: 'Línea nueva',
+          description: 'x',
+          priority: WorkItemPriority.MEDIUM,
+          startDate: new Date('2026-08-10'),
+          estimatedEndDate: new Date('2026-08-14'),
+        },
+        'u1',
+      )
+
+      expect(prisma.workItem.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ templateOrder: 43 }),
+      })
+    })
+
+    it('y en un proyecto vacío empieza en 1, no en cero ni en nulo', async () => {
+      vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p1', organizationId: 'org-1' } as any)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'u1', organizationId: 'org-1' } as any)
+      vi.mocked(prisma.kanbanColumn.findFirst).mockResolvedValue({
+        id: 'c1',
+        columnType: KanbanColumnType.BACKLOG,
+        isInitial: true,
+        isDone: false,
+      } as any)
+      vi.mocked(prisma.workItem.create).mockResolvedValue({ id: 'primera' } as any)
+      // Sin líneas todavía, `_max` viene nulo.
+      vi.mocked(prisma.workItem.aggregate).mockResolvedValue({ _max: { templateOrder: null } } as any)
+
+      await workItemService.createWorkItem(
+        {
+          projectId: 'p1',
+          ownerId: 'u1',
+          title: 'La primera',
+          description: 'x',
+          priority: WorkItemPriority.MEDIUM,
+          startDate: new Date('2026-08-10'),
+          estimatedEndDate: new Date('2026-08-14'),
+        },
+        'u1',
+      )
+
+      expect(prisma.workItem.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ templateOrder: 1 }),
       })
     })
 
