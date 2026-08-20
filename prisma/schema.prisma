@@ -76,6 +76,17 @@ model Project {
   plannedHours     Int?     @map("planned_hours")
   progressCutoffDate DateTime? @map("progress_cutoff_date") @db.Date
   actualHours      Int?     @map("actual_hours")
+
+  // Cómo se acumula el avance de un resumen desde sus hijas (§2, §3.6).
+  //
+  // "DURACION" lo pondera por la duración de cada hija —responde «¿cuánto trabajo está hecho?»— y
+  // "PROMEDIO" las cuenta por igual —«¿cuántas cosas están hechas?»—. El spec pide los dos con el
+  // mismo ejemplo: un hijo de 4 días al 100 % y cuatro de 1 día al 0 % dan 50 % y 20 %.
+  //
+  // Ninguno es «el correcto»: son dos verdades sobre cosas distintas, y por eso es un ajuste del
+  // proyecto y no una decisión del motor. Por omisión el ponderado, que es lo que la aplicación ha
+  // calculado siempre.
+  progressRollup   String   @default("DURACION") @map("progress_rollup") @db.VarChar(20)
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 

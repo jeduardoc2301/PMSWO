@@ -120,6 +120,14 @@ const updateProjectSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid cutoff date format')
     .nullable()
     .optional(),
+  /**
+   * Cómo se acumula el avance de un resumen desde sus hijas (§2, §3.6).
+   *
+   * Es un ajuste del **proyecto** y no una opción de cada vista a propósito: dos pantallas del mismo
+   * plan con dos modos distintos darían dos cifras para la misma línea, y quien mira no tendría
+   * forma de saber cuál es la buena.
+   */
+  progressRollup: z.enum(['DURACION', 'PROMEDIO']).optional(),
 })
 
 /**
@@ -226,6 +234,9 @@ async function updateProjectHandler(
       updateData.status = data.status
     }
 
+    if (data.progressRollup !== undefined) {
+      updateData.progressRollup = data.progressRollup
+    }
     if (data.progressCutoffDate !== undefined) {
       // Medianoche UTC a propósito: es una fecha civil, y así se lee de vuelta sin correrse un día.
       updateData.progressCutoffDate =

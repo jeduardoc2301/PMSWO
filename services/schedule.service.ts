@@ -32,6 +32,7 @@ import {
 } from '@/services/project-calendar.service'
 import { type WorkCalendar, createWorkCalendar } from '@/lib/scheduling/calendar'
 import { toDayNumber, toIsoDate } from '@/lib/scheduling/date'
+import type { ModoDeRollup } from '@/lib/scheduling/rollup-modos'
 import type {
   Dependency,
   LinkType,
@@ -74,6 +75,14 @@ export interface ProjectPlan {
    * alguien lo fija para congelar una foto.
    */
   readonly progressCutoff: string | null
+  /**
+   * Cómo se acumula el avance de un resumen (§2, `Project.progressRollup`).
+   *
+   * Viaja con el plan y no se lee aparte porque quien dibuja tiene que acumular **igual** que quien
+   * calculó: dos pantallas del mismo proyecto con dos modos distintos serían dos cifras para la
+   * misma línea, y el que mira no tendría forma de saber cuál es la buena.
+   */
+  readonly progressRollup: ModoDeRollup
 }
 
 /**
@@ -96,6 +105,7 @@ export async function loadProjectPlan(
       startDate: true,
       estimatedEndDate: true,
       progressCutoffDate: true,
+      progressRollup: true,
     },
   })
   if (!project) return null
@@ -220,6 +230,9 @@ export async function loadProjectPlan(
     deadline: isoDe(project.estimatedEndDate),
     ausencias,
     progressCutoff: project.progressCutoffDate ? isoDe(project.progressCutoffDate) : null,
+    // Lo guardado, saneado: cualquier otra cosa en la columna vuelve al ponderado, que es lo que la
+    // aplicación ha calculado siempre.
+    progressRollup: project.progressRollup === 'PROMEDIO' ? 'PROMEDIO' : 'DURACION',
   }
 }
 

@@ -42,6 +42,8 @@ export interface UpdateProjectDTO {
    * miden estado y atraso.
    */
   progressCutoffDate?: Date | null
+  /** Cómo se acumula el avance de un resumen (§2). */
+  progressRollup?: 'DURACION' | 'PROMEDIO'
 }
 
 export interface QueryProjectsDTO {
@@ -567,6 +569,7 @@ export class ProjectService {
     if (data.status !== undefined) updatePayload.status = data.status
     // `null` explícito también viaja: descongelar el corte es un cambio, no una omisión.
     if (data.progressCutoffDate !== undefined) updatePayload.progressCutoffDate = data.progressCutoffDate
+    if (data.progressRollup !== undefined) updatePayload.progressRollup = data.progressRollup
 
     if (Object.keys(updatePayload).length === 0) {
       throw new ValidationError('No fields provided to update')

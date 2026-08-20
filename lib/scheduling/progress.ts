@@ -14,6 +14,7 @@
  *     avance(resumen) = Σ(peso_i × avance_i) / Σ(peso_i)
  */
 
+import { type ModoDeRollup, avanceDelResumen } from './rollup-modos'
 import type { PlanTask } from './types'
 
 /** Error en la jerarquía del plan. */
@@ -68,7 +69,16 @@ export interface ProgressRollup {
  * @throws HierarchyError si una línea cuelga de otra que no existe, de sí misma, o si la jerarquía
  *   se cierra sobre sí misma.
  */
-export function rollUpProgress(tasks: readonly PlanTask[]): ProgressRollup {
+export function rollUpProgress(
+  tasks: readonly PlanTask[],
+  /**
+   * Cómo se acumula (§2, `Project.progressRollup`).
+   *
+   * Por omisión el ponderado, que es lo que esta aplicación ha calculado siempre: quien no ha
+   * elegido nada tiene que seguir viendo la misma cifra.
+   */
+  modo: ModoDeRollup = 'DURACION',
+): ProgressRollup {
   const byId = new Map<string, PlanTask>()
   for (const task of tasks) {
     if (byId.has(task.id)) {
@@ -135,9 +145,27 @@ export function rollUpProgress(tasks: readonly PlanTask[]): ProgressRollup {
 
     weight.set(id, totalWeight)
     earned.set(id, totalEarned)
-    // Un bloque que solo agrupa hitos no pesa nada, y no se puede ponderar por cero. Ahí el avance
-    // es el promedio simple de las hijas: si las tres ocurrieron, el bloque ocurrió.
-    progress.set(id, totalWeight > 0 ? totalEarned / totalWeight : simpleMean(kids, progress))
+    /**
+     * El avance sale de `avanceDelResumen`, que es donde viven **los dos modos** del §12.
+     *
+     * Se le pasa el **peso de rama** de cada hija como si fuera su duración — que es lo que es: una
+     * hija que a su vez es resumen pesa lo que pesa todo lo que cuelga de ella. Así el modo
+     * ponderado da exactamente lo que daba la división de aquí, y el promedio simple sale gratis.
+     *
+     * Antes había dos fórmulas: ésta y la de `rollup-modos.ts`, que estaba probada por los casos 12
+     * y 13 del §12 y **no la llamaba nadie**. Dos fórmulas para lo mismo acaban dando dos números;
+     * la probada era la que no se usaba.
+     *
+     * El caso de peso cero —un bloque que sólo agrupa hitos— lo resuelve ella igual que se resolvía
+     * aquí: cayendo al promedio simple. Si las tres ocurrieron, el bloque ocurrió.
+     */
+    progress.set(
+      id,
+      avanceDelResumen(
+        kids.map((kid) => ({ id: kid, duration: weight.get(kid)!, progress: progress.get(kid)! })),
+        modo,
+      ),
+    )
   }
 
   const weighted: WeightedTask[] = tasks.map((task) => ({
@@ -163,7 +191,19 @@ export function rollUpProgress(tasks: readonly PlanTask[]): ProgressRollup {
     tasks: Object.freeze(weighted),
     byId: new Map(weighted.map((task) => [task.id, task])),
     roots: Object.freeze(roots),
-    progress: planWeight > 0 ? planEarned / planWeight : simpleMean(roots, progress),
+    /**
+     * El total del plan sale del **mismo modo** que los resúmenes.
+     *
+     * Antes era siempre ponderado, y eso dejaba el ajuste aplicado a las 125 líneas con descendencia
+     * y no a la 126ª — el plan entero, que es la cifra que sale en el panel de control. Quien elige
+     * «promedio de las hijas» porque sus entregables son comparables espera que el proyecto se lea
+     * igual; que la raiz se lea al revés que sus ramas es la clase de incoherencia que hace que
+     * nadie se fíe de la cifra.
+     */
+    progress: avanceDelResumen(
+      roots.map((id) => ({ id, duration: weight.get(id)!, progress: progress.get(id)! })),
+      modo,
+    ),
     totalWeight: planWeight,
     earnedDays: planEarned,
   })
@@ -223,12 +263,6 @@ function clampProgress(value: number, name: string): number {
   return value
 }
 
-function simpleMean(ids: readonly string[], progress: ReadonlyMap<string, number>): number {
-  if (ids.length === 0) return 0
-  let total = 0
-  for (const id of ids) total += progress.get(id) ?? 0
-  return total / ids.length
-}
 
 /**
  * Profundidad de cada línea, y de paso la comprobación de que la jerarquía no se cierra sobre sí

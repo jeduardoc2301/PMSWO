@@ -2949,3 +2949,55 @@ un chip relleno de ámbar (11.92:1), pero **no** es la tinta del botón primario
 `#6366f1` da 4.47:1, a un pelo del mínimo. De ahí `--acento-relleno` = `#4f46e5` en los dos temas,
 que con blanco encima da **6.29:1**.
 
+---
+
+## §2 — `Project.progressRollup`, la primera migración autorizada
+
+Autorizada por el dueño del producto. Una columna, `VARCHAR(20) NOT NULL DEFAULT 'DURACION'`, y el
+código de los dos modos **ya estaba escrito y probado** por los casos 12 y 13 del §12 — esperando
+dónde guardar la elección.
+
+### De dos fórmulas a una
+
+El hallazgo original decía: «hay dos implementaciones del roll-up y **la que prueban los casos 12 y
+13 no la llama nadie**». Era cierto, y arreglarlo bien no era cablear la segunda: era **quedarse con
+una**.
+
+`progress.ts` ahora llama a `avanceDelResumen` pasándole el **peso de rama** de cada hija como si
+fuera su duración — que es lo que es: una hija que a su vez es resumen pesa lo que pesa todo lo que
+cuelga de ella. Con eso, el modo ponderado da **exactamente** lo que daba la división de antes, el
+promedio simple sale gratis, y `simpleMean` —que resolvía a mano el caso del bloque de puros hitos—
+se retira: esa rama ya la resuelve la función buena.
+
+### El total del plan también, y eso sí cambia una cifra
+
+El avance del **plan entero** era siempre ponderado. Eso dejaba el ajuste aplicado a las 125 líneas
+con descendencia y **no a la 126ª** — el proyecto, que es la cifra que sale en el panel de control.
+Quien elige «promedio de las hijas» porque sus entregables son comparables espera que el proyecto se
+lea igual; que la raíz se lea al revés que sus ramas es la clase de incoherencia que hace que nadie
+se fíe de la cifra.
+
+### Cuánto cambia, medido
+
+Sobre el plan de referencia, con 400 hojas al 100 % **en memoria** —la base no se tocó—:
+
+| | |
+|---|---:|
+| resúmenes | 125 |
+| donde los dos modos **difieren** | **3** |
+| la mayor diferencia | 6 puntos: «Ola 0 QA · 12 servidores» va por 29 % ponderado y 35 % promedio |
+
+Tres de 125 parece poco, y lo es — con este avance de prueba, que deja ramas enteras acabadas o
+enteras sin empezar. Los dos modos sólo se separan donde hay hijas **de tamaños distintos y avances
+distintos**, que es exactamente el caso del ejemplo del spec: cuatro días al 100 % y cuatro de uno al
+0 % dan 50 % y 20 %.
+
+### Dónde se elige
+
+En la barra del corte del Esquema, al lado de la fecha — que es donde **se ve** el número que cambia:
+quien duda de una cifra la está mirando. El rótulo dice de qué pregunta responde cada modo
+(«¿cuánto trabajo está hecho?» contra «¿cuántas cosas están hechas?») y el título avisa de que es un
+ajuste **del proyecto**: lo ven todos los que lo abran.
+
+Sin permiso para cambiarlo, el selector no se dibuja — la vista lo enseña pero no deja tocarlo.
+

@@ -40,6 +40,7 @@ import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
 import { type Coherencia, comprobarCoherencia } from './effort'
 import { rollUpProgress } from './progress'
+import type { ModoDeRollup } from './rollup-modos'
 import { fechasDeResumen } from './summary-rollup'
 import { estaTerminada } from '@/lib/urgency'
 import { numerarPlan } from './wbs'
@@ -248,6 +249,13 @@ export interface GanttInput {
   readonly tasks: readonly PlanTask[]
   readonly dependencies: readonly Dependency[]
   readonly schedule: Schedule
+  /**
+   * Cómo se acumula el avance de un resumen (§2, `Project.progressRollup`).
+   *
+   * Opcional, y sin él el ponderado: es lo que la aplicación ha calculado siempre, y una vista que
+   * no lo pase tiene que seguir enseñando la misma cifra que enseñaba.
+   */
+  readonly modoDeRollup?: ModoDeRollup
   /** Las tareas ya analizadas y clasificadas. De aquí salen la holgura y la criticidad. */
   readonly classified: readonly ClassifiedTask[]
   readonly calendar: WorkCalendar
@@ -464,7 +472,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
    */
   let acumulado: ReadonlyMap<string, { readonly progress: number }> | null = null
   try {
-    acumulado = rollUpProgress(tasks).byId
+    acumulado = rollUpProgress(tasks, input.modoDeRollup).byId
   } catch {
     acumulado = null
   }

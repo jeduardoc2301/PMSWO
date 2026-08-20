@@ -34,6 +34,7 @@ import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { type GanttRow, collapseToLevel, ganttLayout } from '@/lib/scheduling/gantt'
 import { rollUpProgress } from '@/lib/scheduling/progress'
+import type { ModoDeRollup } from '@/lib/scheduling/rollup-modos'
 import { programarConALAP } from '@/lib/scheduling/alap'
 import { type EstadoAlCorte, varianceAtCutoff } from '@/lib/scheduling/schedule-variance'
 import type { Dependency, PlanTask, TaskKind } from '@/lib/scheduling/types'
@@ -50,6 +51,17 @@ export interface WorkItemsOutlineProps {
   readonly calendarDef?: DefinicionDeCalendario
   /** Cuándo no está disponible quien lleva cada línea (§12 caso 17). */
   readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
+  /**
+   * Cómo se acumula el avance de un resumen (§2, `Project.progressRollup`).
+   *
+   * Sin él, el ponderado: es lo que esta vista ha enseñado siempre.
+   */
+  readonly modoDeRollup?: ModoDeRollup
+  /**
+   * Cambiar cómo se acumula. Sin esto la vista lo enseña pero no deja tocarlo — que es lo que
+   * corresponde a quien no puede cambiar los ajustes del proyecto.
+   */
+  readonly onModoDeRollupChange?: (modo: ModoDeRollup) => void
   /** La fecha de corte YA RESUELTA (la congelada del proyecto, o hoy). */
   readonly cutoff: string
   /** Verdadero si el proyecto tiene el corte congelado. */
@@ -116,6 +128,8 @@ export function WorkItemsOutline({
   start,
   calendarDef,
   ausencias,
+  modoDeRollup,
+  onModoDeRollupChange,
   cutoff,
   cutoffFrozen,
   onCutoffChange,
@@ -187,15 +201,16 @@ export function WorkItemsOutline({
       calendar,
       schedule,
       classified: classifySuperCritical(analysis, tasks).tasks,
-      rollup: rollUpProgress(tasks),
+      rollup: rollUpProgress(tasks, modoDeRollup),
     }
-  }, [tasks, dependencies, start, calendarDef])
+  }, [tasks, dependencies, start, calendarDef, modoDeRollup])
 
   const layoutCompleto = useMemo(() => {
     if (base === null) return null
     return ganttLayout({
       tasks,
       dependencies,
+      modoDeRollup,
       schedule: base.schedule,
       classified: base.classified,
       calendar: base.calendar,
@@ -254,7 +269,13 @@ export function WorkItemsOutline({
 
   return (
     <div className="flex flex-col gap-3">
-      <BarraDelCorte cutoff={cutoff} cutoffFrozen={cutoffFrozen} onCutoffChange={onCutoffChange} />
+      <BarraDelCorte
+        cutoff={cutoff}
+        cutoffFrozen={cutoffFrozen}
+        onCutoffChange={onCutoffChange}
+        modoDeRollup={modoDeRollup ?? 'DURACION'}
+        onModoDeRollupChange={onModoDeRollupChange}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-2">
@@ -680,10 +701,14 @@ function BarraDelCorte({
   cutoff,
   cutoffFrozen,
   onCutoffChange,
+  modoDeRollup,
+  onModoDeRollupChange,
 }: {
   cutoff: string
   cutoffFrozen: boolean
   onCutoffChange: (iso: string | null) => void
+  modoDeRollup: ModoDeRollup
+  onModoDeRollupChange?: (modo: ModoDeRollup) => void
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-borde bg-superficie px-3 py-2 text-sm">
@@ -718,6 +743,36 @@ function BarraDelCorte({
           El corte es hoy y se mueve con el calendario; elige una fecha para congelar la foto.
         </span>
       )}
+
+      {/*
+        Cómo se acumula el avance de un resumen (§2, §3.6). Va aquí y no en los ajustes del proyecto
+        porque es donde se **ve** el número que cambia: quien duda de una cifra la está mirando.
+
+        Es un ajuste del proyecto y no de la vista, y el texto de al lado lo dice — si fuera de la
+        vista, dos pantallas del mismo plan darían dos cifras para la misma línea.
+      */}
+      {onModoDeRollupChange ? (
+        <div className="ml-auto flex items-center gap-2">
+          <label htmlFor="modo-de-rollup" className="text-tinta-2">
+            Avance de un resumen:
+          </label>
+          <select
+            id="modo-de-rollup"
+            value={modoDeRollup}
+            onChange={(evento) => onModoDeRollupChange(evento.target.value as ModoDeRollup)}
+            title="Es un ajuste del proyecto: lo ven todos los que lo abran"
+            className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-tinta focus:border-acento focus:outline-none"
+          >
+            <option value="DURACION">Ponderado por duración</option>
+            <option value="PROMEDIO">Promedio de las hijas</option>
+          </select>
+          <span className="text-xs text-tinta-3">
+            {modoDeRollup === 'DURACION'
+              ? '«¿cuánto trabajo está hecho?»'
+              : '«¿cuántas cosas están hechas?»'}
+          </span>
+        </div>
+      ) : null}
     </div>
   )
 }

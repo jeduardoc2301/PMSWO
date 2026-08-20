@@ -36,6 +36,7 @@ import { ganttLayout } from '@/lib/scheduling/gantt'
 import { programarConALAP } from '@/lib/scheduling/alap'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDeBorrado, operacionDesde } from '@/lib/projects/undo-stack'
+import type { ModoDeRollup } from '@/lib/scheduling/rollup-modos'
 import { hoyCivil } from '@/lib/formato-fecha'
 import { EsqueletoDeTabla } from '@/components/projects/esqueleto'
 import { COLUMNAS_POR_OMISION, redimensionarColumnaDeLaLista } from '@/lib/projects/list-columns'
@@ -69,6 +70,13 @@ interface PlanRemoto {
   readonly ausencias?: Readonly<Record<string, readonly RangoDeAusencia[]>>
   /** Nula significa que el corte flota con el calendario: «hoy» cada vez que alguien mira. */
   readonly progressCutoff: string | null
+  /**
+   * Cómo se acumula el avance de un resumen (§2, `Project.progressRollup`).
+   *
+   * Opcional por lo mismo que `ausencias`: una respuesta anterior a esto no lo trae, y quedarse sin
+   * plan por un campo que falta sería peor que acumular como se acumulaba antes.
+   */
+  readonly progressRollup?: ModoDeRollup
 }
 
 type EstadoPlan =
@@ -235,6 +243,7 @@ export function WorkItemsView({
     return ganttLayout({
       tasks: plan.tasks,
       dependencies: plan.dependencies,
+      modoDeRollup: plan.progressRollup,
       schedule,
       classified: classifySuperCritical(analysis, plan.tasks).tasks,
       calendar,
@@ -574,6 +583,37 @@ export function WorkItemsView({
     onWorkItemCreated?.()
   }
 
+  /**
+   * Cambiar cómo se acumula el avance de un resumen (§2, `Project.progressRollup`).
+   *
+   * Se recarga el plan y no se parchea en local: el modo cambia la cifra de **las 125 líneas con
+   * descendencia** a la vez, y adivinar cuáles es cómo una vista empieza a enseñar una cosa distinta
+   * de lo que hay guardado.
+   */
+  const cambiarModoDeRollup = async (modo: 'DURACION' | 'PROMEDIO') => {
+    setAviso(null)
+    try {
+      const respuesta = await fetch(`/api/v1/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progressRollup: modo }),
+      })
+      if (!respuesta.ok) {
+        const cuerpo = await respuesta.json().catch(() => ({}))
+        throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
+      }
+      await cargarPlan()
+    } catch (error) {
+      if (vigente.current) {
+        setAviso(
+          `No se pudo cambiar cómo se acumula el avance: ${
+            error instanceof Error ? error.message : 'error de red'
+          }.`,
+        )
+      }
+    }
+  }
+
   const cambiarCorte = async (iso: string | null) => {
     setAviso(null)
     try {
@@ -732,6 +772,8 @@ export function WorkItemsView({
             start={estado.plan.start}
             calendarDef={estado.plan.calendar}
             ausencias={estado.plan.ausencias}
+            modoDeRollup={estado.plan.progressRollup}
+            onModoDeRollupChange={cambiarModoDeRollup}
             cutoff={estado.plan.progressCutoff ?? hoyCivil()}
             cutoffFrozen={estado.plan.progressCutoff !== null}
             onCutoffChange={cambiarCorte}

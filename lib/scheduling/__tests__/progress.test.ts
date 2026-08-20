@@ -270,3 +270,68 @@ describe('Derivar la jerarquía de una columna de nivel', () => {
     expect(rollUpProgress(tareas).byId.get('e')!.progress).toBe(0.9)
   })
 })
+
+describe('§2 · el modo de acumular, ahora elegible', () => {
+  /**
+   * El §12 pide los dos con el mismo ejemplo: un hijo de 4 días al 100 % y cuatro de 1 día al 0 %.
+   * Ponderado da **50 %** —cuatro días de ocho—, promedio simple da **20 %** —una cosa de cinco—.
+   * Ninguno es «el correcto»: son dos verdades sobre cosas distintas.
+   */
+  const BLOQUE: PlanTask[] = [
+    { id: 'P', name: 'Bloque', duration: 0 },
+    { id: 'larga', name: 'La larga', duration: 4, parentId: 'P', progress: 1 },
+    { id: 'a', name: 'a', duration: 1, parentId: 'P', progress: 0 },
+    { id: 'b', name: 'b', duration: 1, parentId: 'P', progress: 0 },
+    { id: 'c', name: 'c', duration: 1, parentId: 'P', progress: 0 },
+    { id: 'd', name: 'd', duration: 1, parentId: 'P', progress: 0 },
+  ]
+
+  it('sin decir nada, ponderado: es lo que la aplicación ha calculado siempre', () => {
+    expect(rollUpProgress(BLOQUE).byId.get('P')!.progress).toBe(0.5)
+  })
+
+  it('en promedio simple, una cosa de cinco', () => {
+    expect(rollUpProgress(BLOQUE, 'PROMEDIO').byId.get('P')!.progress).toBe(0.2)
+  })
+
+  it('el peso de rama se propaga: una nieta pesa en su abuela', () => {
+    // Es lo que hace que «ponderado» signifique algo en un árbol y no sólo en una lista plana.
+    const arbol: PlanTask[] = [
+      { id: 'A', name: 'A', duration: 0 },
+      { id: 'B', name: 'B', duration: 0, parentId: 'A' },
+      { id: 'n1', name: 'n1', duration: 8, parentId: 'B', progress: 1 },
+      { id: 'n2', name: 'n2', duration: 2, parentId: 'B', progress: 0 },
+      { id: 'suelta', name: 'suelta', duration: 10, parentId: 'A', progress: 0 },
+    ]
+    // Ponderado: 8 de 20 días hechos.
+    expect(rollUpProgress(arbol).byId.get('A')!.progress).toBeCloseTo(0.4, 6)
+    // Promedio simple en la raíz: B va por 0.8 y «suelta» por 0 → 0.4 por casualidad; se comprueba
+    // en B, donde las dos cuentas difieren: ponderado 0.8, simple 0.5.
+    expect(rollUpProgress(arbol, 'PROMEDIO').byId.get('B')!.progress).toBe(0.5)
+    expect(rollUpProgress(arbol).byId.get('B')!.progress).toBeCloseTo(0.8, 6)
+  })
+
+  it('un bloque de puros hitos no pesa nada y cae al promedio en los dos modos', () => {
+    const hitos: PlanTask[] = [
+      { id: 'P', name: 'Bloque', duration: 0 },
+      ...[1, 2, 3, 4, 5].map((n) => ({
+        id: `m${n}`,
+        name: `Hito ${n}`,
+        duration: 0,
+        parentId: 'P',
+        progress: n <= 3 ? 1 : 0,
+      })),
+    ]
+    expect(rollUpProgress(hitos).byId.get('P')!.progress).toBeCloseTo(0.6, 6)
+    expect(rollUpProgress(hitos, 'PROMEDIO').byId.get('P')!.progress).toBeCloseTo(0.6, 6)
+  })
+
+  it('el peso y lo ganado no cambian con el modo: sólo cambia la lectura', () => {
+    // `weight` y `earnedDays` son días de trabajo, y esos son los que son. El modo decide cómo se
+    // resume, no cuánto trabajo hay.
+    const ponderado = rollUpProgress(BLOQUE).byId.get('P')!
+    const simple = rollUpProgress(BLOQUE, 'PROMEDIO').byId.get('P')!
+    expect(simple.weight).toBe(ponderado.weight)
+    expect(simple.earnedDays).toBe(ponderado.earnedDays)
+  })
+})
