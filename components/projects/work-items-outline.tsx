@@ -34,7 +34,7 @@ import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { type GanttRow, collapseToLevel, ganttLayout } from '@/lib/scheduling/gantt'
 import { rollUpProgress } from '@/lib/scheduling/progress'
-import { schedulePlan } from '@/lib/scheduling/schedule'
+import { programarConALAP } from '@/lib/scheduling/alap'
 import { type EstadoAlCorte, varianceAtCutoff } from '@/lib/scheduling/schedule-variance'
 import type { Dependency, PlanTask, TaskKind } from '@/lib/scheduling/types'
 import { numerarPlan } from '@/lib/scheduling/wbs'
@@ -172,7 +172,7 @@ export function WorkItemsOutline({
   const base = useMemo(() => {
     if (tasks.length === 0) return null
     const calendar = calendarDef ? calendarioDesde(calendarDef) : createWorkCalendar()
-    const schedule = schedulePlan({
+    const schedule = programarConALAP({
       tasks,
       dependencies,
       calendar,

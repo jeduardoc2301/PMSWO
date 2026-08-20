@@ -238,8 +238,18 @@ function restriccionDe(
   tipo: string | null | undefined,
   fecha: Date | null | undefined,
   anclaje: string,
-): { constraint: Constraint; compromiso?: Constraint } {
+): { constraint: Constraint; compromiso?: Constraint; alap?: boolean } {
   const ancla: Constraint = { type: 'NO_ANTES_DE', date: anclaje }
+
+  // `ALAP` es la única de las ocho que NO lleva fecha, así que tiene que salir antes de la guarda
+  // de abajo — que descarta por fecha nula y se la habría tragado en silencio, dejando la línea
+  // anclada en su fecha guardada como si nadie hubiera marcado nada.
+  //
+  // El ancla se conserva igual: si el plan se programa con `schedulePlan` a secas —sin pase atrás
+  // no hay dónde poner una `ALAP`— la línea se queda en su fecha guardada en vez de irse al
+  // arranque más temprano, que es la degradación correcta.
+  if (tipo === 'ALAP') return { constraint: ancla, alap: true }
+
   // Se admite `undefined` además de `null`: una fila sin esa columna en el corte llega así, y
   // comprobar solo el nulo dejaba pasar un `undefined` hasta la conversión de fecha, que reventaba
   // con «no puedo leer getTime de undefined» a trece pruebas de distancia del sitio del error.

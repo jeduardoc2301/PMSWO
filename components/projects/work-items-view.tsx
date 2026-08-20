@@ -33,7 +33,7 @@ import { calendarioDesde } from '@/lib/scheduling/project-calendar'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { ganttLayout } from '@/lib/scheduling/gantt'
-import { schedulePlan } from '@/lib/scheduling/schedule'
+import { programarConALAP } from '@/lib/scheduling/alap'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
 import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
 import { hoyCivil } from '@/lib/formato-fecha'
@@ -209,7 +209,7 @@ export function WorkItemsView({
     if (estado.fase !== 'listo' || estado.plan.tasks.length === 0) return []
     const { plan } = estado
     const calendar = calendarioDesde(plan.calendar)
-    const schedule = schedulePlan({
+    const schedule = programarConALAP({
       tasks: plan.tasks,
       dependencies: plan.dependencies,
       calendar,

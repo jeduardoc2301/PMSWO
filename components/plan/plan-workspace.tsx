@@ -84,7 +84,7 @@ import {
 } from '@/lib/scheduling/gantt'
 import { summarizePlan } from '@/lib/scheduling/plan-summary'
 import { rollUpProgress } from '@/lib/scheduling/progress'
-import { schedulePlan } from '@/lib/scheduling/schedule'
+import { programarConALAP } from '@/lib/scheduling/alap'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
 export interface PlanWorkspaceProps {
@@ -228,7 +228,7 @@ export function PlanWorkspace({
     // genérica de lunes a viernes e ignoraba los festivos del proyecto. Es el mismo fallo que tenía
     // el Calendario, y se arregla igual: el calendario llega de fuera o no llega.
     const calendar = calendario ? calendarioDesde(calendario) : createWorkCalendar()
-    const schedule = schedulePlan({
+    const schedule = programarConALAP({
       tasks,
       dependencies,
       calendar,
@@ -693,7 +693,7 @@ export function PlanWorkspace({
     if (!linea) return
 
     const conNuevaDuracion = tasks.map((t) => (t.id === id ? { ...t, duration: dias } : t))
-    const despues = schedulePlan({
+    const despues = programarConALAP({
       tasks: conNuevaDuracion,
       dependencies,
       calendar: base.calendar,

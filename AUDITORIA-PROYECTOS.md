@@ -79,7 +79,7 @@ tiempo real y deshacer.
 | 6 | Dependencias FS/SS/FF/SF con lag (§3.2) | **EXISTE · corregido SF** | `TaskDependency.linkType`+`lagDays`, `lib/scheduling/schedule.ts` | Los cuatro tipos y el desfase con signo. **SF llevaba un día de más**: hacía que la sucesora terminara el día *anterior* al arranque de la predecesora, y el §12 caso 6 dice justo lo contrario. Lo encontró la batería del §12 al escribirla. El plan de referencia no usa ningún SF, así que corregirlo no movió fechas | — | — |
 | 7 | Calendarios laborables (§3.1) | **PARCIAL** | `ProjectCalendar`, `ProjectHoliday`, `lib/scheduling/calendar.ts` | Existe día laborable y festivos; falta jornada horaria y calendarios por recurso | M | Medio |
 | 8 | CPM: ruta crítica y holgura (§3.3) | **EXISTE** | `lib/scheduling/cpm.ts`, `critical-path.ts` | Nada. Holgura total, crítica y súper crítica, con 22 pruebas | — | — |
-| 9 | Restricciones de tarea (§3.4) | **PARCIAL** | `WorkItem.constraintType/constraintDate`, `lib/scheduling/reschedule.ts` | Persistidos los dos tipos que el motor aplica; las otras seis del §3.4 no, a propósito | M | Bajo |
+| 9 | Restricciones de tarea (§3.4) | **CERRADA · las ocho** | `WorkItem.constraintType`, `lib/scheduling/schedule.ts`, `cpm.ts`, `alap.ts` | Las ocho del §3.4. `ASAP` es el comportamiento por omisión; las tres que **empujan** (`SNET`, `MSO`, `FNET`) mueven la tarea en el pase adelante; las tres que solo **comprometen** (`MFO`, `SNLT`, `FNLT`) bajan el techo de la fecha tardía y sacan la holgura negativa, sin mover nada. La octava, `ALAP`, no cabía donde caben las otras siete porque **no lleva fecha**: dónde va se sabe después del pase atrás, así que programar con ella es programar dos veces. Demostrado en pantalla sobre las 1368: la línea marcada se corre de 2026-07-24 a su fecha tardía 2026-11-17, su sucesora respeta el `SS+1`, se mueven 8 líneas y el cierre sigue en 2026-11-30. Falta la casilla en el diálogo de edición: hoy se marca por la base o por la ruta | M | Bajo |
 | 10 | Roll-up a resúmenes (§3.6) | **EXISTE** | `lib/scheduling/progress.ts` | Nada. Ponderado por trabajo, con hitos en peso cero | — | — |
 | 11 | Carga y sobrecarga de recursos (§3.7) | **PARCIAL · lo que falta es modelo** | `Resource`, `Assignment`, `services/resource.service.ts`, `app/api/v1/work-items/[id]/assignments/` | Ya hay alta y baja de asignación por ruta, con la misma regla de dedicación en servidor y pantalla. La fórmula **no** usa una constante: usa `dailyMinutes` del recurso, que es lo que el modelo permite. Falta `Assignment.work` y franjas horarias por día para que `minutosLaborables(cal, d)` pueda variar — las dos son del §2, que espera decisión | M | Medio |
 | 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | **El EDT ya es estable**: la línea nueva nace con puesto al final, así que añadir una no renumera nada. Falta `sortOrder` como columna propia con su índice (hoy es `templateOrder`, nulable y global al proyecto) y el tope de 16 niveles. El EDT sí está en el Gantt, como columna del catálogo | M | Medio |
@@ -102,7 +102,7 @@ tiempo real y deshacer.
 | 24 | Deshacer / rehacer (§10.6) | **CERRADA** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Los **vínculos** ya se deshacen: el tipo creció con un canal propio, porque un vínculo no es un campo de una línea —vive entre dos— y su inversa no es «el valor de antes» sino la operación contraria. Comprobado en pantalla: 1665 → 1666 → 1665. Las altas y las bajas también: crear una línea la deja en 4 y deshacer la devuelve a 3; borrar una con vínculo baja a 2 líneas y 0 vínculos, y deshacer devuelve las dos cosas. Lo único fuera es arrastrar fechas, excluido a propósito porque pasa por la previsualización | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
 
-**Recuento:** 15 PARCIAL · 4 EXISTE · 3 EXISTE PERO MAL · 2 NO EXISTE · 1 NO APLICA. Total 25 filas.
+**Recuento (19/08/2026, contado de las filas):** 14 CERRADA · 6 PARCIAL · 3 EXISTE · 3 EXISTE PERO MAL · 3 NO EXISTE · 1 NO APLICA. Total 30 filas.
 
 > **Nota de método (18/08/2026).** Este recuento estuvo mal escrito durante toda una
 > sesión: sumaba 26 sobre 25 filas y nadie lo tocó al declarar diez cierres. Ahora se
@@ -1121,6 +1121,77 @@ piden hora del día, y el motor está sobre ordinales de día hábil a propósit
 duración en minutos del §2. Ponerles una prueba que pase con días redondos sería decir que están
 cubiertos.
 
-**El caso 24 pasa con margen**: 10 000 tareas y 8 000 enlaces por debajo de los 400 ms que pide el
-spec, y el pase atrás del CPM también — que no lo pide, pero en la pantalla los dos ocurren seguidos
-y quien espera no distingue cuál tardó.
+**El caso 24 pasa, pero la prueba estaba mal escrita.** Medía 10 000 tareas contra un tope de 400 ms
+de reloj, y eso **fallaba dentro de la suite completa y pasaba sola**: 676 ms acompañada, 119 ms el
+archivo entero por su cuenta. No medía el motor, medía cuántos núcleos libres había. Ahora mide la
+**forma de la curva** —×10 el tamaño tiene que costar muy por debajo de ×100—, que es la afirmación
+que de verdad separa un motor que aguanta de uno con un recorrido cuadrático escondido, y que es
+inmune a la contención porque una máquina ocupada frena las dos medidas por igual. El tope absoluto
+se queda como red, generoso a propósito. Lo mismo para el pase atrás del CPM.
+
+---
+
+## §3.4 · `ALAP`, la octava restricción, y por qué no cabía donde caben las otras siete
+
+El §3.4 pide ocho. Siete estaban: `ASAP` es el comportamiento por omisión y las seis con fecha
+—`SNET`, `SNLT`, `FNET`, `FNLT`, `MSO`, `MFO`— viven repartidas entre `constraint` y `compromiso`.
+Faltaba `ALAP`, y faltaba por una razón de fondo, no por olvido.
+
+**Las otras siete se resuelven mirando una fecha. `ALAP` no tiene fecha.** Dice «ponla donde más
+tarde quepa sin mover el cierre», y dónde es eso no se sabe hasta haber hecho el pase atrás — que a
+su vez necesita el pase adelante hecho. La restricción depende del resultado del cálculo que la
+aplica. Por eso vive en `lib/scheduling/alap.ts` y no en `schedule.ts`: programar con `ALAP` es
+programar **dos veces**.
+
+**Y una segunda vuelta basta.** Las fechas tardías no dependen de las predecesoras: salen del cierre
+hacia atrás, por la cadena de sucesoras. Clavar una tarea más tarde no cambia el inicio tardío de
+nadie, y no puede atrasar el cierre, porque el inicio tardío es por definición el último sitio donde
+la tarea cabe sin atrasarlo. Hay prueba de eso: volver a programar sobre el resultado no mueve nada.
+
+Sin ninguna tarea marcada, `programarConALAP` devuelve **exactamente** lo que devuelve
+`schedulePlan`, y sin pagar el pase atrás. Es lo que permitió sustituir la llamada en las cinco
+superficies que programan el plan para pintarlo —Gantt, Lista, Esquema, Calendario y el panel de
+detalle— sin auditar a nadie. Sustituirlas en las cinco no es celo: dejar una fuera habría dado dos
+fechas distintas para la misma línea según la pestaña, que es el defecto que ya apareció dos veces
+esta sesión —con «atrasada» y con «resumen»—.
+
+### Demostrado en pantalla, sobre las 1368 líneas
+
+La candidata no se eligió a mano: es la hoja con más holgura **que tenga sucesoras**, de las 36 que
+cumplen las dos cosas (`scripts/alap-en-pantalla.ts`). Una línea sin sucesoras también vale, pero
+enseña el caso flojo: su fecha tardía es el cierre del plan, así que la barra pega un salto al final
+en vez de ajustarse contra algo.
+
+Con la marca puesta y sin ella, leyendo la pantalla de Elementos de Trabajo con el árbol desplegado
+—**1368 filas en pantalla las dos veces**—:
+
+| línea | sin la marca | con la marca |
+|---|---|---|
+| Definir la centralización de registros *(la marcada, 82 d de holgura)* | 2026-07-24 → 2026-07-27 | **2026-11-17 → 2026-11-18** |
+| Definir CloudWatch… *(su sucesora, `SS+1`)* | 2026-07-27 | **2026-11-18** |
+| Definir las alarmas *(aguas abajo)* | 2026-07-28 | **2026-11-19** |
+| Presentar el plan de trabajo de Mobilize *(otra rama)* | 2026-06-12 → 2026-06-18 | *sin moverse* |
+
+Las fechas que muestra la pantalla son exactamente las tardías que había calculado el pase atrás
+—`2026-11-17 → 2026-11-18`—, la sucesora respeta su `SS+1` al día hábil, se movieron **8 líneas** —la
+marcada y su cadena aguas abajo, ninguna más— y **el cierre del plan no se movió**: 2026-11-30 antes
+y después.
+
+### Lo que la restricción cuesta, y que conviene decir
+
+Poner una línea `ALAP` es **gastarle toda la holgura**: pasa a holgura cero y cualquier tropiezo
+atrasa el plan. Hay prueba con ese nombre. Sirve para lo que se compra o se contrata justo a tiempo
+—pedir el equipo lo más tarde posible sin retrasar la salida a producción es dinero que se queda en
+caja unas semanas—, y no sirve para el trabajo propio del equipo: poner todo `ALAP` es programar el
+proyecto entero sin margen.
+
+Dos casos en que el resultado no es el ideal, y el motor no los disimula: si quien lleva la tarea no
+está disponible en su fecha tardía, el pase adelante la desliza y sale con **holgura negativa** —que
+es el aviso correcto: ahí, con esa gente, no cabe—; y una línea sin sucesoras se va al cierre del
+plan, que es lo que «maximizar el fin» significa y lo que hace MS Project.
+
+Con esto el §3.4 queda entero: las ocho.
+
+El plan de referencia quedó como estaba, y ahora eso se cuenta en vez de afirmarse
+(`scripts/verificar-referencia.ts`): **1368 líneas, 1665 vínculos, cierre 2026-11-30, 0 restricciones
+guardadas, 0 avance capturado**.

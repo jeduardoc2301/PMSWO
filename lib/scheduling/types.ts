@@ -159,6 +159,21 @@ export interface PlanTask {
    * algo y qué se prometió— y una tarea puede tener las dos a la vez.
    */
   readonly compromiso?: Constraint
+  /**
+   * `ALAP` (§3.4): la tarea va lo más tarde que quepa sin mover el cierre del plan.
+   *
+   * Es booleano y no un valor más de `ConstraintType` porque no lleva fecha: las otras siete
+   * restricciones se responden mirando una fecha, y esta se responde haciendo el pase atrás. Meterla
+   * en la unión obligaría a inventarle una `date` que nadie escribe y que todo el que lee tendría
+   * que aprender a ignorar.
+   *
+   * Y va en su propio campo, no en `constraint`, por la misma razón que `compromiso`: el plan que
+   * llega del servidor ancla cada línea en su fecha guardada y ese ancla ocupa `constraint`.
+   *
+   * Lo aplica `programarConALAP` en `alap.ts`, no `schedulePlan`. Un plan programado con
+   * `schedulePlan` a secas la ignora, que es lo correcto: sin pase atrás no hay dónde ponerla.
+   */
+  readonly alap?: boolean
   /** Clase de línea. Por omisión, actividad del proveedor. */
   readonly kind?: TaskKind
   /** Quién responde. Si se omite, se deduce de la clase de línea. */

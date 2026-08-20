@@ -21,7 +21,7 @@ import { calendarioDesde, type DefinicionDeCalendario } from '@/lib/scheduling/p
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { type GanttRow, ganttLayout } from '@/lib/scheduling/gantt'
-import { schedulePlan } from '@/lib/scheduling/schedule'
+import { programarConALAP } from '@/lib/scheduling/alap'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
 interface PlanRemoto {
@@ -105,7 +105,7 @@ export function usarPlanParaElDetalle(projectId: string, activo: boolean): PlanP
   return useMemo((): PlanParaElDetalle => {
     if (plan === null || plan.tasks.length === 0) return { ...VACIO, cargando, error }
     const calendar = calendarioDesde(plan.calendar)
-    const schedule = schedulePlan({
+    const schedule = programarConALAP({
       tasks: plan.tasks,
       dependencies: plan.dependencies,
       calendar,

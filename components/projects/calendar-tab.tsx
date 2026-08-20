@@ -29,7 +29,7 @@ import { type CalendarTask } from '@/lib/scheduling/calendar-layout'
 import { toDayNumber } from '@/lib/scheduling/date'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
-import { schedulePlan } from '@/lib/scheduling/schedule'
+import { programarConALAP } from '@/lib/scheduling/alap'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
 interface PlanRemoto {
@@ -170,7 +170,7 @@ export function CalendarTab({
     // lo contrario de lo que su propio comentario de cabecera prometía.
     const calendar = calendarioDesde(plan.calendar)
     // Las fechas programadas salen del motor, no de la base: es la misma verdad que ve el Gantt.
-    const schedule = schedulePlan({
+    const schedule = programarConALAP({
       tasks: plan.tasks,
       dependencies: plan.dependencies,
       calendar,
