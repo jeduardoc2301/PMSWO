@@ -3332,3 +3332,35 @@ previas en `cambios[].antes` y la pila las repone.
 Y un código que no reconocemos **también avisa**: si hay algo guardado que no sabemos leer, avisar de
 más es mejor que borrarlo callando.
 
+---
+
+## §12 caso 24 — dejé de cronometrar y me puse a contar
+
+La prueba de linealidad se puso roja **cuatro veces** con el motor intacto, y las cuatro la arreglé
+mal: primero equilibrando el trabajo, luego cambiando qué se compara. Seguía siendo un cronómetro.
+
+Los números dicen por qué no podía funcionar. Las razones reales quedaban en **2.06 y 2.60** contra
+un tope de 3: entre un 15 y un 45 % de margen. Esta suite corre **ciento ochenta archivos en
+paralelo**; ahí un ruido de medio segundo es lo normal, no la excepción.
+
+### Contar visitas, no milisegundos
+
+Un `Proxy` por vínculo cuenta cada vez que el motor mira uno de sus campos. No toca el código de
+producción — lo que se mide es cuántas veces lo recorre, que es exactamente la pregunta que la
+prueba quería hacer.
+
+| al doblar el plan de 5 000 a 10 000 | razón |
+|---|---:|
+| con el reloj, pase adelante | 2.06 |
+| con el reloj, pase atrás | 2.60 |
+| **contando, los dos pases** | **2** |
+
+Exactamente 2. No 2.06 ni 1.98: **2**, en las seis corridas seguidas que hice. Eso es lo que da un
+conteo determinista, y es lo que un cronómetro no puede dar en una máquina compartida.
+
+La aserción se validó bajando el tope a 1.9 — se pone roja nombrando el 2. Y lleva un **suelo** de
+1.5 además del techo: sin él, algo que no dependiera del tamaño pasaría por vacía.
+
+El reloj no se fue del todo: queda el tope absoluto de tres segundos, que es la red contra una
+regresión de orden de magnitud y tiene margen de sobra para no flaquear.
+

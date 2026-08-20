@@ -288,39 +288,78 @@ describe('§12 caso 24 · 10 000 tareas y 8 000 enlaces', () => {
   })
 
   /**
-   * Se comparan **dos tamaños grandes**, no diez planes chicos contra uno grande.
+   * La linealidad se comprueba **contando**, no cronometrando.
    *
-   * La forma anterior metió en la medida algo que no quería medir: reservar un mapa de diez mil
-   * entradas de una vez no cuesta lo mismo que reservar diez de mil, y esa diferencia es de la
-   * máquina, no del algoritmo. Se puso roja **tres veces** por eso, con el pase atrás intacto.
+   * La versión con reloj se puso roja **cuatro veces** con el motor intacto. Primero comparaba diez
+   * planes de mil contra uno de diez mil —y medía también reservar memoria—; corregida a dos tamaños
+   * grandes, las razones reales quedaron en 2.06 y 2.60 contra un tope de 3, o sea entre un 15 y un
+   * 45 % de margen. Esta suite corre ciento ochenta archivos en paralelo: ahí el ruido de medio
+   * segundo es lo normal, no la excepción.
    *
-   * Así la señal es limpia: doblar el tamaño debe doblar el tiempo. Lineal da ≈2, cuadrático da
-   * ≈4, y el tope en 3 separa las dos cosas con margen para el ruido.
+   * Contar visitas a los vínculos mide **el algoritmo** y da el mismo número en una máquina en
+   * reposo y en una hirviendo. Lineal da ≈2 al doblar el plan; cuadrático daría ≈4.
+   *
+   * El reloj no se va del todo: abajo queda el tope absoluto de tres segundos, que es la red contra
+   * una regresión de orden de magnitud y tiene margen de sobra para no flaquear.
    */
+  function planContado(n: number): {
+    tasks: PlanTask[]
+    dependencies: Dependency[]
+    visitas: () => number
+  } {
+    const { tasks, dependencies } = planEnCadena(n)
+    let visitas = 0
+    // Un `Proxy` por vínculo: cada vez que el motor mira uno de sus campos, se cuenta. No toca el
+    // código de producción — lo que se mide es cuántas veces lo recorre, que es justo la pregunta.
+    const contados = dependencies.map((d) =>
+      new Proxy(d, {
+        get(destino, campo, receptor) {
+          visitas += 1
+          return Reflect.get(destino, campo, receptor)
+        },
+      }),
+    )
+    return { tasks, dependencies: contados, visitas: () => visitas }
+  }
+
+  /** Lineal da ≈2 al doblar. Se deja hasta 3; cuadrático daría ≈4. */
   const CRECE_AL_DOBLAR = 3
 
-  it('crece de forma lineal: doblar el plan dobla el tiempo, no lo cuadruplica', () => {
-    const cincoMil = planEnCadena(5_000)
-    const diezMil = planEnCadena(10_000)
+  it('crece de forma lineal: doblar el plan dobla el trabajo, no lo cuadruplica', () => {
+    const mitad = planContado(5_000)
+    const entero = planContado(10_000)
 
-    const mitad = mejorDeTres(() => programar(cincoMil.tasks, cincoMil.dependencies))
-    const entero = mejorDeTres(() => programar(diezMil.tasks, diezMil.dependencies))
+    programar(mitad.tasks, mitad.dependencies)
+    programar(entero.tasks, entero.dependencies)
 
-    expect(entero / Math.max(mitad, 0.01)).toBeLessThan(CRECE_AL_DOBLAR)
+    const razon = entero.visitas() / mitad.visitas()
+    expect(mitad.visitas()).toBeGreaterThan(0)
+    expect(razon).toBeLessThan(CRECE_AL_DOBLAR)
+    // Y no sólo «no se dispara»: tiene que **crecer**, o estaríamos midiendo algo que no depende
+    // del tamaño y la prueba pasaría por vacía.
+    expect(razon).toBeGreaterThan(1.5)
   })
 
   it('y el pase atrás del CPM tampoco se dispara', () => {
     // El tope del spec es para `schedule()`, pero un pase atrás lento haría inútil la cifra: en la
     // pantalla los dos ocurren seguidos y quien espera no distingue cuál tardó.
-    const cincoMil = planEnCadena(5_000)
-    const diezMil = planEnCadena(10_000)
-    const sMitad = programar(cincoMil.tasks, cincoMil.dependencies)
-    const sEntero = programar(diezMil.tasks, diezMil.dependencies)
+    const mitad = planContado(5_000)
+    const entero = planContado(10_000)
+    const sMitad = programar(mitad.tasks, mitad.dependencies)
+    const sEntero = programar(entero.tasks, entero.dependencies)
 
-    const mitad = mejorDeTres(() => void analyzeCriticalPath(sMitad))
-    const entero = mejorDeTres(() => void analyzeCriticalPath(sEntero))
+    // Se cuenta sólo lo que añade el pase atrás, descontando lo que gastó el de adelante.
+    const antesMitad = mitad.visitas()
+    const antesEntero = entero.visitas()
+    analyzeCriticalPath(sMitad)
+    analyzeCriticalPath(sEntero)
+    const deMitad = mitad.visitas() - antesMitad
+    const deEntero = entero.visitas() - antesEntero
 
-    expect(entero / Math.max(mitad, 0.01)).toBeLessThan(CRECE_AL_DOBLAR)
+    expect(deMitad).toBeGreaterThan(0)
+    const razon = deEntero / deMitad
+    expect(razon).toBeLessThan(CRECE_AL_DOBLAR)
+    expect(razon).toBeGreaterThan(1.5)
   })
 
   it('en una máquina en reposo las 10 000 se programan bien por debajo del segundo', () => {
