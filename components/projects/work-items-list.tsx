@@ -517,28 +517,25 @@ export function WorkItemsList({
   /**
    * Exportar lo que se está viendo (§6.2).
    *
-   * Las filas son `filteredWorkItems`, o sea las que el filtro dejó pasar, y las columnas son las
-   * que esta tabla dibuja. Exportar el plan entero cuando en pantalla hay ochocientas veintidós
-   * sería un informe de otra cosa: quien lo abre no podría contrastarlo con lo que estaba mirando,
-   * y ese contraste es para lo que se exporta.
+   * Las filas son `filteredWorkItems`, o sea las que el filtro dejó pasar. Exportar el plan entero
+   * cuando en pantalla hay ochocientas veintidós sería un informe de otra cosa: quien lo abre no
+   * podría contrastarlo con lo que estaba mirando, y ese contraste es para lo que se exporta.
+   *
+   * **Y las columnas son las que la tabla dibuja**, no el catálogo entero. Este comentario ya decía
+   * «las que esta tabla dibuja» y el código de debajo llevaba las nueve escritas a mano: quien apagaba
+   * cuatro columnas para poder leer la tabla se encontraba las nueve en el CSV. La frase era la
+   * correcta; lo que fallaba era que nadie la volvió a leer cuando el panel de Campos llegó después.
+   *
+   * Se exporta lo que se ve también en el sentido literal: `columnasDeLaTabla` sale de la misma
+   * preferencia que dibuja las cabeceras, así que el CSV y la pantalla no pueden divergir.
    */
   const exportar = (): void => {
-    const columnas = [
-      { id: 'title', etiqueta: 'Línea del plan' },
-      { id: 'status', etiqueta: 'Estado' },
-      { id: 'priority', etiqueta: 'Prioridad' },
-      { id: 'ownerName', etiqueta: 'Responsable' },
-      { id: 'phase', etiqueta: 'Fase' },
-      { id: 'startDate', etiqueta: 'Inicio' },
-      { id: 'estimatedEndDate', etiqueta: 'Fin' },
-      { id: 'estimatedHours', etiqueta: 'Horas estimadas' },
-      { id: 'progressPct', etiqueta: 'Avance' },
-    ]
+    const columnas = columnasDeLaTabla.map((c) => ({ id: c.id, etiqueta: c.etiqueta }))
 
     const texto = csvDeLaLista({
       columnas,
       filas: filteredWorkItems as unknown as Record<string, unknown>[],
-      contexto: `${filteredWorkItems.length} de ${workItems.length} líneas · ${hoyCivil()}`,
+      contexto: `${filteredWorkItems.length} de ${workItems.length} líneas · ${columnas.length} de ${COLUMNAS_DE_LA_LISTA.length} columnas · ${hoyCivil()}`,
       valorDe: (fila, id) => {
         const v = fila[id]
         if (v === undefined || v === null || v === '') return null

@@ -85,7 +85,7 @@ tiempo real y deshacer.
 | 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | **El EDT ya es estable**: la línea nueva nace con puesto al final, así que añadir una no renumera nada. Falta `sortOrder` como columna propia con su índice (hoy es `templateOrder`, nulable y global al proyecto) y el tope de 16 niveles. El EDT sí está en el Gantt, como columna del catálogo | M | Medio |
 | 13 | Vista Gantt (§4) | **CERRADA** | `components/plan/gantt-chart.tsx`, `plan-workspace.tsx`, `fields-panel.tsx`, `lib/plan/gantt-columns.ts` | **8 de 8 criterios del §4.8, cada uno demostrado en pantalla** (ver la bitácora). Del §4.2 queda fuera el catálogo completo de columnas —presupuesto, tiempo registrado, campos personalizados— porque necesita modelos que no existen. Del §4.3 están ya las **cinco** escalas que este motor puede dibujar —día, semana, mes, trimestre y año, con cabecera de dos filas y el ancho de día atado al zoom—; la sexta, la hora, no cabe contra un motor de ordinales de día hábil y eso es del §2.1 | L | Medio |
 | 14 | Vista Tablero (§5) | **CERRADA** | `components/projects/kanban-board.tsx`, `lib/projects/kanban-group.ts`, `columnas-del-tablero.tsx` | Arrastre, urgencias, avance, atraso, y las dos que faltaban: agrupar por estado, prioridad o responsable —comprobado en pantalla, la barra se reconstruye sin recargar: 5 columnas por estado, 4 por prioridad, 5 por responsable— y columnas configurables desde el propio tablero | M | Bajo |
-| 15 | Vista Lista (§6) | **CERRADA** | `work-items-outline.tsx`, `work-items-list.tsx`, `lib/projects/list-totals.ts` | **5 de 5 criterios del §6.3, cada uno demostrado en pantalla** (ver la bitácora). Del §6.2 queda fuera el panel de Campos propio y la exportación de la vista; de los totales, presupuesto y costo real, que no existen como campos | S | Bajo |
+| 15 | Vista Lista (§6) | **CERRADA** | `work-items-outline.tsx`, `work-items-list.tsx`, `lib/projects/list-totals.ts` | **5 de 5 criterios del §6.3, cada uno demostrado en pantalla** (ver la bitácora). Del §6.2 están el panel de Campos propio y la exportación **de la vista** —que llevaba las nueve columnas escritas a mano bajo un comentario que prometía «las que esta tabla dibuja»—. Quedan presupuesto, costo real y tiempo registrado, que no existen como campos | S | Bajo |
 | 16 | Vista Calendario (§7) | **CERRADA (con una corrección)** | `lib/scheduling/calendar-layout.ts`, `components/projects/calendar-view.tsx`, `calendar-tab.tsx`, `services/reschedule.service.ts` | **6 de 6 criterios del §7.5 demostrados en pantalla — pero el 5 se dio por bueno de más y hubo que volver.** Mi demostración soltaba la barra sobre casillas vacías; un auditor cuyo encargo era refutarme encontró que soltar sobre **otra barra** no hacía nada, y eso es el 21 % de la rejilla y más de la mitad del alto útil de un día cargado. Corregido y vuelto a medir: de 0 % a 100 % de aceptación en los puntos que caen sobre una barra. La lección no es del Calendario: una demostración en pantalla que no busca el caso denso no es una demostración. Del §7.2 están ya la **vista semanal** y la de **agenda** —`calendarLayout` recibía `from` y `to` desde el principio, así que la semanal es el mismo cálculo con otro rango; la agenda no pasa por la rejilla porque una lista no tiene carriles—. Y **crear una tarea arrastrando un rango**, con las fechas recortadas a días hábiles. Y el calendario del proyecto sólo se puede **leer**: no hay pantalla ni ruta para crearlo — brecha 27 | L | Bajo |
 | 17 | Vista Carga de trabajo (§8) | **CERRADA** | `lib/scheduling/workload.ts`, `components/projects/workload-*.tsx` | **6 de 6 criterios del §8.5, cada uno demostrado en pantalla** (ver la bitácora). Es la única vista que no necesitó tocar código: estaba bien y lo que faltaba era recorrerla. Del §8.2 queda fuera el calendario por recurso —hay jornada diaria y ausencias, no semana laboral propia— | L | Medio |
 | 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | **5 de 6 criterios del §9.3 demostrados en pantalla, y el sexto a medias** (ver la bitácora). Lo que falta no es del panel: la aplicación **no tiene modo claro** —ni `prefers-color-scheme`, ni clases `dark:`, ni conmutador— en ninguna de las seis vistas, así que «legibles en claro y oscuro» no se puede cumplir aquí. La otra mitad —accesibles sin depender sólo del color— sí | L | Bajo |
@@ -1761,3 +1761,51 @@ Sin permiso para crear líneas **no hay gesto**: un rango que se pinta y no llev
 peor que no poder pintarlo.
 
 Con esto el §7.2 queda entero: mes, semana, agenda y crear arrastrando.
+
+---
+
+## §6.2 — el panel de Campos ya estaba; lo que no respetaba la elección era **exportar**
+
+Esta entrada empezó como «construir el panel de Campos de la Lista y la exportación de la vista», y
+al ir a construirlo resultó que **el panel existe y funciona**: `columnasVisiblesDeLaLista`, el
+catálogo con sus grupos, el ancho por columna y la preferencia propia. Lo dijo un agente cuyo
+encargo era mapear la tarea, y lo confirmó el que la refutó.
+
+Lo que faltaba era una línea, y era la que importa.
+
+### El comentario decía la verdad y el código de debajo no
+
+La función de exportar llevaba escrito encima: «las filas son las que el filtro dejó pasar, y **las
+columnas son las que esta tabla dibuja**». Debajo, las nueve del catálogo escritas a mano.
+
+Quien apagaba cuatro columnas para poder leer la tabla se encontraba las nueve en el CSV. La frase
+era la correcta desde el principio; lo que falló es que nadie la volvió a leer cuando el panel de
+Campos llegó **después**.
+
+Ahora las columnas salen de `columnasDeLaTabla`, que es la misma variable que dibuja las cabeceras:
+el CSV y la pantalla no pueden divergir porque son el mismo array. Y la cabecera del fichero lo dice
+en números, junto a las líneas.
+
+### Medido en pantalla
+
+```
+1. Campos (9)   CSV:  "1368 de 1368 líneas · 9 de 9 columnas · 2026-08-19"
+2. se apagan Prioridad, Responsable y Fase
+   Campos (6)   CSV:  "1368 de 1368 líneas · 6 de 9 columnas · 2026-08-19"
+3. devueltas: Campos (9)
+```
+
+### Nota de método, la cuarta de la sesión
+
+Dos intentos fallidos antes de esta medición, los dos míos:
+
+1. El botón. Hay **dos** que empiezan por «Exportar» —el del proyecto entero y el de la Lista— y mi
+   sonda pulsaba el primero, así que el fichero nunca llegaba al atrapador. Se distingue porque el de
+   la Lista lleva las líneas entre paréntesis.
+2. La expresión regular. Escribí `^Exportar \(` dentro de un literal de plantilla que va a la
+   página, el escape se degradó y el paréntesis rompió el grupo. El encabezado de `cdp2.mjs` lo
+   advierte con todas las letras — lo escribí yo mismo, y volví a caer.
+
+Lo que queda del §6.2 son las columnas de presupuesto, costo real y tiempo registrado: no existen
+como campos en el modelo, y ofrecer una columna que siempre sale vacía es peor que no ofrecerla —
+parece un dato y es un hueco.
