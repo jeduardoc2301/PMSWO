@@ -172,6 +172,13 @@ export interface WorkItemSummary {
    * no señalaba nada.
    */
   createdAt?: string
+  /**
+   * Los valores de los campos personalizados de esta línea, por identificador de campo (§2).
+   *
+   * Viajan con el resumen y no en una consulta aparte porque el filtro unificado los necesita para
+   * **cada** línea: pedirlos uno a uno serían mil trescientos viajes.
+   */
+  customFields?: Readonly<Record<string, unknown>>
   /** Avance real de 0 a 1, el mismo que captura el esquema del plan. */
   progressPct?: number
   /** El responsable con nombre —persona real, no cuenta—, si la línea vino de un plan. */

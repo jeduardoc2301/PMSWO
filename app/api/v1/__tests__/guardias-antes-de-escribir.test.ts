@@ -30,6 +30,7 @@ const PUERTAS = [
   'app/api/v1/projects/[id]/work-items/reorder/route.ts',
   'app/api/v1/projects/[id]/work-items/restore/route.ts',
   'app/api/v1/projects/[id]/columns/route.ts',
+  'app/api/v1/projects/[id]/custom-fields/route.ts',
   'app/api/v1/projects/[id]/calendar/route.ts',
   'app/api/v1/projects/[id]/collaborators/route.ts',
   // Las cinco que salían del barrido: tenían permiso de **organización** —`PROJECT_UPDATE`— y
@@ -173,6 +174,6 @@ describe('§10.1 · el permiso se pregunta antes de escribir, en todas las puert
     // El otro fallo posible es que se añada una puerta nueva y nadie la meta aquí. No se puede
     // recorrer el disco desde una prueba de vitest sin traer un buscador entero, así que al menos se
     // fija la cuenta: si crece, alguien tiene que venir a mirar esta lista.
-    expect(PUERTAS.length).toBe(15)
+    expect(PUERTAS.length).toBe(16)
   })
 })

@@ -17,6 +17,8 @@ import { useUndo } from '@/components/projects/use-undo'
 import { type Cambio, type LadoDeOperacion, operacionDesde, vaPorLaRutaDeReprogramar } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { BotonDeActualizar } from '@/components/projects/boton-de-actualizar'
+import { type CampoPersonalizado } from '@/lib/projects/campos-personalizados'
+import { declararCampos } from '@/lib/projects/campos-en-el-filtro'
 import { ConmutadorDeTema } from '@/components/projects/conmutador-de-tema'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
@@ -145,6 +147,13 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
    * sólo se sostiene si la pantalla dice su edad: sin ella, el botón de actualizar es el mismo
    * problema con un botón más.
    */
+  /**
+   * El catálogo de campos personalizados de este proyecto (§2, §10.2).
+   *
+   * Llega **con los archivados dentro**: un filtro guardado puede apuntar a uno que alguien retiró,
+   * y quitarlo del catálogo haría que ese filtro dejara de decir la verdad en silencio.
+   */
+  const [camposPropios, setCamposPropios] = useState<readonly CampoPersonalizado[]>([])
   const [cargadoEn, setCargadoEn] = useState<number | null>(null)
   const [actualizando, setActualizando] = useState(false)
 
@@ -332,6 +341,15 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   }
 
   useEffect(() => { fetchProject() }, [projectId])
+
+  useEffect(() => {
+    let vigente = true
+    void fetch(`/api/v1/projects/${projectId}/custom-fields`)
+      .then((r) => (r.ok ? r.json() : { campos: [] }))
+      .then((cuerpo) => { if (vigente) setCamposPropios(cuerpo.campos ?? []) })
+      .catch(() => { /* sin catálogo se filtra por los campos de siempre, que es lo que había antes */ })
+    return () => { vigente = false }
+  }, [projectId])
 
   const refreshMetrics = async () => {
     try {
@@ -578,12 +596,13 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           // El §10.2 pide «fecha de creación» entre los criterios, y el campo estaba en el selector
           // leyendo algo que nadie rellenaba: filtrar por «creada después de» dejaba pasar las 1 368.
           createdAt: w.createdAt,
+          customFields: w.customFields,
           // Sin esto el filtro no puede saber quién es resumen —«ser resumen» es tener hijas, y eso
           // no se ve mirando una línea sola— y «Es resumen» respondía que no de las 1368.
           parentId: w.parentId ?? null,
         })) as LineaFiltrable[],
         filtro,
-        { hoy: hoyDelFiltro },
+        { hoy: hoyDelFiltro, camposPropios: declararCampos(camposPropios) },
       )
     : []
   const idsFiltrados = new Set(lineasFiltradas.map((l) => l.id))

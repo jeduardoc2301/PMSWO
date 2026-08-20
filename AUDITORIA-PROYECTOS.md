@@ -3114,3 +3114,55 @@ El informe decía que `var()` no resuelve en un atributo de presentación SVG, y
 gráficos de recharts se romperían. Comprobado en el navegador: `fill="var(--acento)"` computa a
 `rgb(79, 70, 229)`. **Sí resuelve.**
 
+---
+
+## §2, §10.2 — campos personalizados: los nueve tipos, y qué significa filtrar por una lista
+
+Segunda migración autorizada. El spec los declara en el modelo —`CustomField` con su `type` y sus
+`options`— y los pide en dos sitios más: entre los criterios del filtro unificado («todos los campos
+personalizados») y en el catálogo de columnas del §4.2.
+
+### Tres de los nueve guardan listas, y eso cambia los operadores
+
+`MULTISELECT`, `PEOPLE` y `TAGS` no guardan un valor: guardan **varios**. Y sobre una lista, los
+operadores de siempre significan otra cosa:
+
+- «es igual a» pasa a ser **«contiene»** — una línea etiquetada `[riesgo, banco]` responde que sí a
+  «etiqueta = riesgo»; preguntar por igualdad exacta contra una lista no le sirve a nadie.
+- los de **orden** —mayor, menor, entre— no aplican: una lista no es mayor que otra. No se ofrecen.
+
+Ofrecer un operador que no significa nada es peor que no ofrecerlo: quien lo elige obtiene un
+resultado, y el resultado es basura con pinta de dato.
+
+### La trampa que esto evita
+
+Dentro del `switch` general el valor se convierte a texto, y `['riesgo','banco']` convertido a texto
+es `'riesgo,banco'`. Entonces «contiene banco» acertaría **por casualidad** — y «contiene esgo,ban»
+también. Es la clase de acierto que hace que un filtro parezca funcionar hasta el día que no.
+
+### Se archivan, no se borran
+
+Es la decisión que gobierna el servicio entero, y no hay `DELETE` en la ruta. Un filtro guardado
+puede apuntar a un campo, y el §10.2 dice que los filtros se guardan con nombre y se comparten.
+Borrarlo dejaría el filtro señalando algo que nadie conoce — y el filtro **no avisaría**:
+devolvería cero líneas y parecería que no hay nada que enseñar.
+
+Por eso el catálogo se lee **con los archivados dentro**, y quien construye un filtro nuevo se queda
+con los vivos. Son dos decisiones distintas y por eso son dos funciones.
+
+### Lo que sale de la base no está tipado
+
+`value Json` es lo que permite nueve tipos en una tabla. El precio es que un campo declarado
+`NUMBER` puede tener guardada la cadena `"ocho"`. Todo pasa por `leerValor`, que devuelve `null` en
+vez de propagar la sorpresa — un `NaN` se propaga por todas las pantallas hasta salir como «—» donde
+nadie entiende por qué. Y en los de lista, un elemento corrupto no esconde a los tres que están
+bien.
+
+### Dos decisiones pequeñas con motivo
+
+- **La clave lleva prefijo** (`cf:`). Un campo personalizado llamado «status» existiría al lado del
+  estado de verdad y el filtro elegiría uno de los dos sin decir cuál. Y por si acaso, el catálogo
+  mezcla poniendo los de siempre **encima**, así que la garantía no depende de esa convención.
+- **La lista vacía pasa «no es ninguno de»**, igual que el valor ausente pasa «no es»: una línea sin
+  etiquetas **no está** etiquetada como riesgo.
+

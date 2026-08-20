@@ -20,6 +20,10 @@ vi.mock('@/lib/prisma', () => ({
     workItem: {
       findMany: vi.fn(),
     },
+    // Los valores de los campos personalizados del §2, que el tablero adjunta a cada línea.
+    customFieldValue: {
+      findMany: vi.fn(() => Promise.resolve([])),
+    },
     blocker: {
       count: vi.fn(),
       findMany: vi.fn(),

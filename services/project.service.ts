@@ -14,6 +14,7 @@ import {
 } from '@/types'
 import { z } from 'zod'
 import { healthConfigService } from './health-config.service'
+import { valoresDelProyecto } from './custom-field.service'
 
 // DTOs
 export interface CreateProjectDTO {
@@ -665,6 +666,10 @@ export class ProjectService {
     })
 
     // Map work items to summaries and group by column
+    // Los valores de los campos personalizados, de una vez y agrupados por línea: con mil
+    // trescientas líneas, pedirlos uno a uno serían mil trescientos viajes.
+    const valoresPorLinea = await valoresDelProyecto(project.id)
+
     const workItemSummaries: WorkItemSummary[] = project.workItems.map((item) => {
       // Add work item ID to the column's list
       const columnItems = workItemsByColumn.get(item.kanbanColumnId) || []
@@ -687,6 +692,8 @@ export class ProjectService {
         lastUpdatedAt: item.updatedAt.toISOString(),
         // El §10.2 lo pide como criterio del filtro unificado.
         createdAt: item.createdAt.toISOString(),
+        // Los campos personalizados del §2, para que el filtro unificado pueda usarlos.
+        customFields: valoresPorLinea.get(item.id),
         // La paridad con el esquema del plan: la tarjeta dice lo mismo que la tabla, o hay dos
         // verdades sobre la misma línea.
         progressPct: item.progressPct,

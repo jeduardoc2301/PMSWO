@@ -486,3 +486,79 @@ describe('§10.2 · un dato que falta no es ni anterior ni posterior a nada', ()
     expect(pasan.map((l) => l.id)).toEqual(['con-duenio'])
   })
 })
+
+describe('§10.2 · filtrar por un campo que guarda una lista', () => {
+  /**
+   * `MULTISELECT`, `PEOPLE` y `TAGS` no guardan un valor: guardan varios. Y sobre una lista, los
+   * operadores de siempre significan otra cosa — «es igual a» pasa a ser «contiene», y los de orden
+   * no significan nada.
+   *
+   * La trampa que esto evita: dentro del `switch` general el valor se convierte a texto, y
+   * `['riesgo','banco']` convertido a texto es `'riesgo,banco'`. Entonces «contiene banco» acertaría
+   * por casualidad **y «contiene esgo,ban» también** — que es la clase de acierto que hace que un
+   * filtro parezca funcionar hasta el día que no.
+   */
+  const conEtiquetas = (id: string, etiquetas: string[]) => ({
+    ...linea({ id }),
+    etiquetas,
+  }) as unknown as LineaFiltrable
+
+  const contexto = {
+    hoy: '2026-08-20' as never,
+    camposPropios: {
+      'cf:tags': {
+        tipo: 'lista' as const,
+        etiqueta: 'Etiquetas',
+        leer: (l: LineaFiltrable) => (l as unknown as { etiquetas?: string[] }).etiquetas ?? [],
+      },
+    },
+  }
+
+  const PLAN_CON_ETIQUETAS = [
+    conEtiquetas('a', ['riesgo', 'banco']),
+    conEtiquetas('b', ['banco']),
+    conEtiquetas('c', []),
+  ]
+
+  const filtroDe = (operator: string, value: unknown) =>
+    filtrar(PLAN_CON_ETIQUETAS, { op: 'AND', conditions: [{ field: 'cf:tags', operator, value } as never] }, contexto)
+
+  it('«contiene» encuentra a las que llevan esa etiqueta', () => {
+    expect(filtroDe('contains', 'banco').map((l) => l.id)).toEqual(['a', 'b'])
+  })
+
+  it('y no acierta por trozos de la lista convertida a texto', () => {
+    // `'riesgo,banco'.includes('esgo,ban')` es cierto. Aquí tiene que ser falso.
+    expect(filtroDe('contains', 'esgo,ban')).toEqual([])
+    expect(filtroDe('contains', 'riesgo,banco')).toEqual([])
+  })
+
+  it('«es alguno de» acepta varias', () => {
+    expect(filtroDe('in', ['riesgo', 'nube']).map((l) => l.id)).toEqual(['a'])
+  })
+
+  it('«no es ninguno de» es su contrario, y la vacía pasa', () => {
+    expect(filtroDe('not_in', ['riesgo']).map((l) => l.id)).toEqual(['b', 'c'])
+  })
+
+  it('«está vacío» encuentra la lista vacía', () => {
+    expect(filtroDe('is_empty', null).map((l) => l.id)).toEqual(['c'])
+  })
+
+  it('un operador de orden no coincide con nada, en vez de coincidir con todo', () => {
+    // Un filtro roto que no esconde nada es peor que uno que no enseña nada: el segundo se ve.
+    expect(filtroDe('gt', 'banco')).toEqual([])
+  })
+
+  it('un campo personalizado no puede tapar a uno de siempre', () => {
+    // Uno llamado «status» existiría al lado del estado de verdad, y el filtro elegiría sin decir cuál.
+    const conImpostor = {
+      hoy: '2026-08-20' as never,
+      camposPropios: {
+        status: { tipo: 'texto' as const, etiqueta: 'Impostor', leer: () => 'INVENTADO' },
+      },
+    }
+    const pasan = filtrar(PLAN, { op: 'AND', conditions: [{ field: 'status', operator: 'eq', value: 'TODO' } as never] }, conImpostor)
+    expect(pasan.map((l) => l.id)).toEqual(['a'])
+  })
+})

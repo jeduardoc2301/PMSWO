@@ -72,6 +72,13 @@ export interface LineaFiltrable {
   readonly ownerName?: string | null
   readonly clientOwner?: string | null
   readonly parentId?: string | null
+  /**
+   * Los valores de los campos personalizados de esta línea, por identificador de campo (§2).
+   *
+   * El filtro no los interpreta: los lee quien los declara —ver `campos-en-el-filtro.ts`—, que es
+   * lo que permite que este módulo no sepa nada de los nueve tipos del modelo.
+   */
+  readonly customFields?: Readonly<Record<string, unknown>>
 }
 
 export interface ContextoDelFiltro {
@@ -86,11 +93,30 @@ export interface ContextoDelFiltro {
    * exactamente el defecto que este campo tenía.
    */
   readonly resumenes?: ReadonlySet<string>
+  /**
+   * Los campos personalizados que este proyecto declara (§2, §10.2).
+   *
+   * Entran por el contexto y no por un registro global porque **cada proyecto declara los suyos**:
+   * un catálogo compilado no puede saberlos, y uno global haría que un filtro guardado en un
+   * proyecto pareciera válido en otro donde ese campo no existe.
+   *
+   * Se pasan **archivados incluidos**. Un filtro guardado puede apuntar a un campo que alguien
+   * archivó después, y quitarlo del catálogo haría que el filtro dejara de ser válido en silencio:
+   * devolvería cero líneas y parecería que no hay nada que enseñar.
+   */
+  readonly camposPropios?: Readonly<Record<string, CampoDeclarado>>
 }
 
-type Tipo = 'texto' | 'fecha' | 'numero' | 'booleano'
+/**
+ * De qué clase es un campo, para saber qué operadores admite.
+ *
+ * `lista` es el que llega con los campos personalizados (§2): `MULTISELECT`, `PEOPLE` y `TAGS` no
+ * guardan un valor, guardan **varios**, y sobre una lista los operadores significan otra cosa — ver
+ * `lib/projects/campos-personalizados.ts`.
+ */
+export type Tipo = 'texto' | 'fecha' | 'numero' | 'booleano' | 'lista'
 
-interface CampoDeclarado {
+export interface CampoDeclarado {
   readonly tipo: Tipo
   readonly leer: (linea: LineaFiltrable, contexto: ContextoDelFiltro) => unknown
   /** Cómo se llama en pantalla. */
@@ -98,12 +124,15 @@ interface CampoDeclarado {
 }
 
 /**
- * Los campos por los que se puede filtrar.
+ * Los campos **de siempre**, los que trae toda línea.
  *
- * `color` y los campos personalizados del spec no están: este modelo todavía no los tiene, y
- * declararlos aquí haría que un filtro guardado con ellos pareciera válido y no filtrara nada.
+ * Los personalizados no están aquí porque no se saben al compilar: los declara cada proyecto. Entran
+ * por `camposDe()`, que mezcla éstos con los que le pasen — ver `ContextoDelFiltro.camposPropios`.
+ *
+ * `color` sigue sin estar: el modelo no lo tiene, y declararlo haría que un filtro guardado con él
+ * pareciera válido y no filtrara nada.
  */
-export const CAMPOS: Readonly<Record<string, CampoDeclarado>> = {
+export const CAMPOS_BASE: Readonly<Record<string, CampoDeclarado>> = {
   title: { tipo: 'texto', etiqueta: 'Nombre', leer: (l) => l.title },
   status: { tipo: 'texto', etiqueta: 'Estado', leer: (l) => l.status },
   priority: { tipo: 'texto', etiqueta: 'Prioridad', leer: (l) => l.priority },
@@ -140,7 +169,30 @@ export const OPERADORES_POR_TIPO: Readonly<Record<Tipo, readonly Operador[]>> = 
   fecha: ['eq', 'neq', 'between', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'is_not_empty'],
   numero: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between'],
   booleano: ['eq'],
+  /**
+   * Los de orden no están, y no es una omisión: **una lista no es mayor que otra**.
+   *
+   * Y `eq` tampoco: sobre una lista, «es igual a» no le sirve a nadie — lo que se quiere preguntar
+   * es si la contiene. Por eso `contains` hace ese papel aquí.
+   */
+  lista: ['contains', 'in', 'not_in', 'is_empty', 'is_not_empty'],
 }
+
+/**
+ * El catálogo de campos que aplica en este contexto: los de siempre más los del proyecto.
+ *
+ * Los propios van **después** para que no puedan tapar a los de siempre. No debería hacer falta
+ * —sus claves llevan el prefijo `cf:`— pero el orden lo garantiza sin depender de esa convención:
+ * un campo personalizado que se llamara `status` existiría al lado del estado de verdad y el filtro
+ * elegiría uno de los dos sin decir cuál.
+ */
+export function camposDe(contexto?: Pick<ContextoDelFiltro, 'camposPropios'>): Readonly<Record<string, CampoDeclarado>> {
+  if (!contexto?.camposPropios) return CAMPOS_BASE
+  return { ...contexto.camposPropios, ...CAMPOS_BASE }
+}
+
+/** Compatibilidad: el catálogo sin campos de proyecto. */
+export const CAMPOS = CAMPOS_BASE
 
 export class FiltroInvalido extends Error {
   constructor(mensaje: string) {
@@ -233,7 +285,7 @@ function evaluarCondicion(
   linea: LineaFiltrable,
   contexto: ContextoDelFiltro,
 ): boolean {
-  const campo = CAMPOS[condicion.field]
+  const campo = camposDe(contexto)[condicion.field]
   // No debería llegar aquí sin validar; si llega, no coincide con nada en vez de coincidir con
   // todo. Un filtro roto que no esconde nada es peor que uno que no enseña nada: el segundo se ve.
   if (!campo) return false
@@ -249,7 +301,8 @@ function evaluarCondicion(
    * cuya fecha de creación no llegaba — las 1 368 — y «creada antes de» no dejaba pasar ninguna.
    * Un dato que falta no es ni anterior ni posterior a nada.
    *
-   * `neq` es la excepción razonable: «no es X» es cierto de una línea que no tiene valor.
+   * `neq` y `not_in` son la excepción razonable: «no es X» y «no es ninguno de» son ciertos de una
+   * línea que no tiene valor. Una línea sin etiquetas **no está** etiquetada como riesgo.
    */
   const vacio = estaVacio(valor)
 
@@ -259,11 +312,37 @@ function evaluarCondicion(
     case 'is_not_empty':
       return !vacio
     case 'neq':
+    case 'not_in':
       if (vacio) return true
       break
     default:
       if (vacio) return false
       break
+  }
+
+  /**
+   * Los campos que guardan una **lista** comparan por pertenencia, no por igualdad.
+   *
+   * Va antes del `switch` general porque ahí dentro `valor` se convierte a texto, y `['riesgo',
+   * 'banco']` convertido a texto es `'riesgo,banco'`: entonces «contiene banco» acertaría por
+   * casualidad y «contiene esgo,ban» también — que es exactamente la clase de acierto que hace que
+   * un filtro parezca funcionar hasta el día que no.
+   */
+  if (campo.tipo === 'lista') {
+    const suyos = new Set(Array.isArray(valor) ? valor.map((v) => aTextoComparable(v)) : [])
+    const buscados = (Array.isArray(esperado) ? esperado : [esperado]).map((v) => aTextoComparable(v))
+    switch (operador) {
+      case 'contains':
+      case 'in':
+        return buscados.some((b) => suyos.has(b))
+      case 'not_in':
+        return !buscados.some((b) => suyos.has(b))
+      default:
+        // Los de orden no aplican y el validador no los ofrece; si llega uno, no coincide con nada
+        // en vez de coincidir con todo. Un filtro roto que no esconde nada es peor que uno que no
+        // enseña nada: el segundo se ve.
+        return false
+    }
   }
 
   switch (operador) {
