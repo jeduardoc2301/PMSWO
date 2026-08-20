@@ -428,3 +428,78 @@ describe('§3.4 · el detalle dice por qué una línea no se mueve', () => {
     expect(screen.getByText(/INVENTADA/)).toBeTruthy()
   })
 })
+
+describe('§4.7 · la mitad editable del panel', () => {
+  it('sin las props, el nombre y el avance son texto', () => {
+    // El panel lo montan las seis vistas y no todas pueden escribir: el Panel de control entra por
+    // el widget de hitos, donde lo que hay son cifras agregadas. Un campo editable ahí prometería
+    // algo que la vista no sabe hacer.
+    dibujar()
+    expect(screen.queryByLabelText(/^Nombre de/)).toBeNull()
+  })
+
+  it('con onRenombrar, el nombre se edita con doble clic y guarda al pulsar Enter', () => {
+    const onRenombrar = vi.fn()
+    dibujar({ onRenombrar })
+
+    const celda = screen.getByText('Construir la red')
+    fireEvent.doubleClick(celda)
+    const campo = screen.getByLabelText('Nombre de «Construir la red»')
+    fireEvent.change(campo, { target: { value: 'Construir la red del banco' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+
+    expect(onRenombrar).toHaveBeenCalledWith('construye', 'Construir la red del banco')
+  })
+
+  it('un nombre vacío se rechaza en vez de guardarse', () => {
+    const onRenombrar = vi.fn()
+    dibujar({ onRenombrar })
+    fireEvent.doubleClick(screen.getByText('Construir la red'))
+    const campo = screen.getByLabelText('Nombre de «Construir la red»')
+    fireEvent.change(campo, { target: { value: '   ' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(onRenombrar).not.toHaveBeenCalled()
+  })
+
+  it('con onAvance, se teclea en porcentaje y se guarda de 0 a 1', () => {
+    // Convertir en el borde y no en cada llamador es lo que impide que una vista guarde 40 donde
+    // otra guarda 0,4.
+    const onAvance = vi.fn()
+    dibujar({ onAvance })
+    fireEvent.doubleClick(screen.getByText('40 %'))
+    const campo = screen.getByLabelText('Avance de «Construir la red», en porcentaje')
+    fireEvent.change(campo, { target: { value: '75' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(onAvance).toHaveBeenCalledWith('construye', 0.75)
+  })
+
+  it('admite la coma decimal y el signo de porcentaje', () => {
+    // Quien teclea «33,5 %» está diciendo algo perfectamente claro, y rechazarlo por la forma es
+    // hacerle aprender el formato del campo.
+    const onAvance = vi.fn()
+    dibujar({ onAvance })
+    fireEvent.doubleClick(screen.getByText('40 %'))
+    const campo = screen.getByLabelText('Avance de «Construir la red», en porcentaje')
+    fireEvent.change(campo, { target: { value: '33,5 %' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(onAvance).toHaveBeenCalledWith('construye', 0.335)
+  })
+
+  it('un avance fuera de 0 a 100 se rechaza', () => {
+    const onAvance = vi.fn()
+    dibujar({ onAvance })
+    fireEvent.doubleClick(screen.getByText('40 %'))
+    const campo = screen.getByLabelText('Avance de «Construir la red», en porcentaje')
+    fireEvent.change(campo, { target: { value: '130' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(onAvance).not.toHaveBeenCalled()
+  })
+
+  it('un resumen NO ofrece capturar avance: lo acumula de sus hijas', () => {
+    // Ofrecer el campo ahí sería ofrecer un valor que el próximo cálculo pisa sin avisar (§3.6).
+    const onAvance = vi.fn()
+    dibujar({ onAvance, row: fila({ hasChildren: true, isSummary: true }) })
+    expect(screen.queryByLabelText(/^Avance de/)).toBeNull()
+    expect(screen.getByText(/se acumula de sus líneas/)).toBeInTheDocument()
+  })
+})

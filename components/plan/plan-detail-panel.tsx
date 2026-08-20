@@ -12,6 +12,7 @@
 
 import { type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 import { restriccion } from '@/lib/scheduling/restricciones'
+import { CeldaEditable } from '@/components/plan/celda-editable'
 import type { LinkType, Recoverability, TaskKind } from '@/lib/scheduling/types'
 
 export interface PlanLink {
@@ -37,6 +38,22 @@ export interface PlanDetailPanelProps {
   /** Saltar a otra línea del plan. */
   readonly onNavigate: (id: string) => void
   readonly onClose: () => void
+  /**
+   * Renombrar la línea desde aquí (§4.7: «Nombre de la tarea (editable inline)»).
+   *
+   * Opcional, y sin ella el nombre se dibuja como texto. No es prudencia: el panel lo montan las
+   * seis vistas y no todas pueden escribir — el Panel de control entra por el widget de hitos, donde
+   * lo que hay son cifras agregadas, y un campo editable ahí prometería algo que la vista no sabe
+   * hacer.
+   */
+  readonly onRenombrar?: (id: string, nombre: string) => void
+  /**
+   * Capturar el avance desde aquí (§4.7).
+   *
+   * Se recibe de 0 a 1, como lo guarda el modelo, aunque se teclee en porcentaje: convertir en el
+   * borde y no en cada llamador es lo que impide que una vista guarde 40 donde otra guarda 0,4.
+   */
+  readonly onAvance?: (id: string, progreso: number) => void
 }
 
 /** Cómo se llama cada clase de línea cuando se le dice a una persona. */
@@ -62,6 +79,21 @@ const POR_QUE: Readonly<Record<Exclude<Recoverability, 'RECUPERABLE'>, string>> 
   FECHA_PACTADA: 'La fecha está acordada con terceros y moverla es otra negociación.',
 })
 
+/**
+ * Por qué lo tecleado no es un avance, o `null` si lo es.
+ *
+ * Se admite la coma decimal y el signo de porcentaje: quien teclea «40 %» o «33,5» está diciendo algo
+ * perfectamente claro, y rechazarlo por la forma es hacerle aprender el formato del campo.
+ */
+function porQueNoEsUnAvance(valor: string): string | null {
+  const limpio = valor.replace('%', '').replace(',', '.').trim()
+  if (limpio === '') return 'Escribe un porcentaje de 0 a 100.'
+  const n = Number(limpio)
+  if (!Number.isFinite(n)) return `«${valor}» no es un número.`
+  if (n < 0 || n > 100) return 'El avance va de 0 a 100.'
+  return null
+}
+
 /** Quién responde, dicho sin siglas. */
 const PARTE: Readonly<Record<string, string>> = Object.freeze({
   PROVEEDOR: 'Nosotros',
@@ -69,7 +101,16 @@ const PARTE: Readonly<Record<string, string>> = Object.freeze({
   AMBOS: 'Las dos partes',
 })
 
-export function PlanDetailPanel({ row, predecessors, successors, ruta, onNavigate, onClose }: PlanDetailPanelProps) {
+export function PlanDetailPanel({
+  row,
+  predecessors,
+  successors,
+  ruta,
+  onNavigate,
+  onClose,
+  onRenombrar,
+  onAvance,
+}: PlanDetailPanelProps) {
   return (
     <section
       aria-labelledby="titulo-detalle-linea"
@@ -88,7 +129,20 @@ export function PlanDetailPanel({ row, predecessors, successors, ruta, onNavigat
             </nav>
           ) : null}
           <h3 id="titulo-detalle-linea" className="mt-1 text-base font-semibold text-zinc-100">
-            {row.name}
+            {onRenombrar ? (
+              // La misma celda que la rejilla y la Lista, no una copia: son las mismas reglas
+              // —Enter guarda, Escape cancela, vacío se rechaza— y dos celdas editables que se
+              // comportan distinto es peor que una sola en menos sitios.
+              <CeldaEditable
+                texto={row.name}
+                valor={row.name}
+                etiqueta={`Nombre de «${row.name}»`}
+                validar={(v) => (v.trim().length === 0 ? 'El nombre no puede quedar vacío.' : null)}
+                onGuardar={(v) => onRenombrar(row.id, v.trim())}
+              />
+            ) : (
+              row.name
+            )}
           </h3>
         </div>
         <button
@@ -120,7 +174,27 @@ export function PlanDetailPanel({ row, predecessors, successors, ruta, onNavigat
       ) : null}
 
       <Dato titulo="Responde" valor={PARTE[row.party] ?? row.party} />
-      <Dato titulo="Avance" valor={`${avance(row.progress)} %`} />
+      {onAvance && !row.hasChildren ? (
+        // Un resumen no captura avance: lo acumula de sus hijas (§3.6). Ofrecer el campo ahí sería
+        // ofrecer un valor que el próximo cálculo pisa sin avisar.
+        <div className="flex flex-col gap-0.5">
+          <p className="text-xs uppercase tracking-wide text-zinc-400">Avance</p>
+          <CeldaEditable
+            texto={`${avance(row.progress)} %`}
+            valor={String(avance(row.progress))}
+            etiqueta={`Avance de «${row.name}», en porcentaje`}
+            validar={porQueNoEsUnAvance}
+            // Se teclea en porcentaje y se guarda de 0 a 1: convertir en el borde y no en cada
+            // llamador es lo que impide que una vista guarde 40 donde otra guarda 0,4.
+            onGuardar={(v) => onAvance(row.id, Number(v.replace(',', '.').replace('%', '').trim()) / 100)}
+          />
+        </div>
+      ) : (
+        <Dato
+          titulo="Avance"
+          valor={`${avance(row.progress)} %${row.hasChildren ? ' · se acumula de sus líneas' : ''}`}
+        />
+      )}
 
       <Vinculos
         titulo={`De quién depende (${predecessors.length})`}

@@ -399,6 +399,34 @@ export function WorkItemsView({
    * revisión semanal en un trámite; retractarse en silencio, en cambio, deja a la persona
    * convencida de que guardó algo que la base nunca vio — por eso la reversión avisa con texto.
    */
+  /**
+   * Renombrar desde el panel de detalle (§4.7).
+   *
+   * Va por la misma ruta que la celda de la tabla y recarga el plan después, no parchea en local: el
+   * nombre sale también en la ruta del panel y en los renglones de vínculos de otras líneas, y
+   * parchear uno solo dejaría la pantalla diciendo dos nombres para la misma línea.
+   */
+  const renombrar = async (id: string, nombre: string) => {
+    const anterior = tareasDelPlan.find((tarea) => tarea.id === id)?.name
+    if (anterior === nombre) return
+    onApuntarOperacion?.(
+      operacionDesde(`Renombrar «${(anterior ?? id).slice(0, 40)}»`, [{ id, title: anterior }], [{ id, title: nombre }]),
+    )
+    try {
+      const respuesta = await fetch(`/api/v1/work-items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: nombre }),
+      })
+      if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`)
+    } finally {
+      // Se recarga pase lo que pase: si falló, la pantalla vuelve a lo que hay en la base, que es
+      // mejor que dejar en pantalla un nombre que nadie guardó.
+      await cargarPlan()
+      onWorkItemCreated?.()
+    }
+  }
+
   const capturarAvance = async (id: string, progress: number) => {
     if (estado.fase !== 'listo') return
     const linea = estado.plan.tasks.find((tarea) => tarea.id === id)
@@ -666,6 +694,8 @@ export function WorkItemsView({
                 ruta={rutaDe(tareasDelPlan, filaDelDetalle.id)}
                 onNavigate={setDetalle}
                 onClose={() => setDetalle(null)}
+                onRenombrar={(id, nombre) => void renombrar(id, nombre)}
+                onAvance={(id, progreso) => void capturarAvance(id, progreso)}
               />
             </aside>
           ) : null}

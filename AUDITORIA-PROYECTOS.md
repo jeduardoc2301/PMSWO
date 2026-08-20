@@ -97,7 +97,7 @@ tiempo real y deshacer.
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
 | 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **CERRADA** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. **La de las fechas preguntaba después de escribir**: devolvía 403 con la fecha ya guardada, y la medición de entonces no lo vio porque comprobó el código de respuesta y no el dato — corregido y vuelto a medir contra el servidor. La pantalla de reparto ya existe (`components/projects/reparto-de-papeles.tsx`, en el Resumen). Barridas **todas** las rutas de `app/api` que escriben: las cinco que quedaban sin asiento de proyecto —aplicar plantilla, editar el proyecto, líneas base y ausencias— la tienen ya, medidas con los dos papeles. Quince puertas, y una prueba que comprueba que la guardia va **antes** de escribir | M | Alto |
 | 30 | Revocar un rol tarda en surtir efecto | **CERRADA · acotada a 5 minutos** | `lib/auth.ts`, `lib/auth-refresco.ts` | Los roles se releen de la base cuando el token lleva más de cinco minutos sin refrescarse. Antes valían los treinta días del token, así que quitarle un permiso a alguien no se lo quitaba. Medido con el reloj: a t=240 s la sesión seguía con los roles viejos y a **t=300 s** ya tenía los nuevos. Una cuenta dada de baja se queda sin ninguno | M | Alto |
-| 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
+| 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Y ya **edita**: el nombre y el avance se cambian desde el panel con la misma celda que usan la rejilla y la Lista — las dos primeras cosas que el §4.7 pide. Un resumen no ofrece capturar avance porque lo acumula de sus hijas. Falta lo que necesita modelo: tiempo registrado, adjuntos, comentarios, campos personalizados y el creador | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
 | 24 | Deshacer / rehacer (§10.6) | **CERRADA** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Los **vínculos** ya se deshacen: el tipo creció con un canal propio, porque un vínculo no es un campo de una línea —vive entre dos— y su inversa no es «el valor de antes» sino la operación contraria. Comprobado en pantalla: 1665 → 1666 → 1665. Las altas y las bajas también: crear una línea la deja en 4 y deshacer la devuelve a 3; borrar una con vínculo baja a 2 líneas y 0 vínculos, y deshacer devuelve las dos cosas. Lo único fuera es arrastrar fechas, excluido a propósito porque pasa por la previsualización | L | Bajo |
 | 25 | Campos personalizados (§2) | **NO EXISTE** | — | Todo | L | Bajo |
@@ -1809,3 +1809,65 @@ Dos intentos fallidos antes de esta medición, los dos míos:
 Lo que queda del §6.2 son las columnas de presupuesto, costo real y tiempo registrado: no existen
 como campos en el modelo, y ofrecer una columna que siempre sale vacía es peor que no ofrecerla —
 parece un dato y es un hueco.
+
+---
+
+## §4.7 — la mitad editable del panel de detalle, por donde el spec empieza
+
+El §4.7 dibuja un panel con nombre editable, avance, estado, prioridad, tiempo registrado,
+adjuntos, comentarios y campos personalizados. La mitad de esa lista **no existe como modelo** —
+`TimeLog`, adjuntos, comentarios y campos personalizados son del §2, que espera decisión. Lo que sí
+se podía hacer son las dos primeras, y son las dos que el spec pone antes que nada: el **nombre**
+—«editable inline», dice literalmente— y el **avance**.
+
+### La misma celda, no una copia
+
+`CeldaEditable` ya existía y la usan la rejilla del Gantt y la Lista. El panel monta esa, no una
+propia: son las mismas reglas —Enter guarda, Escape cancela, lo vacío se rechaza— y dos celdas
+editables que se comportan distinto es peor que una sola en menos sitios.
+
+### Las dos props son opcionales, y eso no es prudencia
+
+El panel lo montan **las seis vistas**, y no todas pueden escribir. El Panel de control entra por el
+widget de hitos, donde lo que hay son cifras agregadas: un campo editable ahí prometería algo que
+esa vista no sabe hacer. Sin las props, el nombre y el avance se dibujan como texto.
+
+### Un resumen no captura avance
+
+Lo acumula de sus hijas (§3.6). Ofrecer el campo ahí sería ofrecer un valor que el próximo cálculo
+pisa sin avisar, así que el panel dice «60 % · se acumula de sus líneas» y no deja teclear.
+
+### Se teclea en porcentaje y se guarda de 0 a 1
+
+Convertir **en el borde** y no en cada llamador es lo que impide que una vista guarde `40` donde
+otra guarda `0,4`. Y se admiten la coma decimal y el signo: quien teclea «33,5 %» está diciendo algo
+perfectamente claro, y rechazarlo por la forma es hacerle aprender el formato del campo.
+
+### Recorrido en pantalla, sobre el plan de referencia
+
+```
+1. panel abierto para «Presentar el plan de trabajo de Mobilize al banco»
+2. renombrada desde el panel
+3. capturado 45 %
+4. el panel dice: «… [renombrada en el panel]» · 45 %
+```
+
+Y en la base, que es lo que había que comprobar y no la pantalla:
+
+```
+title        Presentar el plan de trabajo de Mobilize al banco [renombrada en el panel]
+progressPct  0.45
+columna      To Do        ← la movió el acoplamiento estado↔avance, desde Backlog
+```
+
+Esa tercera línea es el acoplamiento del §4.7 funcionando desde una pantalla nueva: capturar avance
+por encima de cero saca la tarjeta de la columna inicial. No hizo falta escribirlo otra vez.
+
+Restaurado después: título, avance a cero y la tarjeta de vuelta en Backlog.
+
+Renombrar **recarga el plan** en vez de parchear en local: el nombre sale también en la ruta del
+panel y en los renglones de vínculos de otras líneas, y parchear uno solo dejaría la pantalla
+diciendo dos nombres para la misma línea.
+
+Queda del §4.7 todo lo que necesita modelo: tiempo registrado, adjuntos, comentarios, campos
+personalizados y el creador.
