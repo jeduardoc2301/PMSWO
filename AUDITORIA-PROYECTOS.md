@@ -3262,3 +3262,34 @@ la barra ofrece deshacer un cambio que nunca ocurrió.
 Es la misma trampa del Esquema, con el razonamiento escrito de otra forma — y esta vez el comentario
 la **defiende**, que es lo que la hizo sobrevivir a la primera pasada.
 
+---
+
+## §5.4 — agrupado por responsable, soltar una tarjeta no reasignaba nunca
+
+La clave de una columna de responsable **no dice de dónde viene**. Una persona del plan da un
+`responsibleName` —un **nombre**— y una cuenta del sistema da un `ownerId` —un **identificador**—, y
+los dos acaban siendo el `id` de la columna. El arrastre mandaba siempre `ownerId`, así que soltar
+una tarjeta en la columna «Salomón Suárez» enviaba la cadena «Salomón Suárez» como si fuera un
+identificador.
+
+Y había una segunda pared detrás: **`responsibleName` no estaba en el esquema del `PATCH`**. Aunque
+se hubiera mandado el campo correcto, la ruta lo habría ignorado. Con las dos cosas, ese arrastre no
+podía funcionar de ninguna manera — se veía hacer y no cambiaba nada.
+
+La columna lleva ahora `campoDeOrigen`, y `cambioAlSoltar` escribe **el campo del que salió**. Sin
+él se cae a `ownerId`, que es lo que hacía antes: una columna vieja no puede quedarse sin
+comportamiento.
+
+### Demostrado en pantalla
+
+Agrupando por Responsable, el tablero da las cinco personas de verdad del plan. Moviendo una tarjeta
+de una a otra y devolviéndola:
+
+| | José Cruz | Rafael Oliva |
+|---|---:|---:|
+| antes | 328 | 450 |
+| tras soltarla | **327** | **451** |
+| devuelta | 328 | 450 |
+
+Las dos escrituras, `HTTP 200`. El plan de referencia verifica antes y después.
+

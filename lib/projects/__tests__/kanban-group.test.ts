@@ -274,3 +274,55 @@ describe('§5.4 · la clave de responsable es UNA, no dos', () => {
     }
   })
 })
+
+describe('§5.4 · soltar en la columna de una persona reasigna de verdad', () => {
+  /**
+   * La clave de una columna de responsable **no dice de dónde viene**: una persona del plan da un
+   * `responsibleName` —un nombre— y una cuenta del sistema da un `ownerId` —un identificador—, y los
+   * dos acaban siendo el `id` de la columna.
+   *
+   * Mandando siempre `ownerId`, soltar una tarjeta en la columna «Salomón Suárez» enviaba la cadena
+   * «Salomón Suárez» como si fuera un identificador: **la reasignación no ocurría nunca** y el
+   * arrastre se veía hacer sin cambiar nada.
+   */
+  const conPersona = [
+    { id: 't1', kanbanColumnId: 'c1', priority: 'HIGH', ownerId: 'u1', ownerName: 'Cuenta', responsibleName: 'Salomón Suárez' },
+    { id: 't2', kanbanColumnId: 'c1', priority: 'LOW', ownerId: 'u1', ownerName: 'Cuenta', responsibleName: 'Rafael Oliva' },
+  ]
+
+  it('la columna dice de qué campo salió', () => {
+    const columnas = agruparTarjetas(conPersona, [], 'responsable')
+    for (const c of columnas) expect(c.campoDeOrigen).toBe('responsibleName')
+  })
+
+  it('y sin persona del plan, la columna es de la cuenta', () => {
+    const sinPersona = [{ id: 't3', kanbanColumnId: 'c1', priority: 'LOW', ownerId: 'u9', ownerName: 'Ana' }]
+    expect(agruparTarjetas(sinPersona, [], 'responsable')[0].campoDeOrigen).toBe('ownerId')
+  })
+
+  it('soltar escribe el campo del que salió la columna, no siempre ownerId', () => {
+    const columnas = agruparTarjetas(conPersona, [], 'responsable')
+    const rafael = columnas.find((c) => c.name === 'Rafael Oliva')!
+    const cambio = cambioAlSoltar(conPersona[0], rafael, 'responsable')
+    expect(cambio).toEqual({ campo: 'responsibleName', valor: 'Rafael Oliva' })
+  })
+
+  it('soltar en la columna de su propia persona no cambia nada', () => {
+    const columnas = agruparTarjetas(conPersona, [], 'responsable')
+    const suya = columnas.find((c) => c.name === 'Salomón Suárez')!
+    expect(cambioAlSoltar(conPersona[0], suya, 'responsable')).toBeNull()
+  })
+
+  it('una columna de cuenta sigue escribiendo ownerId', () => {
+    const tarjeta = { id: 't3', kanbanColumnId: 'c1', priority: 'LOW', ownerId: 'u9', ownerName: 'Ana' }
+    const destino = { id: 'u7', name: 'Otra', order: 0, workItemIds: [], campoDeOrigen: 'ownerId' as const }
+    expect(cambioAlSoltar(tarjeta, destino, 'responsable')).toEqual({ campo: 'ownerId', valor: 'u7' })
+  })
+
+  it('sin el campo de origen se cae a ownerId, que es lo que hacía antes', () => {
+    // Una columna vieja o una prueba que no lo pase no puede quedarse sin comportamiento.
+    const tarjeta = { id: 't3', kanbanColumnId: 'c1', priority: 'LOW', ownerId: 'u9', ownerName: 'Ana' }
+    const destino = { id: 'u7', name: 'Otra', order: 0, workItemIds: [] }
+    expect(cambioAlSoltar(tarjeta, destino, 'responsable')).toEqual({ campo: 'ownerId', valor: 'u7' })
+  })
+})

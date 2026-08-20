@@ -753,8 +753,25 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
     // columna», que con el tablero agrupado por prioridad habría movido la tarjeta a una columna
     // que no existe en la base. `null` significa que soltarla ahí no cambia nada.
     const cambio = cambioAlSoltar(
-      { id: workItem.id, kanbanColumnId: workItem.kanbanColumnId, priority: workItem.priority, ownerId: workItem.ownerId, ownerName: workItem.ownerName },
-      { id: targetColumn.id, name: targetColumn.name, order: targetColumn.order, workItemIds: [], isInitial: targetColumn.isInitial, isDone: targetColumn.isDone, columnType: targetColumn.columnType },
+      {
+        id: workItem.id,
+        kanbanColumnId: workItem.kanbanColumnId,
+        priority: workItem.priority,
+        ownerId: workItem.ownerId,
+        ownerName: workItem.ownerName,
+        responsibleName: workItem.responsibleName,
+      },
+      {
+        id: targetColumn.id,
+        name: targetColumn.name,
+        order: targetColumn.order,
+        workItemIds: [],
+        isInitial: targetColumn.isInitial,
+        isDone: targetColumn.isDone,
+        columnType: targetColumn.columnType,
+        // De qué campo salió la columna: sin esto se manda el nombre de la persona como `ownerId`.
+        campoDeOrigen: targetColumn.campoDeOrigen,
+      },
       criterioDeAgrupacion,
     )
     if (!cambio) { setDraggedItemId(null); return }

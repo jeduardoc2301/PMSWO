@@ -144,6 +144,14 @@ export interface KanbanColumnWithItems {
   isInitial?: boolean
   /** Verdadero en las columnas que significan que la línea ya no está en juego. */
   isDone?: boolean
+  /**
+   * Sólo cuando el tablero está agrupado por responsable: de qué campo salió esta columna.
+   *
+   * Una persona del plan da un NOMBRE y una cuenta del sistema da un IDENTIFICADOR, y los dos acaban
+   * siendo el `id` de la columna. Sin esto, soltar una tarjeta en la columna de alguien mandaba su
+   * nombre como `ownerId` y la reasignación no ocurría nunca.
+   */
+  campoDeOrigen?: 'ownerId' | 'responsibleName'
   workItemIds: string[]
 }
 

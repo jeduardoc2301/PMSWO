@@ -49,6 +49,16 @@ export interface ColumnaAgrupada {
   /** Sólo en estado: los indicadores que deciden el acoplamiento con el avance. */
   readonly isInitial?: boolean
   readonly isDone?: boolean
+  /**
+   * Sólo agrupando por responsable: **de qué campo salió** esta columna.
+   *
+   * Hace falta porque la clave de la columna no dice de dónde viene: una persona del plan da un
+   * **nombre** (`responsibleName`) y una cuenta del sistema da un **identificador** (`ownerId`), y
+   * los dos acaban siendo el `id` de la columna. Sin esto, soltar una tarjeta en la columna
+   * «Salomón Suárez» mandaba la cadena «Salomón Suárez» como `ownerId` — que no es un
+   * identificador de nada, así que la reasignación **no ocurría nunca**.
+   */
+  readonly campoDeOrigen?: 'ownerId' | 'responsibleName'
   /** Sólo en estado: el tipo de columna, para derivar el estado al soltar. */
   readonly columnType?: string
 }
@@ -144,14 +154,19 @@ export function agruparTarjetas(
   // El criterio del §5.4 se cumplía —las columnas se reconstruían— y el resultado no servía para
   // nada, que es la peor forma de pasar una prueba.
 
-  const porResponsable = new Map<string, { nombre: string; ids: string[] }>()
+  const porResponsable = new Map<
+    string,
+    { nombre: string; ids: string[]; campo: 'ownerId' | 'responsibleName' }
+  >()
   for (const tarjeta of tarjetas) {
     const persona = tarjeta.responsibleName?.trim()
     const clave = claveDeResponsable(tarjeta)
     const nombre = persona || tarjeta.ownerName?.trim() || 'Sin responsable'
+    // De dónde salió la clave, que es lo que decide qué campo se escribe al soltar aquí.
+    const campo = persona ? ('responsibleName' as const) : ('ownerId' as const)
     const grupo = porResponsable.get(clave)
     if (grupo) grupo.ids.push(tarjeta.id)
-    else porResponsable.set(clave, { nombre, ids: [tarjeta.id] })
+    else porResponsable.set(clave, { nombre, ids: [tarjeta.id], campo })
   }
 
   return [...porResponsable.entries()]
@@ -166,6 +181,7 @@ export function agruparTarjetas(
       name: grupo.nombre,
       order: i,
       workItemIds: grupo.ids,
+      campoDeOrigen: grupo.campo,
     }))
 }
 
@@ -182,7 +198,7 @@ export function cambioAlSoltar(
   tarjeta: TarjetaAgrupable,
   destino: ColumnaAgrupada,
   criterio: CriterioDeAgrupacion,
-): { readonly campo: 'kanbanColumnId' | 'priority' | 'ownerId'; readonly valor: string } | null {
+): { readonly campo: 'kanbanColumnId' | 'priority' | 'ownerId' | 'responsibleName'; readonly valor: string } | null {
   if (criterio === 'estado') {
     if (tarjeta.kanbanColumnId === destino.id) return null
     return { campo: 'kanbanColumnId', valor: destino.id }
@@ -196,6 +212,20 @@ export function cambioAlSoltar(
   // Por responsable. La columna «Sin responsable» no admite tarjetas: dejar a una línea sin dueño
   // desde un arrastre sería perder trabajo de vista, y este modelo exige `ownerId`.
   if (destino.id === SIN_RESPONSABLE) return null
-  if (tarjeta.ownerId === destino.id) return null
-  return { campo: 'ownerId', valor: destino.id }
+
+  /**
+   * Se escribe **el campo del que salió la columna**, no siempre `ownerId`.
+   *
+   * Una columna de una persona del plan lleva su **nombre** por clave; una de una cuenta del sistema
+   * lleva un identificador. Mandando siempre `ownerId` se enviaba la cadena «Salomón Suárez» como
+   * si fuera un identificador, y la reasignación **no ocurría nunca**: el arrastre se veía hacer y
+   * no cambiaba nada.
+   *
+   * Sin `campoDeOrigen` —una columna vieja, o una prueba que no lo pasa— se cae a `ownerId`, que es
+   * lo que hacía antes.
+   */
+  const campo = destino.campoDeOrigen ?? 'ownerId'
+  const actual = campo === 'responsibleName' ? tarjeta.responsibleName?.trim() : tarjeta.ownerId
+  if (actual === destino.id) return null
+  return { campo, valor: destino.id }
 }

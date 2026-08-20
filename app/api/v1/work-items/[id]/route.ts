@@ -45,6 +45,14 @@ const updateWorkItemSchema = z.object({
   // Mover la línea en la jerarquía. null la sube a raíz; ausente la deja donde está. Las reglas de
   // forma del árbol (padre del mismo proyecto, sin ciclos) las aplica `verificarPadre`.
   parentId: z.string().nullable().optional(),
+  /**
+   * La persona **del plan** que responde de la línea, que no es la cuenta del sistema.
+   *
+   * Se admite porque el Tablero agrupa por ella (§5.4) y soltar una tarjeta en la columna de alguien
+   * tiene que reasignarla. Antes se mandaba su nombre como `ownerId` — que no es un identificador de
+   * nada, así que la reasignación no ocurría nunca.
+   */
+  responsibleName: z.string().max(120).nullable().optional(),
   // Las ocho del §3.4. `null` quita la restricción; ausente la deja como está. La combinación
   // código↔fecha la juzga `porQueNoSeAdmiteLaRestriccion`, que es la misma función que usa el
   // diálogo — dos redacciones del mismo rechazo acaban divergiendo, y la que se queda atrás es
@@ -320,6 +328,7 @@ async function updateWorkItemHandler(
         // Contra undefined y no por verdadero: null significa «súbela a la raíz», y por verdadero
         // ese movimiento se perdería en silencio.
         ...(updateData.parentId !== undefined && { parentId: updateData.parentId }),
+        ...(updateData.responsibleName !== undefined && { responsibleName: updateData.responsibleName }),
         // Contra undefined, no por verdadero: `null` significa «quita la restricción» y por
         // verdadero ese borrado se perdería en silencio.
         ...(updateData.constraintType !== undefined && { constraintType: updateData.constraintType }),
