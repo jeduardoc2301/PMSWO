@@ -455,10 +455,34 @@ export function WorkItemsList({
    */
   const ordenActivo = plana || agruparPor ? orden ?? null : null
 
+  /**
+   * Quién tiene hijas, calculado sobre el plan **entero** y no sobre lo filtrado.
+   *
+   * Sobre lo filtrado, esconder a las hijas convertiría a su madre en una hoja y el formato plano
+   * empezaría a enseñar resúmenes en cuanto alguien filtrara.
+   */
+  const conHijas = useMemo(
+    () => new Set(workItems.map((i) => i.parentId).filter(Boolean) as string[]),
+    [workItems],
+  )
+
   const lineasPlanas = useMemo(() => {
-    const base = plana ? filteredWorkItems.filter((i) => i.kind !== 'RESUMEN') : filteredWorkItems
+    /**
+     * El formato plano enseña las **hojas**, y «hoja» es *no tener hijas*, no *no estar marcada como
+     * resumen*.
+     *
+     * Filtraba por `kind !== 'RESUMEN'` y en el plan de referencia eso deja pasar **cuatro** líneas
+     * que sí tienen hijas: hay 125 con descendencia y 121 marcadas. Cuatro resúmenes colándose
+     * entre las hojas, con sus fechas acumuladas y su avance heredado mezclados con trabajo real —
+     * y saliendo también en el CSV.
+     *
+     * Es la **cuarta** vez en esta base que las dos definiciones se separan: ya pasó en el filtro
+     * del §10.2, en la cuenta de atrasadas del §9.3 y en el corte de carga del §8. Las cuatro veces
+     * la buena fue «tiene hijas».
+     */
+    const base = plana ? filteredWorkItems.filter((i) => !conHijas.has(i.id)) : filteredWorkItems
     return ordenarLineas(base as unknown as Record<string, unknown>[], ordenActivo) as unknown as typeof base
-  }, [filteredWorkItems, plana, ordenActivo])
+  }, [filteredWorkItems, plana, ordenActivo, conHijas])
 
   /**
    * Lo que la fila de totales suma: **lo filtrado**, no el plan entero.
@@ -533,9 +557,15 @@ export function WorkItemsList({
   /**
    * Exportar lo que se está viendo (§6.2).
    *
-   * Las filas son `filteredWorkItems`, o sea las que el filtro dejó pasar. Exportar el plan entero
-   * cuando en pantalla hay ochocientas veintidós sería un informe de otra cosa: quien lo abre no
-   * podría contrastarlo con lo que estaba mirando, y ese contraste es para lo que se exporta.
+   * Las filas son **las que la tabla dibuja**, `lineasPlanas`: el filtro ya aplicado, los resúmenes
+   * fuera en el formato plano, y en el orden que esté puesto. Exportar el plan entero cuando en
+   * pantalla hay ochocientas veintidós sería un informe de otra cosa: quien lo abre no podría
+   * contrastarlo con lo que estaba mirando, y ese contraste es para lo que se exporta.
+   *
+   * Esto salía de `filteredWorkItems`, que es un paso anterior: **incluía los resúmenes** que la
+   * tabla no enseña en el formato plano y venía **sin ordenar**. El botón decía «Exportar (1368)»
+   * mientras la tabla dibujaba 1243 líneas, y el número estaba a la vista en la cabecera del propio
+   * CSV — lo miré y no lo cuestioné.
    *
    * **Y las columnas son las que la tabla dibuja**, no el catálogo entero. Este comentario ya decía
    * «las que esta tabla dibuja» y el código de debajo llevaba las nueve escritas a mano: quien apagaba
@@ -550,8 +580,8 @@ export function WorkItemsList({
 
     const texto = csvDeLaLista({
       columnas,
-      filas: filteredWorkItems as unknown as Record<string, unknown>[],
-      contexto: `${filteredWorkItems.length} de ${workItems.length} líneas · ${columnas.length} de ${COLUMNAS_DE_LA_LISTA.length} columnas · ${hoyCivil()}`,
+      filas: lineasPlanas as unknown as Record<string, unknown>[],
+      contexto: `${lineasPlanas.length} de ${workItems.length} líneas · ${columnas.length} de ${COLUMNAS_DE_LA_LISTA.length} columnas · ${hoyCivil()}`,
       valorDe: (fila, id) => {
         const v = fila[id]
         if (v === undefined || v === null || v === '') return null
@@ -701,12 +731,12 @@ export function WorkItemsList({
             type="button"
             onClick={exportar}
             data-testid="exportar-lista"
-            disabled={filteredWorkItems.length === 0}
+            disabled={lineasPlanas.length === 0}
             title="Descarga las líneas que se están viendo, con las columnas de esta tabla"
-            style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: filteredWorkItems.length === 0 ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: filteredWorkItems.length === 0 ? 0.5 : 1 }}
+            style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: lineasPlanas.length === 0 ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: lineasPlanas.length === 0 ? 0.5 : 1 }}
           >
             <span style={{ color: '#71717a', fontSize: 13 }}>
-              Exportar ({filteredWorkItems.length})
+              Exportar ({lineasPlanas.length})
             </span>
           </button>
 

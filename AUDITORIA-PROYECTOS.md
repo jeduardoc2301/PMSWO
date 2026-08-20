@@ -2296,3 +2296,43 @@ La primera medición dijo «panel abierto **SIN** botón», y por un momento par
 dibujaba. El panel no estaba abierto: mi sonda buscaba el nombre con
 `[data-testid^="celda-name-"]` y luego un `span, button, div` **dentro**, y daba con un envoltorio
 que no escucha el clic. La celda del nombre es un `span` con `role="button"` y `data-editable`.
+
+---
+
+## §6.2 — el CSV exportaba **otras filas** que la tabla, y la cuarta aparición de «resumen»
+
+Anoche se arregló que el CSV llevara las **columnas** elegidas. Faltaba lo otro: que llevara las
+mismas **filas**.
+
+Salía de `filteredWorkItems`, que es un paso anterior a lo que la tabla dibuja:
+
+- **incluía los resúmenes**, que el formato plano no enseña;
+- venía **sin ordenar**, aunque la tabla estuviera ordenada por una columna.
+
+El botón decía «Exportar (1368)» mientras la tabla dibujaba 1243 líneas. El número estaba a la vista
+en la cabecera del propio CSV de la medición de anoche — lo miré y no lo cuestioné.
+
+### Y al arreglarlo salió 1247, no 1243
+
+El formato plano filtraba por `kind !== 'RESUMEN'`, y en este plan eso deja pasar **cuatro** líneas
+que sí tienen hijas: hay **125 con descendencia y 121 marcadas**. Cuatro resúmenes colándose entre
+las hojas, con sus fechas acumuladas y su avance heredado mezclados con trabajo real — y saliendo
+también en el CSV.
+
+Es la **cuarta** vez en esta base que las dos definiciones de «resumen» se separan:
+
+| dónde | cuándo |
+|---|---|
+| el filtro «Es resumen» del §10.2 | decía que no de las 1368 |
+| la cuenta de atrasadas del §9.3 | 127 contra 113 |
+| el corte de carga del §8 | 125 asignaciones fantasma |
+| el formato plano de la Lista | 4 resúmenes entre las hojas |
+
+Las cuatro veces la buena fue **«tiene hijas»**, y las cuatro veces el error fue el mismo: creerle al
+campo `kind` en vez de mirar el árbol.
+
+La pertenencia se calcula sobre el plan **entero** y no sobre lo filtrado: sobre lo filtrado,
+esconder a las hijas convertiría a su madre en una hoja y el formato plano empezaría a enseñar
+resúmenes en cuanto alguien filtrara.
+
+Medido: el CSV dice ahora **1 243 de 1 368**, que es exactamente el número de hojas del plan.
