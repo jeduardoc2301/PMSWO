@@ -2745,3 +2745,49 @@ Los 3 000 % no son un error de la vista: el sembrado de asignaciones le puso a e
 líneas**, treinta de ellas activas ese mismo día. Es exactamente el trabajo huérfano que la vista
 existe para enseñar.
 
+---
+
+## §10.2, §10.6 — el deshacer que deshacía dos veces, y el filtro que no filtraba
+
+### Manteniendo `Ctrl+Z` pulsado se deshacía **la misma** operación tres veces
+
+Escribir es un viaje a la red, y el teclado no espera: el autorrepetido llama otra vez **dentro** de
+ese viaje. El paso leía la pila del cierre de `useState`, que en ese momento sigue siendo la de
+antes, así que la segunda llamada calculaba **el mismo** lado que la primera.
+
+Medido con la escritura retenida a propósito: **tres** llamadas a la escritura donde debía haber
+**una**. Y la pila sólo avanza un paso, así que el siguiente `Ctrl+Z` se salta un cambio.
+
+Se arregla con dos cosas y hacen falta las dos: la pila se lee de una `ref` —al día en el mismo
+tic— y un cerrojo descarta cualquier paso mientras haya uno en vuelo. **Descartar y no encolar**:
+perder una pulsación rápida se corrige pulsando otra vez; deshacer dos veces lo mismo no se corrige
+de ninguna manera.
+
+### Se apuntaba **antes** de escribir, y no se retiraba al fallar
+
+Renombrar y capturar avance desde el Esquema apuntaban la operación antes del `PATCH`. Si el
+servidor la rechazaba, la pantalla volvía al valor viejo —eso sí estaba— pero **la pila se quedaba
+con la entrada**: la barra ofrecía deshacer un cambio que nunca ocurrió.
+
+Es exactamente lo que la cabecera del gancho dice que no puede pasar —«la pila... sólo se adopta si
+la escritura salió bien»— aplicado a quien la llama. Ahora se apunta después del `ok`.
+
+### «Fecha de creación» estaba en el selector y no señalaba nada
+
+El §10.2 la pide entre los criterios del filtro unificado. Estaba declarada, con su etiqueta y sus
+nueve operadores — y el dato **nunca se mapeaba** desde el tablero: `createdAt` no viaja en el
+resumen de la línea.
+
+Lo que hacía no era «nada», que sería visible. Las fechas se comparan como cadenas `AAAA-MM-DD`
+—correcto y barato— y `String(null)` es `'null'`, que empieza por `n`:
+
+```
+'null' > '2026-01-01'  →  true      «creada después de» dejaba pasar las 1 368
+'null' < '2027-01-01'  →  false     «creada antes de» no dejaba pasar ninguna
+```
+
+Dos arreglos, porque son dos defectos. **Uno**: `createdAt` viaja ahora desde el servicio hasta la
+línea filtrable. **Dos**: un valor vacío ya no compara — sólo responde a «está vacío», y a «no es»,
+que es cierto de una línea sin valor. Un dato que falta no es ni anterior ni posterior a nada, y la
+regla vale para los tres campos de fecha y para los de texto.
+

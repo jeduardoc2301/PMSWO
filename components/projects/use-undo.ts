@@ -17,9 +17,21 @@
  *
  * `Ctrl+Z` dentro de un campo de texto es el deshacer del propio campo, y quitárselo para deshacer
  * una operación del plan es la forma más rápida de que alguien pierda lo que estaba tecleando.
+ *
+ * ## Un paso a la vez, y contra la pila de verdad
+ *
+ * Escribir es un viaje a la red, y el teclado no espera: manteniendo `Ctrl+Z` pulsado, el
+ * autorrepetido llama otra vez **dentro** de ese viaje. Leído del cierre de `useState`, el segundo
+ * paso ve la pila **de antes** y deshace **la misma operación dos veces**: el mismo lado se escribe
+ * dos veces y la pila sólo avanza uno, así que el siguiente `Ctrl+Z` salta un cambio.
+ *
+ * Se arregla con dos cosas y hacen falta las dos: la pila se lee de una `ref` —que sí está al día
+ * en el mismo tic— y hay un cerrojo que descarta cualquier paso mientras haya uno en vuelo.
+ * Descartar y no encolar a propósito: perder una pulsación rápida se corrige pulsando otra vez;
+ * deshacer dos veces lo mismo no se corrige de ninguna manera.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   type Cambio,
@@ -67,24 +79,37 @@ export function useUndo(aplicar: (lado: LadoDeOperacion) => Promise<void>): UsoD
   const [pila, setPila] = useState<PilaDeDeshacer>(PILA_VACIA)
   const [aviso, setAviso] = useState<string | null>(null)
 
+  /** La pila al día dentro del mismo tic, que es lo que `useState` no da. */
+  const pilaAlDia = useRef<PilaDeDeshacer>(PILA_VACIA)
+  /** Cerrojo: un paso a la vez. */
+  const enVuelo = useRef(false)
+
   const apuntarOperacion = useCallback((operacion: Operacion | null) => {
     // Un `null` es «no cambió nada»; apuntarlo obligaría a pulsar Ctrl+Z dos veces.
     if (!operacion) return
-    setPila((actual) => apuntar(actual, operacion))
+    setPila((actual) => {
+      const siguiente = apuntar(actual, operacion)
+      pilaAlDia.current = siguiente
+      return siguiente
+    })
   }, [])
 
   const paso = useCallback(
     async (direccion: 'atras' | 'adelante') => {
+      // Ver «Un paso a la vez» en la cabecera: el autorrepetido del teclado llega dentro del viaje.
+      if (enVuelo.current) return
       const calcular = direccion === 'atras' ? deshacerEnPila : rehacerEnPila
-      const resultado = calcular(pila)
+      const resultado = calcular(pilaAlDia.current)
       if (!resultado.cambios) return
 
+      enVuelo.current = true
       try {
         await aplicar({
           cambios: resultado.cambios,
           vinculos: resultado.vinculos,
           lineas: resultado.lineas,
         })
+        pilaAlDia.current = resultado.pila
         setPila(resultado.pila)
         setAviso(
           `${direccion === 'atras' ? 'Deshecho' : 'Rehecho'}: ${resultado.etiqueta ?? 'el último cambio'}`,
@@ -96,9 +121,11 @@ export function useUndo(aplicar: (lado: LadoDeOperacion) => Promise<void>): UsoD
             error instanceof Error ? error.message : 'error de red'
           }`,
         )
+      } finally {
+        enVuelo.current = false
       }
     },
-    [pila, aplicar],
+    [aplicar],
   )
 
   const deshacer = useCallback(() => paso('atras'), [paso])

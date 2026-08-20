@@ -682,6 +682,8 @@ export class ProjectService {
         templateOrder: item.templateOrder,
         activeBlockers: item.blockers.length,
         lastUpdatedAt: item.updatedAt.toISOString(),
+        // El §10.2 lo pide como criterio del filtro unificado.
+        createdAt: item.createdAt.toISOString(),
         // La paridad con el esquema del plan: la tarjeta dice lo mismo que la tabla, o hay dos
         // verdades sobre la misma línea.
         progressPct: item.progressPct,

@@ -409,9 +409,6 @@ export function WorkItemsView({
   const renombrar = async (id: string, nombre: string) => {
     const anterior = tareasDelPlan.find((tarea) => tarea.id === id)?.name
     if (anterior === nombre) return
-    onApuntarOperacion?.(
-      operacionDesde(`Renombrar «${(anterior ?? id).slice(0, 40)}»`, [{ id, title: anterior }], [{ id, title: nombre }]),
-    )
     try {
       const respuesta = await fetch(`/api/v1/work-items/${id}`, {
         method: 'PATCH',
@@ -419,6 +416,12 @@ export function WorkItemsView({
         body: JSON.stringify({ title: nombre }),
       })
       if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`)
+      // Se apunta **después** de que la escritura salga bien. Apuntado antes, un rechazo dejaba la
+      // barra ofreciendo deshacer un cambio que nunca ocurrió — y la pila diciendo una cosa
+      // distinta de lo que hay en la base es justo lo que hace que nadie se fíe del Ctrl+Z.
+      onApuntarOperacion?.(
+        operacionDesde(`Renombrar «${(anterior ?? id).slice(0, 40)}»`, [{ id, title: anterior }], [{ id, title: nombre }]),
+      )
     } finally {
       // Se recarga pase lo que pase: si falló, la pantalla vuelve a lo que hay en la base, que es
       // mejor que dejar en pantalla un nombre que nadie guardó.
@@ -433,15 +436,6 @@ export function WorkItemsView({
     const avancePrevio = linea?.progress
     setAviso(null)
 
-    // Se apunta antes de escribir. Capturar avance es un deslizador: equivocarse es un gesto de un
-    // dedo, y sin deshacer la única forma de volver es recordar el número que había.
-    onApuntarOperacion?.(
-      operacionDesde(
-        `Avance de «${(linea?.name ?? id).slice(0, 40)}» al ${Math.round(progress * 100)} %`,
-        [{ id, progressPct: avancePrevio ?? 0 }],
-        [{ id, progressPct: progress }],
-      ),
-    )
     setEstado({
       fase: 'listo',
       plan: {
@@ -459,6 +453,17 @@ export function WorkItemsView({
         const cuerpo = await respuesta.json().catch(() => ({}))
         throw new Error(cuerpo.message ?? `HTTP ${respuesta.status}`)
       }
+      // Se apunta **después** de guardar, no antes. Capturar avance es un deslizador y equivocarse
+      // es un gesto de un dedo, así que tener deshacer importa — pero apuntarlo antes dejaba la
+      // barra ofreciendo deshacer una captura que el servidor había **rechazado**: la pantalla
+      // volvía al número viejo y la pila seguía diciendo que hubo un cambio.
+      onApuntarOperacion?.(
+        operacionDesde(
+          `Avance de «${(linea?.name ?? id).slice(0, 40)}» al ${Math.round(progress * 100)} %`,
+          [{ id, progressPct: avancePrevio ?? 0 }],
+          [{ id, progressPct: progress }],
+        ),
+      )
     } catch (error) {
       if (!vigente.current) return
       // Se revierte solo la línea rechazada: deshacer el plan entero castigaría capturas vecinas

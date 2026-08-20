@@ -241,11 +241,32 @@ function evaluarCondicion(
   const valor = campo.leer(linea, contexto)
   const { operator: operador, value: esperado } = condicion
 
+  /**
+   * Un valor vacío no compara: sólo responde a «está vacío».
+   *
+   * Sin esto, comparar contra `null` se hacía **como cadena** y `'null'` empieza por `n`: mayor que
+   * cualquier `'2026-...'`. O sea que «creada después del 1 de enero» dejaba pasar todas las líneas
+   * cuya fecha de creación no llegaba — las 1 368 — y «creada antes de» no dejaba pasar ninguna.
+   * Un dato que falta no es ni anterior ni posterior a nada.
+   *
+   * `neq` es la excepción razonable: «no es X» es cierto de una línea que no tiene valor.
+   */
+  const vacio = estaVacio(valor)
+
   switch (operador) {
     case 'is_empty':
-      return estaVacio(valor)
+      return vacio
     case 'is_not_empty':
-      return !estaVacio(valor)
+      return !vacio
+    case 'neq':
+      if (vacio) return true
+      break
+    default:
+      if (vacio) return false
+      break
+  }
+
+  switch (operador) {
     case 'eq':
       return campo.tipo === 'booleano'
         ? Boolean(valor) === Boolean(esperado)

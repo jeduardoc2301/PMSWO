@@ -476,6 +476,8 @@ describe('ProjectService', () => {
       startDate: new Date('2024-01-15'),
       estimatedEndDate: new Date('2024-03-15'),
       updatedAt: new Date('2024-02-01'),
+      // El §10.2 pide «fecha de creación» en el filtro unificado, y el resumen la lleva.
+      createdAt: new Date('2024-01-10'),
       phase: null,
       templateOrder: null,
       blockers: [],
@@ -560,6 +562,7 @@ describe('ProjectService', () => {
         templateOrder: null,
         activeBlockers: 0,
         lastUpdatedAt: FECHAS.updatedAt.toISOString(),
+        createdAt: FECHAS.createdAt.toISOString(),
       })
     })
 

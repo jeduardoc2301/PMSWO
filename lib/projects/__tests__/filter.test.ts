@@ -424,3 +424,65 @@ describe('«Es resumen» sabe quién tiene hijas', () => {
     expect([...resumenesDe(dosHijas)]).toEqual(['madre'])
   })
 })
+
+describe('§10.2 · un dato que falta no es ni anterior ni posterior a nada', () => {
+  /**
+   * Las fechas se comparan **como cadenas** `AAAA-MM-DD`, que es correcto y barato… hasta que el
+   * valor falta. `String(null)` es `'null'`, y `'null'` empieza por `n`: mayor que cualquier
+   * `'2026-…'`. Así que «creada después del 1 de enero» dejaba pasar **todas** las líneas cuya fecha
+   * de creación no llegaba, y «creada antes de» no dejaba pasar ninguna.
+   *
+   * En este proyecto no era hipotético: el §10.2 pide «fecha de creación» entre los criterios, el
+   * campo estaba en el selector, y el dato **nunca se mapeaba** desde el tablero. Las 1 368 líneas
+   * pasaban el filtro.
+   */
+  const conFecha = linea({ id: 'con', createdAt: '2026-06-01T10:00:00.000Z' })
+  const sinFecha = { ...linea({ id: 'sin' }), createdAt: undefined } as LineaFiltrable
+  const dos = [conFecha, sinFecha]
+
+  const filtroDe = (operator: string, value: unknown) => ({
+    op: 'AND' as const,
+    conditions: [{ field: 'createdAt', operator, value } as never],
+  })
+
+  it('«después de» no deja pasar a la que no tiene fecha', () => {
+    const pasan = filtrar(dos, filtroDe('gt', '2026-01-01'), { hoy: '2026-08-20' })
+    expect(pasan.map((l) => l.id)).toEqual(['con'])
+  })
+
+  it('«antes de» tampoco', () => {
+    const pasan = filtrar(dos, filtroDe('lt', '2027-01-01'), { hoy: '2026-08-20' })
+    expect(pasan.map((l) => l.id)).toEqual(['con'])
+  })
+
+  it('«entre» tampoco', () => {
+    const pasan = filtrar(dos, filtroDe('between', ['2026-01-01', '2026-12-31']), { hoy: '2026-08-20' })
+    expect(pasan.map((l) => l.id)).toEqual(['con'])
+  })
+
+  it('«es igual a» tampoco', () => {
+    const pasan = filtrar(dos, filtroDe('eq', '2026-06-01'), { hoy: '2026-08-20' })
+    expect(pasan.map((l) => l.id)).toEqual(['con'])
+  })
+
+  it('pero «está vacío» sí la encuentra: para eso está', () => {
+    const pasan = filtrar(dos, filtroDe('is_empty', null), { hoy: '2026-08-20' })
+    expect(pasan.map((l) => l.id)).toEqual(['sin'])
+  })
+
+  it('y «no es» la deja pasar, que es lo razonable', () => {
+    // «No es el 1 de junio» es cierto de una línea que no tiene fecha ninguna.
+    const pasan = filtrar(dos, filtroDe('neq', '2026-06-01'), { hoy: '2026-08-20' })
+    expect(pasan.map((l) => l.id)).toEqual(['sin'])
+  })
+
+  it('la misma regla vale para cualquier campo, no sólo las fechas', () => {
+    const sinDuenio = { ...linea({ id: 'huerfana' }), ownerName: null, ownerId: null } as LineaFiltrable
+    const conDuenio = linea({ id: 'con-duenio', ownerName: 'Ana Gómez' })
+    const pasan = filtrar([conDuenio, sinDuenio], {
+      op: 'AND',
+      conditions: [{ field: 'owner', operator: 'contains', value: 'Ana' } as never],
+    }, { hoy: '2026-08-20' })
+    expect(pasan.map((l) => l.id)).toEqual(['con-duenio'])
+  })
+})

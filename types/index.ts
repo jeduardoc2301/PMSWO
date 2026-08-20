@@ -164,6 +164,14 @@ export interface WorkItemSummary {
   parentId?: string | null
   activeBlockers?: number
   lastUpdatedAt?: string
+  /**
+   * Cuándo se creó la línea, en ISO.
+   *
+   * Está aquí porque el §10.2 pide «fecha de creación» entre los criterios del filtro unificado, y
+   * el filtro lo ofrecía leyendo un campo que nadie rellenaba: el criterio existía en el selector y
+   * no señalaba nada.
+   */
+  createdAt?: string
   /** Avance real de 0 a 1, el mismo que captura el esquema del plan. */
   progressPct?: number
   /** El responsable con nombre —persona real, no cuenta—, si la línea vino de un plan. */

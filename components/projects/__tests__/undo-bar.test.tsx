@@ -231,3 +231,52 @@ describe('El atajo de teclado', () => {
     expect(aplicar).not.toHaveBeenCalled()
   })
 })
+
+describe('§10.6 · un paso a la vez, aunque el teclado se repita', () => {
+  /**
+   * Escribir es un viaje a la red y el teclado no espera: manteniendo `Ctrl+Z` pulsado, el
+   * autorrepetido llama otra vez **dentro** de ese viaje. Leída del cierre de `useState`, la segunda
+   * llamada veía la pila de antes y deshacía **la misma operación dos veces**.
+   */
+  it('dos Ctrl+Z dentro del mismo viaje deshacen una sola vez', async () => {
+    let soltar: (() => void) | null = null
+    const aplicar = vi.fn().mockImplementation(
+      () => new Promise<void>((ok) => { soltar = ok }),
+    )
+    render(<Banco aplicar={aplicar} />)
+    fireEvent.click(screen.getByText('hacer algo'))
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    })
+    // El primero está en vuelo: la escritura aún no ha vuelto.
+    expect(aplicar).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+      fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    })
+    expect(aplicar).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      soltar?.()
+    })
+    expect(aplicar).toHaveBeenCalledTimes(1)
+  })
+
+  it('y en cuanto vuelve, el siguiente Ctrl+Z sigue funcionando', async () => {
+    const aplicar = vi.fn().mockResolvedValue(undefined)
+    render(<Banco aplicar={aplicar} />)
+    fireEvent.click(screen.getByText('hacer algo'))
+    fireEvent.click(screen.getByText('hacer algo'))
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    })
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
+    })
+    // Dos operaciones apuntadas, dos deshechas: el cerrojo no se queda cerrado.
+    expect(aplicar).toHaveBeenCalledTimes(2)
+  })
+})
