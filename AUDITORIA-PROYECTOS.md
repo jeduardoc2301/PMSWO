@@ -1912,3 +1912,99 @@ El tiempo de montaje. El ayudante que lleva la página al tablero **duerme once 
 construcción** antes de mirar, así que los «veinte segundos» que salían son en su mayor parte mis
 propias esperas. Decir que la paginación bajó el tiempo de montaje sería atribuirme una mejora que
 no he medido. Lo que sí está medido es el DOM.
+
+---
+
+## §8 — la Carga de trabajo contaba los resúmenes como trabajo
+
+Lo encontró un agente auditando la lista de comprobación del §13. La consulta del corte de carga
+traía **todo** el plan:
+
+```ts
+where: { projectId }
+```
+
+Un resumen no es trabajo: es la suma del de sus hijas (§3.6). Contarlo **además** de ellas duplica la
+carga, y no un poco — un resumen abarca el rango entero de lo que cuelga de él, así que su asignación
+reparte jornada completa a lo largo de semanas donde ya están contadas las tareas de verdad.
+
+Medido contra el plan de referencia:
+
+| | antes | después |
+|---|---:|---:|
+| tareas en el corte | 1 368 | **1 243** |
+| asignaciones | 1 368 | **1 243** |
+| …de ellas a resúmenes | **125** | **0** |
+
+**Todas** las líneas del plan tienen asignación, incluidos los 121 marcados `RESUMEN`. No era un caso
+raro: era el 9 % del corte, y precisamente el 9 % que abarca los tramos más largos.
+
+### Por hijas, no por `kind`, y van tres
+
+Se filtra por **no tener hijas**, no por `kind: 'RESUMEN'`. En este mismo plan hay **125 líneas con
+hijas y 121 marcadas `RESUMEN`**: cuatro discrepan. Una línea con hijas es un resumen aunque su
+`kind` diga otra cosa, porque sus fechas y su esfuerzo salen de acumular, no de ejecutar.
+
+Es la **tercera** vez en esta base que las dos definiciones de «resumen» se separan — ya pasó en el
+filtro del §10.2 y en la cuenta de atrasadas del §9.3 — y las tres veces la buena fue «tiene hijas».
+
+### Lo que el arreglo NO cambió, y hay que decirlo
+
+En la matriz de la pantalla, las celdas marcadas como sobrecarga son **cuatro antes y cuatro
+después**. La carga de esos recursos ya estaba por encima de la línea sin las asignaciones fantasma,
+así que quitarlas baja la cifra pero no cruza el umbral en ninguna celda de este plan.
+
+Decirlo importa: el defecto es real y el arreglo es correcto, pero **el efecto visible en este plan
+es menor de lo que el defecto suena**. En otro plan —con menos gente o más holgura— la diferencia
+sería entre «sobrecargado» y «no».
+
+Se comprobó volviendo a poner el defecto y midiendo otra vez, que es la única forma de saberlo.
+
+---
+
+## §10.1 — los permisos de vista estaban en la barra de pestañas y no en la puerta
+
+Salió barriendo la lista del §13 con agentes, y es el mismo defecto que el de las escrituras un piso
+más abajo: **las escrituras llevaban meses guardadas y ninguna lectura lo estaba**.
+
+`vistasVisibles` recorta la barra —comprobado en su día: un cliente ve siete pestañas de diez— pero
+las rutas contestaban 200 a quien las pidiera a mano. Un permiso que sólo esconde el botón no es un
+permiso: es una sugerencia.
+
+Medido con los dos papeles:
+
+| lectura | permiso | cliente | dueño |
+|---|---|---:|---:|
+| `/schedule` — el plan del Gantt | `view_gantt` | **403** | 200 |
+| `/kanban` — el tablero | `view_board` | 200 | 200 |
+| `/workload` — la carga | `view_workload` | **403** | 200 |
+| `/dashboard` — el panel | `view_dashboard` | 200 | 200 |
+
+Los dos 200 del cliente **no son un fallo**: un cliente sí tiene `view_board` y `view_dashboard`. Es
+exactamente lo que su barra de pestañas dice, y esa coincidencia es la prueba — si la guardia
+bloqueara las cuatro, la columna de la izquierda sería igual de «buena» y no significaría nada.
+
+### Y cinco pruebas pasaron a 500 de golpe
+
+Los bancos de esas rutas no simulaban las tres consultas que hace la guardia, así que `authorize`
+reventaba con un `TypeError` que el `catch` de la ruta convertía en 500. Es la **tercera** vez esta
+sesión que enchufar una guardia pone en rojo el banco de la ruta, y las tres por lo mismo: la ruta
+hace una pregunta más y el simulacro no la contesta.
+
+---
+
+## §4.2 — la columna de restricción decía lo mismo en las 1 368 filas
+
+También del barrido del §13. La columna leía `task.constraint`, y el plan que llega del servidor
+ancla **todas** las líneas con un `NO_ANTES_DE` en su fecha guardada — así reproduce las fechas
+negociadas del archivo en vez de comprimirlo todo al arranque más temprano.
+
+Resultado: «No antes del…» en las mil trescientas sesenta y ocho, donde nadie ha elegido ninguna.
+
+Una columna que dice lo mismo en todas las filas no informa: enseña a no leerla, y cuando alguien
+pone una restricción de verdad se pierde entre mil trescientas iguales.
+
+Ahora lee `restriccionGuardada`, el campo que se añadió hace unas horas para el panel de detalle — y
+que resulta que tenía **dos** lectores, no uno. Y `enPalabras` sabe ya de las dos flexibles del
+§3.4, que no llevan fecha: pegarles una cadena vacía detrás dejaría la celda con un espacio colgando
+y pinta de dato a medio cargar.

@@ -52,7 +52,23 @@ export async function loadProjectWorkload(
 
   const [items, resources] = await Promise.all([
     prisma.workItem.findMany({
-      where: { projectId },
+      /**
+       * Las **hojas**, no todo el plan: un resumen no es trabajo, es la suma del de sus hijas
+       * (§3.6).
+       *
+       * Contarlo además de sus hijas duplica la carga, y no un poco: un resumen abarca el rango
+       * entero de lo que cuelga de él, así que su asignación reparte jornada completa a lo largo de
+       * semanas donde ya están contadas las tareas de verdad. En el plan de referencia son **125
+       * asignaciones fantasma sobre 1 368**, y todas caen en los tramos más largos: exactamente donde
+       * la sobrecarga se decide.
+       *
+       * Se filtra por **no tener hijas** y no por `kind: 'RESUMEN'`, y la diferencia no es teórica:
+       * en este mismo plan hay **125 líneas con hijas y 121 marcadas `RESUMEN`** — cuatro discrepan.
+       * Una línea con hijas es un resumen aunque su `kind` diga otra cosa, porque sus fechas y su
+       * esfuerzo salen de acumular, no de ejecutar. Es la misma unificación que ya hubo que hacer en
+       * el filtro del §10.2 y en la cuenta de atrasadas del §9.3.
+       */
+      where: { projectId, children: { none: {} } },
       select: {
         id: true,
         title: true,

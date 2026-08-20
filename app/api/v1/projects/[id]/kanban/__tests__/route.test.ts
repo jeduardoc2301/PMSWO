@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import prisma from '@/lib/prisma'
 import { GET } from '../route'
 import { NextRequest } from 'next/server'
 import { projectService } from '@/services/project.service'
@@ -17,9 +18,35 @@ vi.mock('@/services/project.service', () => ({
   },
 }))
 
+/**
+ * Las tres consultas que la guardia del §10.1 hace para saber qué papel tiene quien mira.
+ *
+ * Hicieron falta el día que este GET empezó a pedir `view_board`. Sin ellas `authorize` revienta con
+ * un TypeError que el `catch` de la ruta convierte en 500 — y cinco pruebas pasan de 200 a 500 sin
+ * que nadie haya roto el tablero. No son adorno del banco: son que la ruta hace una pregunta más.
+ */
+vi.mock('@/lib/prisma', () => ({
+  default: {
+    project: { findUnique: vi.fn() },
+    projectCollaborator: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
+  },
+}))
+
+/** Deja a quien mira como dueño del proyecto, que es el caso normal de estas pruebas. */
+function comoDueno(userId = 'user-123') {
+  vi.mocked(prisma.project.findUnique).mockResolvedValue({
+    ownerId: userId,
+    projectManagerId: null,
+  } as never)
+  vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+  vi.mocked(prisma.user.findUnique).mockResolvedValue({ roles: ['PROJECT_MANAGER'] } as never)
+}
+
 describe('GET /api/v1/projects/:id/kanban', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    comoDueno()
   })
 
   const createRequest = (id: string) => {

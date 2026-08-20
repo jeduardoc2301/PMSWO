@@ -564,6 +564,9 @@ describe('§4.2 · las columnas nuevas se pueden llenar', () => {
         duration: 2,
         dueDate: '2026-06-30',
         constraint: { type: 'NO_ANTES_DE', date: '2026-06-03' },
+        // La elección, aparte del ancla. Ver la prueba de abajo: la columna lee ésta y no
+        // `constraint`, porque el servidor ancla TODAS las líneas con un `NO_ANTES_DE`.
+        restriccionGuardada: { tipo: 'NO_ANTES_DE', fecha: '2026-06-03' },
       },
       { id: 'ancla', name: 'Ancla', duration: 20 },
     ]
@@ -865,5 +868,63 @@ describe('§4.3 · el ancho de día es el zoom', () => {
 
   it('por día caben dos cifras: 24 px para «15» con aire', () => {
     expect(anchoDeDiaPara('DIA')).toBeGreaterThanOrEqual(20)
+  })
+})
+
+describe('§4.2 · la columna de restricción enseña la elegida, no el ancla', () => {
+  /**
+   * El plan que llega del servidor ancla **todas** las líneas con un `NO_ANTES_DE` en su fecha
+   * guardada — así reproduce las fechas negociadas del archivo en vez de comprimirlo todo al
+   * arranque más temprano. Leyendo `constraint`, la columna decía «No antes del…» en las 1 368
+   * líneas del plan de referencia, donde nadie ha elegido ninguna.
+   *
+   * Una columna que dice lo mismo en todas las filas no informa: enseña a no leerla, y cuando
+   * alguien pone una restricción de verdad se pierde entre mil trescientas iguales.
+   */
+  const dibujar = (tasks: PlanTask[]) => {
+    const cal = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar: cal, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar: cal,
+    }).rows
+  }
+
+  it('una línea con SÓLO el ancla no enseña restricción', () => {
+    const filas = dibujar([
+      { id: 'a', name: 'Anclada por el servidor', duration: 3, constraint: { type: 'NO_ANTES_DE', date: '2026-06-05' } },
+    ])
+    expect(filas[0].constraint).toBeUndefined()
+  })
+
+  it('una línea con restricción elegida sí la enseña, en palabras', () => {
+    const filas = dibujar([
+      {
+        id: 'a',
+        name: 'Clavada a mano',
+        duration: 3,
+        constraint: { type: 'NO_ANTES_DE', date: '2026-06-01' },
+        restriccionGuardada: { tipo: 'DEBE_EMPEZAR_EL', fecha: '2026-06-08' },
+      },
+    ])
+    expect(filas[0].constraint).toBe('Empieza el 2026-06-08')
+  })
+
+  it('las dos flexibles no arrastran una fecha vacía detrás', () => {
+    // Pegarles una cadena vacía dejaría la celda con un espacio colgando y pinta de dato a medio
+    // cargar.
+    const alap = dibujar([
+      { id: 'a', name: 'Justo a tiempo', duration: 3, restriccionGuardada: { tipo: 'ALAP' } },
+    ])
+    expect(alap[0].constraint).toBe('Lo más tarde posible')
+
+    const asap = dibujar([
+      { id: 'a', name: 'Cuanto antes', duration: 3, restriccionGuardada: { tipo: 'ASAP' } },
+    ])
+    expect(asap[0].constraint).toBe('Lo antes posible')
   })
 })

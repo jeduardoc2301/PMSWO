@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { loadProjectPlan } from '@/services/schedule.service'
 import { Permission } from '@/types'
 
@@ -20,6 +21,20 @@ async function getScheduleHandler(
 ): Promise<NextResponse> {
   try {
     const { id } = await context.params
+
+    /**
+     * El permiso de **vista** del §10.1, en la puerta y no sólo en la barra de pestañas.
+     *
+     * `vistasVisibles` ya recorta lo que se dibuja —comprobado: un cliente ve siete pestañas— pero
+     * eso es decoración si la ruta contesta igual a quien la pida a mano. Un permiso que sólo esconde
+     * el botón no es un permiso: es una sugerencia.
+     *
+     * Salió barriendo la lista de comprobación del §13 con agentes: las escrituras estaban guardadas
+     * desde hacía rato y **ninguna lectura** lo estaba.
+     */
+    const negado = await exigirPermiso(authContext.userId, id, 'view_gantt', 'No tienes acceso al plan de este proyecto.')
+    if (negado) return negado
+
     // Acotado por organización dentro de la consulta: un proyecto ajeno simplemente no existe.
     const plan = await loadProjectPlan(id, authContext.organizationId)
 

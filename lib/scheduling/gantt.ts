@@ -328,6 +328,11 @@ const MESES = [
 
 /** La restricción de una línea, dicha como la diría quien planifica. */
 function enPalabras(c: { readonly type: string; readonly date: IsoDate }): string {
+  // Las dos flexibles del §3.4 no llevan fecha: pegarles una cadena vacía detrás dejaría la celda
+  // con un espacio colgando y con pinta de dato a medio cargar.
+  if (c.type === 'ASAP') return 'Lo antes posible'
+  if (c.type === 'ALAP') return 'Lo más tarde posible'
+
   const como =
     c.type === 'NO_ANTES_DE' ? 'No antes del'
     : c.type === 'DEBE_EMPEZAR_EL' ? 'Empieza el'
@@ -491,7 +496,28 @@ export function ganttLayout(input: GanttInput): GanttLayout {
         clamp(task.progress ?? 0) < 1 &&
         !estaTerminada(task.status ?? ''),
       ...(task.dueDate ? { deadline: task.dueDate } : {}),
-      ...(task.constraint ? { constraint: enPalabras(task.constraint) } : {}),
+      /**
+       * La restricción **elegida**, no el ancla.
+       *
+       * Esto leía `task.constraint`, y el plan que llega del servidor ancla **todas** las líneas con
+       * un `NO_ANTES_DE` en su fecha guardada — así reproduce las fechas negociadas del archivo en
+       * vez de comprimirlo todo al arranque más temprano. Resultado: la columna decía «No antes
+       * del…» en las **1 368 líneas** del plan de referencia, donde nadie ha elegido ninguna.
+       *
+       * Una columna que dice lo mismo en todas las filas no informa: enseña a no leerla, y cuando
+       * alguien pone una restricción de verdad se pierde entre mil trescientas iguales.
+       *
+       * `restriccionGuardada` es la elección original, y es lo único que distingue una restricción
+       * puesta por alguien del ancla que el servicio pone a todas.
+       */
+      ...(task.restriccionGuardada
+        ? {
+            constraint: enPalabras({
+              type: task.restriccionGuardada.tipo,
+              date: task.restriccionGuardada.fecha ?? ('' as IsoDate),
+            }),
+          }
+        : {}),
       level: level.get(task.id) ?? 0,
       isSummary: task.kind === 'RESUMEN' || children.has(task.id),
       hasChildren: children.has(task.id),

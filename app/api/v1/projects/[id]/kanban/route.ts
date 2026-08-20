@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { projectService } from '@/services/project.service'
 import { Permission } from '@/types'
 import { NotFoundError } from '@/lib/errors'
@@ -22,6 +23,20 @@ async function getKanbanBoardHandler(
 ) {
   try {
     const { id } = await context.params
+
+    /**
+     * El permiso de **vista** del §10.1, en la puerta y no sólo en la barra de pestañas.
+     *
+     * `vistasVisibles` ya recorta lo que se dibuja —comprobado: un cliente ve siete pestañas— pero
+     * eso es decoración si la ruta contesta igual a quien la pida a mano. Un permiso que sólo esconde
+     * el botón no es un permiso: es una sugerencia.
+     *
+     * Salió barriendo la lista de comprobación del §13 con agentes: las escrituras estaban guardadas
+     * desde hacía rato y **ninguna lectura** lo estaba.
+     */
+    const negado = await exigirPermiso(authContext.userId, id, 'view_board', 'No tienes acceso al Tablero de este proyecto.')
+    if (negado) return negado
+
 
     // Get Kanban board from service
     const kanbanBoard = await projectService.getKanbanBoard(id)
