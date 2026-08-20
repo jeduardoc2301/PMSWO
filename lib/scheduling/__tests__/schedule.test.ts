@@ -90,8 +90,12 @@ describe('Pase adelante: las cuatro combinaciones y el desfase negativo', () => 
     expect(fechas('ff')).toEqual(['2026-06-17', '2026-06-19'])
   })
 
-  it('comienzo-fin termina el día hábil anterior al inicio de la predecesora', () => {
-    expect(fechas('sf')).toEqual(['2026-06-10', '2026-06-12'])
+  it('comienzo-fin acaba el mismo día en que arranca la predecesora, no antes', () => {
+    // §12 caso 6: «B no puede terminar antes de que A empiece». Antes acababa el día **anterior**,
+    // por leer SF como el reflejo exacto de FS. No lo es: el `+1` de FS une fin con inicio, dos
+    // extremos que no pueden caer el mismo día; SF une inicio con fin, que sí pueden coincidir —y
+    // coincidir es exactamente lo que describe un relevo.
+    expect(fechas('sf')).toEqual(['2026-06-11', '2026-06-15'])
   })
 
   it('un desfase de −5 adelanta la sucesora cinco días hábiles y la solapa a propósito', () => {

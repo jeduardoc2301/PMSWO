@@ -311,6 +311,10 @@ function latestFinish(
     case 'FF':
       return successorFinish - dependency.lag
     case 'SF':
-      return successorFinish + 1 - dependency.lag + tramo
+      // El espejo del pase adelante, sin el día de más: allí la sucesora no puede **terminar**
+      // antes de que la predecesora empiece, así que aquí la predecesora no puede **empezar**
+      // después de que la sucesora termine. El día que sobraba le regalaba una jornada de holgura
+      // a toda la cadena que colgara de un SF.
+      return successorFinish - dependency.lag + tramo
   }
 }

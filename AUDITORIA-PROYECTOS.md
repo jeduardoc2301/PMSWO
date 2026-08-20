@@ -76,7 +76,7 @@ tiempo real y deshacer.
 | 3 | Fechas con hora en UTC (§2.1) | **EXISTE PERO MAL, POR DISEÑO** | `@db.Date` en 5 campos | Fechas sin hora. El motor entero está construido sobre **ordinales de día hábil** —fechas a número de día desde 1970, aritmética entera, y de vuelta una sola vez— precisamente para no tocar husos ni horario de verano. Poner hora no es arreglar una convención: es planificación intradía, que el producto no ofrece en ninguna de las seis vistas | L | Bajo |
 | 4 | Dinero en céntimos (§2.1) | **NO APLICA** | — | No hay presupuesto en el modelo todavía | — | — |
 | 5 | Campos derivados escritos solo por el motor (§2.1) | **CERRADA** | `lib/scheduling/cpm.ts`, `gantt.ts`, `wbs.ts` | Se cumple **más fuerte de lo que el spec pide**: `totalFloat`, `isCritical`, `earlyStart` y `wbs` no son columnas del esquema —cero apariciones—, así que no es que nadie las escriba, es que no hay dónde. Y el esquema de la ruta de edición sólo admite campos reales. Comprobado campo a campo | M | Bajo |
-| 6 | Dependencias FS/SS/FF/SF con lag (§3.2) | **EXISTE** | `TaskDependency.linkType`+`lagDays`, `services/dependency.service.ts` | Nada. Los 4 tipos, desfase con signo y ciclos detectados | — | — |
+| 6 | Dependencias FS/SS/FF/SF con lag (§3.2) | **EXISTE · corregido SF** | `TaskDependency.linkType`+`lagDays`, `lib/scheduling/schedule.ts` | Los cuatro tipos y el desfase con signo. **SF llevaba un día de más**: hacía que la sucesora terminara el día *anterior* al arranque de la predecesora, y el §12 caso 6 dice justo lo contrario. Lo encontró la batería del §12 al escribirla. El plan de referencia no usa ningún SF, así que corregirlo no movió fechas | — | — |
 | 7 | Calendarios laborables (§3.1) | **PARCIAL** | `ProjectCalendar`, `ProjectHoliday`, `lib/scheduling/calendar.ts` | Existe día laborable y festivos; falta jornada horaria y calendarios por recurso | M | Medio |
 | 8 | CPM: ruta crítica y holgura (§3.3) | **EXISTE** | `lib/scheduling/cpm.ts`, `critical-path.ts` | Nada. Holgura total, crítica y súper crítica, con 22 pruebas | — | — |
 | 9 | Restricciones de tarea (§3.4) | **PARCIAL** | `WorkItem.constraintType/constraintDate`, `lib/scheduling/reschedule.ts` | Persistidos los dos tipos que el motor aplica; las otras seis del §3.4 no, a propósito | M | Bajo |
@@ -1083,3 +1083,44 @@ Impedirlo aquí escondería el problema.
 laborables». No es cierto: usa `dailyMinutes` **del recurso**, que es lo que el modelo permite. Lo
 que falta para que `minutosLaborables(cal, d)` varíe por día son las franjas horarias, y ésas son
 del §2.
+
+## §12 — la batería, y el defecto que apareció al escribirla
+
+El spec presenta estos veinticuatro casos así: «separan un Gantt correcto de uno de juguete», y pide
+escribirlos **antes** de dar la etapa por buena. Diez ya tenían prueba con su número, repartidos por
+sus archivos temáticos. Ahora están los demás en `bateria-12.test.ts`, con el número en el título
+para que la cobertura se pueda auditar leyendo los nombres.
+
+**El caso 6 encontró un defecto de verdad en el motor.** `A —SF→ B` hacía que B terminara el día
+hábil **anterior** al arranque de A. El spec dice lo contrario —«B no puede terminar antes de que A
+empiece»— y MS Project también: «the successor cannot finish until the predecessor starts».
+
+Estaba puesto a propósito y razonado en el código como «el reflejo exacto de FS». No lo es, y ésa es
+la parte que vale la pena entender: el `+1` de FS existe porque une **fin con inicio**, dos extremos
+distintos que no pueden caer el mismo día. SF une **inicio con fin**, que sí pueden coincidir — y
+coincidir es exactamente lo que describe un relevo: lo viejo acaba el día que lo nuevo arranca.
+
+El día sobraba en los dos pases: adelante daba una fecha equivocada, y atrás le regalaba una jornada
+de holgura a toda la cadena que colgara de un SF. Estaba encodado en **cuatro** pruebas, que también
+se corrigieron.
+
+El plan de referencia no usa ningún SF —802 SS, 704 FS, 159 FF y ni uno SF— así que corregirlo no
+movió ninguna fecha real. Comprobado después: 1368 líneas, 1665 vínculos, cierre el 2026-11-30, y
+las dos cifras de atrasadas siguen en 113.
+
+**El caso 13 pedía algo que no existía.** El modo «Promedio» del avance de un resumen. Ahora está,
+en `lib/scheduling/rollup-modos.ts`, con los dos modos y el mismo ejemplo del spec: cuatro días
+hechos de ocho dan **50 %** ponderando por duración y **20 %** promediando. Ninguno es «el
+correcto»: responden preguntas distintas —«cuánto trabajo está hecho» y «cuántas cosas están
+hechas»— y por eso el §2 los pone como configuración del proyecto. Elegirlo pide `progressRollup`,
+que no existe todavía.
+
+**Dos casos no se pueden escribir contra este motor, y decirlo es más útil que omitirlos.** El 2
+(jornada partida 8:00–12:00 / 13:00–17:00) y el 23 (cambio de horario de verano dentro de una tarea)
+piden hora del día, y el motor está sobre ordinales de día hábil a propósito. Son la migración de
+duración en minutos del §2. Ponerles una prueba que pase con días redondos sería decir que están
+cubiertos.
+
+**El caso 24 pasa con margen**: 10 000 tareas y 8 000 enlaces por debajo de los 400 ms que pide el
+spec, y el pase atrás del CPM también — que no lo pide, pero en la pantalla los dos ocurren seguidos
+y quien espera no distingue cuál tardó.

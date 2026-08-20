@@ -131,7 +131,9 @@ describe('Holgura, propiedad 3: el pase atrás es el inverso exacto del pase ade
               expect(finPred).toBeLessThanOrEqual(finSuc - dependency.lag)
               break
             case 'SF':
-              expect(inicioPred).toBeLessThanOrEqual(finSuc + 1 - dependency.lag)
+              // `Finish_B ≥ Start_A`: la sucesora no puede terminar antes de que la predecesora
+              // empiece (§12 caso 6). Llevaba un día de holgura de más, del `−1` que tenía el motor.
+              expect(inicioPred).toBeLessThanOrEqual(finSuc - dependency.lag)
               break
           }
         }

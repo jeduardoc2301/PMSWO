@@ -99,7 +99,8 @@ function inicioExigido(
     case 'FF':
       return finPredecesora + dependency.lag - tramoSucesora
     case 'SF':
-      return inicioPredecesora - 1 + dependency.lag - tramoSucesora
+      // Sin el `−1` que tenía: `Finish_B ≥ Start_A`, que es lo que dice el §12 caso 6.
+      return inicioPredecesora + dependency.lag - tramoSucesora
   }
 }
 

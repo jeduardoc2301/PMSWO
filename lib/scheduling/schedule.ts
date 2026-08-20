@@ -205,8 +205,16 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
  * - `FS` la sucesora empieza el día hábil siguiente al fin de la predecesora, de ahí el `+ 1`.
  * - `SS` las dos empiezan a la vez.
  * - `FF` las dos terminan a la vez, así que la sucesora empieza tantos días antes como dure.
- * - `SF` la sucesora termina el día hábil anterior al inicio de la predecesora, de ahí el `− 1`.
- *   Es el reflejo exacto de `FS`, y por eso lleva el mismo día de separación.
+ * - `SF` la sucesora **no puede terminar antes** de que la predecesora empiece: `Finish_B ≥
+ *   Start_A`, que en ordinales es `Start_B ≥ Start_A − tramo`.
+ *
+ *   Llevaba un `− 1` de más, por leerlo como «el reflejo exacto de FS». No lo es. El `+ 1` de FS
+ *   existe porque une **fin con inicio**, dos extremos distintos que no pueden caer el mismo día;
+ *   SF une **inicio con fin**, que sí pueden coincidir — la sucesora acaba el día que la
+ *   predecesora arranca, y eso es un relevo, no un solapamiento. Con el `− 1`, la sucesora
+ *   terminaba el día **anterior**, que es justo lo que el §12 caso 6 dice que no puede pasar:
+ *   «B no puede terminar antes de que A empiece». El plan de referencia no usa ningún SF —802 SS,
+ *   704 FS, 159 FF y ni uno SF—, así que corregirlo no movió ninguna fecha real.
  *
  * El desfase se suma con su signo. Uno negativo adelanta a la sucesora: es un solapamiento puesto
  * a propósito, no un error que haya que recortar.
@@ -228,6 +236,6 @@ function requiredStart(
     case 'FF':
       return predecessorFinish + dependency.lag - tramo
     case 'SF':
-      return predecessorStart - 1 + dependency.lag - tramo
+      return predecessorStart + dependency.lag - tramo
   }
 }

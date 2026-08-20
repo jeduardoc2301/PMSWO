@@ -229,7 +229,9 @@ describe('El pase atrás con los cuatro tipos de vínculo', () => {
       { predecessorId: 'a', successorId: 'b', type: 'SF', lag: 0 },
     ])
     expect(tempranas('a')).toEqual(['2026-06-15', '2026-06-18'])
-    expect(tempranas('b')).toEqual(['2026-06-10', '2026-06-12'])
+    // Acaba **el mismo día** en que «a» arranca, no el anterior: el §12 caso 6 dice que no puede
+    // terminar antes de que la predecesora empiece, y terminar el día justo es el relevo.
+    expect(tempranas('b')).toEqual(['2026-06-11', '2026-06-15'])
     // «a» cierra el plan; «b» pudo haber terminado el mismo día 12 o más tarde.
     expect(holgura('a')).toBe(0)
     expect(holgura('b')).toBeGreaterThan(0)
