@@ -2813,3 +2813,39 @@ identificador** —las hijas y los vínculos apuntan a él— y los vínculos va
 operación —reponer la línea sin ellos devolvería una línea suelta y diría que se deshizo—. Sin foto
 devuelve `null`: encender el botón de deshacer para nada es peor que dejarlo apagado.
 
+---
+
+## §10.5 — refresco a demanda, decidido en vez de tiempo real
+
+Decisión del dueño del producto, tomada con la pregunta delante: **un botón de actualizar, a
+demanda**. Ni Supabase Realtime ni sondeo.
+
+Se construye como **una sola pieza: el botón y la edad**. Sin tiempo real, el daño no es que los
+datos sean viejos —lo son entre dos recargas de todas formas— sino que **nadie sepa que lo son**. Un
+botón de actualizar suelto es el mismo problema con un botón más.
+
+### Tres tramos, no un contador
+
+| edad | qué dice | por qué |
+|---|---|---|
+| < 1 min | «actualizado hace un momento» | que sean 41 o 47 segundos no cambia ninguna decisión |
+| minutos | «hace 3 minutos» | puede haber algo nuevo; si te importa, actualiza |
+| ≥ 5 min | **«· puede haber cambios»** | la diferencia deja de ser teórica |
+| horas, días | «hace 3 horas» | esto es una pestaña olvidada |
+
+El aviso va **en palabras**, no sólo en color: que la única señal de «esto está viejo» fuera el
+color dejaría fuera a quien no lo distingue.
+
+### Tres decisiones que no se ven
+
+- **Repintar la edad no es un sondeo.** No pide datos: vuelve a escribir el texto. Y el intervalo
+  **crece con la edad** — un temporizador al minuto en una pestaña olvidada toda la tarde son
+  seiscientos despertares para no cambiar ni una letra.
+- **Se recarga el proyecto entero**, no la pestaña visible. Las seis vistas leen del mismo plan, y
+  dejar cuatro con datos de hace media hora mientras una se actualiza es exactamente la incoherencia
+  que el botón existe para quitar.
+- **La marca se pone al terminar**, no al empezar: la edad que importa es la de lo que se está
+  viendo.
+
+Un reloj de navegador atrasado no produce «hace −3 minutos»: la edad se acota en cero.
+

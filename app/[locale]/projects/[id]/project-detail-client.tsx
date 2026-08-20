@@ -16,6 +16,7 @@ import { UndoBar } from '@/components/projects/undo-bar'
 import { useUndo } from '@/components/projects/use-undo'
 import { type Cambio, type LadoDeOperacion, operacionDesde, vaPorLaRutaDeReprogramar } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
+import { BotonDeActualizar } from '@/components/projects/boton-de-actualizar'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
 import { ColumnasDelTablero } from '@/components/projects/columnas-del-tablero'
@@ -136,6 +137,15 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const [kanbanBoard, setKanbanBoard] = useState<KanbanBoardType | null>(null)
   /** Sube cada vez que hay que volver a pedir el plan: deshacer, rehacer, un lote (§10.6). */
   const [planRecargado, setPlanRecargado] = useState(0)
+  /**
+   * Cuándo se cargaron por última vez los datos de este proyecto (§10.5).
+   *
+   * Se decidió no construir tiempo real y poner en su lugar un refresco **a demanda**. Esa decisión
+   * sólo se sostiene si la pantalla dice su edad: sin ella, el botón de actualizar es el mismo
+   * problema con un botón más.
+   */
+  const [cargadoEn, setCargadoEn] = useState<number | null>(null)
+  const [actualizando, setActualizando] = useState(false)
 
   // ── El filtro unificado (§10.2) ───────────────────────────────────────────────────────────────
   // Vive aquí, en el proyecto, y no dentro de cada vista: es lo que hace que filtrar en el Tablero
@@ -274,6 +284,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       setMetrics(metricsData.metrics)
       setKanbanBoard(kanbanData.kanbanBoard)
       calculateTacticalMetrics(kanbanData.kanbanBoard, agreementsData.agreements || [])
+      // Se marca al final y no al empezar: la edad que importa es la de lo que se está viendo.
+      setCargadoEn(Date.now())
     } catch (err) {
       /**
        * Un mensaje que diga **qué** no se pudo hacer, no «ocurrió un error» (§13).
@@ -575,6 +587,32 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     : []
   const idsFiltrados = new Set(lineasFiltradas.map((l) => l.id))
 
+  /**
+   * Volver a pedirlo todo: el proyecto, el tablero y —por el contador— el plan de las vistas que lo
+   * cargan por su cuenta.
+   *
+   * Se recarga entero y no sólo la pestaña visible: las seis vistas leen del mismo plan, y dejar
+   * cuatro con datos de hace media hora mientras una se actualiza es exactamente la incoherencia que
+   * este botón existe para quitar.
+   */
+  const actualizarTodo = async () => {
+    setActualizando(true)
+    try {
+      await fetchProject()
+      setPlanRecargado((n) => n + 1)
+    } finally {
+      setActualizando(false)
+    }
+  }
+
+  const refresco = (
+    <BotonDeActualizar
+      cargadoEn={cargadoEn}
+      actualizando={actualizando}
+      onActualizar={() => void actualizarTodo()}
+    />
+  )
+
   const barraDeDeshacer = (
     <UndoBar
       sePuedeDeshacer={undo.sePuedeDeshacer}
@@ -791,8 +829,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
         {/* Tabs */}
         <div className="rounded-xl overflow-hidden" style={{ background: '#18181b', border: '1px solid #27272a' }}>
-          {/* Tab bar */}
-          <div className="flex overflow-x-auto" style={{ borderBottom: '1px solid #27272a' }}>
+          {/* Tab bar. El refresco va aquí —y no dentro de cada pestaña— porque recarga el
+              proyecto entero: las seis vistas leen del mismo plan (§10.5). */}
+          <div className="flex items-center overflow-x-auto" style={{ borderBottom: '1px solid #27272a' }}>
             {pestanasVisibles.map(tab => (
               <button key={tab.value} onClick={() => setActiveTab(tab.value)}
                 className="px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-all flex-shrink-0"
@@ -802,6 +841,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                 {tab.label}
               </button>
             ))}
+            <div className="ml-auto flex-shrink-0 px-4">{refresco}</div>
           </div>
 
           {/* Tab content */}
