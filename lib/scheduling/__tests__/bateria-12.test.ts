@@ -287,34 +287,40 @@ describe('§12 caso 24 · 10 000 tareas y 8 000 enlaces', () => {
     expect(s.byId.get('t8000')!.start > s.byId.get('t0')!.finish).toBe(true)
   })
 
-  it('crece de forma lineal: diez planes de 1 000 cuestan lo mismo que uno de 10 000', () => {
-    const mil = planEnCadena(1_000)
+  /**
+   * Se comparan **dos tamaños grandes**, no diez planes chicos contra uno grande.
+   *
+   * La forma anterior metió en la medida algo que no quería medir: reservar un mapa de diez mil
+   * entradas de una vez no cuesta lo mismo que reservar diez de mil, y esa diferencia es de la
+   * máquina, no del algoritmo. Se puso roja **tres veces** por eso, con el pase atrás intacto.
+   *
+   * Así la señal es limpia: doblar el tamaño debe doblar el tiempo. Lineal da ≈2, cuadrático da
+   * ≈4, y el tope en 3 separa las dos cosas con margen para el ruido.
+   */
+  const CRECE_AL_DOBLAR = 3
+
+  it('crece de forma lineal: doblar el plan dobla el tiempo, no lo cuadruplica', () => {
+    const cincoMil = planEnCadena(5_000)
     const diezMil = planEnCadena(10_000)
 
-    // El mismo trabajo por los dos lados: 10 × 1 000 = 10 000 tareas programadas en cada medida.
-    const enDiezTrozos = mejorDeTres(() => {
-      for (let i = 0; i < 10; i += 1) programar(mil.tasks, mil.dependencies)
-    })
-    const deUnaVez = mejorDeTres(() => programar(diezMil.tasks, diezMil.dependencies))
+    const mitad = mejorDeTres(() => programar(cincoMil.tasks, cincoMil.dependencies))
+    const entero = mejorDeTres(() => programar(diezMil.tasks, diezMil.dependencies))
 
-    // Lineal da ≈1. Se deja hasta 3 por los mapas y la recolección de basura, que no escalan igual
-    // de limpio; cuadrático daría ≈10 y no cabe ni de lejos en ese margen.
-    expect(deUnaVez / Math.max(enDiezTrozos, 0.01)).toBeLessThan(3)
+    expect(entero / Math.max(mitad, 0.01)).toBeLessThan(CRECE_AL_DOBLAR)
   })
 
   it('y el pase atrás del CPM tampoco se dispara', () => {
     // El tope del spec es para `schedule()`, pero un pase atrás lento haría inútil la cifra: en la
     // pantalla los dos ocurren seguidos y quien espera no distingue cuál tardó.
-    const mil = planEnCadena(1_000)
+    const cincoMil = planEnCadena(5_000)
     const diezMil = planEnCadena(10_000)
-    const sChico = programar(mil.tasks, mil.dependencies)
-    const sGrande = programar(diezMil.tasks, diezMil.dependencies)
+    const sMitad = programar(cincoMil.tasks, cincoMil.dependencies)
+    const sEntero = programar(diezMil.tasks, diezMil.dependencies)
 
-    const enDiezTrozos = mejorDeTres(() => {
-      for (let i = 0; i < 10; i += 1) analyzeCriticalPath(sChico)
-    })
-    const deUnaVez = mejorDeTres(() => void analyzeCriticalPath(sGrande))
-    expect(deUnaVez / Math.max(enDiezTrozos, 0.01)).toBeLessThan(3)
+    const mitad = mejorDeTres(() => void analyzeCriticalPath(sMitad))
+    const entero = mejorDeTres(() => void analyzeCriticalPath(sEntero))
+
+    expect(entero / Math.max(mitad, 0.01)).toBeLessThan(CRECE_AL_DOBLAR)
   })
 
   it('en una máquina en reposo las 10 000 se programan bien por debajo del segundo', () => {
