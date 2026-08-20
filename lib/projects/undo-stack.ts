@@ -250,3 +250,39 @@ export function operacionDesde(
   if (hacer.length === 0) return null
   return { etiqueta, hacer, deshacer: atras }
 }
+
+/**
+ * Los campos que la ruta de reprogramar sabe restaurar en una transacción.
+ *
+ * Es la familia de «dónde va la línea en el calendario»: las dos fechas y la restricción que las
+ * ancla. Están juntos porque la ruta los escribe juntos.
+ */
+export const CAMPOS_DE_REPROGRAMACION = Object.freeze([
+  'start',
+  'finish',
+  'constraintType',
+  'constraintDate',
+])
+
+/**
+ * ¿Este cambio vuelve por la ruta de reprogramar, o por la de la línea?
+ *
+ * Deshacer una reprogramación de 394 líneas con 394 peticiones deja el plan medio revertido en
+ * cuanto una falle, y quien pulsó Ctrl+Z creía estar volviendo atrás. Por eso los cambios de fecha
+ * van juntos por `/reschedule`, que los escribe en una transacción.
+ *
+ * La condición pide **las dos fechas**, no sólo campos de la familia, y esa palabra es el arreglo de
+ * un defecto: la ruta de restauración exige `start` y `finish` —es su trabajo—, así que una edición
+ * que sólo cambiaba la restricción producía `{constraintType, constraintDate}`, que son los dos de
+ * la familia, y se mandaba allí sin las fechas que pide. Respuesta 400 y el Ctrl+Z entero fallaba.
+ * Apareció al ofrecer las restricciones en el diálogo (§3.4): hasta entonces nadie podía cambiar
+ * una sin mover una fecha, y la condición floja no se distinguía de la correcta.
+ *
+ * Lo que no cumple esto baja a la ruta de la línea, que sabe escribir la restricción sola.
+ */
+export function vaPorLaRutaDeReprogramar(campos: Readonly<Record<string, unknown>>): boolean {
+  const claves = Object.keys(campos)
+  if (claves.length === 0) return false
+  if (!('start' in campos) || !('finish' in campos)) return false
+  return claves.every((c) => CAMPOS_DE_REPROGRAMACION.includes(c))
+}

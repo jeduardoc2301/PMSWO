@@ -79,7 +79,7 @@ tiempo real y deshacer.
 | 6 | Dependencias FS/SS/FF/SF con lag (§3.2) | **EXISTE · corregido SF** | `TaskDependency.linkType`+`lagDays`, `lib/scheduling/schedule.ts` | Los cuatro tipos y el desfase con signo. **SF llevaba un día de más**: hacía que la sucesora terminara el día *anterior* al arranque de la predecesora, y el §12 caso 6 dice justo lo contrario. Lo encontró la batería del §12 al escribirla. El plan de referencia no usa ningún SF, así que corregirlo no movió fechas | — | — |
 | 7 | Calendarios laborables (§3.1) | **PARCIAL** | `ProjectCalendar`, `ProjectHoliday`, `lib/scheduling/calendar.ts` | Existe día laborable y festivos; falta jornada horaria y calendarios por recurso | M | Medio |
 | 8 | CPM: ruta crítica y holgura (§3.3) | **EXISTE** | `lib/scheduling/cpm.ts`, `critical-path.ts` | Nada. Holgura total, crítica y súper crítica, con 22 pruebas | — | — |
-| 9 | Restricciones de tarea (§3.4) | **CERRADA · las ocho** | `WorkItem.constraintType`, `lib/scheduling/schedule.ts`, `cpm.ts`, `alap.ts` | Las ocho del §3.4. `ASAP` es el comportamiento por omisión; las tres que **empujan** (`SNET`, `MSO`, `FNET`) mueven la tarea en el pase adelante; las tres que solo **comprometen** (`MFO`, `SNLT`, `FNLT`) bajan el techo de la fecha tardía y sacan la holgura negativa, sin mover nada. La octava, `ALAP`, no cabía donde caben las otras siete porque **no lleva fecha**: dónde va se sabe después del pase atrás, así que programar con ella es programar dos veces. Demostrado en pantalla sobre las 1368: la línea marcada se corre de 2026-07-24 a su fecha tardía 2026-11-17, su sucesora respeta el `SS+1`, se mueven 8 líneas y el cierre sigue en 2026-11-30. Falta la casilla en el diálogo de edición: hoy se marca por la base o por la ruta | M | Bajo |
+| 9 | Restricciones de tarea (§3.4) | **CERRADA · las ocho** | `WorkItem.constraintType`, `lib/scheduling/schedule.ts`, `cpm.ts`, `alap.ts` | Las ocho del §3.4. `ASAP` es el comportamiento por omisión; las tres que **empujan** (`SNET`, `MSO`, `FNET`) mueven la tarea en el pase adelante; las tres que solo **comprometen** (`MFO`, `SNLT`, `FNLT`) bajan el techo de la fecha tardía y sacan la holgura negativa, sin mover nada. La octava, `ALAP`, no cabía donde caben las otras siete porque **no lleva fecha**: dónde va se sabe después del pase atrás, así que programar con ella es programar dos veces. Demostrado en pantalla sobre las 1368: la línea marcada se corre de 2026-07-24 a su fecha tardía 2026-11-17, su sucesora respeta el `SS+1`, se mueven 8 líneas y el cierre sigue en 2026-11-30. Y se ponen **desde el diálogo de edición**: selector con las ocho, campo de fecha sólo para las seis que la piden, y la explicación de la elegida — recorrido en pantalla. Cambiarla pide `edit_schedule`, como cambiar una fecha | M | Bajo |
 | 10 | Roll-up a resúmenes (§3.6) | **EXISTE** | `lib/scheduling/progress.ts` | Nada. Ponderado por trabajo, con hitos en peso cero | — | — |
 | 11 | Carga y sobrecarga de recursos (§3.7) | **PARCIAL · lo que falta es modelo** | `Resource`, `Assignment`, `services/resource.service.ts`, `app/api/v1/work-items/[id]/assignments/` | Ya hay alta y baja de asignación por ruta, con la misma regla de dedicación en servidor y pantalla. La fórmula **no** usa una constante: usa `dailyMinutes` del recurso, que es lo que el modelo permite. Falta `Assignment.work` y franjas horarias por día para que `minutosLaborables(cal, d)` pueda variar — las dos son del §2, que espera decisión | M | Medio |
 | 12 | Jerarquía con `sortOrder` y EDT (§2.3) | **PARCIAL** | `lib/scheduling/wbs.ts` | **El EDT ya es estable**: la línea nueva nace con puesto al final, así que añadir una no renumera nada. Falta `sortOrder` como columna propia con su índice (hoy es `templateOrder`, nulable y global al proyecto) y el tope de 16 niveles. El EDT sí está en el Gantt, como columna del catálogo | M | Medio |
@@ -1121,13 +1121,27 @@ piden hora del día, y el motor está sobre ordinales de día hábil a propósit
 duración en minutos del §2. Ponerles una prueba que pase con días redondos sería decir que están
 cubiertos.
 
-**El caso 24 pasa, pero la prueba estaba mal escrita.** Medía 10 000 tareas contra un tope de 400 ms
-de reloj, y eso **fallaba dentro de la suite completa y pasaba sola**: 676 ms acompañada, 119 ms el
-archivo entero por su cuenta. No medía el motor, medía cuántos núcleos libres había. Ahora mide la
-**forma de la curva** —×10 el tamaño tiene que costar muy por debajo de ×100—, que es la afirmación
-que de verdad separa un motor que aguanta de uno con un recorrido cuadrático escondido, y que es
-inmune a la contención porque una máquina ocupada frena las dos medidas por igual. El tope absoluto
-se queda como red, generoso a propósito. Lo mismo para el pase atrás del CPM.
+**El caso 24 pasa, pero la prueba estuvo mal escrita dos veces.**
+
+1. **Un tope en milisegundos de reloj** —400—. Fallaba dentro de la suite completa y pasaba sola:
+   676 ms acompañada, 119 ms el archivo entero por su cuenta. No medía el motor, medía cuántos
+   núcleos libres había.
+2. **La razón entre 10 000 y 1 000 tareas**, con tope ×30. La idea era la correcta —lo que separa un
+   motor que aguanta de uno con un recorrido cuadrático escondido es la **forma de la curva**— y se
+   escribió aquí que era «inmune a la contención porque una máquina ocupada frena las dos medidas
+   por igual». **No lo era**: programar 1 000 tareas cuesta cerca de 1 ms, y dividir por un número
+   tan pequeño amplifica su ruido en vez de cancelarlo. Salió **34,07 contra 30** y la suite se puso
+   roja sin que el motor hubiera cambiado.
+
+La tercera iguala el **trabajo total** de las dos medidas: diez pasadas de 1 000 contra una de
+10 000. Ahora sí duran lo mismo, que es lo que la segunda daba por hecho sin cumplirlo. Medida diez
+veces seguidas, la razón va de **1,08 a 1,40** contra un tope de 3 — y un motor cuadrático daría
+≈10. Eso es margen; lo anterior rozaba el tope y por eso lo cruzaba de vez en cuando. Lo mismo para
+el pase atrás del CPM.
+
+Dos veces mal la misma prueba, y las dos veces el síntoma fue el mismo: **rojo en la suite completa,
+verde en solitario**. Un fallo intermitente no es ruido que ignorar hasta que se calme; es una
+prueba que está midiendo otra cosa que la que dice medir.
 
 ---
 
@@ -1241,8 +1255,8 @@ las tres que los apuntan y siguieron verdes las cuatro del camino legítimo.
 
 **Comprobar el código de respuesta no es comprobar que no se escribió.** Las ocho puertas del §10.1
 se midieron así, una por una, y esa medición no distingue «bloqueó» de «escribió y luego se quejó».
-Las otras siete piden el permiso antes de tocar nada —se revisó—, pero eso se sabe ahora por haber
-mirado, no por la medición de entonces.
+Las otras diez piden el permiso antes de tocar nada, y ahora eso lo dice una prueba y no una frase
+— ver abajo.
 
 Y el plan de referencia lo demostró en carne propia: al comprobar el camino legítimo, mover una
 línea temprana reprogramó el plan entero y el cierre se fue de 2026-11-30 a **2027-05-25**. Lo
@@ -1254,3 +1268,163 @@ cierre, restricciones y avance —y las **cinco daban «ok»** con una línea qu
 terminaba en 2026. Ahora cuenta también las líneas con el inicio después del fin, y fue lo primero
 que cantó. Una medición destructiva puede dejar el plan roto por dentro sin mover ninguna cifra de
 tamaño.
+
+### La misma regla, ahora comprobada en las once puertas
+
+Escribir en la bitácora «las otras siete piden el permiso antes de tocar nada — se revisó» era una
+afirmación sin medición detrás, escrita en la misma página que cuenta cómo una afirmación sin
+medición detrás dejó pasar el defecto. Se revisaron las once y todas están bien, y de paso la
+comprobación quedó como prueba (`app/api/v1/__tests__/guardias-antes-de-escribir.test.ts`).
+
+Es una prueba sobre la **forma** del código, no sobre su comportamiento, y eso es deliberado: el
+defecto es de orden, y ninguna prueba de comportamiento lo encuentra sin buscarlo a propósito, porque
+el código de respuesta es el correcto. Lo único que lo delata es dónde está la llamada.
+
+**Estuvo mal escrita dos veces, y las dos se descubrieron metiendo el defecto a propósito en vez de
+creerle al verde:**
+
+1. Comparó la **primera** pregunta con la primera escritura. No encontraba el defecto que la motivó:
+   la ruta de la línea pregunta dos veces —`edit_tracking` arriba y `edit_schedule` para las
+   fechas— y con la segunda mal colocada la primera seguía estando antes del `update`.
+2. Comparó **todas** las preguntas del archivo con la primera escritura del archivo. Encontraba el
+   defecto, y también cuatro rutas sanas: un `POST` que escribe arriba y un `DELETE` que pregunta
+   doscientas líneas más abajo son dos puertas distintas, no una guardia tardía.
+
+La tercera compara por **manejador**, que es lo que de verdad se quiere decir: cuando este manejador
+escribe, ya no le queda nada por preguntar. Reconstruido el defecto original, la prueba lo señala
+por su nombre — `updateWorkItemHandler: escribe en la línea 230 y todavía pregunta permisos en 304`.
+
+Que una prueba escrita para cazar un defecto pase en verde con el defecto puesto es el mismo error
+que la originó, un piso más arriba. La única defensa es romper el arreglo a propósito y mirar.
+
+---
+
+## §3.4 — las ocho restricciones, ahora desde el diálogo
+
+El motor ya sabía las ocho y ninguna se podía poner sin abrir un cliente de MySQL: `constraintType`
+sólo entraba por `/reschedule`, que manda el plan entero, y el diálogo de edición no la mencionaba.
+Una capacidad que no tiene por dónde entrar es una capacidad que no existe.
+
+Y había un diálogo aparte —`edit-work-item-dates-dialog.tsx`— que parecía el sitio natural para
+ponerla. **No lo usa nadie**: 139 líneas de código muerto. El vivo es `edit-work-item-dialog.tsx`, que
+abren el Tablero y las dos Listas.
+
+### El catálogo vive en un sitio
+
+`lib/scheduling/restricciones.ts` tiene las ocho con su sigla de MS Project, su nombre, si lleva
+fecha, si **empuja** o sólo **compromete**, y una frase que dice qué le pasa a la línea. La frase no
+es adorno: `SNET` y `MSO` suenan igual y hacen cosas distintas —una es un piso, la otra un clavo— y
+elegir mal aquí no da un error, da un cronograma que miente.
+
+La regla de qué combinaciones valen —`porQueNoSeAdmiteLaRestriccion`— la usan **la pantalla y la
+ruta**, no una cada una. Dos redacciones del mismo rechazo acaban divergiendo, y la que se queda
+atrás es siempre la del servidor, que es la que nadie lee hasta que falla.
+
+### Recorrido en pantalla
+
+| qué | qué se vio |
+|---|---|
+| el selector | **9 opciones**: las ocho más «Ninguna — se coloca por sus predecesoras» |
+| el campo de fecha | aparece en `SNET` y `MFO`; **desaparece** en `ALAP` y `ASAP` |
+| la explicación | cambia con la elegida, y se va al volver a «Ninguna» |
+| elegir `ALAP` y **Actualizar** | la línea pasa de `2026-07-24 → 2026-07-27` a `2026-11-17 → 2026-11-18` |
+| su sucesora | de `2026-07-27` a `2026-11-18`, respetando el `SS+1` |
+
+Las mismas fechas que había calculado el motor, ahora puestas desde la pantalla y no desde un guion.
+
+Cambiar la restricción cuenta como tocar el cronograma y pide `edit_schedule`, igual que cambiar una
+fecha: si no entrara por ahí, quien no puede tocar el plan lo tocaría por la puerta de al lado, que
+es exactamente el agujero que abrió esa guardia en su día.
+
+Y elegir una que no lleva fecha **borra** la que hubiera: dejarla puesta e invisible es cómo se
+guardan datos que nadie ve y que un día reaparecen.
+
+El plan de referencia se dejó como estaba: `import-plan-db.ts --merge` para las fechas y la
+restricción quitada. Comprobado: **1368 líneas, 1665 vínculos, cierre 2026-11-30, 0 restricciones,
+0 avance, 0 líneas al revés**.
+
+### Y al ofrecerlas, dos cosas que se rompieron por el camino
+
+Las dos aparecieron al recorrer el ciclo entero —poner `ALAP` desde el diálogo y **deshacerlo**—, no
+al escribir el código. Ninguna de las dos se veía con la pantalla parada.
+
+**1. El Ctrl+Z se rompía entero.** La pila decide por qué ruta vuelve cada cambio: los de fecha van
+juntos por `/reschedule`, que los escribe en una transacción —deshacer 394 líneas con 394 peticiones
+deja el plan medio revertido en cuanto una falle—. La condición era «todos sus campos son de la
+familia de fechas», y un cambio de sólo restricción produce `{constraintType, constraintDate}`, que
+son dos de esa familia. Se mandaba a esa ruta **sin** el `start` y el `finish` que exige: 400, y el
+deshacer fallaba entero. Hasta que el diálogo ofreció las restricciones nadie podía cambiar una sin
+mover una fecha, así que la condición floja no se distinguía de la correcta.
+
+Ahora pide **las dos fechas dentro**, no sólo campos de la familia, y la regla salió del componente a
+`undo-stack.ts` —donde se puede probar sin montar la pantalla— con seis casos.
+
+**2. La Lista decía «deshecho» y no se movía.** Esta es peor, porque no da error. La vista se pide el
+plan ella sola y nadie la enteraba: la pila vive en el proyecto, el Gantt sí recibe la señal de
+recarga y la Lista no. Medido:
+
+| | la base | la pantalla |
+|---|---|---|
+| tras poner `ALAP` | 2026-11-17 | 2026-11-17 |
+| tras deshacer | **2026-07-24** | 2026-11-17 |
+| ocho segundos después | 2026-07-24 | **2026-11-17** |
+
+El deshacer había funcionado perfectamente. Lo único roto era que no había forma de saberlo mirando.
+Ahora la vista recibe el mismo contador que el Gantt, y al recargar **no** vuelve a «cargando»:
+parpadear la tabla entera por un cambio de una línea es peor que esperar medio segundo con lo viejo.
+
+Vuelto a recorrer, las cinco lecturas en pantalla:
+
+```
+1. antes de nada         2026-07-24 → 2026-07-27
+2. con ALAP puesto       2026-11-17 → 2026-11-18
+3. deshacer dice         Deshacer «Editar «Definir la centralización de registros»» · Ctrl+Z
+4. tras deshacer         sin avisos
+5. la línea ahora dice   2026-07-24 → 2026-07-27
+```
+
+La lección vuelve a ser la de siempre en esta bitácora, y van tres esta sesión: **funcionalidad nueva
+que toca algo viejo hay que recorrerla hasta el final, incluido deshacerla.** Las dos pruebas de
+unidad de la restricción pasaban, la ruta responde 200, la base guarda bien — y el ciclo completo
+estaba roto en dos sitios.
+
+### Y leída en el panel de detalle, que es donde hacía falta
+
+Poner la restricción no basta: **una línea clavada se ve exactamente igual que una que la cadena
+dejó ahí**, y la diferencia es la que decide qué hacer cuando el plan se atrasa. El panel de detalle
+del §10.3 —el mismo componente en las seis vistas— ahora lo dice.
+
+Lo que se ve en pantalla, con «Debe empezar el» puesta desde el diálogo:
+
+```
+RESTRICCIÓN DE FECHA
+Debe empezar el · 2026-08-01
+Clava el arranque en ese día, la empujen o no sus predecesoras. Úsala poco:
+una línea clavada deja de responder al plan.
+```
+
+Tres decisiones que no son de estilo:
+
+- **Sólo aparece cuando hay una.** El plan de referencia son 1368 líneas sin restricción; un renglón
+  vacío en todas ellas es ruido que entrena a no leer el panel.
+- **Se dice el nombre, no la sigla.** Quien lee un plan no tiene por qué saber que `MSO` y `SNET` son
+  cosas distintas, y aquí es exactamente donde importa que lo sepa.
+- **Un código que el catálogo no conoce se enseña tal cual.** Un dato guardado que la pantalla no
+  sabe leer tiene que verse; esconderlo deja a quien mira creyendo que la línea es libre.
+
+Para llevarla hasta ahí hizo falta un campo nuevo en `PlanTask`: `restriccionGuardada`, **la elección
+tal como se guardó**. De los tres campos que consume el motor —`constraint`, `compromiso`, `alap`—
+no se puede reconstruir: el servicio ancla **todas** las líneas con un `NO_ANTES_DE` en su fecha
+guardada, así que un `constraint` de ese tipo puede ser el ancla o puede ser lo que alguien eligió, y
+las dos se ven igual. Sin ese campo, el panel habría puesto «No empieza antes del…» en las 1368.
+
+### Nota de método: tres selectores mal antes de acertar
+
+La sonda dijo «no encuentro el botón del nombre» tres veces seguidas, y las tres veces el fallo era
+mío: en la Lista el nombre no es un botón con `title`, es una celda editable cuyo `aria-label` sólo
+existe **mientras se edita** — en reposo es un `span` con el texto. Y el campo de fecha no es un
+`input[type=date]` sino un desplegable propio con un botón por día.
+
+Se anota porque el patrón se repite en esta bitácora: **una sonda que no encuentra algo no es prueba
+de que no esté**. Las tres veces la reacción correcta fue ir a leer el componente, no concluir que
+faltaba la funcionalidad.

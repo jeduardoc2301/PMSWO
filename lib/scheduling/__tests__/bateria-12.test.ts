@@ -237,16 +237,23 @@ describe('§12 caso 11 · el resumen abarca a sus hijos', () => {
 
 describe('§12 caso 24 · 10 000 tareas y 8 000 enlaces', () => {
   /**
-   * El caso pide que el motor aguante un plan grande. La primera versión de esta prueba lo medía
-   * con un tope en milisegundos de reloj —400— y **fallaba dentro de la suite completa y pasaba
-   * sola**: 676 ms acompañada, 119 ms el archivo entero por su cuenta. No medía el motor, medía
-   * cuántos núcleos libres había en ese momento.
+   * El caso pide que el motor aguante un plan grande. Esta prueba ha estado mal escrita **dos
+   * veces**, y las dos fallaron igual: por fuera dentro de la suite completa y por dentro cuando se
+   * ejecutaba sola.
    *
-   * Lo que de verdad separa un motor que aguanta de uno que no es la **forma de la curva**: si
-   * multiplicar el tamaño por diez multiplica el tiempo por diez, escala; si lo multiplica por cien,
-   * hay un recorrido cuadrático escondido y el plan de un cliente grande lo va a encontrar. Esa
-   * comparación es inmune a la contención, porque una máquina ocupada frena las dos medidas por
-   * igual.
+   * 1. **Un tope en milisegundos de reloj** —400—. 676 ms acompañada, 119 ms el archivo entero por
+   *    su cuenta. No medía el motor, medía cuántos núcleos libres había en ese momento.
+   * 2. **La razón entre 10 000 y 1 000**, con tope ×30. La idea era buena —lo que separa un motor
+   *    que aguanta de uno con un recorrido cuadrático escondido es la **forma de la curva**— pero
+   *    la aritmética no: programar 1 000 tareas cuesta cerca de **1 ms**, y dividir por un número
+   *    tan pequeño amplifica su ruido en vez de cancelarlo. Salió 34,07 contra 30 y la suite se
+   *    puso roja sin que el motor hubiera cambiado.
+   *
+   * La tercera iguala el **trabajo total** de las dos medidas: diez pasadas de 1 000 contra una de
+   * 10 000. Con un motor lineal las dos hacen el mismo trabajo y la razón ronda 1; con uno
+   * cuadrático la grande cuesta diez veces más. Ahora sí son comparables — duran lo mismo, así que
+   * una máquina ocupada las frena por igual, que es lo que la segunda versión daba por hecho sin
+   * cumplirlo.
    */
   function planEnCadena(n: number): { tasks: PlanTask[]; dependencies: Dependency[] } {
     const tasks: PlanTask[] = Array.from({ length: n }, (_, i) => tarea(`t${i}`, 1 + (i % 5)))
@@ -280,16 +287,19 @@ describe('§12 caso 24 · 10 000 tareas y 8 000 enlaces', () => {
     expect(s.byId.get('t8000')!.start > s.byId.get('t0')!.finish).toBe(true)
   })
 
-  it('crece de forma lineal, no cuadrática: ×10 el tamaño cuesta muy por debajo de ×100', () => {
+  it('crece de forma lineal: diez planes de 1 000 cuestan lo mismo que uno de 10 000', () => {
     const mil = planEnCadena(1_000)
     const diezMil = planEnCadena(10_000)
 
-    const chico = mejorDeTres(() => programar(mil.tasks, mil.dependencies))
-    const grande = mejorDeTres(() => programar(diezMil.tasks, diezMil.dependencies))
+    // El mismo trabajo por los dos lados: 10 × 1 000 = 10 000 tareas programadas en cada medida.
+    const enDiezTrozos = mejorDeTres(() => {
+      for (let i = 0; i < 10; i += 1) programar(mil.tasks, mil.dependencies)
+    })
+    const deUnaVez = mejorDeTres(() => programar(diezMil.tasks, diezMil.dependencies))
 
-    // Lineal sería ×10. Se deja margen hasta ×30 por los mapas y la recolección de basura, que no
-    // escalan igual de limpio; cuadrático sería ×100 y no cabe ni de lejos en ese margen.
-    expect(grande / Math.max(chico, 0.01)).toBeLessThan(30)
+    // Lineal da ≈1. Se deja hasta 3 por los mapas y la recolección de basura, que no escalan igual
+    // de limpio; cuadrático daría ≈10 y no cabe ni de lejos en ese margen.
+    expect(deUnaVez / Math.max(enDiezTrozos, 0.01)).toBeLessThan(3)
   })
 
   it('y el pase atrás del CPM tampoco se dispara', () => {
@@ -300,9 +310,11 @@ describe('§12 caso 24 · 10 000 tareas y 8 000 enlaces', () => {
     const sChico = programar(mil.tasks, mil.dependencies)
     const sGrande = programar(diezMil.tasks, diezMil.dependencies)
 
-    const chico = mejorDeTres(() => void analyzeCriticalPath(sChico))
-    const grande = mejorDeTres(() => void analyzeCriticalPath(sGrande))
-    expect(grande / Math.max(chico, 0.01)).toBeLessThan(30)
+    const enDiezTrozos = mejorDeTres(() => {
+      for (let i = 0; i < 10; i += 1) analyzeCriticalPath(sChico)
+    })
+    const deUnaVez = mejorDeTres(() => void analyzeCriticalPath(sGrande))
+    expect(deUnaVez / Math.max(enDiezTrozos, 0.01)).toBeLessThan(3)
   })
 
   it('en una máquina en reposo las 10 000 se programan bien por debajo del segundo', () => {

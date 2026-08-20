@@ -11,6 +11,7 @@
  */
 
 import { type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
+import { restriccion } from '@/lib/scheduling/restricciones'
 import type { LinkType, Recoverability, TaskKind } from '@/lib/scheduling/types'
 
 export interface PlanLink {
@@ -108,6 +109,7 @@ export function PlanDetailPanel({ row, predecessors, successors, ruta, onNavigat
         <Dato titulo="Margen sin molestar a nadie" valor={margenLibre(row)} />
       ) : null}
       {row.esfuerzo ? <Esfuerzo coherencia={row.esfuerzo} /> : null}
+      {row.restriccion ? <Restriccion puesta={row.restriccion} /> : null}
 
       {row.recoverability !== 'RECUPERABLE' ? (
         <div data-testid="no-se-recupera" className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
@@ -212,6 +214,35 @@ function Esfuerzo({ coherencia }: { coherencia: NonNullable<GanttRow['esfuerzo']
           ? 'Sobran horas: o la tarea dura más, o hace falta más gente, o las horas están de más.'
           : 'Faltan horas: o la tarea dura menos, o sobra gente, o las horas se quedaron cortas.'}
       </p>
+    </div>
+  )
+}
+
+/**
+ * La restricción de fecha que alguien le puso (§3.4).
+ *
+ * Sólo aparece cuando hay una. Es la respuesta a «por qué esta línea no se mueve», que hasta aquí no
+ * se podía contestar mirando: una línea clavada con «debe empezar el» se ve exactamente igual que
+ * una que la cadena dejó ahí, y la diferencia decide qué hacer cuando el plan se atrasa.
+ *
+ * Se dice el nombre y debajo qué hace, no la sigla: quien lee un plan no tiene por qué saber que
+ * `MSO` y `SNET` son cosas distintas, y aquí es donde importa que lo sepa.
+ */
+function Restriccion({ puesta }: { puesta: NonNullable<GanttRow['restriccion']> }) {
+  const r = restriccion(puesta.tipo)
+  // Un código que el catálogo no conoce se enseña tal cual en vez de esconderse: un dato guardado
+  // que la pantalla no sabe leer tiene que verse, no desaparecer.
+  if (!r) {
+    return <Dato titulo="Restricción de fecha" valor={`${puesta.tipo}${puesta.fecha ? ` · ${puesta.fecha}` : ''}`} />
+  }
+  return (
+    <div data-testid="restriccion-de-la-linea" className="flex flex-col gap-0.5">
+      <p className="text-xs uppercase tracking-wide text-zinc-400">Restricción de fecha</p>
+      <p className="text-sm text-zinc-200">
+        {r.nombre}
+        {puesta.fecha ? ` · ${puesta.fecha}` : ''}
+      </p>
+      <p className="text-xs text-zinc-400">{r.explicacion}</p>
     </div>
   )
 }

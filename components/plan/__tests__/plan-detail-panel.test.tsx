@@ -392,3 +392,39 @@ describe('El esfuerzo se comprueba contra la duración y la gente (§3.5)', () =
     expect(screen.queryByTestId('esfuerzo-descuadra')).not.toBeInTheDocument()
   })
 })
+
+describe('§3.4 · el detalle dice por qué una línea no se mueve', () => {
+  it('sin restricción no dice nada: la mayoría de las líneas no tienen ninguna', () => {
+    // El plan de referencia son 1368 líneas sin restricción. Un renglón vacío en todas ellas es
+    // ruido que entrena a no leer el panel.
+    dibujar()
+    expect(screen.queryByTestId('restriccion-de-la-linea')).toBeNull()
+  })
+
+  it('con una que lleva fecha, la dice con su nombre y su fecha', () => {
+    dibujar({ row: fila({ restriccion: { tipo: 'DEBE_EMPEZAR_EL', fecha: '2026-09-01' } }) })
+    const bloque = screen.getByTestId('restriccion-de-la-linea')
+    expect(bloque.textContent).toContain('Debe empezar el')
+    expect(bloque.textContent).toContain('2026-09-01')
+  })
+
+  it('y explica qué hace, que es lo que quien lee un plan necesita', () => {
+    // «MSO» y «SNET» son dos cosas distintas y nadie tiene por qué saberlo de memoria.
+    dibujar({ row: fila({ restriccion: { tipo: 'DEBE_EMPEZAR_EL', fecha: '2026-09-01' } }) })
+    expect(screen.getByTestId('restriccion-de-la-linea').textContent).toContain('Clava el arranque')
+  })
+
+  it('con una que no lleva fecha, no se inventa ninguna', () => {
+    dibujar({ row: fila({ restriccion: { tipo: 'ALAP' } }) })
+    const bloque = screen.getByTestId('restriccion-de-la-linea')
+    expect(bloque.textContent).toContain('Lo más tarde posible')
+    expect(bloque.textContent).not.toContain('·')
+  })
+
+  it('un código que el catálogo no conoce se enseña tal cual, no se esconde', () => {
+    // Un dato guardado que la pantalla no sabe leer tiene que verse. Esconderlo deja a quien mira
+    // creyendo que la línea es libre cuando el motor puede estar tratándola de otro modo.
+    dibujar({ row: fila({ restriccion: { tipo: 'INVENTADA', fecha: '2026-09-01' } }) })
+    expect(screen.getByText(/INVENTADA/)).toBeTruthy()
+  })
+})

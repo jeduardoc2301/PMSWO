@@ -13,8 +13,7 @@ import {
   rehacer,
   sePuedeDeshacer,
   sePuedeRehacer,
-  alReves,
-} from '../undo-stack'
+  alReves, vaPorLaRutaDeReprogramar } from '../undo-stack'
 
 /**
  * §10.6: pila de 50 operaciones, cada una con su inversa, y una operación que movió 12 líneas se
@@ -358,5 +357,44 @@ describe('Las altas y las bajas de línea (§10.6)', () => {
   it('sin nada que deshacer, tampoco hay líneas', () => {
     expect(deshacer(PILA_VACIA).lineas).toEqual([])
     expect(rehacer(PILA_VACIA).lineas).toEqual([])
+  })
+})
+
+describe('§10.6 · por qué ruta vuelve cada cambio', () => {
+  it('las dos fechas juntas van por la ruta de reprogramar', () => {
+    // Es el caso para el que existe: 394 líneas movidas vuelven en una transacción.
+    expect(vaPorLaRutaDeReprogramar({ start: '2026-06-01', finish: '2026-06-05' })).toBe(true)
+  })
+
+  it('las dos fechas con su restricción, también', () => {
+    expect(
+      vaPorLaRutaDeReprogramar({
+        start: '2026-06-01',
+        finish: '2026-06-05',
+        constraintType: 'NO_ANTES_DE',
+        constraintDate: '2026-06-01',
+      }),
+    ).toBe(true)
+  })
+
+  it('la restricción SOLA no, aunque sus dos campos sean de la familia', () => {
+    // El defecto: la ruta de restauración exige `start` y `finish`, así que esto llegaba allí sin
+    // las fechas que pide y devolvía 400 — el Ctrl+Z entero fallaba. Apareció al ofrecer las
+    // restricciones en el diálogo: hasta entonces nadie podía cambiar una sin mover una fecha.
+    expect(vaPorLaRutaDeReprogramar({ constraintType: 'ALAP', constraintDate: null })).toBe(false)
+  })
+
+  it('una fecha sola tampoco: la ruta las quiere las dos', () => {
+    expect(vaPorLaRutaDeReprogramar({ start: '2026-06-01' })).toBe(false)
+    expect(vaPorLaRutaDeReprogramar({ finish: '2026-06-05' })).toBe(false)
+  })
+
+  it('las fechas mezcladas con un campo de otra familia, tampoco', () => {
+    // Ahí hay que bajar a la ruta de la línea, que sabe escribir el título.
+    expect(vaPorLaRutaDeReprogramar({ start: '2026-06-01', finish: '2026-06-05', title: 'Otro' })).toBe(false)
+  })
+
+  it('sin campos, no', () => {
+    expect(vaPorLaRutaDeReprogramar({})).toBe(false)
   })
 })

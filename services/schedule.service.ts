@@ -189,6 +189,16 @@ export async function loadProjectPlan(
       progress: item.progressPct,
       status: item.status,
       ...restriccionDe(item.constraintType, item.constraintDate, start),
+      // La elección original, aparte de lo que el motor consume: es lo único que distingue una
+      // restricción puesta por alguien del ancla que este servicio le pone a todas las líneas.
+      ...(item.constraintType
+        ? {
+            restriccionGuardada: {
+              tipo: item.constraintType,
+              ...(item.constraintDate ? { fecha: isoDe(item.constraintDate) } : {}),
+            },
+          }
+        : {}),
     }
   })
 

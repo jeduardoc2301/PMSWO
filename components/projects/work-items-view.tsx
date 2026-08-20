@@ -101,6 +101,17 @@ export interface WorkItemsViewProps {
    * podrían saberlo.
    */
   readonly onApuntarOperacion?: (operacion: Operacion | null) => void
+  /**
+   * Contador que sube cuando algo de fuera cambió el plan — hoy, deshacer y rehacer.
+   *
+   * Esta vista se pide el plan ella sola, así que nadie la enteraba: un Ctrl+Z escribía en la base,
+   * el Gantt se enteraba porque sí recibe esta señal, y la Lista seguía enseñando las fechas de
+   * antes. Medido: la base decía `2026-07-24` y la pantalla `2026-11-17`, y así se quedaba.
+   *
+   * Una pantalla que dice «deshecho» y no se mueve hace dudar de si se deshizo, que es peor que un
+   * error — porque el error se ve.
+   */
+  readonly recargar?: number
 }
 
 /**
@@ -118,6 +129,7 @@ export function WorkItemsView({
   barraDeFiltro,
   barraDeDeshacer,
   onApuntarOperacion,
+  recargar,
   idsVisibles,
   onWorkItemCreated,
   editDatesData,
@@ -274,10 +286,12 @@ export function WorkItemsView({
   }
 
   useEffect(() => {
-    setEstado({ fase: 'cargando' })
+    // Al cambiar de proyecto se enseña «cargando»; al recargar por un deshacer no, que parpadear la
+    // tabla entera por un cambio de una línea es peor que esperar medio segundo con lo viejo.
+    if (recargar === undefined || recargar === 0) setEstado({ fase: 'cargando' })
     void cargarPlan()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  }, [projectId, recargar])
 
   // ── Líneas base ───────────────────────────────────────────────────────────────────────────────
   const cargarLineasBase = async () => {

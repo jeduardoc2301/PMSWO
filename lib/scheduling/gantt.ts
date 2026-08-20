@@ -130,6 +130,15 @@ export interface GanttRow {
    */
   readonly esfuerzo?: Coherencia
   /**
+   * La restricción de fecha que alguien le puso, si le pusieron alguna (§3.4).
+   *
+   * Va a la fila porque el panel de detalle es lo único que puede responder «por qué esta línea no
+   * se mueve» sin que haya que ir a buscarlo. Una línea clavada con `DEBE_EMPEZAR_EL` se ve igual
+   * que una que la cadena dejó ahí, y la diferencia es la que decide qué hacer cuando el plan se
+   * atrasa.
+   */
+  readonly restriccion?: { readonly tipo: string; readonly fecha?: IsoDate }
+  /**
    * Numeración EDT jerárquica: «2.6.1».
    *
    * Se calcula sobre el plan ENTERO, no sobre lo que se está viendo. El Gantt enseñaba aquí un
@@ -506,6 +515,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       // La holgura arranca donde termina la barra y se extiende hasta el fin tardío.
       floatX: startOrdinal + width,
       floatWidth: Math.max(float, 0),
+      ...(task.restriccionGuardada ? { restriccion: task.restriccionGuardada } : {}),
       ...deLaFoto(task.id),
     }
   })

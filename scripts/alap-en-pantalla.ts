@@ -41,7 +41,7 @@ function exigirBaseLocal(): void {
   }
 }
 
-async function proyectoDeReferencia(): Promise<string> {
+async function proyectoDeReferencia(): Promise<{ projectId: string; organizationId: string }> {
   const conteos = await prisma.workItem.groupBy({
     by: ['projectId'],
     _count: { _all: true },
@@ -49,13 +49,20 @@ async function proyectoDeReferencia(): Promise<string> {
     take: 1,
   })
   if (conteos.length === 0) throw new Error('No hay ninguna línea en la base local.')
-  return conteos[0].projectId
+  const projectId = conteos[0].projectId
+  // La organización hace falta porque el servicio acota por ella: pedirle un plan sin decirle de
+  // quién es devuelve `null`, y ahí el guion reventaba con «no puedo leer tasks de null».
+  const proyecto = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    select: { organizationId: true },
+  })
+  return { projectId, organizationId: proyecto.organizationId }
 }
 
 async function main(): Promise<void> {
   exigirBaseLocal()
   const quitar = process.argv[2] === 'quitar'
-  const projectId = await proyectoDeReferencia()
+  const { projectId, organizationId } = await proyectoDeReferencia()
 
   if (quitar) {
     const fs = await import('node:fs/promises')
@@ -72,7 +79,8 @@ async function main(): Promise<void> {
   }
 
   // 1. El plan tal cual está hoy.
-  const plan = await loadProjectPlan(projectId)
+  const plan = await loadProjectPlan(projectId, organizationId)
+  if (!plan) throw new Error(`El proyecto ${projectId} no devolvió plan.`)
   const calendar = calendarioDesde(plan.calendar)
   const antes = schedulePlan({
     tasks: plan.tasks,

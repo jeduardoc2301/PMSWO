@@ -14,7 +14,7 @@ import { WorkItemsView } from '@/components/projects/work-items-view'
 import { FilterBar, type FiltroGuardadoResumen } from '@/components/projects/filter-bar'
 import { UndoBar } from '@/components/projects/undo-bar'
 import { useUndo } from '@/components/projects/use-undo'
-import { type Cambio, type LadoDeOperacion, operacionDesde } from '@/lib/projects/undo-stack'
+import { type Cambio, type LadoDeOperacion, operacionDesde, vaPorLaRutaDeReprogramar } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
@@ -321,8 +321,6 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
    * movimiento tiene que pasar por las mismas reglas que hacerlo —el acoplamiento estado↔avance,
    * la bitácora— o el estado al que se vuelve no sería un estado que el sistema pueda producir.
    */
-  /** Los campos que una reprogramación toca. Se reconocen para poder escribirlos de una vez. */
-  const CAMPOS_DE_FECHA = ['start', 'finish', 'constraintType', 'constraintDate']
 
   const aplicarCambios = async ({ cambios, vinculos, lineas }: LadoDeOperacion) => {
     /**
@@ -380,10 +378,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     // Una reprogramación mueve cientos de líneas. Deshacerla con una petición por línea deja el
     // plan medio revertido en cuanto una falle —y quien pulsó Ctrl+Z creía estar volviendo atrás—,
     // así que van todas juntas por la ruta que las escribe en una transacción.
-    const deFecha = cambios.filter((c) =>
-      Object.keys(c.campos).length > 0 &&
-      Object.keys(c.campos).every((campo) => CAMPOS_DE_FECHA.includes(campo)),
-    )
+    // La regla de por qué ruta vuelve cada cambio vive en `undo-stack`, junto al tipo que la produce
+    // y donde se puede probar sin montar la pantalla entera.
+    const deFecha = cambios.filter((c) => vaPorLaRutaDeReprogramar(c.campos))
     if (deFecha.length > 0) {
       const res = await fetch(`/api/v1/projects/${projectId}/reschedule`, {
         method: 'POST',
@@ -1046,6 +1043,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     barraDeFiltro={barraDeFiltro}
                     barraDeDeshacer={barraDeDeshacer}
                     onApuntarOperacion={undo.apuntar}
+                    recargar={planRecargado}
                     idsVisibles={idsFiltrados.size === kanbanBoard.workItems.length ? undefined : idsFiltrados}
                     onWorkItemCreated={handleWorkItemCreated} editDatesData={editDatesData}
                     onEditDatesDataUsed={() => setEditDatesData(null)} canCreateWorkItems={canCreateWorkItems}

@@ -174,6 +174,19 @@ export interface PlanTask {
    * `schedulePlan` a secas la ignora, que es lo correcto: sin pase atrás no hay dónde ponerla.
    */
   readonly alap?: boolean
+  /**
+   * La restricción **tal como se guardó**, para poder enseñarla.
+   *
+   * No la usa el motor: para programar están `constraint`, `compromiso` y `alap`, que son la misma
+   * información repartida según lo que cada una hace. Este campo existe porque de esos tres no se
+   * puede reconstruir lo que alguien eligió: el plan que llega del servidor ancla **todas** las
+   * líneas con un `NO_ANTES_DE` en su fecha guardada, así que un `constraint` de ese tipo puede ser
+   * el ancla o puede ser la elección de una persona, y las dos se ven igual.
+   *
+   * Enseñar el ancla como si fuera una restricción pondría «No empieza antes del…» en las 1368
+   * líneas del plan de referencia, donde nadie ha elegido ninguna.
+   */
+  readonly restriccionGuardada?: { readonly tipo: string; readonly fecha?: IsoDate }
   /** Clase de línea. Por omisión, actividad del proveedor. */
   readonly kind?: TaskKind
   /** Quién responde. Si se omite, se deduce de la clase de línea. */

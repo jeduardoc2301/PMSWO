@@ -503,3 +503,65 @@ describe('§6.3 C4 · editar desde la Lista recalcula el plan', () => {
     expect(alCambiar).toHaveBeenCalled()
   })
 })
+
+describe('WorkItemsView · se entera de lo que pasa fuera (§10.6)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    capturado.lista = null
+    capturado.esquema = null
+  })
+
+  it('cuando sube el contador de recarga, vuelve a pedir el plan', async () => {
+    /**
+     * Esta vista se pide el plan ella sola, así que nadie la enteraba de un Ctrl+Z: la pila de
+     * deshacer vive en el proyecto, escribía en la base, el Gantt se enteraba —él sí recibe esta
+     * señal— y la Lista seguía enseñando las fechas de antes.
+     *
+     * Medido en pantalla con el plan de referencia: se puso `ALAP` a una línea (2026-07-24 →
+     * 2026-11-17), se pulsó deshacer, la base volvió a 2026-07-24 y la pantalla se quedó en
+     * 2026-11-17 — y ahí se quedaba, ocho segundos después igual.
+     */
+    simularRed({})
+    const { rerender } = render(
+      <WorkItemsView projectId="project-1" workItems={elementos} recargar={0} />,
+    )
+    await waitFor(() => expect(screen.getByTestId('esquema')).toBeTruthy())
+    const antes = (global.fetch as any).mock.calls.filter((c: unknown[]) =>
+      String(c[0]).includes('/schedule'),
+    ).length
+
+    rerender(<WorkItemsView projectId="project-1" workItems={elementos} recargar={1} />)
+
+    await waitFor(() => {
+      const ahora = (global.fetch as any).mock.calls.filter((c: unknown[]) =>
+        String(c[0]).includes('/schedule'),
+      ).length
+      expect(ahora).toBe(antes + 1)
+    })
+  })
+
+  it('y no parpadea: al recargar no vuelve a «cargando»', async () => {
+    // Poner la tabla entera en «cargando» por un cambio de una línea es peor que esperar medio
+    // segundo con lo viejo en pantalla.
+    simularRed({})
+    const { rerender } = render(
+      <WorkItemsView projectId="project-1" workItems={elementos} recargar={0} />,
+    )
+    await waitFor(() => expect(screen.getByTestId('esquema')).toBeTruthy())
+
+    rerender(<WorkItemsView projectId="project-1" workItems={elementos} recargar={1} />)
+
+    // El esquema sigue montado durante la recarga: no hubo pantalla de carga de por medio.
+    expect(screen.queryByTestId('esquema')).toBeTruthy()
+  })
+
+  it('sin la prop se comporta igual que siempre: una sola carga', async () => {
+    simularRed({})
+    montar()
+    await waitFor(() => expect(screen.getByTestId('esquema')).toBeTruthy())
+    const cargas = (global.fetch as any).mock.calls.filter((c: unknown[]) =>
+      String(c[0]).includes('/schedule'),
+    ).length
+    expect(cargas).toBe(1)
+  })
+})

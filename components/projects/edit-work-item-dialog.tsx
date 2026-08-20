@@ -19,6 +19,11 @@ import { WorkItemPriority, type WorkItemSummary } from '@/types'
 import { Combobox } from '@/components/ui/combobox'
 import { Info } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
+import {
+  RESTRICCIONES,
+  porQueNoSeAdmiteLaRestriccion,
+  restriccion,
+} from '@/lib/scheduling/restricciones'
 import { ParentPicker, construirOpcionesPadre, type OpcionPadre } from './parent-picker'
 
 interface User {
@@ -78,6 +83,8 @@ export function EditWorkItemDialog({
     phase: string
     estimatedHours: string
     parentId: string | null
+    constraintType: string
+    constraintDate: string
   }>({
     title: workItem.title,
     description: '',
@@ -89,6 +96,9 @@ export function EditWorkItemDialog({
     estimatedHours: '',
     // El resumen de la tarjeta no trae el padre; llega con el detalle, en fetchWorkItemDetails.
     parentId: null,
+    // Cadena vacía es «sin restricción» en el formulario; se traduce a `null` al enviar.
+    constraintType: '',
+    constraintDate: '',
   })
 
   useEffect(() => {
@@ -173,6 +183,10 @@ export function EditWorkItemDialog({
           phase: data.workItem.phase || '',
           estimatedHours: data.workItem.estimatedHours != null ? String(data.workItem.estimatedHours) : '',
           parentId: data.workItem.parentId ?? null,
+          constraintType: data.workItem.constraintType ?? '',
+          constraintDate: data.workItem.constraintDate
+            ? new Date(data.workItem.constraintDate).toISOString().split('T')[0]
+            : '',
         }
         setFormData(cargado)
         // El «antes» se guarda tal cual llegó, no se deduce después del formulario: en cuanto
@@ -186,6 +200,10 @@ export function EditWorkItemDialog({
           ...cargado,
           phase: data.workItem.phase || null,
           estimatedHours: data.workItem.estimatedHours ?? null,
+          constraintType: data.workItem.constraintType ?? null,
+          constraintDate: data.workItem.constraintDate
+            ? new Date(data.workItem.constraintDate).toISOString().split('T')[0]
+            : null,
         }
       }
     } catch (err) {
@@ -208,6 +226,18 @@ export function EditWorkItemDialog({
         return
       }
     }
+
+    // La restricción se juzga con la misma función que usa el servidor, no con una copia de sus
+    // reglas. El servidor vuelve a juzgarla —esto es comodidad, no seguridad— pero así quien
+    // teclea se entera antes de mandar y con la misma frase.
+    const motivo = porQueNoSeAdmiteLaRestriccion(
+      formData.constraintType || null,
+      formData.constraintDate || null,
+    )
+    if (motivo) {
+      setError(motivo)
+      return
+    }
     
     try {
       setSubmitting(true)
@@ -223,6 +253,8 @@ export function EditWorkItemDialog({
         phase: formData.phase.trim() || null,
         estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : null,
         parentId: formData.parentId,
+        constraintType: formData.constraintType || null,
+        constraintDate: formData.constraintDate || null,
       }
 
       const response = await fetch(`/api/v1/work-items/${workItem.id}`, {
@@ -342,6 +374,56 @@ export function EditWorkItemDialog({
                   min={formData.startDate || undefined}
                 />
               </div>
+            </div>
+
+            {/* Las ocho restricciones del §3.4. Hasta aquí sólo se podían poner por la base. */}
+            <div className="space-y-2">
+              <Label htmlFor="constraintType" className="text-[#e4e4e7]">
+                Restricción de fecha
+              </Label>
+              <select
+                id="constraintType"
+                data-testid="restriccion-tipo"
+                value={formData.constraintType}
+                onChange={(e) => {
+                  const codigo = e.target.value
+                  const r = restriccion(codigo)
+                  setFormData({
+                    ...formData,
+                    constraintType: codigo,
+                    // Cambiar a una que no lleva fecha borra la que hubiera: dejarla puesta e
+                    // invisible es cómo se guardan datos que nadie ve y que un día reaparecen.
+                    constraintDate: r && r.pideFecha ? formData.constraintDate : '',
+                  })
+                }}
+                disabled={submitting}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+              >
+                <option value="">Ninguna — se coloca por sus predecesoras</option>
+                {RESTRICCIONES.map((r) => (
+                  <option key={r.codigo} value={r.codigo}>
+                    {r.nombre} ({r.sigla})
+                  </option>
+                ))}
+              </select>
+
+              {/* La explicación de la elegida. Es lo que separa elegir de adivinar: «no empieza antes
+                  de» y «debe empezar el» suenan igual y hacen cosas distintas. */}
+              {restriccion(formData.constraintType) && (
+                <p data-testid="restriccion-explicacion" className="text-xs text-zinc-400">
+                  {restriccion(formData.constraintType)!.explicacion}
+                </p>
+              )}
+
+              {restriccion(formData.constraintType)?.pideFecha && (
+                <div className="space-y-1 pt-1">
+                  <Label className="text-[#e4e4e7]">Fecha de la restricción</Label>
+                  <DatePicker
+                    value={formData.constraintDate}
+                    onChange={(v) => setFormData({ ...formData, constraintDate: v })}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

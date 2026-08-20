@@ -19,6 +19,7 @@ function isoDeFecha(fecha: Date): IsoDate {
   ).padStart(2, '0')}` as IsoDate
 }
 import { columnaAlCambiarProgreso, estadoDeLaColumna } from '@/lib/projects/status-progress'
+import { porQueNoSeAdmiteLaRestriccion } from '@/lib/scheduling/restricciones'
 import { z } from 'zod'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { hasPermission } from '@/lib/rbac'
@@ -43,6 +44,12 @@ const updateWorkItemSchema = z.object({
   // Mover la línea en la jerarquía. null la sube a raíz; ausente la deja donde está. Las reglas de
   // forma del árbol (padre del mismo proyecto, sin ciclos) las aplica `verificarPadre`.
   parentId: z.string().nullable().optional(),
+  // Las ocho del §3.4. `null` quita la restricción; ausente la deja como está. La combinación
+  // código↔fecha la juzga `porQueNoSeAdmiteLaRestriccion`, que es la misma función que usa el
+  // diálogo — dos redacciones del mismo rechazo acaban divergiendo, y la que se queda atrás es
+  // siempre la del servidor.
+  constraintType: z.string().nullable().optional(),
+  constraintDate: z.string().nullable().optional(),
 })
 
 async function getWorkItemHandler(
@@ -226,8 +233,33 @@ async function updateWorkItemHandler(
      * Una guardia que responde después de escribir no es una guardia, es un cartel. Va antes de
      * cualquier escritura, como la de `edit_tracking`.
      */
+    const tocaLaRestriccion =
+      updateData.constraintType !== undefined || updateData.constraintDate !== undefined
     const tocaElCronograma =
-      updateData.startDate !== undefined || updateData.estimatedEndDate !== undefined
+      updateData.startDate !== undefined ||
+      updateData.estimatedEndDate !== undefined ||
+      // Cambiar la restricción mueve la línea y lo que cuelgue de ella, igual que cambiar la fecha.
+      // Si no entrara aquí, quien no puede tocar el cronograma lo tocaría por la puerta de al lado
+      // — que es exactamente el agujero que abrió esta guardia en su día.
+      tocaLaRestriccion
+
+    if (tocaLaRestriccion) {
+      const codigo =
+        updateData.constraintType !== undefined ? updateData.constraintType : workItem.constraintType
+      const fecha =
+        updateData.constraintDate !== undefined
+          ? updateData.constraintDate
+          : workItem.constraintDate
+            ? isoDeFecha(workItem.constraintDate)
+            : null
+      // Se juzga la combinación resultante, no lo que llegó: mandar sólo el código sobre una línea
+      // que ya tenía fecha es válido, y mandar sólo la fecha sobre una que no tenía código no.
+      const motivo = porQueNoSeAdmiteLaRestriccion(codigo, fecha)
+      if (motivo) {
+        return NextResponse.json({ error: 'Bad Request', message: motivo }, { status: 400 })
+      }
+    }
+
     if (tocaElCronograma) {
       /**
        * Una línea no puede empezar después de terminar.
@@ -287,6 +319,12 @@ async function updateWorkItemHandler(
         // Contra undefined y no por verdadero: null significa «súbela a la raíz», y por verdadero
         // ese movimiento se perdería en silencio.
         ...(updateData.parentId !== undefined && { parentId: updateData.parentId }),
+        // Contra undefined, no por verdadero: `null` significa «quita la restricción» y por
+        // verdadero ese borrado se perdería en silencio.
+        ...(updateData.constraintType !== undefined && { constraintType: updateData.constraintType }),
+        ...(updateData.constraintDate !== undefined && {
+          constraintDate: updateData.constraintDate ? new Date(updateData.constraintDate) : null,
+        }),
         ...(updateData.progressPct !== undefined && { progressPct: updateData.progressPct }),
         // El movimiento va después del avance para que su estado mande: si los dos escribieran
         // `status`, el último ganaría por accidente en vez de por decisión.
