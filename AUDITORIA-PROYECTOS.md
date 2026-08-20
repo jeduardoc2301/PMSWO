@@ -3838,3 +3838,34 @@ entre ciento veinte y doscientas tarjetas dos o tres veces cada una: solas pasan
 ciento ochenta y cuatro archivos en paralelo se acercan a los cinco segundos por reparto de
 procesador. El margen se le pone **al bloque entero** y no prueba a prueba, porque el problema es del
 bloque.
+
+## §10.7 · Dos de las seis vistas enseñaban una línea de texto, no un esqueleto
+
+«**Skeleton** en el primer render, no un spinner a pantalla completa», pide el §10.7. El Gantt, la
+Lista y el Panel lo cumplían —con `EsqueletoDeGantt`, `EsqueletoDeTabla` y `EsqueletoDeWidgets`, y el
+del Gantt hasta cita el §10.7 en su comentario—. El **Calendario** y la **Carga de trabajo** enseñaban
+una línea centrada: «Armando el calendario del proyecto...».
+
+Los componentes existían y la regla que los hace útiles estaba escrita en el mismo archivo —«tiene
+que parecerse a lo que viene»—; esas dos vistas se quedaron sin el suyo.
+
+Hay ahora un `EsqueletoDeMes` de siete columnas por cinco semanas, con **las casillas desiguales a
+propósito** —un mes real tiene días vacíos y días con cuatro cosas, y un esqueleto perfectamente
+regular delante de una rejilla irregular vuelve a dar el salto que el esqueleto existe para evitar— y
+un `EsqueletoDeCarga` con la primera columna ancha para los nombres y los días en cuadraditos, que es
+lo que distingue esa forma de una tabla cualquiera.
+
+### Demostrado en pantalla
+
+Entrando a cada vista y mirando el primer dibujado antes de que lleguen los datos:
+
+| vista | qué se ve al entrar | y se anuncia |
+|---|---|---|
+| Calendario | esqueleto | «Armando el calendario del proyecto» |
+| Carga de trabajo | esqueleto | «Armando la carga del equipo» |
+| Panel de control | esqueleto | «Armando el panel de control» |
+| Timeline | esqueleto | «Calculando el plan del proyecto» |
+| Elementos de Trabajo | esqueleto | «Cargando las líneas del plan» |
+
+Las cinco con `aria-busy="true"`. Un esqueleto es puramente visual: sin anunciarse es **peor** que la
+rueda que sustituye, porque la rueda al menos solía llevar la palabra «Cargando» al lado.

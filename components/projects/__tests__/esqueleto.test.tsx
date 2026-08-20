@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { EsqueletoDeGantt, EsqueletoDeTabla, EsqueletoDeWidgets } from '../esqueleto'
+import { EsqueletoDeCarga, EsqueletoDeGantt, EsqueletoDeMes, EsqueletoDeTabla, EsqueletoDeWidgets } from '../esqueleto'
 
 /**
  * Los esqueletos del §10.7.
@@ -76,5 +76,55 @@ describe('Se parece a lo que viene', () => {
   it('los widgets salen en rejilla', () => {
     const { container } = render(<EsqueletoDeWidgets cuantos={4} />)
     expect(container.querySelectorAll('.rounded-xl')).toHaveLength(4)
+  })
+})
+
+describe('§10.7 · las seis vistas, no cuatro', () => {
+  /**
+   * El §10.7 pide «skeleton en el primer render, no un spinner a pantalla completa». Cuatro vistas
+   * lo cumplían y **dos enseñaban una línea de texto centrada**: el Calendario y la Carga de
+   * trabajo. Una línea dice «espera» y nada más; el esqueleto dice qué va a aparecer y dónde, así
+   * que el ojo ya está en el sitio cuando llegan los datos y la página no da el salto.
+   *
+   * Los componentes y la regla ya estaban escritos —«tiene que parecerse a lo que viene»— y esas dos
+   * vistas se quedaron sin el suyo.
+   */
+  it('el mes se anuncia y dibuja las siete columnas de la semana', () => {
+    const { container } = render(<EsqueletoDeMes semanas={4} />)
+    expect(screen.getByText('Armando el calendario del proyecto')).toBeInTheDocument()
+    // Siete cabeceras más las casillas de cuatro semanas.
+    expect(container.querySelectorAll('.grid-cols-7 > div')).toHaveLength(7 + 4 * 7)
+  })
+
+  it('y las casillas no llevan todas lo mismo: un mes real es irregular', () => {
+    // Un esqueleto perfectamente regular delante de una rejilla irregular vuelve a dar el salto que
+    // el esqueleto existe para evitar.
+    const { container } = render(<EsqueletoDeMes semanas={2} />)
+    const casillas = [...container.querySelectorAll('[data-casilla]')]
+    const cuantas = new Set(casillas.map((c) => c.querySelectorAll('span[aria-hidden]').length))
+    expect(cuantas.size).toBeGreaterThan(1)
+  })
+
+  it('la carga se anuncia y dibuja una fila por persona', () => {
+    const { container } = render(<EsqueletoDeCarga personas={5} dias={10} />)
+    expect(screen.getByText('Armando la carga del equipo')).toBeInTheDocument()
+    expect(container.querySelectorAll('[data-fila-carga]')).toHaveLength(5)
+  })
+
+  it('con el nombre ancho y los días en cuadraditos, que es lo que la distingue de una tabla', () => {
+    const { container } = render(<EsqueletoDeCarga personas={1} dias={7} />)
+    const fila = container.querySelector('[data-fila-carga]')!
+    // Una barra de nombre más un cuadradito por día.
+    expect(fila.querySelectorAll('span[aria-hidden]')).toHaveLength(1 + 7)
+  })
+
+  it('los dos respetan a quien pidió menos movimiento, como los otros tres', () => {
+    for (const Esqueleto of [EsqueletoDeMes, EsqueletoDeCarga]) {
+      const { container, unmount } = render(<Esqueleto />)
+      // `[class*=]` y no la clase escapada: los corchetes de Tailwind no los digiere el DOM de
+      // las pruebas, y acoplar la prueba al nombre exacto de la clase tampoco aporta nada.
+      expect(container.querySelectorAll('[class*="motion-safe:animate-pulse"]').length).toBeGreaterThan(0)
+      unmount()
+    }
   })
 })

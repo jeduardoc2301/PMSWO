@@ -3,7 +3,9 @@ import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { CalendarTab } from '../calendar-tab'
 import { DashboardTab } from '../dashboard-tab'
+import { WorkloadTab } from '../workload-tab'
 
 /**
  * §10.2 · el filtro compartido también en el Panel.
@@ -97,14 +99,12 @@ describe('§10.2 · y la barra tampoco parpadea en las otras vistas', () => {
    * datos. Una barra que parpadea al cambiar de pestaña no parece «un solo filtro para las seis
    * vistas», que es lo que el §10.2 pide con esas palabras.
    */
-  it('la Carga de trabajo la dibuja mientras arma la matriz', async () => {
-    const { WorkloadTab } = await import('../workload-tab')
+  it('la Carga de trabajo la dibuja mientras arma la matriz', () => {
     render(<WorkloadTab projectId="p1" barraDeFiltro={BARRA} />)
     expect(screen.getByTestId('barra-de-filtro')).toBeInTheDocument()
   })
 
-  it('y el Calendario mientras arma el mes', async () => {
-    const { CalendarTab } = await import('../calendar-tab')
+  it('y el Calendario mientras arma el mes', () => {
     render(<CalendarTab projectId="p1" barraDeFiltro={BARRA} />)
     expect(screen.getByTestId('barra-de-filtro')).toBeInTheDocument()
   })

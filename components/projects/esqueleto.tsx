@@ -128,3 +128,65 @@ export function EsqueletoDeWidgets({ cuantos = 4 }: { readonly cuantos?: number 
     </Cargando>
   )
 }
+
+/**
+ * Esqueleto de una rejilla de mes: el Calendario.
+ *
+ * Siete columnas y cinco filas, que es lo que va a aparecer. Las casillas no llevan todas el mismo
+ * número de barritas a propósito: un mes real tiene días vacíos y días con cuatro cosas, y un
+ * esqueleto perfectamente regular delante de una rejilla irregular vuelve a dar el salto que el
+ * esqueleto existe para evitar.
+ */
+export function EsqueletoDeMes({ semanas = 5 }: { readonly semanas?: number }) {
+  // Cuántas barritas lleva cada casilla, en el orden en que se dibujan. Se repite al dar la vuelta.
+  const CARGA = [0, 2, 1, 3, 0, 1, 2, 1, 0, 2, 3, 1, 2, 0]
+  return (
+    <Cargando que="Armando el calendario del proyecto">
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 7 }, (_, i) => (
+          <div key={`c${i}`} className="px-1 py-1">
+            <Barra ancho="60%" alto={8} />
+          </div>
+        ))}
+        {Array.from({ length: semanas * 7 }, (_, i) => (
+          <div
+            key={i}
+            data-casilla
+            className="flex min-h-[104px] flex-col gap-1 rounded border border-borde bg-superficie p-1.5"
+          >
+            <Barra ancho="24%" alto={8} />
+            {Array.from({ length: CARGA[i % CARGA.length]! }, (_, j) => (
+              <Barra key={j} ancho={j % 2 === 0 ? '86%' : '64%'} alto={10} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </Cargando>
+  )
+}
+
+/**
+ * Esqueleto de la matriz de carga: una columna de gente y una fila de días.
+ *
+ * La primera columna va más ancha porque lleva nombres, y las demás son cuadraditos: es lo que
+ * distingue esta forma de la de una tabla cualquiera, y por tanto lo único que la hace útil como
+ * esqueleto en lugar de como rueda cara.
+ */
+export function EsqueletoDeCarga({ personas = 6, dias = 14 }: { readonly personas?: number; readonly dias?: number }) {
+  return (
+    <Cargando que="Armando la carga del equipo">
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: personas }, (_, i) => (
+          <div key={i} data-fila-carga className="flex items-center gap-1.5">
+            <div className="w-40 shrink-0">
+              <Barra ancho={ANCHOS[i % ANCHOS.length]!} alto={12} />
+            </div>
+            {Array.from({ length: dias }, (_, j) => (
+              <Barra key={j} ancho="18px" alto={18} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </Cargando>
+  )
+}

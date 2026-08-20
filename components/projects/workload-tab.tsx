@@ -17,6 +17,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { EsqueletoDeCarga } from './esqueleto'
 
 import { hoyCivil } from '@/lib/formato-fecha'
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
@@ -250,7 +251,11 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
     return (
       <div className="flex flex-col gap-3">
         {barraDeFiltro}
-        <p className="py-12 text-center text-sm text-tinta-2">Armando la carga del equipo...</p>
+        {/* Esqueleto y no una linea de texto (§10.7): «skeleton en el primer render, no
+            un spinner a pantalla completa». Una linea centrada dice «espera» y nada mas;
+            el esqueleto dice que va a aparecer y donde, asi que el ojo ya esta en el sitio
+            cuando llegan los datos y la pagina no da el salto. */}
+        <EsqueletoDeCarga />
       </div>
     )
   }

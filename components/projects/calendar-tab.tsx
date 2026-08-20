@@ -13,6 +13,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { EsqueletoDeMes } from './esqueleto'
 
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { CalendarView } from '@/components/projects/calendar-view'
@@ -360,7 +361,11 @@ export function CalendarTab({
     return (
       <div className="flex flex-col gap-3">
         {barraDeFiltro}
-        <p className="py-12 text-center text-sm text-tinta-2">Armando el calendario del proyecto...</p>
+        {/* Esqueleto y no una linea de texto (§10.7): «skeleton en el primer render, no
+            un spinner a pantalla completa». Una linea centrada dice «espera» y nada mas;
+            el esqueleto dice que va a aparecer y donde, asi que el ojo ya esta en el sitio
+            cuando llegan los datos y la pagina no da el salto. */}
+        <EsqueletoDeMes />
       </div>
     )
   }
