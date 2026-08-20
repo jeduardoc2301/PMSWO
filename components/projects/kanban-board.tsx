@@ -36,6 +36,20 @@ import { KanbanInfoModal } from './kanban-info-modal'
 interface KanbanBoardProps {
   projectId: string
   /**
+   * **El plan entero**, sin filtrar. Se dibuja `workItems`; esto es sólo para contar.
+   *
+   * Tres cosas de esta vista son propiedades del **conjunto** y no de una tarjeta suelta, y las tres
+   * salían mal calculadas sobre lo filtrado:
+   *
+   * - el **EDT**, que dejaba de ser el de la línea y pasaba a ser su posición dentro del filtro — el
+   *   comentario de al lado ya decía «se numera sobre el plan entero» y el código no lo hacía;
+   * - **ser resumen**, que es *tener hijas*: esconder a las hijas convertía a su madre en hoja;
+   * - el **orden de las fases**, que sale de recorrer el plan.
+   *
+   * Opcional para que quien no lo pase siga viendo lo de antes en vez de una pantalla en blanco.
+   */
+  lineasDelPlan?: WorkItemSummary[]
+  /**
    * Apunta una operación en la pila de deshacer (§10.6).
    *
    * Hace falta aquí por el **borrado**: sin apuntarlo, borrar una línea desde el tablero era
@@ -516,7 +530,7 @@ function UrgencyChip({ kind, count, active, onClick }: UrgencyChipProps) {
 
 // ─── KanbanBoard ─────────────────────────────────────────────────────────────
 
-export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onWorkItemCreated, cutoff, onApuntarOperacion }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWorkItemMove, onWorkItemCreated, cutoff, onApuntarOperacion }: KanbanBoardProps) {
   const t = useTranslations('kanban')
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState<string | null>(null)
@@ -560,12 +574,25 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   const [syncingItems, setSyncingItems] = useState<Set<string>>(new Set())
   const [localWorkItems, setLocalWorkItems] = useState<WorkItemSummary[]>(workItems)
 
-  /** Las líneas de las que cuelga alguna otra. El padre viene en la tarjeta, así que sale de aquí. */
+  /**
+   * El plan entero para contar, y `workItems` para dibujar.
+   *
+   * Sin `lineasDelPlan` se cae a lo que se dibuja, que es lo que hacía antes.
+   */
+  const paraContar = useMemo(() => lineasDelPlan ?? localWorkItems, [lineasDelPlan, localWorkItems])
+
+  /**
+   * Las líneas de las que cuelga alguna otra.
+   *
+   * Se calcula sobre el **plan entero**: sobre lo filtrado, esconder a las hijas convierte a su
+   * madre en hoja y el tablero deja de saber quién es resumen. Es la séptima vez que esta base
+   * confunde «tener hijas» con mirar un subconjunto.
+   */
   const esResumen = useMemo(() => {
     const conHijas = new Set<string>()
-    for (const w of localWorkItems) if (w.parentId) conHijas.add(w.parentId)
+    for (const w of paraContar) if (w.parentId) conHijas.add(w.parentId)
     return conHijas
-  }, [localWorkItems])
+  }, [paraContar])
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set())
   const [activeFilter, setActiveFilter] = useState<Urgency>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -682,10 +709,10 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   }, [projectId, criterioDeAgrupacion, campoDeOrden, sentidoDeOrden, conResumenes, preferenciaCargada])
 
   // El EDT se numera sobre el plan entero, no sobre lo visible: si cambiara al filtrar, dejaría
-  // de servir para nombrar una línea en una reunión.
-  const edt = useMemo(() => edtPorTarjeta(localWorkItems), [localWorkItems])
+  // de servir para nombrar una línea en una reunión — que es justo para lo que sirve un EDT.
+  const edt = useMemo(() => edtPorTarjeta(paraContar), [paraContar])
 
-  const phaseRank = useMemo(() => buildPhaseRank(localWorkItems), [localWorkItems])
+  const phaseRank = useMemo(() => buildPhaseRank(paraContar), [paraContar])
   const comparePhases = useMemo(() => makePhaseComparator(phaseRank), [phaseRank])
 
   useEffect(() => {

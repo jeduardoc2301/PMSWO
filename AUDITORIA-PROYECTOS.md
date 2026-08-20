@@ -3364,3 +3364,36 @@ La aserción se validó bajando el tope a 1.9 — se pone roja nombrando el 2. Y
 El reloj no se fue del todo: queda el tope absoluto de tres segundos, que es la red contra una
 regresión de orden de magnitud y tiene margen de sobra para no flaquear.
 
+---
+
+## §5.1 — el EDT del Tablero se numeraba sobre lo filtrado, y el comentario decía lo contrario
+
+El tablero recibe `kanbanBoard.workItems.filter(...)` — ya filtrado. Y numeraba el EDT sobre eso, con
+este comentario dos líneas más arriba:
+
+> «El EDT se numera sobre el plan entero, no sobre lo visible: si cambiara al filtrar, dejaría de
+> servir para nombrar una línea en una reunión.»
+
+El comentario tenía razón y el código no lo hacía. Es la segunda vez esta semana que un comentario
+**defiende** lo que el código hace mal — la otra fue «el apunte queda inocuo» en la Lista.
+
+### Y al lado, la séptima aparición de la trampa del resumen
+
+Dos líneas antes, `esResumen` recorría **lo filtrado** para saber quién tiene hijas. Sobre un
+subconjunto, esconder a las hijas convierte a su madre en hoja. Es exactamente lo que esta bitácora
+lleva seis entradas advirtiendo, y estaba en el mismo `useMemo` de al lado.
+
+El orden de las fases salía del mismo sitio: tres propiedades **del conjunto** calculadas sobre un
+subconjunto.
+
+### Demostrado en pantalla, sobre las 1 368
+
+| | tarjetas dibujadas | las tres primeras |
+|---|---:|---|
+| sin filtro | 1 221 | `1.1.1` · `1.1.2` · `1.2.1.5.1.1` |
+| con filtro (**189 de 1 368**) | 184 | `1.1.1` · `1.1.2` · **`1.2.1.5.1.1`** |
+
+Lo que lo prueba no es que los números coincidan, es **cuáles son**: `1.2.1.5.1.1` es un camino de
+seis niveles, y con 189 líneas visibles casi ninguno de sus ascendientes está dibujado. Un EDT
+calculado sobre lo visible no puede producir ese número — se habría acortado a dos o tres niveles.
+

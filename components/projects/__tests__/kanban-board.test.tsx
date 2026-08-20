@@ -626,3 +626,48 @@ describe('§5.4 · agrupar por Asignados dibuja las tarjetas', () => {
     })
   })
 })
+
+describe('§5.1 · el EDT y «ser resumen» se cuentan sobre el plan entero', () => {
+  /**
+   * Tres cosas de esta vista son propiedades del **conjunto**, no de una tarjeta suelta: el EDT, ser
+   * resumen —que es *tener hijas*— y el orden de las fases. Las tres salían mal calculadas sobre lo
+   * filtrado, y el comentario del componente ya decía «se numera sobre el plan entero» mientras el
+   * código numeraba sobre lo visible.
+   *
+   * Un EDT que cambia al filtrar deja de servir para lo único que sirve un EDT: nombrar una línea en
+   * una reunión.
+   */
+  const PLAN = [
+    { id: 'p', title: 'Etapa', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-1', ownerId: 'u1', ownerName: 'Ana' },
+    { id: 'h1', title: 'Primera hija', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-1', ownerId: 'u1', ownerName: 'Ana', parentId: 'p' },
+    { id: 'h2', title: 'Segunda hija', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-2', ownerId: 'u1', ownerName: 'Ana', parentId: 'p' },
+    { id: 'h3', title: 'Tercera hija', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-2', ownerId: 'u1', ownerName: 'Ana', parentId: 'p' },
+  ] as never[]
+
+  const COLUMNAS = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: [] },
+    { id: 'col-2', name: 'To Do', order: 1, columnType: KanbanColumnType.TODO, workItemIds: [] },
+  ] as never[]
+
+  const edtDe = (id: string) => screen.getByTestId(`edt-tarjeta-${id}`).textContent?.trim()
+
+  it('sin filtro, la tercera hija es la 1.3', () => {
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={PLAN} lineasDelPlan={PLAN} />)
+    expect(edtDe('h3')).toBe('1.3')
+  })
+
+  it('y con las dos primeras filtradas fuera, sigue siendo la 1.3', () => {
+    // Sin el plan entero se numeraría sobre lo visible y la tercera pasaría a ser la 1.1.
+    const soloLaTercera = [PLAN[0], PLAN[3]] as never[]
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={soloLaTercera} lineasDelPlan={PLAN} />)
+    expect(edtDe('h3')).toBe('1.3')
+  })
+
+  it('la madre sigue siendo resumen aunque se escondan todas sus hijas', () => {
+    // «Ser resumen» es tener hijas, y eso no se ve mirando un subconjunto.
+    const soloLaMadre = [PLAN[0]] as never[]
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={soloLaMadre} lineasDelPlan={PLAN} />)
+    // El conmutador de resúmenes existe porque hay al menos uno que esconder.
+    expect(screen.getByTestId('conmutador-resumenes')).toBeInTheDocument()
+  })
+})

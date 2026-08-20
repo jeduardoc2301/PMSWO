@@ -1119,6 +1119,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     </div>
                     <KanbanBoard projectId={projectId} columns={kanbanBoard.columns}
                       workItems={kanbanBoard.workItems.filter(w => idsFiltrados.has(w.id))}
+                      lineasDelPlan={kanbanBoard.workItems}
                       onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
                       onApuntarOperacion={undo.apuntar}
                       cutoff={cutoffResuelto(project)} />
