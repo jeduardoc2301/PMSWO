@@ -2008,3 +2008,45 @@ Ahora lee `restriccionGuardada`, el campo que se añadió hace unas horas para e
 que resulta que tenía **dos** lectores, no uno. Y `enPalabras` sabe ya de las dos flexibles del
 §3.4, que no llevan fecha: pegarles una cadena vacía detrás dejaría la celda con un espacio colgando
 y pinta de dato a medio cargar.
+
+---
+
+## §5.4 — agrupar por Asignados dejaba el tablero **en blanco**
+
+El peor defecto que ha salido en toda la auditoría, y llevaba ahí desde que se añadió la agrupación
+por responsable. Lo señaló un agente refutando el informe de otro; el primero lo había visto a
+medias —dijo que «esas tarjetas quedan fuera de su columna»— y el refutador lo completó: **no
+quedan fuera de su columna, desaparecen del tablero entero**.
+
+La clave estaba escrita **dos veces y distinta**:
+
+| dónde | cómo |
+|---|---|
+| al armar las columnas (`kanban-group.ts`) | `responsibleName \|\| ownerId \|\| SIN_RESPONSABLE` |
+| al decidir la pertenencia (`kanban-board.tsx`) | `item.ownerId ?? SIN_RESPONSABLE` |
+
+Una línea con responsable en el plan tiene por clave de columna «Salomón Suárez» y por prueba de
+pertenencia un UUID. No coinciden nunca, así que la tarjeta no cae en ninguna columna.
+
+Medido en pantalla, sobre el plan de referencia:
+
+| | antes | después |
+|---|---:|---:|
+| columnas | 5, con los cinco responsables de verdad | 5 |
+| tarjetas dibujadas | **0** | **1 221** |
+
+Cinco columnas bien nombradas, todas diciendo cero, y el tablero vacío. Es peor que un error: **no
+parece roto**, parece que no hay trabajo asignado.
+
+Ahora la clave vive en una sola función exportada, `claveDeResponsable`, y la usan los dos.
+
+### La prueba de unidad no lo cazaba, y se comprobó
+
+Se añadieron cuatro casos a `kanban-group.test.ts` —incluido uno que comprueba que toda tarjeta cae
+en alguna columna— y luego se volvió a partir la clave en el **componente**: las cuatro siguieron en
+verde. Claro: el defecto no estaba en la regla, estaba en quién la ignora.
+
+La que lo caza es una prueba de componente que agrupa por responsable y comprueba que la tarjeta
+sigue en pantalla. Con el defecto puesto se pone roja; sin él, verde. Es la tercera vez esta sesión
+que hace falta romper el arreglo a propósito para saber si la prueba servía, y la tercera que la
+primera versión no servía.

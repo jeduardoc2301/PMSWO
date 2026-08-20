@@ -6,8 +6,7 @@ import {
   SIN_RESPONSABLE,
   type TarjetaAgrupable,
   agruparTarjetas,
-  cambioAlSoltar,
-} from '../kanban-group'
+  cambioAlSoltar, claveDeResponsable } from '../kanban-group'
 
 /**
  * §5.1 y §5.4: agrupar por Estado, Prioridad o Asignados, y que cambiar de criterio reconstruya
@@ -229,5 +228,49 @@ describe('§5.4 C1 · agrupar por responsable usa la persona, no la cuenta', () 
       'responsable',
     )
     expect(cols[cols.length - 1]!.name).toBe('Sin responsable')
+  })
+})
+
+describe('§5.4 · la clave de responsable es UNA, no dos', () => {
+  /**
+   * Estaba escrita dos veces y distinta: `agruparTarjetas` armaba las columnas con
+   * `responsibleName || ownerId || SIN_RESPONSABLE`, y el tablero decidía la pertenencia con
+   * `item.ownerId ?? SIN_RESPONSABLE` a secas.
+   *
+   * No era un desajuste menor: una tarjeta con responsable en el plan tiene por clave de columna
+   * «Salomón Suárez» y por prueba de pertenencia un UUID, así que no caía en ninguna columna y
+   * desaparecía del tablero. Medido antes de arreglarlo sobre el plan de referencia: cinco columnas
+   * con los cinco responsables de verdad, todas diciendo 0, y CERO tarjetas dibujadas.
+   */
+  it('manda el responsable del plan sobre la cuenta del sistema', () => {
+    expect(claveDeResponsable({ responsibleName: 'Salomón Suárez', ownerId: 'uuid-1' })).toBe('Salomón Suárez')
+  })
+
+  it('sin responsable en el plan, la cuenta sirve de respaldo', () => {
+    expect(claveDeResponsable({ responsibleName: null, ownerId: 'uuid-1' })).toBe('uuid-1')
+    expect(claveDeResponsable({ responsibleName: '   ', ownerId: 'uuid-1' })).toBe('uuid-1')
+  })
+
+  it('sin ninguno de los dos, cae en «sin responsable»', () => {
+    expect(claveDeResponsable({ responsibleName: null, ownerId: null })).toBe(SIN_RESPONSABLE)
+  })
+
+  it('y las columnas que arma se indexan con esa MISMA clave', () => {
+    // Ésta es la que habría cazado el defecto: comprueba que la clave de la columna y la clave de la
+    // tarjeta son la misma función, no dos que se parecen.
+    const tarjetas = [
+      { id: 'a', responsibleName: 'Salomón Suárez', ownerId: 'uuid-1' },
+      { id: 'b', responsibleName: null, ownerId: 'uuid-2' },
+      { id: 'c', responsibleName: null, ownerId: null },
+    ]
+    const columnas = agruparTarjetas(
+      tarjetas as never,
+      [],
+      'responsable',
+    )
+    const claves = new Set(columnas.map((c) => c.id))
+    for (const t of tarjetas) {
+      expect(claves.has(claveDeResponsable(t)), `«${t.id}» no cae en ninguna columna`).toBe(true)
+    }
   })
 })

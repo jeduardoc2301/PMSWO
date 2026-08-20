@@ -75,6 +75,28 @@ const ORDEN_DE_PRIORIDAD: readonly string[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LO
 /** Qué se enseña cuando una tarjeta no tiene responsable con nombre. */
 export const SIN_RESPONSABLE = '__sin_responsable__'
 
+/**
+ * En qué columna cae una tarjeta al agrupar por responsable.
+ *
+ * Estaba escrita **dos veces y distinta**: aquí se construyen las columnas con
+ * `responsibleName || ownerId || SIN_RESPONSABLE`, y el tablero decidía la pertenencia con
+ * `item.ownerId ?? SIN_RESPONSABLE` a secas.
+ *
+ * El resultado no era un desajuste menor: una tarjeta con responsable en el plan tiene por clave de
+ * columna «Salomón Suárez» y por prueba de pertenencia un UUID, así que **no caía en ninguna
+ * columna y desaparecía del tablero entero**. Medido sobre el plan de referencia antes de
+ * arreglarlo: cinco columnas con los cinco responsables de verdad, **todas diciendo 0**, y **cero
+ * tarjetas dibujadas**.
+ *
+ * Vive aquí y se exporta para que no pueda volver a escribirse dos veces.
+ */
+export function claveDeResponsable(tarjeta: {
+  readonly responsibleName?: string | null
+  readonly ownerId?: string | null
+}): string {
+  return tarjeta.responsibleName?.trim() || tarjeta.ownerId || SIN_RESPONSABLE
+}
+
 export function agruparTarjetas(
   tarjetas: readonly TarjetaAgrupable[],
   columnasDeLaBase: readonly ColumnaDeLaBase[],
@@ -121,10 +143,11 @@ export function agruparTarjetas(
   // verdad —Rafael, Salomón, José, Bryan y una designación pendiente— vivían en el otro campo.
   // El criterio del §5.4 se cumplía —las columnas se reconstruían— y el resultado no servía para
   // nada, que es la peor forma de pasar una prueba.
+
   const porResponsable = new Map<string, { nombre: string; ids: string[] }>()
   for (const tarjeta of tarjetas) {
     const persona = tarjeta.responsibleName?.trim()
-    const clave = persona || tarjeta.ownerId || SIN_RESPONSABLE
+    const clave = claveDeResponsable(tarjeta)
     const nombre = persona || tarjeta.ownerName?.trim() || 'Sin responsable'
     const grupo = porResponsable.get(clave)
     if (grupo) grupo.ids.push(tarjeta.id)

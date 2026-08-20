@@ -11,8 +11,7 @@ import {
   type CriterioDeAgrupacion,
   SIN_RESPONSABLE,
   agruparTarjetas,
-  cambioAlSoltar,
-} from '@/lib/projects/kanban-group'
+  cambioAlSoltar, claveDeResponsable } from '@/lib/projects/kanban-group'
 import { progresoAlMover } from '@/lib/projects/status-progress'
 import {
   CAMPOS_DE_ORDEN,
@@ -701,7 +700,10 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
   /** Qué tarjetas caen en una columna, según el criterio de agrupación vigente. */
   const enLaColumna = (item: WorkItemSummary, columnId: string): boolean => {
     if (criterioDeAgrupacion === 'prioridad') return item.priority === columnId
-    if (criterioDeAgrupacion === 'responsable') return (item.ownerId ?? SIN_RESPONSABLE) === columnId
+    // La MISMA función que arma las columnas, no una copia. Ver `claveDeResponsable`: escrita dos
+    // veces y distinta, las tarjetas con responsable no caían en ninguna columna y el tablero se
+    // quedaba en blanco.
+    if (criterioDeAgrupacion === 'responsable') return claveDeResponsable(item) === columnId
     return item.kanbanColumnId === columnId
   }
 

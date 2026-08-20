@@ -543,3 +543,86 @@ describe('§10.7 · optimista, con reversión visible', () => {
     expect(screen.queryByTestId('error-de-movimiento')).not.toBeInTheDocument()
   })
 })
+
+describe('§5.4 · agrupar por Asignados dibuja las tarjetas', () => {
+  /**
+   * Esta prueba existe por un defecto que dejaba el tablero **en blanco**.
+   *
+   * La clave de la columna se calculaba con `responsibleName || ownerId || SIN_RESPONSABLE` y la
+   * pertenencia de la tarjeta con `item.ownerId ?? SIN_RESPONSABLE` a secas. Una línea con
+   * responsable en el plan tiene por clave de columna «Salomón Suárez» y por prueba de pertenencia
+   * un UUID: no caía en ninguna columna y desaparecía.
+   *
+   * Medido sobre el plan de referencia antes de arreglarlo: cinco columnas con los cinco
+   * responsables de verdad, **todas diciendo 0**, y **cero tarjetas dibujadas**. Después: 1 221.
+   *
+   * La prueba de unidad de `kanban-group.ts` NO lo cazaba —comprobado volviendo a partir la clave y
+   * viéndola en verde— porque el defecto vive en el componente, no en la regla. Ésta sí.
+   */
+  const CON_RESPONSABLE = [
+    {
+      id: 'r-1',
+      title: 'La lleva Salomón',
+      status: WorkItemStatus.BACKLOG,
+      priority: WorkItemPriority.HIGH,
+      kanbanColumnId: 'col-1',
+      ownerId: 'user-1',
+      ownerName: 'La cuenta del sistema',
+      responsibleName: 'Salomón Suárez',
+    },
+    {
+      id: 'r-2',
+      title: 'Sin responsable en el plan',
+      status: WorkItemStatus.TODO,
+      priority: WorkItemPriority.MEDIUM,
+      kanbanColumnId: 'col-2',
+      ownerId: 'user-2',
+      ownerName: 'Jane Smith',
+    },
+  ]
+
+  const COLUMNAS = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: ['r-1'] },
+    { id: 'col-2', name: 'To Do', order: 1, columnType: KanbanColumnType.TODO, workItemIds: ['r-2'] },
+  ]
+
+  function agruparPorResponsable() {
+    render(<KanbanBoard projectId="project-1" columns={COLUMNAS as never} workItems={CON_RESPONSABLE as never} />)
+    const selector = screen.getByLabelText('Agrupar por')
+    fireEvent.change(selector, { target: { value: 'responsable' } })
+  }
+
+  it('la tarjeta con responsable del plan sigue en pantalla', async () => {
+    agruparPorResponsable()
+    await waitFor(() => {
+      expect(screen.getByText('La lleva Salomón')).toBeInTheDocument()
+    })
+  })
+
+  it('y la que no lo tiene, también', async () => {
+    agruparPorResponsable()
+    await waitFor(() => {
+      expect(screen.getByText('Sin responsable en el plan')).toBeInTheDocument()
+    })
+  })
+
+  it('la columna se titula con la persona del plan, no con la cuenta', async () => {
+    // «La cuenta del sistema» es el ownerName; el plan dice quién lo lleva de verdad.
+    //
+    // Se busca por el atributo y no por el texto porque la cabecera va en versalitas por CSS y el
+    // texto del DOM lleva el nombre tal cual: comprobarlo por el atributo dice lo que se quiere
+    // —«la columna ES la de esa persona»— sin depender de cómo se pinte.
+    const { container } = render(
+      <KanbanBoard projectId="project-1" columns={COLUMNAS as never} workItems={CON_RESPONSABLE as never} />,
+    )
+    fireEvent.change(screen.getAllByLabelText('Agrupar por')[0], { target: { value: 'responsable' } })
+
+    await waitFor(() => {
+      const nombres = [...container.querySelectorAll('[data-columna]')].map((e) =>
+        e.getAttribute('data-columna'),
+      )
+      expect(nombres).toContain('Salomón Suárez')
+      expect(nombres).not.toContain('La cuenta del sistema')
+    })
+  })
+})
