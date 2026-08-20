@@ -2849,3 +2849,63 @@ color dejaría fuera a quien no lo distingue.
 
 Un reloj de navegador atrasado no produce «hace −3 minutos»: la edad se acota en cero.
 
+---
+
+## Brecha 28 — el conmutador de claro y oscuro: el mecanismo
+
+Decisión del dueño del producto: **un conmutador**, no sólo seguir al sistema. Antes de tocar un
+solo componente hacía falta saber cuánto hay que tocar, así que se inventarió con agentes en
+paralelo:
+
+| subsistema | colores escritos a mano |
+|---|---:|
+| Lista y Esquema | 424 |
+| El marco (layouts, navegación, `globals.css`) | 413 |
+| Tablero | 357 |
+| Gantt y espacio de plan | 225 |
+| Calendario y Carga | 225 |
+| Panel de control y piezas compartidas | 223 |
+| **total** | **1 867** |
+
+Más **69 trampas**: color que se **calcula**, color con opacidad sobre fondo oscuro que no traduce,
+y —el grupo que importa— color que **codifica un dato** y no decora: el rojo de sobrecarga, la rampa
+de ocupación de la matriz de carga, la rampa del embudo del panel. En esos, cambiar el color cambia
+lo que la pantalla **dice**.
+
+### Lo que ya está puesto: el mecanismo, sin tocar ningún componente
+
+**Tres estados y no dos.** `sistema` —el inicial—, `claro` y `oscuro`. Un conmutador de dos
+posiciones obliga a decidir en nombre de quien no ha decidido, y una vez pulsado no hay forma de
+volver. Y la elección explícita gana sobre el sistema **en los dos sentidos**: quien tiene el
+sistema en claro y quiere esta aplicación oscura necesita poder decirlo.
+
+**Sin elegir nada, sigue oscura.** Son 1 867 colores escritos a mano: cambiarle el aspecto a quien no
+ha pedido nada no sería una mejora, sería una sorpresa.
+
+**Sin parpadeo.** El servidor no sabe qué eligió esta persona —la elección vive en el navegador—, así
+que hay un guión en línea en el `<head>` que estampa `data-theme` **antes del primer pintado**. Va
+como cadena y no como módulo porque cualquier cosa que Next cargue como módulo llega después. Un
+parpadeo de oscuro a claro en cada navegación sería peor que no tener modo claro.
+
+**Los tokens se nombran por su papel**, no por su color: un token llamado `--zinc-900` no puede valer
+blanco sin mentir. `--fondo`, `--superficie`, `--tinta`, `--acento`, `--grave`… y sólo se redefinen
+**tokens** bajo el atributo, nunca reglas de componente — un color cuya única definición vive dentro
+de un `[data-theme]` no aplica en el estado sin estampar, y la página sale con el texto de un tema
+sobre el fondo del otro.
+
+**El acento cambia de valor, no se hereda.** `#6366f1` sobre blanco da 3.9:1, por debajo de lo que
+necesita un texto pequeño. En claro baja a `#4f46e5`, que da 6.0:1.
+
+Y tres cosas que sólo se ven cuando fallan: `localStorage` **lanza** en modo privado y dentro de un
+`iframe` con cookies bloqueadas —si lanza, se queda oscuro—; basura guardada a mano vuelve a
+«como el sistema»; y con la elección en `sistema` la pantalla **sigue al sistema en vivo**, sin
+recargar, porque quien cambia el tema de su ordenador a mediodía no tiene por qué saber que hay que
+recargar.
+
+### Y una acusación del inventario que era falsa
+
+Uno de los agentes abrió su plan con «PASO 0 · arreglar el corredor de pruebas: hoy
+`npx vitest --run lib/scheduling` recoge **cero** pruebas en los 39 archivos». Comprobado antes de
+hacerle caso: recoge **39 archivos y 927 pruebas**, en las dos formas de invocarlo. Séptima vez que
+una acusación de un informe no sobrevive a reproducirla.
+

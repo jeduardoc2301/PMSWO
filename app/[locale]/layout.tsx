@@ -19,6 +19,8 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
+import { guionSinParpadeo } from '@/lib/projects/tema'
+
 export const metadata: Metadata = {
   title: {
     template: '%s | Gestión de Proyectos Ejecutiva',
@@ -78,7 +80,22 @@ export default async function LocaleLayout({
   console.log('[LAYOUT] Cache-bust timestamp:', new Date().toISOString())
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
+      <head>
+        {/*
+          El tema, estampado **antes del primer pintado** (brecha 28).
+
+          El servidor no sabe qué eligió esta persona —la elección vive en el navegador—, así que sin
+          esto la página llega sin estampar y se pinta oscura un instante antes de que React la
+          corrija. Un parpadeo de oscuro a claro en cada navegación es peor que no tener modo claro.
+
+          Va en línea y no como módulo porque tiene que correr síncrono y antes que nada: cualquier
+          cosa que Next cargue como módulo llega después del primer pintado. `suppressHydrationWarning`
+          en `<html>` es por lo mismo — el atributo que este guión añade no está en lo que sirvió el
+          servidor, y eso es exactamente lo que se busca.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: guionSinParpadeo() }} />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProviderWrapper>
           <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>

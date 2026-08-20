@@ -17,6 +17,7 @@ import { useUndo } from '@/components/projects/use-undo'
 import { type Cambio, type LadoDeOperacion, operacionDesde, vaPorLaRutaDeReprogramar } from '@/lib/projects/undo-stack'
 import { FILTRO_VACIO, type Filtro, filtrar, type LineaFiltrable } from '@/lib/projects/filter'
 import { BotonDeActualizar } from '@/components/projects/boton-de-actualizar'
+import { ConmutadorDeTema } from '@/components/projects/conmutador-de-tema'
 import { type PermisoDeProyecto, vistasVisibles } from '@/lib/projects/permisos'
 import { RepartoDePapeles } from '@/components/projects/reparto-de-papeles'
 import { ColumnasDelTablero } from '@/components/projects/columnas-del-tablero'
@@ -841,7 +842,10 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                 {tab.label}
               </button>
             ))}
-            <div className="ml-auto flex-shrink-0 px-4">{refresco}</div>
+            <div className="ml-auto flex flex-shrink-0 items-center gap-3 px-4">
+              <ConmutadorDeTema />
+              {refresco}
+            </div>
           </div>
 
           {/* Tab content */}

@@ -15,6 +15,119 @@
 
   --background: #09090b;
   --foreground: #fafafa;
+
+  /* ── Los tokens del tema (brecha 28) ──────────────────────────────────────────────────────────
+
+     Nombrados por su PAPEL y no por su color, que es lo que permite que exista un modo claro: un
+     token llamado `--zinc-900` no puede valer blanco sin mentir.
+
+     Los valores de aquí son los OSCUROS, y eso es a propósito: la aplicación nació oscura, son mil
+     ochocientos colores escritos a mano, y quien no ha elegido nada tiene que seguir viendo
+     exactamente lo mismo que veía ayer. El modo claro se añade abajo, sobre el atributo.        */
+
+  --fondo:          #09090b;  /* el lienzo de la página */
+  --superficie:     #18181b;  /* tarjetas, paneles, barras */
+  --superficie-2:   #1c1c1f;  /* lo que se eleva sobre una tarjeta: menús, filas al pasar */
+  --superficie-3:   #27272a;  /* lo que se hunde: cabeceras de tabla, campos */
+  --borde:          #27272a;
+  --borde-fuerte:   #3f3f46;  /* el borde que hay que ver: foco, selección */
+
+  --tinta:          #fafafa;  /* texto principal */
+  --tinta-2:        #a1a1aa;  /* secundario: valores, subtítulos */
+  --tinta-3:        #71717a;  /* apagado: rótulos, ayudas, lo deshabilitado */
+
+  --acento:         #6366f1;
+  --acento-tinta:   #a5b4fc;  /* el acento sobre la superficie, cuando es TEXTO */
+  --acento-suave:   #312e81;  /* el acento como fondo de algo pequeño */
+
+  --bien:           #34a86e;
+  --aviso:          #fbbf24;
+  --grave:          #d03b3b;
+  --sobre-color:    #09090b;  /* lo que se escribe ENCIMA de un bien/aviso/grave lleno */
+}
+
+/* ── Modo claro ────────────────────────────────────────────────────────────────────────────────
+
+   Sólo se redefinen los TOKENS, nunca reglas de componentes: un color cuya única definición vive
+   dentro de un `[data-theme]` no aplica en el estado sin estampar, y la página sale con el texto de
+   un tema sobre el fondo del otro.
+
+   Los neutros llevan una pizca de frío hacia el índigo del acento. Un gris exactamente neutro se lee
+   como «no lo pensó nadie»; éste está elegido.
+
+   El acento **cambia de valor**, no se hereda: `#6366f1` sobre blanco da 3.9:1, por debajo de lo que
+   necesita un texto pequeño. En claro se baja a `#4f46e5`, que da 6.0:1.                        */
+
+:root[data-theme='claro'] {
+  --background: #f7f7f9;
+  --foreground: #18181b;
+
+  --fondo:          #f4f4f7;
+  --superficie:     #ffffff;
+  --superficie-2:   #fafafb;
+  --superficie-3:   #eeeef2;
+  --borde:          #e3e3e9;
+  --borde-fuerte:   #c7c7d1;
+
+  --tinta:          #18181b;
+  --tinta-2:        #52525b;
+  --tinta-3:        #71717a;
+
+  --acento:         #4f46e5;
+  --acento-tinta:   #4338ca;
+  --acento-suave:   #e0e7ff;
+
+  --bien:           #15803d;
+  --aviso:          #b45309;
+  --grave:          #b91c1c;
+  --sobre-color:    #ffffff;
+
+  --bg:       #f4f4f7;
+  --surface:  #ffffff;
+  --surface2: #fafafb;
+  --border:   #e3e3e9;
+  --indigo:   #4f46e5;
+  --sw-blue-primary: #4f46e5;
+  --sw-blue-light:   #4338ca;
+}
+
+/*
+  Sin guion —navegador con JavaScript apagado— el atributo no se estampa nunca. Esta copia hace que
+  el modo claro siga funcionando en ese caso, y se anula en cuanto alguien elige oscuro a mano.
+*/
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='oscuro']) {
+    --background: #f7f7f9;
+    --foreground: #18181b;
+
+    --fondo:          #f4f4f7;
+    --superficie:     #ffffff;
+    --superficie-2:   #fafafb;
+    --superficie-3:   #eeeef2;
+    --borde:          #e3e3e9;
+    --borde-fuerte:   #c7c7d1;
+
+    --tinta:          #18181b;
+    --tinta-2:        #52525b;
+    --tinta-3:        #71717a;
+
+    --acento:         #4f46e5;
+    --acento-tinta:   #4338ca;
+    --acento-suave:   #e0e7ff;
+
+    --bien:           #15803d;
+    --aviso:          #b45309;
+    --grave:          #b91c1c;
+    --sobre-color:    #ffffff;
+
+    --bg:       #f4f4f7;
+    --surface:  #ffffff;
+    --surface2: #fafafb;
+    --border:   #e3e3e9;
+    --indigo:   #4f46e5;
+    --sw-blue-primary: #4f46e5;
+    --sw-blue-light:   #4338ca;
+  }
 }
 
 @theme inline {
