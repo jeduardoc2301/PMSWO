@@ -1229,7 +1229,15 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
               />
             )}
 
-            {activeTab === 'dashboard' && <DashboardTab projectId={projectId} />}
+            {activeTab === 'dashboard' && (
+              <DashboardTab
+                projectId={projectId}
+                barraDeFiltro={barraDeFiltro}
+                hayFiltro={
+                  kanbanBoard !== null && idsFiltrados.size !== kanbanBoard.workItems.length
+                }
+              />
+            )}
 
           </div>
         </div>

@@ -3788,3 +3788,53 @@ La de «al buscar sí vuelve al principio» del §5 dibuja doscientas tarjetas y
 Sola pasa; con los ciento ochenta archivos de la suite en paralelo se pasaba de los cinco segundos
 por reparto de procesador. Se le dan veinte y no se recorta el caso: hacen falta más de 111 tarjetas
 dibujadas para que la prueba pueda distinguir si la paginación volvió al principio.
+
+## §10.2 · El filtro compartido no llegaba a las seis vistas
+
+«**Un solo filtro para las 6 vistas.** Si el usuario filtra en el Gantt y cambia a Tablero, el filtro
+sigue puesto», dice el spec con esas palabras. El Panel de control se montaba **pelado**
+—`<DashboardTab projectId={projectId} />`, sin barra— así que al llegar desde el Gantt el filtro
+*parecía* haberse quitado. No se había quitado: seguía puesto y volvía a aplicarse al salir. Pero eso
+no lo adivina nadie mirando una pantalla que no lo enseña.
+
+Y buscando ese defecto salieron **otros dos, del mismo molde**: en la Carga de trabajo y en el
+Calendario la barra estaba **detrás de las salidas tempranas**, así que desaparecía mientras la vista
+cargaba y volvía al llegar los datos. Una barra que parpadea al cambiar de pestaña tampoco parece un
+solo filtro.
+
+### Lo que se hizo, y lo que a propósito no
+
+La barra está ahora en las seis, y en las tres fases de cada una: cargando, con error y con datos.
+
+Lo que **no** se hizo es recalcular las cifras del Panel sobre lo filtrado, y es una decisión escrita,
+no un olvido. Las cifras del Panel las calcula el servidor recorriendo el plan entero; el filtro se
+evalúa en el navegador, sobre líneas con campos derivados —vencida, campos personalizados— que la
+base no tiene. Aplicarlo pedía una de dos: mandar mil trescientos identificadores en cada petición, o
+**escribir el filtro por segunda vez en el servidor**. Lo segundo es exactamente cómo este proyecto
+se ganó varios de los defectos de esta bitácora: dos definiciones de la misma palabra acaban
+divergiendo, y la que se olvida es siempre la del sitio menos mirado.
+
+Mientras tanto el Panel **dice de qué está hablando**: con un filtro puesto avisa de que sus cifras
+son del proyecto entero. Una cifra con el alcance escrito al lado es honesta; la misma cifra junto a
+una barra de filtro puesta, callando, es una trampa.
+
+### Demostrado en pantalla
+
+Recorriendo las seis vistas del proyecto de referencia y mirando si la barra está:
+
+| vista | antes | después |
+|---|---|---|
+| Tablero Kanban | sí | sí |
+| Elementos de Trabajo | sí | sí |
+| Timeline | sí | sí |
+| Calendario | sí (salvo al cargar) | sí |
+| Carga de trabajo | sí (salvo al cargar) | sí |
+| **Panel de control** | **no** | **sí** |
+
+### Y el bloque de pruebas del §5, otra vez
+
+Se pasó de tiempo una segunda prueba del bloque de la paginación, distinta de la de anoche. Dibujan
+entre ciento veinte y doscientas tarjetas dos o tres veces cada una: solas pasan de sobra, y con los
+ciento ochenta y cuatro archivos en paralelo se acercan a los cinco segundos por reparto de
+procesador. El margen se le pone **al bloque entero** y no prueba a prueba, porque el problema es del
+bloque.

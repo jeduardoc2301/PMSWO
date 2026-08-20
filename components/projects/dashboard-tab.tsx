@@ -26,7 +26,39 @@ type Estado =
   | { readonly fase: 'error'; readonly mensaje: string }
   | { readonly fase: 'listo'; readonly panel: PanelDeProyecto; readonly hoy: string }
 
-export function DashboardTab({ projectId }: { readonly projectId: string }) {
+/**
+ * El Panel de control (§9), con la barra del filtro compartido del §10.2.
+ *
+ * El §10.2 pide **un solo filtro para las seis vistas**, y el Panel era la unica que se montaba
+ * pelada: al llegar aqui desde el Gantt la barra desaparecia, asi que el filtro parecia haberse
+ * quitado. No se habia quitado —seguia puesto y volvia a aplicarse al salir— pero eso no lo
+ * adivina nadie mirando una pantalla que no lo ensena.
+ *
+ * ## Lo que la barra hace aqui, y lo que no
+ *
+ * Hace que el filtro **siga a la vista y siga puesto**, que es lo que el §10.2 pide con esas
+ * palabras. Lo que no hace todavia es recalcular las cifras sobre lo filtrado, y es una decision,
+ * no un olvido: las cifras del Panel las calcula el servidor recorriendo el plan entero y el filtro
+ * se evalua en el navegador, sobre lineas que llevan campos derivados —vencida, campos
+ * personalizados— que la base no tiene. Aplicarlo aqui pedia una de dos: mandar mil trescientos
+ * identificadores en cada peticion, o escribir el filtro **por segunda vez** en el servidor. Lo
+ * segundo es como este proyecto ya se gano varios defectos: dos definiciones de la misma palabra
+ * acaban divergiendo y la que se olvida es siempre la del sitio menos mirado.
+ *
+ * Mientras tanto el Panel **dice de que esta hablando**. Una cifra con el alcance escrito al lado
+ * es honesta; la misma cifra junto a una barra de filtro puesta, sin decir nada, es una trampa.
+ */
+export function DashboardTab({
+  projectId,
+  barraDeFiltro,
+  hayFiltro = false,
+}: {
+  readonly projectId: string
+  /** La barra del filtro compartido (§10.2). Sin ella el Panel se dibuja como antes. */
+  readonly barraDeFiltro?: React.ReactNode
+  /** Si hay algo filtrado ahora mismo: es lo que decide si el Panel avisa de su alcance. */
+  readonly hayFiltro?: boolean
+}) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' })
   const [widgets, setWidgets] = useState<readonly WidgetDelPanel[]>(PANEL_POR_OMISION.widgets)
   const [configurando, setConfigurando] = useState(false)
@@ -138,21 +170,52 @@ export function DashboardTab({ projectId }: { readonly projectId: string }) {
     URL.revokeObjectURL(url)
   }
 
+  /**
+   * La barra y, si hay filtro, el alcance de las cifras.
+   *
+   * Va tambien en la espera y en el error: si solo saliera con el panel cargado, el filtro
+   * desapareceria durante la carga, que es exactamente el sintoma que esto arregla.
+   */
+  const encabezado =
+    barraDeFiltro === undefined ? null : (
+      <div className="mb-3 space-y-2">
+        {barraDeFiltro}
+        {hayFiltro ? (
+          <p
+            data-testid="alcance-del-panel"
+            className="rounded-lg border border-borde bg-superficie/40 px-3 py-2 text-xs text-tinta-2"
+          >
+            Hay un filtro puesto. Las cifras de abajo son <b>del proyecto entero</b>: el Panel las
+            calcula en el servidor sobre el plan completo.
+          </p>
+        ) : null}
+      </div>
+    )
+
   if (estado.fase === 'cargando') {
     // Seis tarjetas en rejilla, que es lo que va a aparecer (§10.7).
-    return <EsqueletoDeWidgets cuantos={6} />
+    return (
+      <>
+        {encabezado}
+        <EsqueletoDeWidgets cuantos={6} />
+      </>
+    )
   }
 
   if (estado.fase === 'error') {
     return (
-      <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
-        <p className="text-sm text-red-300">No se pudo cargar el panel: {estado.mensaje}</p>
-      </div>
+      <>
+        {encabezado}
+        <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
+          <p className="text-sm text-red-300">No se pudo cargar el panel: {estado.mensaje}</p>
+        </div>
+      </>
     )
   }
 
   return (
     <>
+      {encabezado}
       <DashboardView
         panel={estado.panel}
         hoy={estado.hoy}

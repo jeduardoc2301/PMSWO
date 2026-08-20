@@ -349,14 +349,29 @@ export function CalendarTab({
     }
   }
 
+  /**
+   * La barra del filtro compartido, tambien mientras se carga y si falla (§10.2).
+   *
+   * Estaba solo en el `return` de abajo, detras de las dos salidas tempranas: el filtro
+   * **desaparecia durante la espera** y volvia al aparecer los datos. El §10.2 pide un solo filtro
+   * para las seis vistas, y una barra que parpadea al cambiar de pestana no lo parece.
+   */
   if (estado.fase === 'cargando') {
-    return <p className="py-12 text-center text-sm text-tinta-2">Armando el calendario del proyecto...</p>
+    return (
+      <div className="flex flex-col gap-3">
+        {barraDeFiltro}
+        <p className="py-12 text-center text-sm text-tinta-2">Armando el calendario del proyecto...</p>
+      </div>
+    )
   }
 
   if (estado.fase === 'error') {
     return (
-      <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
-        <p className="text-sm text-red-300">No se pudo cargar el plan: {estado.mensaje}</p>
+      <div className="flex flex-col gap-3">
+        {barraDeFiltro}
+        <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
+          <p className="text-sm text-red-300">No se pudo cargar el plan: {estado.mensaje}</p>
+        </div>
       </div>
     )
   }

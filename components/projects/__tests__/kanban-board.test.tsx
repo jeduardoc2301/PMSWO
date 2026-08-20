@@ -672,6 +672,18 @@ describe('§5.1 · el EDT y «ser resumen» se cuentan sobre el plan entero', ()
   })
 })
 
+/**
+ * Veinte segundos para todo el bloque, y no los cinco de por omision.
+ *
+ * Cada prueba de aqui dibuja entre ciento veinte y doscientas tarjetas y las vuelve a dibujar dos o
+ * tres veces. Solas pasan de sobra; con los ciento ochenta archivos de la suite en paralelo se
+ * acercan a los cinco segundos **por reparto de procesador, no por lentitud del codigo**, y ya se
+ * pasaron dos de ellas en dos ejecuciones distintas.
+ *
+ * Recortar los casos seria mas barato y los dejaria sin poder discriminar: hacen falta mas de 111
+ * tarjetas dibujadas para que se note si la paginacion volvio al principio. El margen va al bloque
+ * entero y no prueba a prueba porque el problema es del bloque.
+ */
 describe('§5 · la carga paginada por columna no se pierde al mover una tarjeta', () => {
   /**
    * La paginación se devolvía al principio cuando cambiaba `workItemsInColumn.length`, y **mover una
@@ -740,10 +752,5 @@ describe('§5 · la carga paginada por columna no se pierde al mover una tarjeta
     expect(boton()!.textContent).toContain('50 tarjetas más')
     fireEvent.change(screen.getByPlaceholderText(/buscar/i), { target: { value: 'Tarea 1' } })
     expect(boton()!.textContent).toContain('61 tarjetas más')
-    // Veinte segundos y no los cinco de por omision: esta prueba dibuja doscientas tarjetas y las
-    // vuelve a dibujar tres veces, y con los 180 archivos de la suite en paralelo eso pasa de cinco
-    // segundos por reparto de procesador, no por lentitud del codigo. Recortar el caso seria mas
-    // barato y lo dejaria sin poder discriminar: hacen falta mas de 111 dibujadas para que se note
-    // si la paginacion volvio al principio.
-  }, 20_000)
-})
+  })
+}, 20_000)
