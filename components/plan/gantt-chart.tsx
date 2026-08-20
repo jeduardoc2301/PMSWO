@@ -123,6 +123,35 @@ const COLUMNAS_POR_OMISION = columnasVisibles(GANTT_POR_OMISION)
  *
  * El nombre no está aquí: esa celda lleva el árbol —triángulos y sangría— y se dibuja aparte.
  */
+/**
+ * El valor que tenía esta celda en la línea base, al lado del de hoy (§4.6 conmutador 4).
+ *
+ * Sólo en las dos columnas de fecha, y sólo si se corrió: enseñar «2026-06-12» en gris junto a
+ * «2026-06-12» sería repetir el mismo dato en cada fila y convertir la rejilla en ruido. Lo que
+ * informa es la diferencia, así que se enseña cuando la hay.
+ *
+ * En rojo lo que se fue más tarde y en verde lo que se adelantó, con el signo escrito: el color solo
+ * no dice cuánto, y «+12 d» cabe en la celda mejor que una frase.
+ */
+function ValorDeLaFoto({ row, columnaId }: { row: GanttRow; columnaId: string }) {
+  const corrimiento =
+    columnaId === 'start' ? row.baseDrift : columnaId === 'finish' ? row.baseFinishDrift : undefined
+  const original = columnaId === 'start' ? row.baseStart : columnaId === 'finish' ? row.baseFinish : undefined
+  if (corrimiento === undefined || original === undefined || corrimiento === 0) return null
+
+  return (
+    <span
+      data-foto={columnaId}
+      data-corrimiento={corrimiento}
+      title={`En la línea base: ${original}`}
+      className={`ml-1.5 shrink-0 tabular-nums ${corrimiento > 0 ? 'text-red-400/80' : 'text-emerald-400/80'}`}
+    >
+      {corrimiento > 0 ? '+' : '−'}
+      {Math.abs(corrimiento)} d
+    </span>
+  )
+}
+
 function contenidoDe(row: GanttRow, columnaId: string, indice: number): string {
   switch (columnaId) {
     // El EDT jerárquico del plan entero. Antes era un contador de posición dentro de lo visible, y
@@ -394,6 +423,7 @@ export function GanttChart({
                           style={{ height: rowHeight }}
                         >
                           {contenidoDe(row, columna.id, primera + k)}
+                          <ValorDeLaFoto row={row} columnaId={columna.id} />
                         </span>
                       )}
                     </div>

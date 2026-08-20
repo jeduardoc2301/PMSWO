@@ -91,7 +91,7 @@ tiempo real y deshacer.
 | 18 | Vista Panel de control (§9) | **PARCIAL** | `lib/projects/dashboard-metrics.ts`, `components/projects/dashboard-*.tsx`, `services/project-dashboard.service.ts` | **5 de 6 criterios del §9.3 demostrados en pantalla, y el sexto a medias** (ver la bitácora). Lo que falta no es del panel: la aplicación **no tiene modo claro** —ni `prefers-color-scheme`, ni clases `dark:`, ni conmutador— en ninguna de las seis vistas, así que «legibles en claro y oscuro» no se puede cumplir aquí. La otra mitad —accesibles sin depender sólo del color— sí | L | Bajo |
 | 27 | Calendario del proyecto: sólo lectura | **NO EXISTE** | `services/project-calendar.service.ts` (sólo `load*`) | El sombreado de festivos propios funciona —medido—, pero `ProjectCalendar` y `ProjectHoliday` sólo se pueden crear escribiendo en la base. No hay ruta `/calendar` ni pantalla. Descubierto al demostrar el criterio 2 del §7.5 | M | Medio |
 | 19 | Estados configurables (§5) | **CERRADA** | `KanbanColumn.isInitial/isDone`, `lib/projects/columnas-del-tablero.ts`, `app/api/v1/projects/[id]/columns/` | Alta y baja de columnas desde el propio tablero, con las dos protegidas —la inicial y la de terminado— y con destino obligatorio para las tarjetas de la que se quita. Reordenar columnas no está: `@@unique([projectId, order])` lo convierte en un corrimiento con transacción, y hacerlo a medias es peor que no ofrecerlo | M | Medio |
-| 20 | Líneas base (§3) | **PARCIAL** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts` | El motor y la rejilla, sí. Falta la barra bajo la barra del Gantt (§4.6) y el selector no está en el Gantt | M | Bajo |
+| 20 | Líneas base (§3) | **CERRADA** | `Baseline`, `BaselineItem`, `lib/scheduling/baseline.ts`, `gantt.ts` | Las dos mitades del §4.6 conmutador 4: la barra fina bajo cada barra —28 dibujadas, comprobado— y el valor original en la rejilla junto al de hoy, en rojo lo que se fue tarde y en verde lo que se adelantó. El selector sí estaba en el Gantt; la matriz decía que no | M | Bajo |
 | 21 | Preferencias de vista (§10.4) | **CERRADA · completa** | `ViewPreference`, `services/view-preference.service.ts` | Las cinco vistas configurables guardan y restauran. Comprobado en pantalla una por una: Gantt (Fases/Todas), Lista (Esquema), Tablero (agrupar por prioridad), Carga (Tareas) y Panel (widgets) sobreviven a recargar la página entera. `/es/plan` no persiste **a propósito**: monta el Gantt sin `projectId` porque es el plan del archivo de referencia, no un proyecto | M | Bajo |
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
@@ -972,3 +972,27 @@ qué enseñar dice que no lo sabe; no tira la pantalla.
 **Y un choque de nombres que ensució mi propia medición.** Marqué las filas con `data-columna`, que
 es el atributo que el tablero ya usa para sus columnas: la primera medición devolvió las dos cosas
 mezcladas, 130 filas donde había cinco. Renombrado a `data-columna-del-tablero`.
+
+## §4.6 conmutador 4 — el valor original en la rejilla
+
+La matriz decía que faltaban dos cosas y sólo faltaba una. **La barra fina bajo cada barra sí
+estaba** —28 dibujadas, contadas— y el selector **sí** está en el Gantt: pone «Línea base: Plan
+comprometido con el banco» en la barra de herramientas. Comprobarlo antes de construir ahorró
+reimplementar las dos.
+
+Lo que faltaba era la otra mitad de la frase del spec: «en el grid, el valor original en rojo junto
+al actual». Ahora las columnas de inicio y fin llevan el corrimiento al lado —`2026-07-02 +9 d` en
+rojo— con la fecha de la foto en el título.
+
+**Tres decisiones:**
+
+- **Sólo cuando se corrió.** Enseñar «2026-06-12» en gris junto a «2026-06-12» sería repetir el
+  mismo dato en cada fila y convertir la rejilla en ruido. Lo que informa es la diferencia.
+- **El corrimiento del cierre se calcula aparte del de arranque.** Una línea puede empezar a tiempo
+  y acabar tarde —porque se alargó— y con un solo número eso no se ve. Ahora hay `baseDrift` y
+  `baseFinishDrift`.
+- **El color no va solo.** Rojo lo que se fue más tarde, verde lo que se adelantó, y el signo
+  escrito: el color por sí solo no dice cuánto, y «+9 d» cabe en la celda mejor que una frase.
+
+Una línea que no estaba en la foto no se compara: no tiene contra qué, y darle un corrimiento sería
+inventarse un compromiso que nadie hizo.

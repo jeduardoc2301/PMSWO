@@ -727,3 +727,39 @@ describe('Un resumen no se atrasa (§9.3 C3)', () => {
     expect(filas[0]!.isSummary).toBe(true)
   })
 })
+
+describe('La línea base en la rejilla (§4.6 conmutador 4)', () => {
+  const CADENA_SIMPLE: PlanTask[] = [{ id: 'a', name: 'Una línea', duration: 3 }]
+
+  it('trae las fechas de la foto, no sólo dónde cae la barra', () => {
+    // La barra de debajo enseña **dónde** estaba; esto enseña **cuándo**, que es lo que hace falta
+    // para escribirlo en un correo.
+    const foto = new Map([['a', { start: '2026-05-25', finish: '2026-05-27' }]])
+    const fila = trazar(CADENA_SIMPLE, [], { baseline: foto as never }).rows[0]!
+    expect(fila.baseStart).toBe('2026-05-25')
+    expect(fila.baseFinish).toBe('2026-05-27')
+  })
+
+  it('el corrimiento del cierre se calcula aparte del de arranque', () => {
+    // Una línea puede empezar a tiempo y acabar tarde —porque se alargó— y con un solo número eso
+    // no se ve. La foto la hace de 1 día; hoy dura 3, así que arranca igual y cierra 2 más tarde.
+    const foto = new Map([['a', { start: '2026-06-01', finish: '2026-06-01' }]])
+    const fila = trazar(CADENA_SIMPLE, [], { baseline: foto as never }).rows[0]!
+    expect(fila.baseDrift).toBe(0)
+    expect(fila.baseFinishDrift).toBe(2)
+  })
+
+  it('sin foto no hay nada que comparar', () => {
+    const fila = trazar(CADENA_SIMPLE).rows[0]!
+    expect(fila.baseStart).toBeUndefined()
+    expect(fila.baseFinishDrift).toBeUndefined()
+  })
+
+  it('una línea que no estaba en la foto tampoco se compara', () => {
+    // Una línea nueva no tiene contra qué compararse, y darle un corrimiento sería inventarse un
+    // compromiso que nadie hizo.
+    const foto = new Map([['otra', { start: '2026-06-01', finish: '2026-06-03' }]])
+    const fila = trazar(CADENA_SIMPLE, [], { baseline: foto as never }).rows[0]!
+    expect(fila.baseStart).toBeUndefined()
+  })
+})

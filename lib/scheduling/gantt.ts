@@ -101,6 +101,17 @@ export interface GanttRow {
   readonly baseWidth?: number
   /** Días hábiles que se corrió el arranque contra la foto. Positivo es más tarde. */
   readonly baseDrift?: number
+  /**
+   * Las fechas que tenía la línea en la foto, tal cual (§4.6 conmutador 4).
+   *
+   * La barra de debajo enseña **dónde** estaba; esto enseña **cuándo**, que es lo que hace falta
+   * para escribirlo en un correo. Van como fecha civil y no como ordinal porque quien las lee no
+   * piensa en días hábiles desde el arranque del proyecto.
+   */
+  readonly baseStart?: IsoDate
+  readonly baseFinish?: IsoDate
+  /** Días hábiles que se corrió el **cierre** contra la foto. Positivo es más tarde. */
+  readonly baseFinishDrift?: number
 
   readonly totalFloat: number
   /**
@@ -336,7 +347,14 @@ export function ganttLayout(input: GanttInput): GanttLayout {
    */
   const deLaFoto = (
     id: string,
-  ): { baseX?: number; baseWidth?: number; baseDrift?: number } => {
+  ): {
+    baseX?: number
+    baseWidth?: number
+    baseDrift?: number
+    baseStart?: IsoDate
+    baseFinish?: IsoDate
+    baseFinishDrift?: number
+  } => {
     const guardada = input.baseline?.get(id)
     if (!guardada) return {}
     const inicio = calendar.ordinalOf(toDayNumber(guardada.start))
@@ -347,6 +365,11 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       // Ambos extremos cuentan, como `NETWORKDAYS`: del lunes al viernes son cinco días, no cuatro.
       baseWidth: Math.max(0, fin - inicio + 1),
       baseDrift: (schedule.earlyStart.get(id) ?? originOrdinal) - inicio,
+      baseStart: guardada.start,
+      baseFinish: guardada.finish,
+      // El corrimiento del cierre se calcula aparte del de arranque: una línea puede empezar a
+      // tiempo y acabar tarde —porque se alargó— y con un solo número eso no se ve.
+      baseFinishDrift: (schedule.earlyFinish.get(id) ?? originOrdinal) - fin,
     }
   }
 
