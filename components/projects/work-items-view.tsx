@@ -35,7 +35,7 @@ import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { ganttLayout } from '@/lib/scheduling/gantt'
 import { programarConALAP } from '@/lib/scheduling/alap'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
-import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
+import { type Operacion, operacionDeBorrado, operacionDesde } from '@/lib/projects/undo-stack'
 import { hoyCivil } from '@/lib/formato-fecha'
 import { EsqueletoDeTabla } from '@/components/projects/esqueleto'
 import { COLUMNAS_POR_OMISION, redimensionarColumnaDeLaLista } from '@/lib/projects/list-columns'
@@ -912,31 +912,9 @@ function DialogosDeLinea({
           workItem={borrando}
           projectId={projectId}
           onSuccess={(foto, vinculos) => {
-            /**
-             * Borrar se apunta con la **foto** de la línea y sus vínculos (§10.6).
-             *
-             * La foto se toma antes de borrar —después ya no está— y conserva el identificador,
-             * porque las hijas y los vínculos apuntan a él: reponerla con otro dejaría todo eso
-             * señalando a una línea que nadie conoce.
-             *
-             * Los vínculos van en la misma operación porque el borrado se los lleva en cascada:
-             * reponer la línea sin ellos devolvería una línea suelta y diría que se deshizo.
-             */
-            if (foto) {
-              onApuntarOperacion?.({
-                etiqueta: `Borrar «${borrando.title.slice(0, 40)}»`,
-                hacer: [],
-                deshacer: [],
-                lineas: {
-                  hacer: [{ poner: false, workItemId: borrando.id }],
-                  deshacer: [{ poner: true, workItemId: borrando.id, foto }],
-                },
-                vinculos: {
-                  hacer: (vinculos ?? []).map((v) => ({ ...v, poner: false })),
-                  deshacer: (vinculos ?? []).map((v) => ({ ...v, poner: true })),
-                },
-              })
-            }
+            // La operación la arma `operacionDeBorrado`, compartida con el Tablero y la Lista: que
+            // se pueda deshacer un borrado no puede depender de por qué pantalla se pasó.
+            onApuntarOperacion?.(operacionDeBorrado(borrando, foto, vinculos))
             onCerrarBaja()
             onCambio()
           }}

@@ -22,6 +22,7 @@ import {
 } from '@/lib/projects/kanban-sort'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
+import { operacionDeBorrado } from '@/lib/projects/undo-stack'
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { SIN_VINCULOS, rutaDe, vinculosDe } from '@/lib/plan/detail-links'
 import { usarPlanParaElDetalle } from '@/lib/plan/usar-plan'
@@ -34,6 +35,14 @@ import { KanbanInfoModal } from './kanban-info-modal'
 
 interface KanbanBoardProps {
   projectId: string
+  /**
+   * Apunta una operación en la pila de deshacer (§10.6).
+   *
+   * Hace falta aquí por el **borrado**: sin apuntarlo, borrar una línea desde el tablero era
+   * irreversible —se lleva sus vínculos en cascada— mientras que borrarla desde el Esquema sí se
+   * podía deshacer. Que eso dependa de por qué pantalla se pasó no lo adivina nadie.
+   */
+  onApuntarOperacion?: (operacion: import('@/lib/projects/undo-stack').Operacion | null) => void
   columns: KanbanColumnWithItems[]
   workItems: WorkItemSummary[]
   onWorkItemMove?: (
@@ -507,7 +516,7 @@ function UrgencyChip({ kind, count, active, onClick }: UrgencyChipProps) {
 
 // ─── KanbanBoard ─────────────────────────────────────────────────────────────
 
-export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onWorkItemCreated, cutoff }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onWorkItemCreated, cutoff, onApuntarOperacion }: KanbanBoardProps) {
   const t = useTranslations('kanban')
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState<string | null>(null)
@@ -1179,7 +1188,14 @@ export function KanbanBoard({ projectId, columns, workItems, onWorkItemMove, onW
           open
           onOpenChange={(abierto) => { if (!abierto) setBorrando(null) }}
           workItem={borrando}
-          onSuccess={() => { setBorrando(null); onWorkItemCreated?.() }}
+          projectId={projectId}
+          onSuccess={(foto, vinculos) => {
+            // Sin la foto y los vínculos, borrar desde aquí era irreversible. Ver
+            // `operacionDeBorrado`: las dos reglas que lo hacen correcto viven allí.
+            onApuntarOperacion?.(operacionDeBorrado(borrando, foto, vinculos))
+            setBorrando(null)
+            onWorkItemCreated?.()
+          }}
         />
       )}
 

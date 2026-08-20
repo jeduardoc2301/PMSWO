@@ -1039,6 +1039,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     <KanbanBoard projectId={projectId} columns={kanbanBoard.columns}
                       workItems={kanbanBoard.workItems.filter(w => idsFiltrados.has(w.id))}
                       onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
+                      onApuntarOperacion={undo.apuntar}
                       cutoff={cutoffResuelto(project)} />
                     {/* Las columnas son los estados del proyecto (§5.5), así que se administran
                         desde el propio tablero y no desde un ajuste lejano: quien ve que le falta

@@ -106,6 +106,48 @@ export interface Operacion {
   }
 }
 
+/**
+ * La operación de **borrar una línea**, para que las tres vistas la apunten igual (§10.6).
+ *
+ * Estaba escrita a mano en el Esquema, y el Tablero y la Lista no la apuntaban en absoluto: desde
+ * esas dos, borrar era **irreversible** — el botón de deshacer seguía apagado y la línea se iba con
+ * sus vínculos en cascada. Que la reversibilidad de un borrado dependa de **por qué pantalla se
+ * pasó** no es algo que nadie pueda adivinar mirando.
+ *
+ * Vive aquí y no en un componente porque las tres la necesitan y porque las dos reglas que la hacen
+ * correcta se olvidan fácil:
+ *
+ * - La **foto** se toma antes de borrar —después ya no está— y conserva el identificador: las hijas
+ *   y los vínculos apuntan a él, y reponerla con otro dejaría todo eso señalando a una línea que
+ *   nadie conoce.
+ * - Los **vínculos** van en la misma operación porque el borrado se los lleva en cascada: reponer
+ *   la línea sin ellos devolvería una línea suelta y diría que se deshizo.
+ *
+ * Devuelve `null` sin foto: sin ella no hay con qué reponer, y apuntar una operación que no se
+ * puede deshacer es peor que no apuntarla — encendería el botón para nada.
+ */
+export function operacionDeBorrado(
+  linea: { readonly id: string; readonly title: string },
+  foto: Readonly<Record<string, unknown>> | undefined,
+  vinculos: readonly Omit<CambioDeVinculo, 'poner'>[] | undefined,
+): Operacion | null {
+  if (!foto) return null
+  const suyos = vinculos ?? []
+  return {
+    etiqueta: `Borrar «${linea.title.slice(0, 40)}»`,
+    hacer: [],
+    deshacer: [],
+    lineas: {
+      hacer: [{ poner: false, workItemId: linea.id }],
+      deshacer: [{ poner: true, workItemId: linea.id, foto }],
+    },
+    vinculos: {
+      hacer: suyos.map((v) => ({ ...v, poner: false })),
+      deshacer: suyos.map((v) => ({ ...v, poner: true })),
+    },
+  }
+}
+
 /** El inverso de un cambio de vínculo: poner lo que se quitó, quitar lo que se puso. */
 export function alReves(vinculo: CambioDeVinculo): CambioDeVinculo {
   return { ...vinculo, poner: !vinculo.poner }

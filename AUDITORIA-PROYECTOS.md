@@ -2791,3 +2791,25 @@ línea filtrable. **Dos**: un valor vacío ya no compara — sólo responde a «
 que es cierto de una línea sin valor. Un dato que falta no es ni anterior ni posterior a nada, y la
 regla vale para los tres campos de fecha y para los de texto.
 
+### Borrar era irreversible desde dos de las tres vistas
+
+El diálogo de baja hace lo correcto: toma la **foto** de la línea y la lista de sus vínculos antes
+de borrar, porque después no hay a quién preguntárselos. Pero sólo si quien lo abre le pasa el
+proyecto — y de las tres vistas que lo abren, sólo el **Esquema** se lo pasaba.
+
+| borrar una línea desde | ¿se podía deshacer? |
+|---|---|
+| Esquema | sí |
+| Tablero | **no** |
+| Lista y Agrupada | **no** |
+
+Y un borrado se lleva **los vínculos en cascada**, así que lo que se pierde no es una fila: es una
+fila y todo lo que la ataba al plan. Que eso dependa de **por qué pantalla se pasó** no es algo que
+nadie pueda adivinar mirando.
+
+La operación estaba escrita a mano dentro del Esquema. Ahora vive en `operacionDeBorrado`, con las
+dos reglas que la hacen correcta escritas donde no se olvidan: la foto **conserva el
+identificador** —las hijas y los vínculos apuntan a él— y los vínculos van en la **misma**
+operación —reponer la línea sin ellos devolvería una línea suelta y diría que se deshizo—. Sin foto
+devuelve `null`: encender el botón de deshacer para nada es peor que dejarlo apagado.
+

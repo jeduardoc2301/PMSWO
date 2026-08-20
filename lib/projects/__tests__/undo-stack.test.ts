@@ -9,6 +9,7 @@ import {
   deshacer,
   etiquetaDeDeshacer,
   etiquetaDeRehacer,
+  operacionDeBorrado,
   operacionDesde,
   rehacer,
   sePuedeDeshacer,
@@ -396,5 +397,55 @@ describe('§10.6 · por qué ruta vuelve cada cambio', () => {
 
   it('sin campos, no', () => {
     expect(vaPorLaRutaDeReprogramar({})).toBe(false)
+  })
+})
+
+describe('§10.6 · borrar una línea se apunta igual desde las tres vistas', () => {
+  /**
+   * Antes esto estaba escrito a mano en el Esquema, y el Tablero y la Lista no lo apuntaban en
+   * absoluto: desde esas dos, borrar era **irreversible** — la línea se iba con sus vínculos en
+   * cascada y el botón de deshacer seguía apagado. Que la reversibilidad de un borrado dependa de
+   * por qué pantalla se pasó no es algo que nadie pueda adivinar mirando.
+   */
+  const LINEA = { id: 'w9', title: 'Crear la VPC de Producción (10.156.0.0/16)' }
+  const FOTO = { id: 'w9', title: 'Crear la VPC de Producción (10.156.0.0/16)', status: 'TODO' }
+  const VINCULOS = [
+    { predecessorId: 'w1', successorId: 'w9', type: 'FS', lag: 0 },
+    { predecessorId: 'w9', successorId: 'w12', type: 'SS', lag: 2 },
+  ]
+
+  it('sin foto no se apunta nada: encender el botón para nada es peor', () => {
+    expect(operacionDeBorrado(LINEA, undefined, VINCULOS)).toBeNull()
+  })
+
+  it('la foto conserva el identificador, porque los vínculos apuntan a él', () => {
+    const op = operacionDeBorrado(LINEA, FOTO, VINCULOS)!
+    expect(op.lineas!.deshacer).toEqual([{ poner: true, workItemId: 'w9', foto: FOTO }])
+    expect(op.lineas!.hacer).toEqual([{ poner: false, workItemId: 'w9' }])
+  })
+
+  it('los vínculos van en la misma operación: el borrado se los lleva en cascada', () => {
+    const op = operacionDeBorrado(LINEA, FOTO, VINCULOS)!
+    expect(op.vinculos!.deshacer.every((v) => v.poner)).toBe(true)
+    expect(op.vinculos!.hacer.every((v) => !v.poner)).toBe(true)
+    expect(op.vinculos!.deshacer).toHaveLength(2)
+  })
+
+  it('sin vínculos sigue siendo una operación válida', () => {
+    const op = operacionDeBorrado(LINEA, FOTO, undefined)!
+    expect(op.vinculos!.hacer).toEqual([])
+    expect(op.lineas!.deshacer).toHaveLength(1)
+  })
+
+  it('el nombre dice qué se borró, recortado para que quepa', () => {
+    expect(operacionDeBorrado(LINEA, FOTO, [])!.etiqueta).toBe('Borrar «Crear la VPC de Producción (10.156.0.0/1»')
+  })
+
+  it('y la pila la acepta: deshacer devuelve la línea y sus vínculos', () => {
+    const pila = apuntar(PILA_VACIA, operacionDeBorrado(LINEA, FOTO, VINCULOS)!)
+    const atras = deshacer(pila)
+    expect(atras.lineas).toEqual([{ poner: true, workItemId: 'w9', foto: FOTO }])
+    expect(atras.vinculos).toHaveLength(2)
+    expect(atras.vinculos!.every((v) => v.poner)).toBe(true)
   })
 })

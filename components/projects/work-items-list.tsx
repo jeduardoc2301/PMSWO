@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2, GripVertical } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
-import { type Operacion, operacionDesde } from '@/lib/projects/undo-stack'
+import { type Operacion, operacionDeBorrado, operacionDesde } from '@/lib/projects/undo-stack'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import { conFechasDeResumen } from '@/lib/projects/fechas-de-resumen'
 import {
@@ -389,7 +389,16 @@ export function WorkItemsList({
     if (onWorkItemCreated) onWorkItemCreated()
   }
 
-  const handleWorkItemDeleted = () => {
+  const handleWorkItemDeleted = (
+    foto?: Readonly<Record<string, unknown>>,
+    vinculos?: readonly { predecessorId: string; successorId: string; type: string; lag: number }[],
+  ) => {
+    // Sin esto, borrar desde la Lista era **irreversible**: el diálogo tomaba la foto sólo si le
+    // daban el proyecto, y aquí no se lo dabamos. La línea se iba con sus vínculos en cascada y el
+    // botón de deshacer seguía apagado.
+    if (selectedWorkItem) {
+      onApuntarOperacion?.(operacionDeBorrado(selectedWorkItem, foto, vinculos))
+    }
     setDeleteDialogOpen(false)
     setSelectedWorkItem(null)
     if (onWorkItemCreated) onWorkItemCreated()
@@ -1355,6 +1364,7 @@ export function WorkItemsList({
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
           workItem={selectedWorkItem}
+          projectId={projectId}
           onSuccess={handleWorkItemDeleted}
         />
       )}
