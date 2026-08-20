@@ -3420,3 +3420,17 @@ Cruzar la frontera **sí** cuenta: una línea que empieza el 29 de julio y termi
 en agosto. Lo que no cuenta es quedarse fuera del todo y aparecer dibujada sólo porque la rejilla
 tiene orillas.
 
+### Demostrado en pantalla
+
+La vista cuenta sobre las **1 368** líneas del plan; la medición de arriba fue sobre las 1 243 hojas.
+Sobre la misma población que la pantalla, en agosto de 2026:
+
+| | |
+|---|---:|
+| lo que diría contando la rejilla expandida | **364** |
+| lo que caen de verdad en agosto | **230** |
+| lo que dice ahora la cabecera | **230** |
+
+Ciento treinta y cuatro líneas de error, en la cifra que alguien lee para decidir si el mes está
+cargado.
+
