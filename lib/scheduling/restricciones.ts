@@ -133,6 +133,32 @@ export const RESTRICCIONES: readonly Restriccion[] = Object.freeze([
 
 const PORCODIGO = new Map(RESTRICCIONES.map((r) => [r.codigo, r]))
 
+/**
+ * El ancla con la que llega cada línea del plan (§3.0).
+ *
+ * No es una decisión de nadie: es lo que fija la fecha guardada para que el motor no recoloque el
+ * plan entero cada vez que se lee.
+ */
+export const ANCLA: CodigoDeRestriccion = 'NO_ANTES_DE'
+
+/**
+ * ¿Arrastrar la barra de esta línea **pierde** algo que alguien decidió?
+ *
+ * El arrastre clava la línea con `DEBE_EMPEZAR_EL` en su fecha nueva, y `WorkItem` tiene **una
+ * sola** pareja de columnas de restricción: lo que hubiera se sobrescribe.
+ *
+ * Reemplazar el ancla por otra ancla no es perder nada. Reemplazar un **compromiso** —«no termina
+ * después del 18», «debe terminar el 18»— sí lo es: es lo único que distingue una fecha negociada
+ * de una calculada, y es lo más caro de capturar del §3.4.
+ *
+ * Devuelve `true` también para un código que no reconoce: si hay algo guardado que no sabemos leer,
+ * avisar de más es mejor que borrarlo callando.
+ */
+export function sePierdeAlArrastrar(codigo: string | null | undefined): boolean {
+  if (codigo == null || codigo === '') return false
+  return codigo !== ANCLA
+}
+
 export function restriccion(codigo: string | null | undefined): Restriccion | null {
   if (!codigo) return null
   return PORCODIGO.get(codigo as CodigoDeRestriccion) ?? null

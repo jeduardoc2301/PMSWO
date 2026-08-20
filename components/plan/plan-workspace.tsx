@@ -83,6 +83,7 @@ import {
   ganttLayout, anchoDeDiaPara } from '@/lib/scheduling/gantt'
 import { summarizePlan } from '@/lib/scheduling/plan-summary'
 import { rollUpProgress } from '@/lib/scheduling/progress'
+import { restriccion } from '@/lib/scheduling/restricciones'
 import { programarConALAP } from '@/lib/scheduling/alap'
 import type { Dependency, PlanTask } from '@/lib/scheduling/types'
 
@@ -164,6 +165,14 @@ interface Propuesta {
   readonly empujadas: number
   readonly cierreAntes: string
   readonly cierreDespues: string
+  /**
+   * El compromiso que el arrastre va a reemplazar, o `null`.
+   *
+   * `WorkItem` tiene una sola pareja de columnas de restricción y el arrastre clava un «empieza el»:
+   * lo que hubiera se pierde. El ancla no cuenta —se reemplaza un ancla por otra— pero un compromiso
+   * sí, y es lo único que distingue una fecha negociada de una calculada.
+   */
+  readonly restriccionQueSePierde: { readonly tipo: string; readonly fecha: string | null } | null
 }
 
 /**
@@ -942,6 +951,7 @@ export function PlanWorkspace({
         empujadas: previsualizacion.empujadas,
         cierreAntes: previsualizacion.cierreAntes,
         cierreDespues: previsualizacion.cierreDespues,
+        restriccionQueSePierde: previsualizacion.restriccionQueSePierde ?? null,
       })
     } catch {
       // Si no se pudo calcular, no se propone nada: es preferible que el arrastre no haga nada a
@@ -1069,6 +1079,29 @@ export function PlanWorkspace({
                   ) : null}
                   .
                 </p>
+                {/*
+                  El compromiso que el arrastre va a borrar, dicho **antes** de escribir.
+
+                  `WorkItem` tiene una sola pareja de columnas de restricción y el arrastre clava un
+                  «empieza el»: lo que hubiera se pierde. Para el ancla eso es correcto —se reemplaza
+                  un ancla por otra—, pero un compromiso es lo único que distingue una fecha negociada
+                  de una calculada, y es lo más caro de capturar del §3.4.
+
+                  Se dice, no se impide: quien arrastra sabe lo que hace. Lo que no puede es
+                  enterarse semanas después, cuando el plan deje de respetarla.
+                */}
+                {propuesta.restriccionQueSePierde ? (
+                  <p data-testid="restriccion-que-se-pierde" className="mt-1.5 text-xs text-red-300">
+                    Se reemplaza la restricción{' '}
+                    <strong>
+                      {(restriccion(propuesta.restriccionQueSePierde.tipo)?.nombre ?? propuesta.restriccionQueSePierde.tipo)}
+                      {propuesta.restriccionQueSePierde.fecha
+                        ? ` del ${propuesta.restriccionQueSePierde.fecha}`
+                        : ''}
+                    </strong>{' '}
+                    por el ancla de la fecha nueva. Se recupera con Ctrl+Z.
+                  </p>
+                ) : null}
                 {/* El cierre es la cifra que decide si esto es un ajuste o un problema. */}
                 <p className="mt-1.5 text-xs">
                   {propuesta.cierreDespues === propuesta.cierreAntes ? (

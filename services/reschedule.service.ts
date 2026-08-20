@@ -16,6 +16,7 @@
  */
 
 import prisma from '@/lib/prisma'
+import { sePierdeAlArrastrar } from '@/lib/scheduling/restricciones'
 import { type IsoDate } from '@/lib/scheduling/date'
 import { type ResultadoDeReprogramacion, reprogramarDesde } from '@/lib/scheduling/reschedule'
 import { calendarioDesde } from '@/lib/scheduling/project-calendar'
@@ -36,12 +37,27 @@ function isoDe(fecha: Date): IsoDate {
  *
  * @returns `null` si el proyecto o la línea no existen en esa organización.
  */
+/**
+ * Lo que devuelve la previsualización: el reprograma del motor, más lo que el diálogo tiene que
+ * poder decir antes de escribir.
+ */
+export interface PrevisualizacionDeArrastre extends ResultadoDeReprogramacion {
+  /**
+   * El compromiso que el arrastre va a reemplazar, o `null`.
+   *
+   * Existe porque `WorkItem` tiene **una sola** pareja de columnas de restricción y el arrastre clava
+   * un `DEBE_EMPEZAR_EL`: lo que hubiera se pierde. El ancla no cuenta — se reemplaza un ancla por
+   * otra y eso no es perder nada.
+   */
+  readonly restriccionQueSePierde: { readonly tipo: string; readonly fecha: string | null } | null
+}
+
 export async function previsualizar(
   projectId: string,
   organizationId: string,
   taskId: string,
   nuevaFecha: IsoDate,
-): Promise<ResultadoDeReprogramacion | null> {
+): Promise<PrevisualizacionDeArrastre | null> {
   const plan = await loadProjectPlan(projectId, organizationId)
   if (!plan) return null
   if (!plan.tasks.some((t) => t.id === taskId)) return null
@@ -57,14 +73,40 @@ export async function previsualizar(
     filas.map((f) => [f.id, { start: isoDe(f.startDate), finish: isoDe(f.estimatedEndDate) }]),
   )
 
-  return reprogramarDesde({
+  /**
+   * La restricción que la línea arrastrada tiene guardada, si es un **compromiso**.
+   *
+   * `confirmar()` clava la arrastrada con `DEBE_EMPEZAR_EL` en su fecha nueva, y `WorkItem` tiene
+   * **una sola** pareja de columnas: lo que hubiera se pierde. Para el ancla —`NO_ANTES_DE`, que es
+   * con lo que llega cada línea— eso es correcto: se reemplaza un ancla por otra.
+   *
+   * Lo que no puede pasar en silencio es perder un **compromiso** —«no termina después del 18»,
+   * «debe terminar el 18»—, que es lo único que distingue una fecha negociada de una calculada y lo
+   * más caro de capturar del §3.4. Se devuelve para que el diálogo lo diga **antes** de escribir.
+   */
+  const arrastrada = await prisma.workItem.findUnique({
+    where: { id: taskId },
+    select: { constraintType: true, constraintDate: true },
+  })
+  const guardada =
+    arrastrada?.constraintType && sePierdeAlArrastrar(arrastrada.constraintType)
+      ? {
+          tipo: arrastrada.constraintType,
+          fecha: arrastrada.constraintDate ? isoDe(arrastrada.constraintDate) : null,
+        }
+      : null
+
+  const resultado = reprogramarDesde({
     tasks: plan.tasks,
     dependencies: plan.dependencies,
     calendar: calendarioDesde(plan.calendar),
     fechas,
     movida: { id: taskId, start: nuevaFecha },
   })
+
+  return { ...resultado, restriccionQueSePierde: guardada }
 }
+
 
 export interface ResultadoDeConfirmacion {
   readonly escritas: number

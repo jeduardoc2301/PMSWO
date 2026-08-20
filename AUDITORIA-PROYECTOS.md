@@ -3293,3 +3293,42 @@ de una a otra y devolviéndola:
 
 Las dos escrituras, `HTTP 200`. El plan de referencia verifica antes y después.
 
+---
+
+## §4 — arrastrar una barra borraba la restricción guardada, y el diálogo no lo decía
+
+`confirmar()` clava la línea arrastrada con `DEBE_EMPEZAR_EL` en su fecha nueva, y `WorkItem` tiene
+**una sola** pareja de columnas de restricción: lo que hubiera se sobrescribe. El diálogo de
+confirmación decía cuántas líneas se mueven y si el cierre cambia. Nada más.
+
+### La distinción que faltaba
+
+No toda restricción perdida es una pérdida. Cada línea llega **anclada** con un `NO_ANTES_DE` —es lo
+que fija la fecha guardada para que el motor no recoloque el plan en cada lectura (§3.0)—, y
+reemplazar un ancla por otra ancla no es perder nada.
+
+Lo que sí lo es: un **compromiso**. «No termina después del 18», «debe terminar el 18». Es lo único
+que distingue una fecha negociada de una calculada, y es lo más caro de capturar del §3.4 — que acaba
+de estrenar diálogo para capturarlo.
+
+Medido contra el plan real, sobre la línea «Presentar el plan de trabajo de Mobilize al banco»:
+
+| lo que tenía guardado | lo que dice la previsualización |
+|---|---|
+| nada | `null` |
+| el ancla `NO_ANTES_DE` | `null` — correcto, no es perder nada |
+| `NO_TERMINA_DESPUES_DE 2026-06-18` | **el tipo y la fecha** |
+
+De paso, esa medición **ejercita la columna recién ensanchada**: `NO_TERMINA_DESPUES_DE` mide 21
+caracteres y hace una hora no se podía guardar.
+
+### Se dice, no se impide
+
+Quien arrastra sabe lo que hace. Lo que no puede es enterarse semanas después, cuando el plan deje de
+respetar un compromiso que nadie recuerda haber quitado. El diálogo lo nombra con su nombre legible y
+añade que se recupera con `Ctrl+Z` — que es cierto: `confirmar()` ya devolvía las restricciones
+previas en `cambios[].antes` y la pila las repone.
+
+Y un código que no reconocemos **también avisa**: si hay algo guardado que no sabemos leer, avisar de
+más es mejor que borrarlo callando.
+

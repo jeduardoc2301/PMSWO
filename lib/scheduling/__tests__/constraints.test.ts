@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createWorkCalendar } from '../calendar'
 import { analyzeCriticalPath } from '../cpm'
-import { RESTRICCIONES } from '../restricciones'
+import { RESTRICCIONES, sePierdeAlArrastrar } from '../restricciones'
 import { schedulePlan } from '../schedule'
 import type { Constraint, Dependency, PlanTask } from '../types'
 
@@ -221,5 +221,39 @@ describe('§3.4 · las ocho restricciones caben en su columna', () => {
 
   it('son ocho, que es lo que pide el §3.4', () => {
     expect(RESTRICCIONES).toHaveLength(8)
+  })
+})
+
+describe('§4 · arrastrar una barra reemplaza la restricción guardada', () => {
+  /**
+   * El arrastre clava la línea con `DEBE_EMPEZAR_EL` en su fecha nueva, y `WorkItem` tiene **una
+   * sola** pareja de columnas: lo que hubiera se sobrescribe.
+   *
+   * Reemplazar el ancla por otra ancla no es perder nada — es lo que el §3.0 hace en cada lectura.
+   * Reemplazar un **compromiso** sí lo es: es lo único que distingue una fecha negociada de una
+   * calculada, y es lo más caro de capturar del §3.4. Se dice antes de escribir; no se impide, que
+   * quien arrastra sabe lo que hace.
+   */
+  it('el ancla no cuenta como pérdida', () => {
+    expect(sePierdeAlArrastrar('NO_ANTES_DE')).toBe(false)
+  })
+
+  it('sin restricción tampoco', () => {
+    expect(sePierdeAlArrastrar(null)).toBe(false)
+    expect(sePierdeAlArrastrar(undefined)).toBe(false)
+    expect(sePierdeAlArrastrar('')).toBe(false)
+  })
+
+  it('los siete restantes del §3.4 sí', () => {
+    const otras = RESTRICCIONES.filter((r) => r.codigo !== 'NO_ANTES_DE')
+    expect(otras).toHaveLength(7)
+    for (const r of otras) {
+      expect(sePierdeAlArrastrar(r.codigo), `${r.codigo} debería avisar`).toBe(true)
+    }
+  })
+
+  it('y un código que no reconocemos también avisa', () => {
+    // Si hay algo guardado que no sabemos leer, avisar de más es mejor que borrarlo callando.
+    expect(sePierdeAlArrastrar('LO_QUE_SEA')).toBe(true)
   })
 })
