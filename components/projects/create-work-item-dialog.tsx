@@ -32,6 +32,13 @@ interface CreateWorkItemDialogProps {
   /** La línea de la que cuelga la nueva, cuando se crea desde un lugar que ya sabe el padre. */
   defaultParentId?: string | null
   /**
+   * Detras de que linea se inserta la nueva (§4.5, el menu contextual de fila).
+   *
+   * Sin esto la linea nace al final del plan, que es lo correcto para el boton de alta y un
+   * disparate para un menu que se abre sobre una fila concreta.
+   */
+  insertAfterId?: string | null
+  /**
    * Fechas con que abre el formulario, cuando quien lo abre ya sabe cuáles (§7.2).
    *
    * Existe porque el Calendario deja crear arrastrando un rango: quien pinta del 15 al 19 ya dijo
@@ -76,6 +83,7 @@ export function CreateWorkItemDialog({
   projectId,
   onSuccess,
   defaultParentId = null,
+  insertAfterId = null,
   defaultStartDate = null,
   defaultEndDate = null,
 }: CreateWorkItemDialogProps) {
@@ -347,6 +355,7 @@ export function CreateWorkItemDialog({
           phase: formData.phase.trim() || null,
           estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : null,
           parentId: formData.parentId,
+          insertAfterId,
         }),
       })
 

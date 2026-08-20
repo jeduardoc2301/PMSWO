@@ -740,5 +740,10 @@ describe('§5 · la carga paginada por columna no se pierde al mover una tarjeta
     expect(boton()!.textContent).toContain('50 tarjetas más')
     fireEvent.change(screen.getByPlaceholderText(/buscar/i), { target: { value: 'Tarea 1' } })
     expect(boton()!.textContent).toContain('61 tarjetas más')
-  })
+    // Veinte segundos y no los cinco de por omision: esta prueba dibuja doscientas tarjetas y las
+    // vuelve a dibujar tres veces, y con los 180 archivos de la suite en paralelo eso pasa de cinco
+    // segundos por reparto de procesador, no por lentitud del codigo. Recortar el caso seria mas
+    // barato y lo dejaria sin poder discriminar: hacen falta mas de 111 dibujadas para que se note
+    // si la paginacion volvio al principio.
+  }, 20_000)
 })

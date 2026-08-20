@@ -203,6 +203,23 @@ async function createWorkItemHandler(
 
     // La línea de la que cuelga esta, si viene. Que exista y sea de este proyecto lo resuelve el
     // servicio; aquí solo se descarta un tipo que no es identificador.
+    // Detras de que linea se inserta (§4.5). Mismo trato que el padre: aqui solo el tipo, y que
+    // exista y sea de este proyecto lo resuelve el servicio, que ya carga la linea para leer su
+    // puesto. Comprobarlo dos veces seria una consulta de mas por cada alta.
+    if (
+      body.insertAfterId !== undefined &&
+      body.insertAfterId !== null &&
+      typeof body.insertAfterId !== 'string'
+    ) {
+      return NextResponse.json(
+        {
+          error: 'VALIDATION_ERROR',
+          message: 'El identificador de la linea de referencia debe ser texto.',
+        },
+        { status: 400 }
+      )
+    }
+
     if (body.parentId !== undefined && body.parentId !== null && typeof body.parentId !== 'string') {
       return NextResponse.json(
         {
@@ -238,6 +255,7 @@ async function createWorkItemHandler(
         phase: body.phase || null,
         estimatedHours: body.estimatedHours != null ? parseInt(body.estimatedHours) : null,
         parentId: body.parentId ?? null,
+        insertAfterId: body.insertAfterId ?? null,
       },
       authContext.userId
     )

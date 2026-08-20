@@ -3748,3 +3748,43 @@ estaba probado, y la traducción hasta él no.
 Ahora hay cinco, incluida la del recorrido entero: lo que el arrastre escribe, traducido y
 programado, empezando el día que se prometió. Rompiendo el reparto entre `constraint` y `compromiso`,
 dos se ponen rojas.
+
+## §4.5 · La línea creada desde el menú contextual nacía al final del plan
+
+El puesto al final es lo correcto para el botón de alta —lo que se acaba de añadir es lo último que
+se pensó, y está escrito así con su porqué— y es un disparate para el menú contextual, que **se abre
+sobre una fila concreta**. Pedir «añadir tarea al mismo nivel» sobre la fila 12 dejaba la línea en la
+**1368**: mil trescientas cincuenta y seis filas más abajo de donde se estaba mirando.
+
+Con «añadir subtarea» era peor que un incordio. La hija se quedaba con la fila 12 de madre y con el
+puesto 1368, así que **el árbol y el orden decían cosas distintas**: el EDT la numeraba dentro de su
+rama y el plan la dibujaba al final, suelta de su madre.
+
+El §4.5 dice «observado en GanttPRO, replicar», y en GanttPRO una tarea añadida desde el menú de una
+fila aparece **debajo de esa fila**. Es lo único que tiene sentido en un menú anclado a una fila.
+
+Ahora el alta admite `insertAfterId`: el puesto es el del ancla más uno y lo que venía detrás se
+corre un lugar **de una sola escritura** —de una en una serían mil trescientas idas y venidas a la
+base por una tecla—. Sin ancla no cambia nada, y un ancla que no es de este proyecto se cae al final:
+mejor una línea al final, que se ve, que un error y ninguna línea.
+
+### Demostrado en pantalla
+
+Creando una línea con el ancla en «Definir la cuenta de seguridad (Security)», la fila 12 del plan:
+
+| fila | qué se lee en el Gantt |
+|---|---|
+| 11 | Definir la cuenta de archivo de registros (Log archive) |
+| 12 | Definir la cuenta de seguridad (Security) |
+| **13** | **PRUEBA · línea creada desde el menú contextual** |
+| 14 | Definir la cuenta de servicios compartidos (Shared services) |
+
+Antes habría sido la **1369**. La línea de prueba se borró y los 1 356 puestos que la inserción había
+corrido se devolvieron; el plan verifica en 1 368 líneas y 1 665 vínculos.
+
+### Y una prueba mía que se pasaba de tiempo
+
+La de «al buscar sí vuelve al principio» del §5 dibuja doscientas tarjetas y las redibuja tres veces.
+Sola pasa; con los ciento ochenta archivos de la suite en paralelo se pasaba de los cinco segundos
+por reparto de procesador. Se le dan veinte y no se recorta el caso: hacen falta más de 111 tarjetas
+dibujadas para que la prueba pueda distinguir si la paginación volvió al principio.

@@ -552,7 +552,7 @@ export function PlanWorkspace({
     setResultadoDelLote(contarLoQuePaso(resumen, haciaDentro ? 'sangradas' : 'movidas', alcance.fueraDeLaVista))
     onPlanCambiado?.()
   }
-  const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null } | null>(null)
+  const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null; detrasDe?: string } | null>(null)
   const [errorDeJerarquia, setErrorDeJerarquia] = useState<string | null>(null)
 
   /**
@@ -1211,9 +1211,11 @@ export function PlanWorkspace({
                     acciones={{
                       abrirDetalle: () => setSelectedId(id),
                       editar: () => setSelectedId(id),
-                      anadirSubtarea: () => setCreandoBajo({ padre: id }),
+                      anadirSubtarea: () => setCreandoBajo({ padre: id, detrasDe: id }),
+                      // `detrasDe` es la fila desde la que se abrio el menu: la linea nueva va ahi
+                      // y no al final del plan, que es donde nacia y donde nadie la veia.
                       anadirHermana: () =>
-                        setCreandoBajo({ padre: tasks.find((t) => t.id === id)?.parentId ?? null }),
+                        setCreandoBajo({ padre: tasks.find((t) => t.id === id)?.parentId ?? null, detrasDe: id }),
                       sangrar: sangrarA === null ? null : () => void moverEnElArbol(id, sangrarA),
                       anularSangria:
                         anularA === null ? null : () => void moverEnElArbol(id, anularA.padre),
@@ -1397,6 +1399,7 @@ export function PlanWorkspace({
               onOpenChange={(abierto) => { if (!abierto) setCreandoBajo(null) }}
               projectId={projectId}
               defaultParentId={creandoBajo.padre}
+              insertAfterId={creandoBajo.detrasDe ?? null}
               onSuccess={() => { setCreandoBajo(null); onPlanCambiado?.() }}
             />
           ) : null}

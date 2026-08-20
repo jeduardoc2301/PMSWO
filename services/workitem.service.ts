@@ -19,6 +19,20 @@ export interface CreateWorkItemDTO {
   estimatedHours?: number | null
   /** Línea de la que cuelga esta. null o ausente la deja en la raíz del plan. */
   parentId?: string | null
+  /**
+   * Detrás de qué línea se inserta (§4.5, el menú contextual de fila).
+   *
+   * Sin esto la línea nueva nace **al final del plan**, que es lo correcto para el botón de alta
+   * —lo que se acaba de añadir es lo último que se pensó— y es un disparate para el menú contextual,
+   * que se abre sobre una fila concreta: pedir «añadir tarea» sobre la fila 12 del plan de
+   * referencia la dejaba en la **1368**, mil trescientas cincuenta y seis filas más abajo de donde
+   * se estaba mirando.
+   *
+   * Con «añadir subtarea» era peor que un incordio: la hija se quedaba con la fila 12 de madre y con
+   * el puesto 1368, así que **el árbol y el orden decían cosas distintas** — el EDT la numeraba
+   * dentro de su rama y el plan la dibujaba al final, suelta.
+   */
+  insertAfterId?: string | null
 }
 
 export interface UpdateWorkItemDTO {
@@ -216,11 +230,38 @@ export class WorkItemService {
      * dos queda indefinido y estable— y resolverlo pediría una secuencia por proyecto, que es
      * bastante más máquina para un caso que no cambia lo que alguien lee.
      */
-    const ultima = await prisma.workItem.aggregate({
-      where: { projectId: data.projectId },
-      _max: { templateOrder: true },
-    })
-    const puesto = (ultima._max.templateOrder ?? 0) + 1
+    /**
+     * Y si la piden **detrás de una línea concreta**, ahí va.
+     *
+     * El puesto es el de esa línea más uno, y todo lo que venga después se corre un lugar. Se corre
+     * con una sola escritura: en el plan de referencia son mil trescientas filas, y hacerlo de una
+     * en una serían mil trescientas idas y venidas a la base por una tecla.
+     *
+     * Si el ancla no existe o no es de este proyecto, se cae al final: es lo que hacía antes, y una
+     * línea al final se ve, mientras que un error deja al usuario sin la línea que pidió.
+     */
+    const ancla =
+      data.insertAfterId != null
+        ? await prisma.workItem.findFirst({
+            where: { id: data.insertAfterId, projectId: data.projectId },
+            select: { templateOrder: true },
+          })
+        : null
+
+    let puesto: number
+    if (ancla?.templateOrder != null) {
+      puesto = ancla.templateOrder + 1
+      await prisma.workItem.updateMany({
+        where: { projectId: data.projectId, templateOrder: { gte: puesto } },
+        data: { templateOrder: { increment: 1 } },
+      })
+    } else {
+      const ultima = await prisma.workItem.aggregate({
+        where: { projectId: data.projectId },
+        _max: { templateOrder: true },
+      })
+      puesto = (ultima._max.templateOrder ?? 0) + 1
+    }
 
     const workItem = await prisma.workItem.create({
       data: {

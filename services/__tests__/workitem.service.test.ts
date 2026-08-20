@@ -12,8 +12,11 @@ vi.mock('@/lib/prisma', () => ({
       // Lo consulta el alta para saber en qué puesto va la línea nueva (§2.3).
       aggregate: vi.fn(),
       findUnique: vi.fn(),
+      // Lo consulta el alta para saber detras de que linea se inserta (§4.5).
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       delete: vi.fn(),
       count: vi.fn(),
     },
@@ -759,6 +762,103 @@ describe('WorkItemService', () => {
           take: 20,
         })
       )
+    })
+  })
+})
+
+describe('§4.5 · la línea nueva nace donde se pidió, no al final del plan', () => {
+  /**
+   * El puesto al final es lo correcto para el botón de alta —lo que se acaba de añadir es lo último
+   * que se pensó— y un disparate para el menú contextual, que se abre **sobre una fila concreta**:
+   * pedir «añadir tarea» sobre la fila 12 del plan de referencia dejaba la línea en la **1368**, mil
+   * trescientas cincuenta y seis filas más abajo de donde se estaba mirando.
+   *
+   * Con «añadir subtarea» era peor que un incordio: la hija se quedaba con la fila 12 de madre y con
+   * el puesto 1368, así que el árbol y el orden decían cosas distintas — el EDT la numeraba dentro
+   * de su rama y el plan la dibujaba al final, suelta.
+   */
+  // Las llamadas se acumulan entre pruebas y aqui se cuentan: sin limpiar, la segunda prueba lee la
+  // creacion de la primera y mide otra cosa.
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const preparar = () => {
+    // Por omision no hay ancla: es el caso del boton de alta, y lo que cada prueba cambia si toca.
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue(null as any)
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p1', organizationId: 'org-1' } as any)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'u1', organizationId: 'org-1' } as any)
+    vi.mocked(prisma.kanbanColumn.findFirst).mockResolvedValue({
+      id: 'c1',
+      columnType: KanbanColumnType.BACKLOG,
+      isInitial: true,
+      isDone: false,
+    } as any)
+    vi.mocked(prisma.workItem.create).mockResolvedValue({ id: 'nueva' } as any)
+    vi.mocked(prisma.workItem.aggregate).mockResolvedValue({ _max: { templateOrder: 1368 } } as any)
+  }
+
+  const crear = (sobre: Record<string, unknown> = {}) =>
+    workItemService.createWorkItem(
+      {
+        projectId: 'p1',
+        ownerId: 'u1',
+        title: 'Línea nueva',
+        description: 'x',
+        priority: WorkItemPriority.MEDIUM,
+        startDate: new Date('2026-08-10'),
+        estimatedEndDate: new Date('2026-08-14'),
+        ...sobre,
+      } as never,
+      'u1',
+    )
+
+  const puesto = () =>
+    (vi.mocked(prisma.workItem.create).mock.calls[0]![0] as { data: { templateOrder: number } }).data
+      .templateOrder
+
+  it('detrás de la fila 12 va la 13, no la 1369', async () => {
+    preparar()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({ templateOrder: 12 } as any)
+    await crear({ insertAfterId: 'fila-12' })
+    expect(puesto()).toBe(13)
+  })
+
+  it('y todo lo que venía detrás se corre un lugar, de una sola escritura', async () => {
+    // De una en una serían mil trescientas idas y venidas a la base por una tecla.
+    preparar()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({ templateOrder: 12 } as any)
+    await crear({ insertAfterId: 'fila-12' })
+    expect(prisma.workItem.updateMany).toHaveBeenCalledTimes(1)
+    expect(prisma.workItem.updateMany).toHaveBeenCalledWith({
+      where: { projectId: 'p1', templateOrder: { gte: 13 } },
+      data: { templateOrder: { increment: 1 } },
+    })
+  })
+
+  it('sin ancla sigue yendo al final: el botón de alta no cambia', async () => {
+    preparar()
+    await crear()
+    expect(puesto()).toBe(1369)
+    expect(prisma.workItem.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('un ancla que no es de este proyecto se cae al final, sin dejar a nadie sin su línea', async () => {
+    // Mejor una línea al final —que se ve— que un error y ninguna línea.
+    preparar()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue(null)
+    await crear({ insertAfterId: 'de-otro-proyecto' })
+    expect(puesto()).toBe(1369)
+    expect(prisma.workItem.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('el ancla se busca acotada al proyecto, no por identificador a secas', async () => {
+    preparar()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({ templateOrder: 5 } as any)
+    await crear({ insertAfterId: 'fila-5' })
+    expect(prisma.workItem.findFirst).toHaveBeenCalledWith({
+      where: { id: 'fila-5', projectId: 'p1' },
+      select: { templateOrder: true },
     })
   })
 })
