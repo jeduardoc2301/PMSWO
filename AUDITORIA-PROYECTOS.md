@@ -96,7 +96,7 @@ tiempo real y deshacer.
 | 22 | Filtros unificados (§10.2) | **PARCIAL · bloqueada por el modelo** | `lib/projects/filter.ts`, `SavedFilter`, `components/projects/filter-bar.tsx` | Llega a 5 vistas de 6; el Panel queda fuera a propósito. La exportación **sí** respeta el filtro: con 255 líneas filtradas el botón dice «Exportar (255)» y el CSV escribe «255 de 1368 líneas» en su propia cabecera. Lo único que falta son los campos **creador** y **color**: ninguno de los dos existe en `WorkItem` —sólo hay `createdAt`—, así que son migración y entran en la lista del §2 que espera decisión. Los campos personalizados, igual | M | Bajo |
 | 28 | Modo claro (§9.3) | **NO EXISTE** | (ninguno) | La aplicación es oscura en las seis vistas: sin `prefers-color-scheme`, sin clases `dark:`, sin conmutador. Es lo único que impide cerrar el sexto criterio del §9.3, y es transversal, no del panel. Descubierto forzando el esquema claro del navegador | L | Bajo |
 | 29 | Permisos por vista y `edit_schedule`/`edit_tracking` (§10.1) | **PARCIAL · los diez existen** | `lib/projects/permisos.ts`, `services/project-authorize.service.ts`, `app/api/v1/projects/[id]/permissions/` | Los diez permisos del §10.1 existen con su nombre, con cuatro papeles de proyecto (OWNER, MANAGER, COLLABORATOR, CLIENT) y `authorize(userId, projectId, permission)` que lanza 403 nombrando el permiso que faltó. El permiso efectivo es la **intersección** del techo del cargo y el papel en el proyecto. La barra de vistas se recorta: comprobado en pantalla, un cliente ve 7 pestañas y no ve Timeline, Calendario ni Carga. `authorize()` guarda ya las tres puertas que mueven datos: fechas por la ruta de la línea, `/reschedule`, y cualquier escritura sobre una línea. La pantalla de reparto ya existe (`components/projects/reparto-de-papeles.tsx`, en el Resumen). Falta llevar la guardia al resto de rutas de escritura menores | M | Alto |
-| 30 | Revocar un rol no surte efecto hasta volver a entrar | **EXISTE PERO MAL** | `lib/auth.ts` (sesión JWT) | Los roles viajan en el token y no se releen de la base. Cambiar el rol de alguien en la base no le quita nada hasta que su sesión caduca o vuelve a entrar. Es el comportamiento normal de una sesión JWT, y es una decisión consciente que hay que tomar —no un descuido— porque una revocación de permisos que tarda no es una revocación. Descubierto al probar la guardia del §10.1: los primeros intentos pasaron con un token viejo | M | Alto |
+| 30 | Revocar un rol tarda en surtir efecto | **CERRADA · acotada a 5 minutos** | `lib/auth.ts`, `lib/auth-refresco.ts` | Los roles se releen de la base cuando el token lleva más de cinco minutos sin refrescarse. Antes valían los treinta días del token, así que quitarle un permiso a alguien no se lo quitaba. Medido con el reloj: a t=240 s la sesión seguía con los roles viejos y a **t=300 s** ya tenía los nuevos. Una cuenta dada de baja se queda sin ninguno | M | Alto |
 | 31 | Panel de detalle compartido (§10.3) | **CERRADA** | `components/plan/plan-detail-panel.tsx`, `lib/plan/detail-links.ts`, `lib/plan/usar-plan.ts` | **Un solo componente en las SEIS vistas.** Las cinco primeras se comprobaron abriendo la misma línea desde cada una: panel idéntico carácter a carácter (426). La sexta —el Panel de control— entra por el widget de hitos, que es el único sitio donde hay líneas y no cifras agregadas; inventarle una lista de tareas al Panel para que la cuenta diera seis habría sido construir otra vista, no cerrar esta. Comprobada la firma del componente en las cuatro que abren líneas distintas: mismo encabezado, mismo cierre, mismos rótulos. La auditoría anterior decía «dos implementaciones»: no era cierto — había una sola y cuatro vistas que no abrían ninguna. Lo que sí falta es la mitad editable del §4.7: el panel **lee** (fechas del motor, holgura, vínculos, recuperabilidad) y editar sigue en un diálogo aparte; adjuntos, tiempo registrado, asignados y campos personalizados no existen | M | Medio |
 | 23 | Tiempo real (§10.5) | **NO EXISTE** | — | Ni Realtime ni sondeo | M | Bajo |
 | 24 | Deshacer / rehacer (§10.6) | **CERRADA** | `lib/projects/undo-stack.ts`, `components/projects/use-undo.ts` | Las tres vistas que pide el spec lo tienen. El Gantt apunta cinco clases de operación (sangrar en lote, renombrar, avance, duración, mover en el árbol), el Tablero apunta el movimiento —comprobado en pantalla: mover, deshacer, la tarjeta vuelve a su columna en la base—. Los **vínculos** ya se deshacen: el tipo creció con un canal propio, porque un vínculo no es un campo de una línea —vive entre dos— y su inversa no es «el valor de antes» sino la operación contraria. Comprobado en pantalla: 1665 → 1666 → 1665. Las altas y las bajas también: crear una línea la deja en 4 y deshacer la devuelve a 3; borrar una con vínculo baja a 2 líneas y 0 vínculos, y deshacer devuelve las dos cosas. Lo único fuera es arrastrar fechas, excluido a propósito porque pasa por la previsualización | L | Bajo |
@@ -1009,3 +1009,39 @@ Medido en pantalla, cambiando el desplegable y sin tocar la página:
 
 Y de vuelta a estado, las cinco de siempre. Con esto y las columnas configurables, la brecha 14
 queda cerrada.
+
+## Brecha 30 — una revocación que tardaba treinta días no es una revocación
+
+La sesión es JWT: los roles viajan **dentro** del token, que valía treinta días y nunca se releía.
+Quitarle un permiso a alguien no se lo quitaba — seguía entrando con el token de antes hasta que
+caducara o volviera a entrar. Salió probando la guardia del §10.1: los primeros intentos pasaban con
+un token viejo, y parecía que la guardia no funcionaba.
+
+**La respuesta no es releer en cada petición**, que sería una consulta por cada llamada de la
+aplicación, sino **acotar** cuánto puede tardar y decir el número. Cinco minutos: una consulta cada
+cinco minutos por sesión activa, y una respuesta concreta cuando alguien pregunta «¿cuánto tarda en
+aplicarse?».
+
+Medido con el reloj, quitando `ADMIN` y `PROJECT_MANAGER` en la base y mirando la sesión:
+
+| | roles en la sesión |
+|---|---|
+| t=0 s | ADMIN · PROJECT_MANAGER |
+| t=240 s | ADMIN · PROJECT_MANAGER |
+| **t=300 s** | **EXECUTIVE** |
+
+Justo en el plazo, ni antes ni mucho después.
+
+**Tres decisiones que se notan:**
+
+- **Sin marca de tiempo, se relee.** Un token emitido antes de que esto existiera no tiene el campo,
+  y tratarlo como recién leído lo dejaría con los roles viejos otros treinta días — que es
+  exactamente el defecto que se está arreglando.
+- **Una cuenta dada de baja se queda sin roles**, no con los de antes. Se comprueba lo mismo que al
+  entrar.
+- **Si la base no responde, se conserva lo que había.** Dejar a todo el mundo sin permisos porque la
+  base tosió es peor que cinco minutos de retraso.
+
+La decisión vive en `lib/auth-refresco.ts` y no dentro del callback de NextAuth, por una razón
+práctica: es aritmética con un reloj, y probarla dentro pediría levantar media autenticación o
+esperar cinco minutos de reloj real **por caso**. Fuera son trece pruebas instantáneas.
