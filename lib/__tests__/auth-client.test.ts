@@ -1,3 +1,9 @@
+// @vitest-environment happy-dom
+//
+// Esta suite si necesita documento: `signOut` arma la URL de vuelta con `window.location`, asi que
+// en el entorno `node` —el que corre el resto de `lib`— truena con «window is not defined». La
+// excepcion va escrita aqui, en el archivo que la necesita, y no en la configuracion.
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { signOut } from '../auth-client'
 import * as NextAuthReact from 'next-auth/react'

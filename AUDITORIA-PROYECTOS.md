@@ -3869,3 +3869,36 @@ Entrando a cada vista y mirando el primer dibujado antes de que lleguen los dato
 
 Las cinco con `aria-busy="true"`. Un esqueleto es puramente visual: sin anunciarse es **peor** que la
 rueda que sustituye, porque la rueda al menos solía llevar la palabra «Cargando» al lado.
+
+## Acelerar el paso: la suite montaba un navegador para no usarlo
+
+La operación que más se repite en este trabajo es correr la suite entera —antes de cada commit, y
+varias veces por hallazgo—, así que lo que cueste se paga muchas veces al día. Costaba **117
+segundos**.
+
+El desglose lo decía y nadie lo había leído: **461 segundos acumulados preparando el entorno** contra
+275 ejecutando pruebas. `vitest.config.ts` declaraba `environment: 'happy-dom'` para las 185 suites, y
+la mayoría no toca el DOM: las 39 de `lib/scheduling` son aritmética de días hábiles y las de
+`services` no dibujan nada. Se montaba un documento entero por archivo para no usarlo.
+
+Ahora el corte va **por extensión y no por carpeta**, que es lo que de verdad separa los dos mundos:
+`.test.tsx` dibuja y corre en `happy-dom`; `.test.ts` no, y corre en `node`. La única suite de `lib`
+que sí necesita documento —`auth-client`, que arma la URL de vuelta con `window.location`— lo pide en
+su cabecera con `// @vitest-environment happy-dom`, así que la excepción se ve en el archivo que la
+necesita y no escondida en la configuración.
+
+| | antes | después |
+|---|---|---|
+| la suite entera | **117 s** | **64 s** |
+| preparación de entorno (acumulada) | 461 s | 171 s |
+| pruebas en verde | 3 466 | 3 466 |
+
+### Dos trampas por el camino
+
+**`environmentMatchGlobs` ya no existe en Vitest 4 y se ignora en silencio.** Puesto en la
+configuración *parecía* funcionar; lo que hacía era correrlo todo en `node` y dejar **810 pruebas en
+rojo**. La forma que sí soporta es `projects`.
+
+**El fichero de arranque cargaba `@testing-library/jest-dom` siempre**, y eso necesita un documento:
+con él sin condición, ninguna suite podía correr en `node` aunque no dibujara. Ahora se carga sólo
+donde hay DOM.
