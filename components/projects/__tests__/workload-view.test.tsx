@@ -474,3 +474,24 @@ describe('§9.3 C6 · la cifra se lee encima de su propia celda', () => {
     }
   })
 })
+
+describe('§13 · un día no laborable se sombrea, y el sombreado no puede ser el mismo color', () => {
+  /**
+   * La conversión a tokens juntó dos tonos que hacían papeles distintos: la celda del día no
+   * laborable era `#111113` —**más oscura** que la tarjeta— y acabó en `--superficie`, o sea el mismo
+   * color exacto que la rejilla. El sombreado que pide el §13 desapareció **sin que ninguna prueba
+   * se pusiera roja**, que es lo que hace que esta valga la pena.
+   */
+  it('la celda del día no laborable pide un color distinto del de la tarjeta', () => {
+    dibujar()
+    // El 6 y el 7 de junio de 2026 son sábado y domingo.
+    const sabado = screen.getByTestId('celda-ana-2026-06-06')
+    expect(sabado.className).toContain('bg-hueco')
+    expect(sabado.className).not.toContain('bg-superficie')
+  })
+
+  it('y un día laborable no lo pide', () => {
+    dibujar()
+    expect(screen.getByTestId('celda-ana-2026-06-02').className).not.toContain('bg-hueco')
+  })
+})

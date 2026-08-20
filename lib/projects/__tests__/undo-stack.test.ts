@@ -449,3 +449,45 @@ describe('§10.6 · borrar una línea se apunta igual desde las tres vistas', ()
     expect(atras.vinculos!.every((v) => v.poner)).toBe(true)
   })
 })
+
+describe('§10.6 · deshacer un movimiento del tablero devuelve las tres cosas', () => {
+  /**
+   * Mover una tarjeta a «Terminado» no mueve una tarjeta: el servidor deriva de la columna el estado
+   * **y el avance** (§5.2, §5.5). Apuntando sólo la columna, deshacer devolvía la tarjeta a su sitio
+   * y dejaba el avance donde lo había puesto el acoplamiento — una línea que iba por el 40 % volvía
+   * de «Terminado» marcada al **100 %**, y el avance capturado se perdía sin que nada lo dijera.
+   */
+  const mover = () =>
+    operacionDesde(
+      'Mover «Migrar la red» a Terminado',
+      [{ id: 'w1', kanbanColumnId: 'c1', status: 'IN_PROGRESS', progressPct: 0.4 }],
+      [{ id: 'w1', kanbanColumnId: 'c4', status: 'DONE', progressPct: 1 }],
+    )
+
+  it('deshacer devuelve la columna, el estado y el avance capturado', () => {
+    const atras = deshacer(apuntar(PILA_VACIA, mover()))
+    expect(atras.cambios).toEqual([
+      { workItemId: 'w1', campos: { kanbanColumnId: 'c1', status: 'IN_PROGRESS', progressPct: 0.4 } },
+    ])
+  })
+
+  it('y rehacer vuelve a los tres, no sólo a la columna', () => {
+    // Si rehacer sólo moviera la columna, la tarjeta quedaría en «Terminado» al 40 %.
+    const pila = deshacer(apuntar(PILA_VACIA, mover())).pila
+    const adelante = rehacer(pila)
+    expect(adelante.cambios).toEqual([
+      { workItemId: 'w1', campos: { kanbanColumnId: 'c4', status: 'DONE', progressPct: 1 } },
+    ])
+  })
+
+  it('un avance de cero se apunta igual, y no se confunde con «no había»', () => {
+    // `progressPct: 0` es un valor capturado: una línea que nadie ha empezado. Si se cayera por ser
+    // falsy, deshacer la dejaría al 100 % exactamente igual que si no se hubiera apuntado.
+    const op = operacionDesde(
+      'Mover',
+      [{ id: 'w2', kanbanColumnId: 'c1', progressPct: 0 }],
+      [{ id: 'w2', kanbanColumnId: 'c4', progressPct: 1 }],
+    )
+    expect(deshacer(apuntar(PILA_VACIA, op)).cambios[0].campos).toHaveProperty('progressPct', 0)
+  })
+})

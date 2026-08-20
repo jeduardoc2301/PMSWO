@@ -197,7 +197,11 @@ model WorkItem {
   /// `DEBE_EMPEZAR_EL` (`MSO`). Las otras seis del §3.4 no se guardan **a propósito**: guardar un
   /// tipo que el motor no aplica daría un plan que dice una cosa y se programa de otra, y eso es
   /// peor que no tenerlo.
-  constraintType String?   @map("constraint_type") @db.VarChar(20)
+  /// El código de la restricción del §3.4. VarChar(24) y no (20): dos de las ocho —
+  /// `NO_TERMINA_DESPUES_DE` y `NO_EMPIEZA_DESPUES_DE`— miden 21 caracteres y MySQL las rechazaba
+  /// con P2000. Estaban declaradas, ofrecidas en el diálogo y probadas en memoria: lo único que no
+  /// se podía era guardarlas.
+  constraintType String?   @map("constraint_type") @db.VarChar(24)
   constraintDate DateTime? @map("constraint_date") @db.Date
 
   // ── PLANEACIÓN · Jerarquía y avance ponderado (C7) ─────────────────────────

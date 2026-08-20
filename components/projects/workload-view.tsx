@@ -708,7 +708,7 @@ function FilaDeLaMatriz({
             }
             onClick={onElegirCelda ? () => onElegirCelda(dia.date) : undefined}
             className={`w-8 min-w-8 border-b border-borde/60 py-1.5 text-center tabular-nums ${
-              dia.isWorking ? '' : 'bg-superficie'
+              dia.isWorking ? '' : 'bg-hueco'
             } ${onElegirCelda ? 'cursor-pointer hover:ring-1 hover:ring-inset hover:ring-borde-fuerte' : ''} ${
               celda.sobrecargado ? 'font-semibold' : ''
             } ${apagada ? 'text-tinta-3' : 'text-tinta'}`}

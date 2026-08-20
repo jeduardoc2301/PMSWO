@@ -507,10 +507,27 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       const antes = kanbanBoard.workItems.find(i => i.id === workItemId)
       if (antes) {
         const columna = kanbanBoard.columns.find(c => c.id === newColumnId)
+        /**
+         * La operación lleva **las tres cosas que el movimiento cambia**, no sólo la columna.
+         *
+         * Mover una tarjeta a «Terminado» no mueve una tarjeta: el servidor deriva de la columna el
+         * estado **y el avance** (§5.2, §5.5). Apuntando sólo `kanbanColumnId`, deshacer devolvía la
+         * tarjeta a su sitio y dejaba el avance donde lo había puesto el acoplamiento — una línea
+         * que iba por el 40 % volvía de «Terminado» marcada al 100 %, y el avance capturado se
+         * perdía sin que nada lo dijera.
+         *
+         * Se apunta el avance **de antes**, que es el que estaba capturado, y el de después, que es
+         * el que el servidor acaba de derivar. Rehacer también tiene que llegar al mismo sitio.
+         */
         undo.apuntar(operacionDesde(
           `Mover «${antes.title.slice(0, 40)}» a ${columna?.name ?? 'otra columna'}`,
-          [{ id: workItemId, kanbanColumnId: antes.kanbanColumnId }],
-          [{ id: workItemId, kanbanColumnId: newColumnId }],
+          [{
+            id: workItemId,
+            kanbanColumnId: antes.kanbanColumnId,
+            status: antes.status,
+            progressPct: antes.progressPct ?? 0,
+          }],
+          [{ id: workItemId, kanbanColumnId: newColumnId, status: newStatus, progressPct: newProgress }],
         ))
       }
       const updatedWorkItems = kanbanBoard.workItems.map(item =>

@@ -3188,3 +3188,77 @@ Una nota de la medición, que casi me lleva a un defecto que no existía: el pri
 del panel, que dice lo mismo con otras palabras en la misma página. El conteo del filtro tiene su
 propio `data-testid` — buscar por texto en `document.body` es la séptima vez que engaña.
 
+---
+
+## §3.4 — dos de las ocho restricciones no cabían en su columna
+
+De la auditoría adversarial de las cuatro vistas. Salió **enterrado en un matiz** de una refutación
+—el agente lo encontró al intentar reproducir otro hallazgo y chocar con un `P2000`—, y es lo más
+grave de la tanda.
+
+`NO_TERMINA_DESPUES_DE` y `NO_EMPIEZA_DESPUES_DE` miden **21 caracteres**. La columna era
+`VARCHAR(20)`.
+
+```
+DEBE_TERMINAR_EL       (16) → guardado y leído
+NO_TERMINA_DESPUES_DE  (21) → RECHAZADO: too long for the column's type
+NO_EMPIEZA_DESPUES_DE  (21) → RECHAZADO: too long for the column's type
+```
+
+Estaban **declaradas** en `restricciones.ts`, **ofrecidas** en el diálogo, y **probadas** — la
+batería del §12 las ejercita y pasan. Lo único que no se podía era **guardarlas**. La fila 82 de esta
+bitácora dice «§3.4 CERRADA · las ocho»: dos de esas ocho no llegaban a la base.
+
+Ninguna prueba lo veía porque **ninguna escribe en la base**: el motor es puro y se prueba en
+memoria, que es lo que lo hace rápido y lo que aquí lo dejó ciego.
+
+Columna a `VARCHAR(24)`, y una prueba que compara **el largo de cada código contra el ancho que el
+esquema declara** — lo único comprobable sin base. Validada estrechándola a 20: se pone roja
+nombrando las dos. Medido después contra la base: **las ocho se guardan, 8 de 8**.
+
+---
+
+## §10.6 — deshacer un arrastre a «Terminado» borraba el avance capturado
+
+Mover una tarjeta a «Terminado» no mueve una tarjeta: el servidor deriva de la columna el estado
+**y el avance** (§5.2, §5.5). La operación apuntaba sólo `kanbanColumnId`.
+
+Medido por el auditor contra el plan real, y restaurado después: capturar **60 %** → arrastrar a
+«Terminado» → 100 % → `Ctrl+Z` → **1 %**. Igual desde 5 %, 25 % y 99 %: los cuatro acaban en 1 %,
+porque al deshacer el servidor vuelve a derivar el avance de la columna y una columna intermedia
+significa «arrancada».
+
+En pantalla la tarjeta vuelve a su sitio —que es lo que se mira— y el número perdido está en la
+barrita de avance. Quien pulsa `Ctrl+Z` cree haber vuelto atrás.
+
+La operación lleva ahora **las tres cosas que el movimiento cambia**. Y una que se ve al escribir la
+prueba: `progressPct: 0` es un valor capturado —una línea que nadie ha empezado— y si se cayera por
+ser *falsy*, deshacer la dejaría al 100 % exactamente igual que si no se hubiera apuntado.
+
+---
+
+## §13 — el sombreado del día no laborable, que apagué yo al convertir a tokens
+
+La celda de un día no laborable era `#111113`: **más oscura** que la tarjeta. Mi regla la mapeó a
+`--superficie`, que es **exactamente** el color de la rejilla. El sombreado que pide el §13
+desapareció — y ninguna prueba se puso roja.
+
+De los 97 sitios que usaban ese tono, sólo dos lo usaban como **hueco dentro** de una tarjeta: la
+celda del Calendario y la de la matriz de carga. Los otros 95 eran tarjetas sobre el fondo de la
+página, donde `--superficie` es correcto.
+
+De ahí `--hueco`, que no es `--superficie-3`: eso es lo que se **eleva** —cabecera de tabla, campo— y
+en oscuro es más claro que la tarjeta. Un hueco va al revés.
+
+---
+
+## §6 — la segunda vez que se apunta antes de escribir
+
+Renombrar desde la celda de la Lista apuntaba la operación antes del `PATCH`, con el comentario
+escrito al lado: «si la escritura falla, la recarga devuelve la pantalla a lo que hay en la base y el
+apunte **queda inocuo**». No queda inocuo: la pantalla vuelve, pero la pila se queda con la entrada y
+la barra ofrece deshacer un cambio que nunca ocurrió.
+
+Es la misma trampa del Esquema, con el razonamiento escrito de otra forma — y esta vez el comentario
+la **defiende**, que es lo que la hizo sobrevivir a la primera pasada.
+

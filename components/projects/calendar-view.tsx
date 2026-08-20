@@ -440,7 +440,7 @@ function Semana({
               }
             : {})}
           className={`min-h-[104px] border-r border-borde px-1.5 pb-1.5 last:border-r-0 ${
-            dia.isWorking ? '' : 'bg-superficie'
+            dia.isWorking ? '' : 'bg-hueco'
           } ${dia.isOutsideMonth ? 'opacity-40' : ''} ${
             seleccion && seleccion.from <= dia.date && dia.date <= seleccion.to
               ? 'bg-indigo-600/15 ring-1 ring-inset ring-indigo-600/60'

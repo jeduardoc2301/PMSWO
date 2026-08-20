@@ -597,15 +597,6 @@ export function WorkItemsList({
   const renombrar = async (id: string, titulo: string): Promise<void> => {
     const anterior = workItems.find((w) => w.id === id)?.title
     if (anterior === titulo) return
-    // Se apunta **antes** de escribir, como el resto de la pila: si la escritura falla, la recarga
-    // de abajo devuelve la pantalla a lo que hay en la base y el apunte queda inocuo.
-    onApuntarOperacion?.(
-      operacionDesde(
-        `Renombrar «${(anterior ?? id).slice(0, 40)}»`,
-        [{ id, title: anterior }],
-        [{ id, title: titulo }],
-      ),
-    )
     try {
       const r = await fetch(`/api/v1/work-items/${id}`, {
         method: 'PATCH',
@@ -613,6 +604,26 @@ export function WorkItemsList({
         body: JSON.stringify({ title: titulo }),
       })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      /**
+       * Se apunta **después** de que la escritura salga bien.
+       *
+       * Estaba antes, con el argumento de que «si la escritura falla, la recarga devuelve la
+       * pantalla a lo que hay en la base y el apunte queda inocuo». No queda inocuo: la pantalla
+       * vuelve, pero **la pila se queda con la entrada**, y la barra ofrece deshacer un cambio que
+       * nunca ocurrió. Es la segunda vez que aparece — la primera fue en el Esquema, con el mismo
+       * razonamiento escrito de otra forma.
+       *
+       * Lo que lo hace un defecto y no una molestia: la cabecera del gancho dice que la pila sólo
+       * avanza si la escritura salió bien, precisamente para que deshacer sea de fiar. Quien apunta
+       * también tiene que cumplirlo.
+       */
+      onApuntarOperacion?.(
+        operacionDesde(
+          `Renombrar «${(anterior ?? id).slice(0, 40)}»`,
+          [{ id, title: anterior }],
+          [{ id, title: titulo }],
+        ),
+      )
       // Lo mismo que hace el diálogo al guardar: recargar las líneas y el plan. Sin esto la celda
       // enseñaría el nombre nuevo y el panel de detalle el viejo.
       onWorkItemCreated?.()

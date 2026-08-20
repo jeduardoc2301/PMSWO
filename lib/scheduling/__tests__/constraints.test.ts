@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createWorkCalendar } from '../calendar'
 import { analyzeCriticalPath } from '../cpm'
+import { RESTRICCIONES } from '../restricciones'
 import { schedulePlan } from '../schedule'
 import type { Constraint, Dependency, PlanTask } from '../types'
 
@@ -191,5 +192,34 @@ describe('§3.3 · MSO no puede empezar el plan antes que el plan', () => {
       [tarea('A', 5), tarea('B', 2, { type: 'DEBE_EMPEZAR_EL', date: '2027-03-01' })],
       [{ predecessorId: 'A', successorId: 'B', type: 'FS', lag: 0 }],
     ).byId.get('A')!.totalFloat).toBeLessThan(0)
+  })
+})
+
+describe('§3.4 · las ocho restricciones caben en su columna', () => {
+  /**
+   * Estaban declaradas, ofrecidas en el diálogo y probadas en memoria — y **dos de las ocho no se
+   * podían guardar**: `NO_TERMINA_DESPUES_DE` y `NO_EMPIEZA_DESPUES_DE` miden 21 caracteres y la
+   * columna era `VARCHAR(20)`. MySQL las rechazaba con P2000, y ninguna prueba lo veía porque
+   * ninguna escribía en la base.
+   *
+   * Esta comprueba lo único que se puede comprobar sin base: que el código quepa en el ancho que el
+   * esquema declara. Si alguien añade una novena con un nombre largo, se pone roja aquí en vez de
+   * fallar en producción al pulsar «Guardar».
+   */
+  const ANCHO_DE_LA_COLUMNA = 24
+
+  it('ninguna pasa del ancho declarado en el esquema', () => {
+    const largas = RESTRICCIONES.filter((r) => r.codigo.length > ANCHO_DE_LA_COLUMNA)
+    expect(largas.map((r) => `${r.codigo} (${r.codigo.length})`)).toEqual([])
+  })
+
+  it('y las dos que reventaban siguen estando: no se arregló acortándoles el nombre', () => {
+    const codigos = RESTRICCIONES.map((r) => r.codigo)
+    expect(codigos).toContain('NO_TERMINA_DESPUES_DE')
+    expect(codigos).toContain('NO_EMPIEZA_DESPUES_DE')
+  })
+
+  it('son ocho, que es lo que pide el §3.4', () => {
+    expect(RESTRICCIONES).toHaveLength(8)
   })
 })
