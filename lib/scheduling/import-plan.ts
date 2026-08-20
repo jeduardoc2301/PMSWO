@@ -18,8 +18,15 @@
  */
 
 import { type IsoDate, toIsoDate } from './date'
-import { type PredecessorRef, parsePredecessors, toDependencies } from './dependencies'
-import type { Dependency, PlanTask, Recoverability, ResponsibleParty, TaskKind } from './types'
+import { parsePredecessors, toDependencies } from './dependencies'
+import type {
+  Dependency,
+  PlanTask,
+  PredecessorRef,
+  Recoverability,
+  ResponsibleParty,
+  TaskKind,
+} from './types'
 import { type SheetData, type Workbook, excelSerialToDayNumber, readWorkbook } from './xlsx'
 
 /** Qué encabezado corresponde a qué campo. Cada entrada es lo que debe aparecer en la fila de títulos. */

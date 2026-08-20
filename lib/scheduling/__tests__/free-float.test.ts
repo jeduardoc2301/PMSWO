@@ -189,3 +189,48 @@ describe('La libre con varias sucesoras', () => {
     expect(a.byId.get('a')!.freeFloat).toBe(0)
   })
 })
+
+describe('§3.3 · el invariante 0 ≤ FF ≤ TF, con desfase negativo', () => {
+  /**
+   * El adelanto que un desfase negativo permite sólo se cobra si la sucesora tiene **dónde
+   * retroceder**, y contra el arranque del plan no lo tiene. Sin acotar, la cuenta decía que la
+   * predecesora puede terminar dos días más tarde sin empujar a nadie: mentira, la sucesora ya está
+   * pegada al suelo.
+   *
+   * Lo hace visible justamente donde se ve: el panel de detalle dibuja la fila de holgura libre
+   * **sólo cuando difiere de la total**.
+   */
+  const casos = [
+    { tipo: 'FS' as const, lag: -6, libreSinAcotar: 2 },
+    { tipo: 'SS' as const, lag: -4, libreSinAcotar: 4 },
+  ]
+
+  for (const caso of casos) {
+    it(`${caso.tipo}${caso.lag}: una línea crítica no tiene holgura libre`, () => {
+      const a = analizar(
+        [tarea('A', 4), tarea('B', 3)],
+        [{ predecessorId: 'A', successorId: 'B', type: caso.tipo, lag: caso.lag }] as Dependency[],
+      )
+      const A = a.byId.get('A')!
+      expect(A.totalFloat).toBe(0)
+      expect(A.freeFloat).toBe(0)
+      expect(A.freeFloat).not.toBe(caso.libreSinAcotar)
+    })
+  }
+
+  it('el invariante se cumple en todas las líneas de un plan con desfases mezclados', () => {
+    const a = analizar(
+      [tarea('A', 4), tarea('B', 3), tarea('C', 2), tarea('D', 5)],
+      [
+        { predecessorId: 'A', successorId: 'B', type: 'FS', lag: -6 },
+        { predecessorId: 'B', successorId: 'C', type: 'SS', lag: -4 },
+        { predecessorId: 'A', successorId: 'D', type: 'FF', lag: -3 },
+        { predecessorId: 'C', successorId: 'D', type: 'SF', lag: -2 },
+      ] as Dependency[],
+    )
+    for (const t of a.tasks) {
+      expect(t.freeFloat, `${t.id}: FF ${t.freeFloat} contra TF ${t.totalFloat}`).toBeLessThanOrEqual(t.totalFloat)
+      if (t.totalFloat >= 0) expect(t.freeFloat, `${t.id} con holgura no negativa`).toBeGreaterThanOrEqual(0)
+    }
+  })
+})

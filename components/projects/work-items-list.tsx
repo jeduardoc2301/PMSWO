@@ -11,6 +11,7 @@ import {
   type LineaSumable,
   type Totales,
   agrupar,
+  esResumen,
   totalizar,
 } from '@/lib/projects/list-totals'
 import { CreateWorkItemDialog } from './create-work-item-dialog'
@@ -527,11 +528,18 @@ export function WorkItemsList({
       phase: i.phase ?? null,
       estimatedHours: i.estimatedHours ?? null,
       progressPct: i.progressPct ?? 0,
-      // La lista plana no dibuja resúmenes como tales, pero sí los trae: sumarlos duplicaría cada
-      // rama del árbol.
-      esResumen: i.kind === 'RESUMEN',
+      // Sumar un resumen duplicaría cada rama del árbol: sus horas son las de sus hijas.
+      //
+      // Y **resumen es tener hijas**. Mirando sólo el campo, la fila de totales decía «1 247
+      // líneas» donde hay 1 243: las cuatro compuertas HAB-01 a HAB-04 tienen hijas y no están
+      // marcadas. En el formato plano no se notaba — ahí ya vienen filtradas más arriba—, pero
+      // el formato jerárquico las trae y las contaba como trabajo.
+      //
+      // En este plan esas cuatro llevan cero horas, así que la suma no se movía; la cuenta de
+      // líneas sí. En otro plan donde un resumen sin marcar tenga horas, se moverían las dos.
+      esResumen: esResumen(i, conHijas),
     })),
-    [lineasPlanas],
+    [lineasPlanas, conHijas],
   )
   const total: Totales = useMemo(() => totalizar(sumables), [sumables])
 

@@ -10,6 +10,30 @@
 import { type Dependency, type LinkType, type PlanTask, type PredecessorRef, isLinkType } from './types'
 
 /** Error del motor de planeación. `code` es estable; el mensaje es para leerse. */
+/**
+ * Devuelve `[madre, hija]` si una de las dos líneas es ascendiente de la otra, o `null`.
+ *
+ * Sube por `parentId` con tope en el número de líneas: un árbol con un ciclo de padres colgaría
+ * este bucle, y la jerarquía se valida en otro sitio —aquí no se puede dar por sana.
+ */
+function ascendenciaCompartida(
+  taskById: ReadonlyMap<string, { readonly parentId?: string }>,
+  a: string,
+  b: string,
+): readonly [string, string] | null {
+  const sube = (desde: string, hasta: string): boolean => {
+    let actual = taskById.get(desde)?.parentId
+    for (let saltos = 0; actual !== undefined && saltos <= taskById.size; saltos += 1) {
+      if (actual === hasta) return true
+      actual = taskById.get(actual)?.parentId
+    }
+    return false
+  }
+  if (sube(b, a)) return [a, b]
+  if (sube(a, b)) return [b, a]
+  return null
+}
+
 export class SchedulingError extends Error {
   readonly code: string
 
@@ -217,6 +241,28 @@ export function buildDependencyGraph(
       throw new SchedulingError(
         'AUTORREFERENCIA',
         `La tarea «${successor.name}» aparece como predecesora de sí misma.`,
+      )
+    }
+    /**
+     * Regla dura del §3.2: «una tarea resumen no puede enlazarse con sus propios descendientes».
+     *
+     * Se comprueba en los dos sentidos porque el daño es el mismo: la madre hereda sus fechas de
+     * las hijas, así que un vínculo entre las dos es una línea que se espera a sí misma. Medido:
+     * `P(5d)` con hija `H1(2d)` y `P —FS+0→ H1` se aceptaba y colocaba a H1 **después** de su
+     * propia madre —P del 1 al 5 de junio, H1 del 8 al 9—, con el roll-up diciendo entonces que P
+     * termina el 9 por culpa de una hija a la que la propia P empuja.
+     *
+     * No es lo mismo que un ciclo, y por eso no lo caza el detector: en el grafo de vínculos no hay
+     * ciclo ninguno. El ciclo está entre el grafo y el árbol.
+     */
+    const ascendiente = ascendenciaCompartida(taskById, dependency.predecessorId, dependency.successorId)
+    if (ascendiente !== null) {
+      const [madre, hija] = ascendiente
+      throw new SchedulingError(
+        'VINCULO_CON_DESCENDIENTE',
+        `«${taskById.get(madre)!.name}» es resumen de «${taskById.get(hija)!.name}»: no se pueden ` +
+          'vincular entre sí. Un resumen hereda las fechas de sus hijas, así que el vínculo lo haría ' +
+          'esperarse a sí mismo.',
       )
     }
     if (!isLinkType(dependency.type)) {

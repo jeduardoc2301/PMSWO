@@ -447,3 +447,39 @@ describe('El informe completo', () => {
     expect(finding.severity).toBe('ERROR')
   })
 })
+
+describe('C09 · el auditor y el motor cuentan el SF igual', () => {
+  /**
+   * `audit.ts` conservaba el `−1` de `SF` que se quitó de los dos pases del motor, así que toleraba
+   * **un día hábil** de incumplimiento que el motor nunca habría producido. Dos sitios calculando la
+   * misma regla distinto: el auditor daba por buenas fechas que el motor considera imposibles.
+   */
+  const fila = (id: string, start: string, finish: string, duration: number, predecessors: AuditRow['predecessors'] = []): AuditRow => ({
+    id, name: id, level: 0, parentId: null, kind: 'ACTIVIDAD', duration,
+    start, finish, owner: 'Alguien', deliverable: 'Algo', exitCriteria: 'Listo', predecessors,
+  })
+
+  it('caza a la sucesora que termina un día antes de que la predecesora empiece', () => {
+    // A arranca el lunes 8; con SF+0 el fin de B no puede caer antes de ese día, y cae el viernes 5.
+    const report = auditPlan({
+      calendar,
+      rows: [
+        fila('A', '2026-06-08', '2026-06-10', 3),
+        fila('B', '2026-06-04', '2026-06-05', 2, [{ predecessorId: 'A', type: 'SF', lag: 0 }]),
+      ],
+    })
+    expect(hallazgos(report, 'C09')).toHaveLength(1)
+    expect(hallazgos(report, 'C09')[0].message).toMatch(/1 día\(s\) hábil\(es\)/)
+  })
+
+  it('y deja pasar el relevo exacto: B termina el día en que A empieza', () => {
+    const report = auditPlan({
+      calendar,
+      rows: [
+        fila('A', '2026-06-08', '2026-06-10', 3),
+        fila('B', '2026-06-04', '2026-06-08', 3, [{ predecessorId: 'A', type: 'SF', lag: 0 }]),
+      ],
+    })
+    expect(hallazgos(report, 'C09')).toEqual([])
+  })
+})

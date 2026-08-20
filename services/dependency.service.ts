@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto'
 
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import prisma from '@/lib/prisma'
-import { DependencyCycleError, buildDependencyGraph } from '@/lib/scheduling/dependencies'
+import { DependencyCycleError, SchedulingError, buildDependencyGraph } from '@/lib/scheduling/dependencies'
 import { LINK_TYPES, type Dependency, type LinkType, type PlanTask } from '@/lib/scheduling/types'
 
 export interface AddDependencyInput {
@@ -70,14 +70,24 @@ export async function addDependency(input: AddDependencyInput): Promise<{ id: st
   // El ciclo se busca sobre el plan completo más el candidato. Con los nombres reales: un error que
   // dice «hay un ciclo entre 288 → 302 → 288» se corrige en un minuto; uno que no los nombra, no.
   const [items, vinculos] = await Promise.all([
-    prisma.workItem.findMany({ where: { projectId: input.projectId }, select: { id: true, title: true } }),
+    // `parentId` viene porque el grafo también rechaza vincular un resumen con su descendiente
+    // (§3.2), y sin el árbol esa regla no se puede comprobar.
+    prisma.workItem.findMany({
+      where: { projectId: input.projectId },
+      select: { id: true, title: true, parentId: true },
+    }),
     prisma.taskDependency.findMany({
       where: { projectId: input.projectId },
       select: { predecessorId: true, successorId: true, linkType: true, lagDays: true },
     }),
   ])
 
-  const tareas: PlanTask[] = items.map((item) => ({ id: item.id, name: item.title, duration: 1 }))
+  const tareas: PlanTask[] = items.map((item) => ({
+    id: item.id,
+    name: item.title,
+    duration: 1,
+    ...(item.parentId ? { parentId: item.parentId } : {}),
+  }))
   const grafo: Dependency[] = [
     ...vinculos.map((v) => ({
       predecessorId: v.predecessorId,
@@ -93,6 +103,10 @@ export async function addDependency(input: AddDependencyInput): Promise<{ id: st
   } catch (error) {
     if (error instanceof DependencyCycleError) {
       throw new ValidationError(`Ese vínculo crearía un ciclo y el plan dejaría de poder programarse. ${error.message}`)
+    }
+    // El §3.2 pide rechazar **sin persistir nada**, y aquí no se ha escrito todavía.
+    if (error instanceof SchedulingError && error.code === 'VINCULO_CON_DESCENDIENTE') {
+      throw new ValidationError(error.message)
     }
     throw error
   }

@@ -179,3 +179,38 @@ describe('§3.4 ALAP · convive con el resto del plan', () => {
     expect(alap.byId.get('a')!.start).not.toBe(normal.byId.get('a')!.start)
   })
 })
+
+describe('§3.4 ALAP · con holgura negativa no hay «más tarde» que ganar', () => {
+  /**
+   * El inicio tardío cae **antes** que el temprano en cuanto la línea no cabe: una fecha límite que
+   * ya no se alcanza, un `DEBE_TERMINAR_EL` que el plan pasa. Clavar ahí no la pone «lo más tarde
+   * posible», la mete debajo de sus propias predecesoras — y el plan **se acorta**.
+   */
+  const deps: Dependency[] = [{ predecessorId: 'A', successorId: 'B', type: 'FS', lag: 0 }]
+
+  it('no arranca antes de que termine su predecesora', () => {
+    const tasks = [tarea('A', 5), tarea('B', 3, { dueDate: '2026-06-05', alap: true })]
+    const plan = conAlap(tasks, deps)
+    const A = plan.byId.get('A')!
+    const B = plan.byId.get('B')!
+    expect(B.start > A.finish, `A termina ${A.finish} y B arranca ${B.start}`).toBe(true)
+    expect(B.start).toBe('2026-06-08')
+  })
+
+  it('y el cierre del plan no se mueve por marcarla', () => {
+    // Antes saltaba del 10 al 5 de junio: cinco días menos por pedir empezar más tarde.
+    const tasks = [tarea('A', 5), tarea('B', 3, { dueDate: '2026-06-05' })]
+    const marcadas = [tarea('A', 5), tarea('B', 3, { dueDate: '2026-06-05', alap: true })]
+    expect(conAlap(marcadas, deps).finish).toBe(sinAlap(tasks, deps).finish)
+    expect(conAlap(marcadas, deps).finish).toBe('2026-06-10')
+  })
+
+  it('con holgura positiva sigue yéndose lo más tarde que puede', () => {
+    // La otra mitad: el arreglo no puede haber apagado la restricción.
+    const tasks = [tarea('A', 2), tarea('larga', 10), tarea('B', 2, { alap: true })]
+    const normal = sinAlap(tasks, [{ predecessorId: 'A', successorId: 'B', type: 'FS', lag: 0 }])
+    const tardia = conAlap(tasks, [{ predecessorId: 'A', successorId: 'B', type: 'FS', lag: 0 }])
+    expect(tardia.byId.get('B')!.start > normal.byId.get('B')!.start).toBe(true)
+    expect(tardia.finish).toBe(normal.finish)
+  })
+})

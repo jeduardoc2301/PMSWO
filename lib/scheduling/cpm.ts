@@ -15,7 +15,7 @@
  * | `FS`    | `inicio_suc ≥ fin_pred + 1 + desfase`          | `fin_pred ≤ inicio_suc − 1 − desfase`         |
  * | `SS`    | `inicio_suc ≥ inicio_pred + desfase`           | `inicio_pred ≤ inicio_suc − desfase`          |
  * | `FF`    | `fin_suc ≥ fin_pred + desfase`                 | `fin_pred ≤ fin_suc − desfase`                |
- * | `SF`    | `fin_suc ≥ inicio_pred − 1 + desfase`          | `inicio_pred ≤ fin_suc + 1 − desfase`         |
+ * | `SF`    | `fin_suc ≥ inicio_pred + desfase`              | `inicio_pred ≤ fin_suc − desfase`             |
  *
  * No son reglas nuevas: son la misma desigualdad despejada del otro lado. Si el pase adelante y el
  * pase atrás no fueran exactamente inversos, la holgura saldría mal y nadie lo notaría hasta que el
@@ -116,6 +116,26 @@ export interface AnalyzeOptions {
 }
 
 /**
+ * La holgura libre, acotada por el invariante del §3.3: `0 ≤ FF ≤ TF`.
+ *
+ * Sin acotar, un desfase **negativo** la infla. El adelanto que el vínculo permite sólo se puede
+ * cobrar si la sucesora tiene dónde retroceder, y contra el arranque del plan no lo tiene: la cuenta
+ * dice que la predecesora puede terminar dos días más tarde sin empujar a nadie, y es mentira porque
+ * la sucesora ya está pegada al suelo.
+ *
+ * Medido: `A(4d) —FS−6→ B(3d)` daba **holgura total 0 y holgura libre 2**; con `SS−4`, 0 y 4. El
+ * panel de detalle dibuja la fila de holgura libre **sólo cuando difiere de la total**, o sea
+ * exactamente en este caso: escribía «2 días» sobre una línea crítica que no puede resbalar ni uno.
+ *
+ * Con holgura total negativa el spec exceptúa el suelo —ahí las dos son negativas y lo que importa
+ * es que la libre no supere a la total—, así que el `0` sólo se aplica cuando la total no lo es.
+ */
+function acotarHolguraLibre(libre: number, total: number): number {
+  const techo = Math.min(libre, total)
+  return total < 0 ? techo : Math.max(0, techo)
+}
+
+/**
  * Calcula fechas tardías y holgura total sobre un plan ya programado.
  *
  * Recorre el orden topológico al revés, así que cada tarea se resuelve cuando todas sus sucesoras
@@ -203,7 +223,7 @@ export function analyzeCriticalPath(
         const permitido = latestFinish(dependency, earlyStart, earlyFinish, tramo)
         if (permitido < libre) libre = permitido
       }
-      freeFloat.set(id, libre - earlyFinish.get(id)!)
+      freeFloat.set(id, acotarHolguraLibre(libre - earlyFinish.get(id)!, total))
     }
   }
 

@@ -133,7 +133,18 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
     if (task.constraint && EMPUJAN.has(task.constraint.type)) {
       const constrained = calendar.ordinalOf(calendar.next(toDayNumber(task.constraint.date)))
       if (task.constraint.type === 'DEBE_EMPEZAR_EL') {
-        start = constrained
+        // La única que pisa hacia atrás: quien la pone está diciendo «este día y no otro», y si la
+        // cadena la empujaba más allá, el pase atrás se lo cobra a la predecesora con holgura
+        // negativa. Eso es lo que promete la restricción y es lo que hace MS Project.
+        //
+        // Lo que no puede es pisar el **arranque del plan**. El §3.3 acota el inicio temprano «por
+        // Project.Start, restricciones y calendario», en ese orden, y sin este suelo una línea con
+        // `DEBE_EMPEZAR_EL` el 4 de mayo hacía que un plan que arranca el 1 de junio devolviera
+        // **2026-05-04** como su primer día: el plan empezaba un mes antes que él mismo.
+        //
+        // Debajo del suelo la restricción es imposible, no floja: la fecha se queda en el arranque
+        // y el que mira ve la línea el primer día, que es lo más cerca que puede estar de lo pedido.
+        start = Math.max(planStart, constrained)
         drivingDependency = null
       } else if (task.constraint.type === 'NO_TERMINA_ANTES_DE') {
         // Amarra el FIN, no el arranque: hay que retroceder el tramo para saber cuándo empezar.
@@ -233,9 +244,20 @@ function requiredStart(
       return predecessorFinish + 1 + dependency.lag
     case 'SS':
       return predecessorStart + dependency.lag
+    /**
+     * `FF` y `SF` amarran el **fin**, y restar el tramo declarado basta: con ausencias, el fin real
+     * cae **igual o más tarde** que `inicio + tramo`, nunca antes, y las dos reglas piden un fin
+     * mínimo. Un arranque calculado así siempre las cumple.
+     *
+     * Lo comprobé por haberme equivocado: retrocedí desde el fin contando días **disponibles**,
+     * que sería lo correcto si la regla pidiera terminar *exactamente* ese día. `A(5d) —FF+0→
+     * B(4d)` con B ausente el 17, 18 y 19 de junio pasaba a arrancar el 11 y terminar el **16**,
+     * tres días hábiles **antes** que A — rompiendo el vínculo que intentaba respetar.
+     */
     case 'FF':
       return predecessorFinish + dependency.lag - tramo
     case 'SF':
       return predecessorStart + dependency.lag - tramo
   }
 }
+

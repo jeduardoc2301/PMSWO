@@ -318,3 +318,53 @@ describe('§10.7 · un ciclo rechazado dice cuál es la cadena', () => {
     }
   })
 })
+
+describe('§3.2 · un resumen no se vincula con sus propios descendientes', () => {
+  /**
+   * Regla dura del spec. No es un ciclo y por eso no la caza el detector: en el grafo de vínculos no
+   * hay ciclo ninguno — el ciclo está **entre el grafo y el árbol**. La madre hereda sus fechas de
+   * las hijas, así que un vínculo entre las dos es una línea que se espera a sí misma.
+   *
+   * Sin la regla, `P —FS+0→ H1` colocaba a H1 **después de su propia madre**.
+   */
+  const hija = (id: string, parentId: string): PlanTask =>
+    ({ id, name: id, duration: 2, parentId }) as PlanTask
+
+  it('rechaza madre → hija', () => {
+    expect(() =>
+      buildDependencyGraph([tarea('P', 'Bloque'), hija('H', 'P')], [vinculo('P', 'H')]),
+    ).toThrow(/«Bloque» es resumen de «H»/)
+  })
+
+  it('y también hija → madre, porque el daño es el mismo', () => {
+    expect(() =>
+      buildDependencyGraph([tarea('P', 'Bloque'), hija('H', 'P')], [vinculo('H', 'P')]),
+    ).toThrow(/«Bloque» es resumen de «H»/)
+  })
+
+  it('alcanza a la nieta, no sólo a la hija directa', () => {
+    const plan = [tarea('P', 'Bloque'), hija('H', 'P'), hija('N', 'H')]
+    expect(() => buildDependencyGraph(plan, [vinculo('P', 'N')])).toThrow(/«Bloque» es resumen de «N»/)
+  })
+
+  it('con el código que permite explicarlo', () => {
+    try {
+      buildDependencyGraph([tarea('P', 'Bloque'), hija('H', 'P')], [vinculo('P', 'H')])
+      expect.unreachable('debía rechazar')
+    } catch (error) {
+      expect((error as SchedulingError).code).toBe('VINCULO_CON_DESCENDIENTE')
+    }
+  })
+
+  it('dos hermanas sí se vinculan: comparten madre, no ascendencia entre ellas', () => {
+    const plan = [tarea('P', 'Bloque'), hija('H1', 'P'), hija('H2', 'P')]
+    expect(() => buildDependencyGraph(plan, [vinculo('H1', 'H2')])).not.toThrow()
+  })
+
+  it('un árbol con un ciclo de padres no cuelga el bucle', () => {
+    // La jerarquía se valida en otro sitio; aquí no se puede dar por sana.
+    const a = { id: 'a', name: 'a', duration: 1, parentId: 'b' } as PlanTask
+    const b = { id: 'b', name: 'b', duration: 1, parentId: 'a' } as PlanTask
+    expect(() => buildDependencyGraph([a, b], [vinculo('a', 'b')])).toThrow(SchedulingError)
+  })
+})

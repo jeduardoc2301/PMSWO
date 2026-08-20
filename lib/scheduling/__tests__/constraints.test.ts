@@ -156,3 +156,40 @@ describe('Las dos familias no se confunden', () => {
     }
   })
 })
+
+describe('§3.3 · MSO no puede empezar el plan antes que el plan', () => {
+  /**
+   * `DEBE_EMPEZAR_EL` es la única que pisa hacia atrás, y eso es lo que promete. Lo que no puede
+   * pisar es el arranque del plan: el §3.3 acota el inicio temprano «por Project.Start,
+   * restricciones y calendario», **en ese orden**.
+   *
+   * Sin suelo, un plan que arranca el 2027-03-01 con una línea clavada un mes antes devolvía esa
+   * fecha como su primer día. Un plan que empieza antes que él mismo.
+   */
+  it('la línea se queda en el arranque, no debajo', () => {
+    const plan = programar([tarea('Z', 2, { type: 'DEBE_EMPEZAR_EL', date: '2027-02-01' })])
+    expect(plan.start).toBe('2027-03-01')
+    expect(plan.byId.get('Z')!.start).toBe('2027-03-01')
+  })
+
+  it('por encima del arranque manda la restricción, como siempre', () => {
+    // `Schedule.start` es el primer día TRABAJADO del plan, no la fecha pedida: con una sola línea
+    // clavada más tarde, el plan empieza cuando ella. Lo que el suelo impide es que empiece ANTES.
+    const plan = programar([tarea('Z', 2, { type: 'DEBE_EMPEZAR_EL', date: '2027-03-15' })])
+    expect(plan.byId.get('Z')!.start).toBe('2027-03-15')
+    expect(plan.start).toBe('2027-03-15')
+  })
+
+  it('y sigue pisando a su predecesora, que es lo que MSO significa', () => {
+    const plan = programar(
+      [tarea('A', 5), tarea('B', 2, { type: 'DEBE_EMPEZAR_EL', date: '2027-03-01' })],
+      [{ predecessorId: 'A', successorId: 'B', type: 'FS', lag: 0 }],
+    )
+    expect(plan.byId.get('B')!.start).toBe('2027-03-01')
+    // El pase atrás se lo cobra a la predecesora: es la señal honesta de que el vínculo no cabe.
+    expect(analizar(
+      [tarea('A', 5), tarea('B', 2, { type: 'DEBE_EMPEZAR_EL', date: '2027-03-01' })],
+      [{ predecessorId: 'A', successorId: 'B', type: 'FS', lag: 0 }],
+    ).byId.get('A')!.totalFloat).toBeLessThan(0)
+  })
+})

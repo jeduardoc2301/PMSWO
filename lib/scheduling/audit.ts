@@ -18,8 +18,7 @@
 
 import { type WorkCalendar } from './calendar'
 import { type IsoDate, toDayNumber } from './date'
-import type { PredecessorRef } from './dependencies'
-import type { TaskKind } from './types'
+import type { PredecessorRef, TaskKind } from './types'
 
 export type FindingSeverity = 'ERROR' | 'AVISO'
 
@@ -460,8 +459,12 @@ function linkViolation(
         ? `termina ${finPred + ref.lag - finSuc} día(s) hábil(es) antes de lo que permite el vínculo fin-fin`
         : null
     case 'SF':
-      return finSuc < inicioPred - 1 + ref.lag
-        ? `termina ${inicioPred - 1 + ref.lag - finSuc} día(s) hábil(es) antes de lo que permite el vínculo comienzo-fin`
+      // Sin el día de más. El motor lo quitó de los dos pases y aquí se quedó, así que el auditor
+      // toleraba **un día hábil** de incumplimiento que el motor nunca habría producido: filas
+      // `A 2026-06-08→2026-06-10` y `B 2026-06-04→2026-06-05` con `A SF+0` no emitían el C09,
+      // y el mismo grafo programado coloca a B terminando el 8, el día en que A arranca.
+      return finSuc < inicioPred + ref.lag
+        ? `termina ${inicioPred + ref.lag - finSuc} día(s) hábil(es) antes de lo que permite el vínculo comienzo-fin`
         : null
   }
 }

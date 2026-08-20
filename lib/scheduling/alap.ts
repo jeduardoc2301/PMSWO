@@ -73,6 +73,24 @@ export function programarConALAP(input: SchedulePlanInput): Schedule {
     if (task.alap !== true) return task
     const inicioTardio = analisis.lateStart.get(task.id)
     if (inicioTardio === undefined) return task
+    /**
+     * Nunca antes del inicio temprano de la primera pasada.
+     *
+     * Con holgura negativa —una fecha límite que ya no se alcanza, o un `DEBE_TERMINAR_EL` que
+     * el plan pasa— el inicio tardío cae **antes** que el temprano, y clavar ahí no pone la línea
+     * «lo más tarde posible»: la mete debajo de sus propias predecesoras.
+     *
+     * Medido: `A(5d) —FS+0→ B(3d)` con `dueDate` 2026-06-05 en B y B marcada ALAP. Sin la marca,
+     * B va del 8 al 10 de junio. Con la marca clavaba en el 3 —**tres días hábiles antes de que A
+     * termine**— y el cierre del plan saltaba del 10 al 5 de junio. Un plan que se acorta solo
+     * porque alguien pidió empezar más tarde.
+     *
+     * Cuando la holgura es negativa no hay «más tarde» que ganar: la línea ya no cabe, y lo más
+     * tarde que puede empezar sin romper un vínculo es justo lo más temprano que sus predecesoras
+     * permiten.
+     */
+    const inicioTemprano = primera.earlyStart.get(task.id)
+    const donde = inicioTemprano === undefined ? inicioTardio : Math.max(inicioTardio, inicioTemprano)
     return {
       ...task,
       // Se clava con `DEBE_EMPEZAR_EL` y no con `NO_ANTES_DE` a propósito: `ALAP` fija el sitio, no
@@ -84,7 +102,7 @@ export function programarConALAP(input: SchedulePlanInput): Schedule {
       // que la fecha la calcule el motor.
       constraint: {
         type: 'DEBE_EMPEZAR_EL' as const,
-        date: toIsoDate(input.calendar.dayOfOrdinal(inicioTardio)),
+        date: toIsoDate(input.calendar.dayOfOrdinal(donde)),
       },
     }
   })

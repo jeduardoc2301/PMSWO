@@ -5,6 +5,7 @@ import {
   type LineaSumable,
   SIN_VALOR,
   agrupar,
+  esResumen,
   subtotalesCuadran,
   totalizar,
 } from '../list-totals'
@@ -128,5 +129,40 @@ describe('§6.3 · el formato agrupado', () => {
     const grupos = agrupar([linea('a', { ownerName: null }), linea('b', { ownerName: '  ' })], 'owner')
     expect(grupos).toHaveLength(1)
     expect(grupos[0]!.clave).toBe(SIN_VALOR)
+  })
+})
+
+describe('§6.3 · resumen es tener hijas, también para la fila de totales', () => {
+  /**
+   * La sexta aparición de la misma confusión. En el plan de referencia hay **125 líneas con
+   * descendencia y 121 marcadas**: mirando sólo el campo, la fila decía «1 247 líneas» donde hay
+   * **1 243**.
+   */
+  const conHijas = new Set(['madre', 'compuerta'])
+
+  it('una línea con hijas es resumen aunque no esté marcada', () => {
+    expect(esResumen({ id: 'compuerta', kind: 'COMPUERTA' }, conHijas)).toBe(true)
+  })
+
+  it('una marcada sin hijas también, porque quien la marcó sabe algo que el árbol no dice', () => {
+    expect(esResumen({ id: 'suelta', kind: 'RESUMEN' }, conHijas)).toBe(true)
+  })
+
+  it('una hoja normal no lo es', () => {
+    expect(esResumen({ id: 'hoja', kind: 'ACTIVIDAD' }, conHijas)).toBe(false)
+  })
+
+  it('y sin el campo tampoco', () => {
+    expect(esResumen({ id: 'hoja' }, conHijas)).toBe(false)
+  })
+
+  it('la fila de totales excluye a las dos clases de resumen', () => {
+    const total = totalizar([
+      { id: 'madre', kind: 'ACTIVIDAD', estimatedHours: 100, progressPct: 1, esResumen: esResumen({ id: 'madre', kind: 'ACTIVIDAD' }, conHijas) },
+      { id: 'hija', kind: 'ACTIVIDAD', estimatedHours: 40, progressPct: 0.5, esResumen: esResumen({ id: 'hija', kind: 'ACTIVIDAD' }, conHijas) },
+      { id: 'suelta', kind: 'RESUMEN', estimatedHours: 60, progressPct: 1, esResumen: esResumen({ id: 'suelta', kind: 'RESUMEN' }, conHijas) },
+    ])
+    expect(total.lineas).toBe(1)
+    expect(total.horas).toBe(40)
   })
 })

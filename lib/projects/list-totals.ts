@@ -47,6 +47,25 @@ export interface Totales {
   readonly ponderado: boolean
 }
 
+/**
+ * Si una línea es un resumen, para efectos de sumarla.
+ *
+ * Existe aquí —y no escrito a mano en la vista— porque es la **sexta** vez que esta base confunde
+ * las dos definiciones. Un resumen es el que **tiene hijas**; el campo `kind` es una segunda regla
+ * que **suma**, no que sustituye: quien marcó a mano una línea sin hijas sabe algo que el árbol no
+ * dice.
+ *
+ * En el plan de referencia hay **125 con descendencia y 121 marcadas**. Las cuatro que discrepan son
+ * las compuertas HAB-01 a HAB-04, y mirando sólo el campo la fila de totales decía «1 247 líneas»
+ * donde hay 1 243.
+ *
+ * `conHijas` se calcula sobre el plan **entero**, nunca sobre lo filtrado: sobre lo filtrado,
+ * esconder a las hijas convierte a su madre en hoja.
+ */
+export function esResumen(linea: { readonly id: string; readonly kind?: string | null }, conHijas: ReadonlySet<string>): boolean {
+  return conHijas.has(linea.id) || linea.kind === 'RESUMEN'
+}
+
 export const TOTALES_VACIOS: Totales = Object.freeze({ lineas: 0, horas: 0, avance: 0, ponderado: true })
 
 /**

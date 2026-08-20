@@ -2543,3 +2543,95 @@ es nada.
 Corregido el comentario con los dos números, y cuatro pruebas que fijan **las dos mitades**: la que
 vale y la que provablemente no puede valer. Cambiar la firma para poder cuadrar el total sólo tiene
 sentido el día que el modelo guarde el trabajo en minutos (§2.1).
+
+---
+
+## §3.1–§3.4 — seis acusaciones al motor, cinco ciertas
+
+Segunda auditoría con agentes, esta vez contra el motor de programación. Trajo seis hallazgos con
+reproducción. Las reproduje **todas**, una por una, con código: cinco eran ciertas y una no.
+
+### 1 — `ALAP` rompía el vínculo y **acortaba** el plan
+
+Lo escribí yo anoche. `programarConALAP` clava la línea en su inicio tardío, y con holgura negativa
+el inicio tardío cae **antes** que el temprano.
+
+| `A(5d) —FS+0→ B(3d)`, B con `dueDate` 2026-06-05 | B | cierre |
+|---|---|---|
+| sin la marca | 06-08 → 06-10 | 2026-06-10 |
+| con `ALAP`, antes | **06-03 → 06-05** | **2026-06-05** |
+| con `ALAP`, ahora | 06-08 → 06-10 | 2026-06-10 |
+
+B arrancaba **tres días hábiles antes de que A terminara** y el plan se acortaba cinco días. Un
+cronograma que mejora porque alguien pidió empezar más tarde. Ahora se clava en
+`max(inicioTardío, inicioTemprano)`: con holgura negativa no hay «más tarde» que ganar.
+
+### 2 — la holgura libre rompía su propio invariante
+
+El §3.3 lo escribe literal: `0 ≤ Free Float ≤ Total Float`. Con desfase negativo no se cumplía,
+porque el adelanto que el vínculo permite sólo se cobra si la sucesora tiene dónde retroceder, y
+contra el arranque del plan no lo tiene.
+
+| | TF | FF antes | FF ahora |
+|---|---:|---:|---:|
+| `A(4d) —FS−6→ B(3d)` | 0 | **2** | 0 |
+| `A(4d) —SS−4→ B(3d)` | 0 | **4** | 0 |
+
+El panel de detalle dibuja la fila de holgura libre **sólo cuando difiere de la total**, o sea
+exactamente en este caso: escribía «2 días» sobre una línea crítica que no puede resbalar ni uno.
+
+### 3 — `DEBE_EMPEZAR_EL` empezaba el plan antes que el plan
+
+Un plan que arranca el 2026-06-01 con una línea clavada el 2026-05-04 devolvía **2026-05-04** como
+su primer día. El §3.3 acota el inicio temprano «por Project.Start, restricciones y calendario», en
+ese orden. Ahora hay suelo.
+
+Que pise a sus **predecesoras** se queda: es lo que la restricción promete y lo que hace MS Project;
+el pase atrás se lo cobra a la predecesora con holgura negativa, que es la señal honesta.
+
+### 4 — el auditor toleraba un día que el motor no produce
+
+`audit.ts` conservaba el `−1` de `SF` que se quitó de los dos pases del motor. Filas
+`A 06-08→06-10` y `B 06-04→06-05` con `A SF+0`:
+
+| | controles emitidos |
+|---|---|
+| con el `−1` viejo | `C14` |
+| ahora | **`C09`**, `C14` |
+
+Y el mismo grafo programado coloca a B terminando el **8**, el día en que A arranca. La tabla de la
+cabecera de `cpm.ts` también conservaba la fórmula vieja, contradiciendo al código veinte líneas
+más abajo.
+
+### 5 — un resumen se podía vincular con su propia hija
+
+Regla dura del §3.2, que no estaba escrita en ningún sitio. `P(5d)` con hija `H1(2d)` y
+`P —FS+0→ H1` se aceptaba y colocaba a H1 **después de su propia madre** — P del 1 al 5 de junio,
+H1 del 8 al 9 —, con el roll-up diciendo entonces que P termina el 9 por culpa de una hija a la que
+la propia P empuja.
+
+No es un ciclo y por eso no lo cazaba el detector: en el grafo de vínculos no hay ciclo ninguno. El
+ciclo está **entre el grafo y el árbol**. Se comprueba subiendo por `parentId` en los dos sentidos,
+en `buildDependencyGraph`, así que lo cumplen igual el motor y el alta de vínculos — que ahora trae
+`parentId` de la base para poder comprobarlo, y rechaza **sin persistir nada**.
+
+Antes de ponerlo: el plan de referencia tiene **1 665 vínculos y cero** con ascendencia compartida.
+
+### 6 — y una que no era
+
+El informe decía que el `tramo` se calcula distinto en los dos pases y que con ausencias el vínculo
+`FF` «deja de alinear los fines». Los números son ciertos —`A(5d) —FF+0→ B(4d)` con B ausente el 17,
+18 y 19 de junio cierra el 24 en vez del 19— y **la conclusión es falsa**: `FF` pide un fin
+**mínimo**, no una igualdad, y terminar después lo cumple.
+
+Lo descubrí arreglándolo mal. Retrocedí desde el fin contando días disponibles, que sería lo
+correcto si la regla pidiera terminar ese día exacto: B pasó a arrancar el 11 y terminar el **16**,
+tres días hábiles **antes** que A — rompiendo el vínculo que yo intentaba respetar. Con ausencias el
+fin real cae igual o más tarde que `inicio + tramo`, nunca antes, así que restar el tramo declarado
+siempre cumple la regla.
+
+Revertido, y el motivo escrito donde estaba la duda. La única crítica que sobrevive es que el
+arranque no es el más temprano *posible* — empezar el 12 también valdría —, y eso no es un
+invariante roto sino una elección discutible: adelantar el arranque hace que la persona trabaje
+antes y espere después.
+
