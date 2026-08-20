@@ -2726,3 +2726,22 @@ tarea sigue al 100 % con el otro nombre. Y el permiso es el mismo `edit_schedule
 ruta, con el mismo motivo escrito: repartir el trabajo cambia la carga del equipo, que es parte del
 plan.
 
+### La nivelación, medida en pantalla sobre el plan real
+
+No en una prueba: en el navegador, contra las 1 368 líneas.
+
+| carga del 1 de septiembre de 2026 | |
+|---|---:|
+| celdas rojas a la vista | 61 |
+| la peor, Admin User | **3 000 %** |
+| tras pasarle **una** línea a Rafael Oliva | **2 900 %** |
+
+Exactamente los cien puntos de esa línea. Y hay una segunda cosa que la medición demuestra sin
+querer: **la vuelta atrás no se puede hacer por la pantalla**. Admin User sigue al 2 900 %, así que
+ya no aparece entre quienes tienen hueco, y no hay botón para devolverle la línea. La lista de
+destinos dice la verdad también cuando la verdad es incómoda. Hubo que deshacerlo por la base.
+
+Los 3 000 % no son un error de la vista: el sembrado de asignaciones le puso a esa cuenta **1 189
+líneas**, treinta de ellas activas ese mismo día. Es exactamente el trabajo huérfano que la vista
+existe para enseñar.
+
