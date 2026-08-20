@@ -17,6 +17,17 @@
  *
  * Lo que sí se impide es una dedicación **imposible**: cero o negativa no es un reparto, y por
  * encima de la jornada doble es casi siempre un dedo que resbaló en el teclado.
+ *
+ * ## Lo que este módulo NO calcula, a propósito
+ *
+ * Hubo aquí dos funciones que sumaban la dedicación de una **línea** entre todos sus recursos y
+ * avisaban si alguien pasaba de la jornada. Nadie las llamaba, y no por descuido: el párrafo de
+ * arriba dice que **la suma que importa es la del día, no la de la tarea**, y esa la calcula la
+ * matriz de carga (§8.3) y la pinta en rojo. Un aviso por tarea habría salido en cada línea con dos
+ * personas —que es lo normal— y un aviso que sale siempre deja de leerse.
+ *
+ * Se quitaron en vez de cablearlas: código que nadie llama no se comprueba contra la realidad, y el
+ * día que hiciera falta habría que releerlo entero para saber si sigue diciendo la verdad.
  */
 
 /** Jornada completa, en puntos base. */
@@ -50,28 +61,4 @@ export function comoSeLee(unitsBp: number): string {
   // Sin decimales cuando es redondo: «50 %» y no «50.0 %», que parece una medición y es una
   // división exacta.
   return Number.isInteger(porciento) ? `${porciento} %` : `${porciento.toFixed(1)} %`
-}
-
-/**
- * Cuánto suma una línea repartida entre varios, en puntos base.
- *
- * Sirve para avisar, no para impedir: que la suma pase de una jornada significa que hay más de una
- * persona en la tarea, que es lo normal, o que alguien está al 150 %, que es información.
- */
-export function dedicacionTotal(asignaciones: readonly AsignacionPropuesta[]): number {
-  return asignaciones.reduce((suma, a) => suma + a.unitsBp, 0)
-}
-
-/**
- * Qué avisar sobre el reparto de una línea.
- *
- * `null` cuando no hay nada que decir. Un aviso que sale siempre deja de leerse.
- */
-export function avisoDelReparto(asignaciones: readonly AsignacionPropuesta[]): string | null {
-  if (asignaciones.length === 0) return 'Esta línea no tiene a nadie asignado.'
-  const alguienPasado = asignaciones.find((a) => a.unitsBp > JORNADA_COMPLETA_BP)
-  if (alguienPasado) {
-    return `Hay alguien por encima de la jornada completa (${comoSeLee(alguienPasado.unitsBp)}). Saldrá en rojo en la carga.`
-  }
-  return null
 }

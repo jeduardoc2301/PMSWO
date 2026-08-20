@@ -3,9 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DEDICACION_MAXIMA_BP,
   JORNADA_COMPLETA_BP,
-  avisoDelReparto,
   comoSeLee,
-  dedicacionTotal,
   porQueNoSeAdmite,
 } from '../asignaciones'
 
@@ -65,43 +63,5 @@ describe('Cómo se lee', () => {
 
   it('con un decimal cuando no lo es', () => {
     expect(comoSeLee(3_333)).toBe('33.3 %')
-  })
-})
-
-describe('Lo que se avisa del reparto', () => {
-  it('una línea sin nadie asignado se dice', () => {
-    expect(avisoDelReparto([])).toContain('no tiene a nadie')
-  })
-
-  it('alguien por encima de la jornada se avisa, con su cifra', () => {
-    const aviso = avisoDelReparto([{ resourceId: 'r1', unitsBp: 15_000 }])
-    expect(aviso).toContain('150 %')
-  })
-
-  it('un reparto normal no dice nada', () => {
-    // Un aviso que sale siempre deja de leerse.
-    expect(
-      avisoDelReparto([
-        { resourceId: 'r1', unitsBp: 5_000 },
-        { resourceId: 'r2', unitsBp: 5_000 },
-      ]),
-    ).toBeNull()
-  })
-
-  it('que dos personas sumen más de una jornada no es un aviso', () => {
-    // Es lo normal: dos personas en la misma tarea suman dos jornadas. Lo que importa es la suma
-    // del día por persona, no la de la tarea.
-    expect(
-      avisoDelReparto([
-        { resourceId: 'r1', unitsBp: 10_000 },
-        { resourceId: 'r2', unitsBp: 10_000 },
-      ]),
-    ).toBeNull()
-    expect(
-      dedicacionTotal([
-        { resourceId: 'r1', unitsBp: 10_000 },
-        { resourceId: 'r2', unitsBp: 10_000 },
-      ]),
-    ).toBe(20_000)
   })
 })
