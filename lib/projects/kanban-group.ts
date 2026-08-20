@@ -79,8 +79,13 @@ export const CRITERIOS: readonly { readonly clave: CriterioDeAgrupacion; readonl
   { clave: 'responsable', etiqueta: 'Responsable' },
 ]
 
-/** La prioridad se ordena por urgencia, no por alfabeto: lo urgente a la izquierda. */
-const ORDEN_DE_PRIORIDAD: readonly string[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+/**
+ * La prioridad se ordena por urgencia, no por alfabeto: lo urgente a la izquierda.
+ *
+ * Se exporta porque la Lista agrupa por el mismo campo y necesita el mismo orden. Escribirlo otra
+ * vez allí es cómo el tablero y la lista acaban discrepando sin que nadie toque ninguno de los dos.
+ */
+export const ORDEN_DE_PRIORIDAD: readonly string[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
 /** Qué se enseña cuando una tarjeta no tiene responsable con nombre. */
 export const SIN_RESPONSABLE = '__sin_responsable__'

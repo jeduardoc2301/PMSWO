@@ -1,7 +1,7 @@
 import React from 'react'
 
-import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WorkItemsList } from '../work-items-list'
 
@@ -130,5 +130,157 @@ describe('§6.2 · la fila de cabecera ocupa las columnas que hay, ni una más',
   it('y apagando casi todas', () => {
     dibujar({ agruparPor: 'status', columnasElegidas: ['title', 'status'] })
     expect(celdasDeLaCabecera(screen.getByTestId('grupo-TODO'))).toBe(columnasDeLaTabla())
+  })
+})
+
+describe('§6.2 · el CSV de la vista Agrupada lleva los grupos', () => {
+  /**
+   * `exportar` sacaba las filas de `lineasPlanas`, que no depende de `agruparPor`: el archivo de la
+   * vista Agrupada era byte a byte el de la Lista —el orden del plan, sin cabeceras y sin
+   * subtotales— mientras la pantalla enseñaba los grupos. El propio archivo que exporta encabeza su
+   * documentación con «se exporta lo que se ve».
+   */
+  const original = { crear: URL.createObjectURL, soltar: URL.revokeObjectURL }
+  afterEach(() => {
+    URL.createObjectURL = original.crear
+    URL.revokeObjectURL = original.soltar
+  })
+
+  const exportar = async (sobre: Record<string, unknown>): Promise<string> => {
+    let bolsa: Blob | null = null
+    URL.createObjectURL = ((b: Blob) => {
+      bolsa = b
+      return 'blob:prueba'
+    }) as typeof URL.createObjectURL
+    URL.revokeObjectURL = (() => undefined) as typeof URL.revokeObjectURL
+
+    dibujar(sobre)
+    fireEvent.click(screen.getByTestId('exportar-lista'))
+    if (bolsa === null) throw new Error('el botón no llegó a crear el archivo')
+    return await (bolsa as Blob).text()
+  }
+
+  it('escribe una cabecera por grupo, con el nombre traducido', async () => {
+    const texto = await exportar({ agruparPor: 'status' })
+    // Titulando la fila, no en la celda de Estado: ahí «Por hacer» ya salía con el defecto puesto.
+    const titulos = cuerpo(texto).map(primeraCelda)
+    expect(titulos).toContain('Por hacer')
+    expect(titulos).toContain('En curso')
+    expect(texto).not.toContain('"TODO"')
+  })
+
+  it('y el subtotal que la cabecera enseña en pantalla', async () => {
+    // Dos líneas en «Por hacer» y una en «En curso»: los subtotales son 2 y 1.
+    const texto = await exportar({ agruparPor: 'status' })
+    expect(texto).toContain('"2 líneas"')
+    expect(texto).toContain('"1 línea"')
+  })
+
+  /** Las filas de datos: sin la línea de `sep=`, la del contexto y la de las cabeceras. */
+  const cuerpo = (texto: string): string[] => texto.split('\r\n').slice(3).filter((f) => f !== '')
+  const primeraCelda = (fila: string): string => fila.split(';')[0].slice(1, -1)
+
+  it('cada grupo lleva sus líneas detrás, en el orden de la pantalla', async () => {
+    const texto = await exportar({ agruparPor: 'status' })
+    // El archivo lleva los grupos en el orden en que la pantalla los dibuja: el del flujo de
+    // trabajo, «Por hacer» antes que «En curso». Ordenado por la cadena salían al revés.
+    expect(cuerpo(texto).map(primeraCelda)).toEqual([
+      'Por hacer',
+      'Línea a',
+      'Línea b',
+      'En curso',
+      'Línea c',
+    ])
+  })
+
+  it('cada fila tiene las mismas celdas que columnas tiene la tabla', async () => {
+    // Una cabecera corta deja la hoja con los bordes torcidos, que es de lo que se ve al abrirla.
+    const texto = await exportar({ agruparPor: 'status' })
+    const columnas = texto.split('\r\n')[2].split(';').length
+    const anchos = new Set(cuerpo(texto).map((f) => f.split(';').length))
+    expect([...anchos]).toEqual([columnas])
+  })
+
+  it('sin agrupar no aparece ninguna cabecera: la Lista se exporta como antes', async () => {
+    const texto = await exportar({})
+    // «Por hacer» sí sale, pero en la celda de Estado; lo que no puede salir es titulando una fila.
+    expect(cuerpo(texto).map(primeraCelda)).toEqual(['Línea a', 'Línea b', 'Línea c'])
+  })
+})
+
+describe('§6.3 · los grupos salen en el orden que tienen, no en el del alfabeto', () => {
+  /**
+   * Esta vista **ya calculaba `phaseRank`** —lo usa para ordenar el esquema— y al agrupar lo
+   * tiraba. El orden bueno estaba escrito en tres sitios del repositorio y este era el único que no
+   * lo usaba.
+   */
+  const claves = () =>
+    screen
+      .getAllByTestId(/^grupo-/)
+      .map((c) => c.getAttribute('data-testid')!.replace('grupo-', ''))
+
+  it('las prioridades por urgencia: «LOW» detrás de «MEDIUM»', () => {
+    render(
+      <WorkItemsList
+        projectId="p1"
+        workItems={[
+          linea('a', { priority: 'LOW' }),
+          linea('b', { priority: 'MEDIUM' }),
+          linea('c', { priority: 'CRITICAL' }),
+        ] as never[]}
+        plana
+        agruparPor="priority"
+      />,
+    )
+    expect(claves()).toEqual(['CRITICAL', 'MEDIUM', 'LOW'])
+  })
+
+  it('los estados por el flujo de trabajo, no empezando por «BLOCKED»', () => {
+    render(
+      <WorkItemsList
+        projectId="p1"
+        workItems={[
+          linea('a', { status: 'DONE' }),
+          linea('b', { status: 'BLOCKED' }),
+          linea('c', { status: 'TODO' }),
+        ] as never[]}
+        plana
+        agruparPor="status"
+      />,
+    )
+    expect(claves()).toEqual(['TODO', 'BLOCKED', 'DONE'])
+  })
+
+  it('las fases por el orden del plan, que es el revés del alfabético', () => {
+    // `templateOrder` es lo que dice en qué punto del proyecto va cada fase.
+    render(
+      <WorkItemsList
+        projectId="p1"
+        workItems={[
+          linea('a', { phase: 'Planificación', templateOrder: 10 }),
+          linea('b', { phase: 'Cierre', templateOrder: 30 }),
+          linea('c', { phase: 'Inicio', templateOrder: 0 }),
+          linea('d', { phase: 'Ejecución', templateOrder: 20 }),
+        ] as never[]}
+        plana
+        agruparPor="phase"
+      />,
+    )
+    expect(claves()).toEqual(['Inicio', 'Planificación', 'Ejecución', 'Cierre'])
+  })
+
+  it('por responsable el nombre sí es el orden: es lo que se busca con el dedo', () => {
+    render(
+      <WorkItemsList
+        projectId="p1"
+        workItems={[
+          linea('a', { ownerName: 'Zoe Ruiz' }),
+          linea('b', { ownerName: 'Ana Gómez' }),
+        ] as never[]}
+        plana
+        agruparPor="owner"
+      />,
+    )
+    expect(claves()).toEqual(['Ana Gómez', 'Zoe Ruiz'])
   })
 })

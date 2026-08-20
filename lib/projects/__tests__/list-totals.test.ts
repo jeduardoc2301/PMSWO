@@ -166,3 +166,107 @@ describe('§6.3 · resumen es tener hijas, también para la fila de totales', ()
     expect(total.horas).toBe(40)
   })
 })
+
+describe('§6.3 · el orden de los grupos no es el alfabético', () => {
+  /**
+   * La clave de grupo es el valor **crudo**, así que ordenar por la cadena sacaba los estados
+   * empezando por «BLOCKED» y las fases del plan de referencia en el orden contrario al del
+   * proyecto: «Cierre, Ejecución, Inicio, Planificación». Una lista de fases se lee como una
+   * secuencia, y esa secuencia estaba mintiendo.
+   */
+  const posicion = (lista: readonly string[]) => (clave: string) => {
+    const i = lista.indexOf(clave)
+    return i === -1 ? undefined : i
+  }
+
+  it('los estados salen en el orden del flujo de trabajo, no por la letra', () => {
+    const lineas: LineaSumable[] = [
+      linea('a', { status: 'DONE' }),
+      linea('b', { status: 'TODO' }),
+      linea('c', { status: 'BLOCKED' }),
+      linea('d', { status: 'IN_PROGRESS' }),
+    ]
+    const orden = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']
+    expect(agrupar(lineas, 'status').map((g) => g.clave)).toEqual(['BLOCKED', 'DONE', 'IN_PROGRESS', 'TODO'])
+    expect(agrupar(lineas, 'status', posicion(orden)).map((g) => g.clave)).toEqual([
+      'TODO',
+      'IN_PROGRESS',
+      'BLOCKED',
+      'DONE',
+    ])
+  })
+
+  it('las prioridades por urgencia: «LOW» va detrás de «MEDIUM», no delante', () => {
+    // Con sólo CRITICAL, HIGH y MEDIUM el alfabeto acierta por casualidad; basta una línea baja.
+    const lineas: LineaSumable[] = [
+      linea('a', { priority: 'LOW' }),
+      linea('b', { priority: 'MEDIUM' }),
+      linea('c', { priority: 'CRITICAL' }),
+    ]
+    const orden = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+    expect(agrupar(lineas, 'priority').map((g) => g.clave)).toEqual(['CRITICAL', 'LOW', 'MEDIUM'])
+    expect(agrupar(lineas, 'priority', posicion(orden)).map((g) => g.clave)).toEqual([
+      'CRITICAL',
+      'MEDIUM',
+      'LOW',
+    ])
+  })
+
+  it('las fases en el orden del plan, que es el revés del alfabético', () => {
+    const lineas: LineaSumable[] = [
+      linea('a', { phase: 'Planificación' }),
+      linea('b', { phase: 'Cierre' }),
+      linea('c', { phase: 'Inicio' }),
+      linea('d', { phase: 'Ejecución' }),
+    ]
+    const plan = new Map([['Inicio', 0], ['Planificación', 10], ['Ejecución', 20], ['Cierre', 30]])
+    expect(agrupar(lineas, 'phase').map((g) => g.clave)).toEqual([
+      'Cierre',
+      'Ejecución',
+      'Inicio',
+      'Planificación',
+    ])
+    expect(agrupar(lineas, 'phase', (c) => plan.get(c)).map((g) => g.clave)).toEqual([
+      'Inicio',
+      'Planificación',
+      'Ejecución',
+      'Cierre',
+    ])
+  })
+
+  it('una clave que el orden no conoce va detrás de las que sí, no intercalada', () => {
+    // Un estado nuevo, una fase escrita a mano: se ve que es la excepción y no se disfraza de fase.
+    const lineas: LineaSumable[] = [
+      linea('a', { phase: 'Aa inventada' }),
+      linea('b', { phase: 'Inicio' }),
+      linea('c', { phase: 'Zz inventada' }),
+    ]
+    const plan = new Map([['Inicio', 0]])
+    expect(agrupar(lineas, 'phase', (c) => plan.get(c)).map((g) => g.clave)).toEqual([
+      'Inicio',
+      'Aa inventada',
+      'Zz inventada',
+    ])
+  })
+
+  it('el cajón «Sin asignar» sigue yendo el último, aunque haya orden', () => {
+    const lineas: LineaSumable[] = [
+      linea('a', { status: null }),
+      linea('b', { status: 'DONE' }),
+      linea('c', { status: 'TODO' }),
+    ]
+    const orden = ['TODO', 'IN_PROGRESS', 'DONE']
+    const claves = agrupar(lineas, 'status', posicion(orden)).map((g) => g.clave)
+    expect(claves[claves.length - 1]).toBe(SIN_VALOR)
+  })
+
+  it('los subtotales siguen cuadrando con el total al reordenar', () => {
+    const lineas: LineaSumable[] = [
+      linea('a', { status: 'DONE', estimatedHours: 6, progressPct: 1 }),
+      linea('b', { status: 'TODO', estimatedHours: 4 }),
+      linea('c', { status: 'BLOCKED', estimatedHours: 10 }),
+    ]
+    const orden = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']
+    expect(subtotalesCuadran(agrupar(lineas, 'status', posicion(orden)), totalizar(lineas))).toBe(true)
+  })
+})

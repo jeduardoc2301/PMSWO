@@ -6,6 +6,8 @@ import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
 import { type Operacion, operacionDeBorrado, operacionDesde } from '@/lib/projects/undo-stack'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
+import { ORDEN_DE_ESTADOS } from '@/lib/projects/dashboard-metrics'
+import { ORDEN_DE_PRIORIDAD } from '@/lib/projects/kanban-group'
 import { conFechasDeResumen } from '@/lib/projects/fechas-de-resumen'
 import {
   type CampoDeGrupo,
@@ -675,14 +677,37 @@ export function WorkItemsList({
    *
    * Se exporta lo que se ve también en el sentido literal: `columnasDeLaTabla` sale de la misma
    * preferencia que dibuja las cabeceras, así que el CSV y la pantalla no pueden divergir.
+   *
+   * **Y el agrupado también se ve.** Las filas salían de `lineasPlanas`, que no depende de
+   * `agruparPor`: en formato Agrupada el archivo era byte a byte el de la Lista —el orden del plan,
+   * sin cabeceras y sin subtotales—, justo lo contrario de la frase que encabeza este comentario.
+   * Ahora salen de `filasConGrupos`, que es lo que la tabla dibuja en los dos formatos.
    */
   const exportar = (): void => {
     const columnas = columnasDeLaTabla.map((c) => ({ id: c.id, etiqueta: c.etiqueta }))
 
+    const filas = filasConGrupos.map((entrada) =>
+      entrada.tipo === 'grupo'
+        ? ({ __grupo: entrada.clave, __subtotal: entrada.subtotal } as unknown as Record<string, unknown>)
+        : (entrada.linea as unknown as Record<string, unknown>),
+    )
+    const grupos = filas.length - lineasPlanas.length
+
     const texto = csvDeLaLista({
       columnas,
-      filas: lineasPlanas as unknown as Record<string, unknown>[],
-      contexto: `${lineasPlanas.length} de ${workItems.length} líneas · ${columnas.length} de ${COLUMNAS_DE_LA_LISTA.length} columnas · ${hoyCivil()}`,
+      filas,
+      cabeceraDe: (fila) => {
+        const clave = fila.__grupo
+        if (typeof clave !== 'string') return null
+        const s = fila.__subtotal as Totales
+        // Lo mismo que dice la cabecera en pantalla, en el mismo orden en que se lee.
+        return [
+          etiquetaDeGrupo(clave),
+          `${s.lineas} ${s.lineas === 1 ? 'línea' : 'líneas'}${s.horas > 0 ? ` · ${s.horas} h` : ''}`,
+          `${Math.round(s.avance * 100)} %`,
+        ]
+      },
+      contexto: `${lineasPlanas.length} de ${workItems.length} líneas${grupos > 0 ? ` en ${grupos} ${grupos === 1 ? 'grupo' : 'grupos'}` : ''} · ${columnas.length} de ${COLUMNAS_DE_LA_LISTA.length} columnas · ${hoyCivil()}`,
       valorDe: (fila, id) => {
         const v = fila[id]
         if (v === undefined || v === null || v === '') return null
@@ -721,6 +746,28 @@ export function WorkItemsList({
   const cajaDeFilas = useRef<HTMLDivElement | null>(null)
   const [desplazamiento, setDesplazamiento] = useState(0)
 
+  // Sobre la lista completa: filtrar no debe reacomodar las fases.
+  const phaseRank = useMemo(() => buildPhaseRank(workItems), [workItems])
+
+  /**
+   * En qué orden salen los grupos, que para tres de los cuatro campos no es el alfabético.
+   *
+   * Esta vista **ya calculaba `phaseRank`** —lo usa para ordenar el esquema— y al agrupar lo tiraba:
+   * las fases del plan salían «Cierre, Ejecución, Inicio, Planificación», el revés del proyecto. Lo
+   * mismo con los estados, que se ordenaban por el valor crudo y salían empezando por «BLOCKED».
+   */
+  const rangoDeGrupo = useMemo(() => {
+    const posicion = (lista: readonly string[]) => (clave: string) => {
+      const i = lista.indexOf(clave)
+      return i === -1 ? undefined : i
+    }
+    if (agruparPor === 'status') return posicion(ORDEN_DE_ESTADOS)
+    if (agruparPor === 'priority') return posicion(ORDEN_DE_PRIORIDAD)
+    if (agruparPor === 'phase') return (clave: string) => phaseRank.get(clave)
+    // Por responsable el nombre sí es el orden: es lo que el lector busca con el dedo.
+    return undefined
+  }, [agruparPor, phaseRank])
+
   /** Las filas a dibujar: planas, o con una cabecera de grupo por medio. */
   const filasConGrupos = useMemo(() => {
     type Entrada =
@@ -731,7 +778,7 @@ export function WorkItemsList({
 
     const porId = new Map(lineasPlanas.map((l) => [l.id, l]))
     const salida: Entrada[] = []
-    for (const grupo of agrupar(sumables, agruparPor)) {
+    for (const grupo of agrupar(sumables, agruparPor, rangoDeGrupo)) {
       salida.push({ tipo: 'grupo', clave: grupo.clave, subtotal: grupo.subtotal })
       for (const sumable of grupo.lineas) {
         const linea = porId.get(sumable.id)
@@ -739,7 +786,7 @@ export function WorkItemsList({
       }
     }
     return salida
-  }, [lineasPlanas, sumables, agruparPor])
+  }, [lineasPlanas, sumables, agruparPor, rangoDeGrupo])
 
   const primeraVisible = Math.max(0, Math.floor(desplazamiento / ALTO_DE_FILA) - MARGEN_DE_FILAS)
   const ultimaVisible = Math.min(
@@ -772,8 +819,6 @@ export function WorkItemsList({
 
   const hasPhases = Object.keys(workItemsByPhase).some(key => key !== '__NO_PHASE__')
 
-  // Sobre la lista completa: filtrar no debe reacomodar las fases.
-  const phaseRank = useMemo(() => buildPhaseRank(workItems), [workItems])
   const comparePhases = useMemo(() => makePhaseComparator(phaseRank), [phaseRank])
 
   const togglePhase = (phaseName: string) => {

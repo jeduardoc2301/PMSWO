@@ -58,6 +58,15 @@ export interface OpcionesDeExportacion {
   readonly filas: readonly Record<string, unknown>[]
   readonly valorDe: ValorDeCelda
   /**
+   * Si la fila no es una línea del plan sino una cabecera de grupo, las celdas que la dicen.
+   *
+   * En pantalla la cabecera de grupo ocupa el ancho de la tabla con el nombre y el subtotal; en un
+   * CSV no hay celdas combinadas, así que se escriben en las primeras columnas y el resto va vacío.
+   * Sin esto la vista Agrupada exportaba un archivo idéntico al de la Lista —sin grupos y sin
+   * subtotales—, que es tanto como no exportar lo que se ve.
+   */
+  readonly cabeceraDe?: (fila: Record<string, unknown>) => readonly string[] | null
+  /**
    * Una línea de cabecera con el contexto: qué proyecto, qué día, cuántas de cuántas.
    *
    * Se escribe porque un CSV suelto en una carpeta de descargas no dice de qué proyecto es ni de
@@ -67,12 +76,25 @@ export interface OpcionesDeExportacion {
 }
 
 /** Arma el texto del CSV. */
-export function csvDeLaLista({ columnas, filas, valorDe, contexto }: OpcionesDeExportacion): string {
+export function csvDeLaLista({
+  columnas,
+  filas,
+  valorDe,
+  cabeceraDe,
+  contexto,
+}: OpcionesDeExportacion): string {
   const lineas: string[] = [`sep=${SEPARADOR}`]
   if (contexto !== undefined && contexto !== '') lineas.push(celda(contexto))
 
   lineas.push(columnas.map((c) => celda(c.etiqueta)).join(SEPARADOR))
   for (const fila of filas) {
+    const cabecera = cabeceraDe?.(fila) ?? null
+    if (cabecera !== null) {
+      // Se rellena hasta el ancho de la tabla: una fila corta deja la hoja con los bordes torcidos.
+      const celdas = columnas.map((_, i) => celda(cabecera[i] ?? ''))
+      lineas.push(celdas.join(SEPARADOR))
+      continue
+    }
     lineas.push(columnas.map((c) => celda(valorDe(fila, c.id))).join(SEPARADOR))
   }
 

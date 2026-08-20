@@ -3554,3 +3554,53 @@ Agrupando por Estado sobre las 1 368: la clave del grupo sigue siendo `TODO` —
 se lee es **«POR HACER»**. Y la fila de cabecera suma **10 celdas** contra las **10 columnas** de la
 tabla.
 
+
+## §6.2 · El CSV de la vista Agrupada no llevaba los grupos
+
+`exportar` sacaba las filas de `lineasPlanas`, que **no depende de `agruparPor`**. En la vista
+Agrupada el archivo salía byte a byte igual que el de la Lista: el orden del plan, sin cabeceras y
+sin subtotales, mientras la pantalla enseñaba los grupos. El propio archivo que exporta encabeza su
+documentación con «se exporta lo que se ve».
+
+Ahora las filas salen de `filasConGrupos`, que es lo que la tabla dibuja en los dos formatos, y
+`csvDeLaLista` admite una fila de cabecera. En un CSV no hay celdas combinadas, así que la cabecera
+se escribe en las primeras columnas y **se rellena hasta el ancho de la tabla**: una fila corta deja
+la hoja con los bordes torcidos.
+
+### Demostrado en pantalla
+
+Interceptando el archivo que el botón descarga, sobre las 1 368 líneas del plan de referencia:
+
+| Formato | Contexto del archivo | Cabeceras | Líneas |
+|---|---|---|---|
+| Lista | `1243 de 1368 líneas · 9 de 9 columnas` | 0 | 1 243 |
+| Agrupada | `1243 de 1368 líneas en 1 grupo · 9 de 9 columnas` | 1 | 1 243 |
+| Lista otra vez | `1243 de 1368 líneas · 9 de 9 columnas` | 0 | 1 243 |
+
+Agrupando por Prioridad salen tres cabeceras —`"Crítica";"312 líneas"`, `"Alta";"815 líneas"`,
+`"Media";"116 líneas"`— y **los subtotales suman 1 243**, las mismas líneas que el archivo lleva.
+
+## §6.3 · El alfabeto no es un orden
+
+`agrupar` ordenaba las claves con `localeCompare('es')`. La clave de grupo es el **valor crudo**, así
+que eso no es ni siquiera el orden alfabético de lo que se lee:
+
+- los estados salían `BLOCKED, DONE, IN_PROGRESS, TODO`, el revés del flujo de trabajo;
+- las prioridades ponen `LOW` delante de `MEDIUM` en cuanto hay una línea baja —con sólo
+  CRITICAL, HIGH y MEDIUM el alfabeto acierta por casualidad, y por eso no se veía;
+- las fases salían en orden alfabético, y una lista de fases se lee **como una secuencia**.
+
+El orden bueno ya estaba escrito en el repositorio en tres sitios —`ORDEN_DE_ESTADOS`,
+`ORDEN_DE_PRIORIDAD` y `buildPhaseRank`— y ésta era la única función que no lo usaba. Peor: **esta
+misma vista ya calculaba `phaseRank`** doce líneas más abajo, para ordenar el esquema, y al agrupar
+lo tiraba. Por eso el orden se recibe de fuera en vez de escribirlo aquí una cuarta vez.
+
+### Demostrado en pantalla
+
+Agrupando las 1 368 líneas por Fase salen **25 grupos**, ahora en el orden del proyecto: Inicio,
+Planificación, Ejecución, Dirección, Cierre, y después la etapa Migrate con sus **Ola 0 … Ola 10**
+en orden. Con el alfabeto, sobre esos mismos 25 nombres:
+
+- el plan **empezaba por sus dos cierres** («Cierre de la etapa Migrate», «Cierre de Mobilize»);
+- las olas salían `Ola 0, Ola 1, Ola 10, Ola 2, Ola 3, …`;
+- y **no coincidía ni una** de las 25 posiciones con el orden real.

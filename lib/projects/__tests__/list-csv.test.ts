@@ -117,3 +117,25 @@ describe('El nombre del archivo', () => {
     expect(largo.length).toBeLessThan(80)
   })
 })
+
+describe('Las cabeceras de grupo (§6.2, la vista Agrupada)', () => {
+  const conGrupos = (filas: Record<string, unknown>[]) =>
+    csvDeLaLista({
+      columnas: COLUMNAS,
+      filas,
+      valorDe,
+      cabeceraDe: (fila) => (typeof fila.grupo === 'string' ? [fila.grupo] : null),
+    })
+
+  it('la fila de grupo se escribe entera aunque solo traiga una celda', () => {
+    // En un CSV no hay celdas combinadas: una fila corta deja la hoja con los bordes torcidos.
+    const texto = conGrupos([{ grupo: 'Por hacer' }, { name: 'Migración', start: '2026-01-01' }])
+    const filas = texto.split('\r\n').filter((f) => f.startsWith('"'))
+    expect(filas.map((f) => f.split(';').length)).toEqual([2, 2, 2])
+    expect(filas[1]).toBe('"Por hacer";""')
+  })
+
+  it('sin `cabeceraDe` todas las filas son líneas: la Lista se exporta como siempre', () => {
+    expect(armar([{ name: 'Migración' }])).toContain('"Migración";""')
+  })
+})

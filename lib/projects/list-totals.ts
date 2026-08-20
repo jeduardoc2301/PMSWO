@@ -136,8 +136,28 @@ function valorDe(linea: LineaSumable, campo: CampoDeGrupo): string {
  * de ver porque las dos cifras son ciertas por separado.
  *
  * Los grupos salen ordenados por nombre, con «Sin asignar» al final: es un cajón, no una categoría.
+ *
+ * ## El alfabeto no es un orden
+ *
+ * Sólo para el responsable el nombre es el orden. Para los otros tres campos ordenar por la cadena
+ * es ordenar por algo que el lector no eligió y que además **no es lo que ve**: la clave de grupo es
+ * el valor crudo, así que los estados salían «BLOCKED, DONE, IN_PROGRESS, TODO» —el revés del flujo
+ * de trabajo—, las prioridades ponen «LOW» delante de «MEDIUM» en cuanto hay una línea baja, y las
+ * fases del plan de referencia salen «Cierre, Ejecución, Inicio, Planificación», que es
+ * exactamente el orden contrario al del proyecto. Una lista de fases leída de arriba abajo se lee
+ * como una secuencia, y esa secuencia estaba mintiendo.
+ *
+ * El orden bueno ya estaba escrito en el repositorio —`ORDEN_DE_ESTADOS`, `ORDEN_DE_PRIORIDAD` y
+ * `buildPhaseRank`—, y esta función era el único sitio que no lo usaba. Por eso se recibe de fuera
+ * en vez de escribirlo aquí una cuarta vez: quien agrupa ya sabe cuál es.
+ *
+ * @param rango Qué posición ocupa cada clave. Devolver `undefined` deja esa clave al alfabeto.
  */
-export function agrupar(lineas: readonly LineaSumable[], campo: CampoDeGrupo): readonly Grupo[] {
+export function agrupar(
+  lineas: readonly LineaSumable[],
+  campo: CampoDeGrupo,
+  rango?: (clave: string) => number | undefined,
+): readonly Grupo[] {
   const cajones = new Map<string, LineaSumable[]>()
   for (const linea of lineas) {
     const clave = valorDe(linea, campo)
@@ -150,6 +170,13 @@ export function agrupar(lineas: readonly LineaSumable[], campo: CampoDeGrupo): r
     .sort(([a], [b]) => {
       if (a === SIN_VALOR) return 1
       if (b === SIN_VALOR) return -1
+      const ra = rango?.(a)
+      const rb = rango?.(b)
+      // Una clave que el orden no conoce —un estado nuevo, una fase escrita a mano— va detrás de
+      // las que sí, no delante ni intercalada: se ve que es la excepción.
+      if (ra !== undefined && rb !== undefined && ra !== rb) return ra - rb
+      if (ra !== undefined && rb === undefined) return -1
+      if (ra === undefined && rb !== undefined) return 1
       return a.localeCompare(b, 'es')
     })
     .map(([clave, suyas]) => ({ clave, lineas: suyas, subtotal: totalizar(suyas) }))
