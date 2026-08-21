@@ -5773,3 +5773,21 @@ vocabulario, la prueba se pone roja y hay que venir a cambiarla por la que diga 
 encuentran lo mismo.
 
 Suite: 3 657 en verde.
+
+## §10.4 · La escala de hora se recuerda
+
+La sexta escala se añadió anoche y quedaba por comprobar lo que el §4.3 pide de todas ellas —«la
+escala se guarda por usuario»— con la que es nueva. Medido en pantalla, de punta a punta:
+
+| momento | el botón marcado | lo que guarda la preferencia |
+|---|---|---|
+| de partida | Mes | `"MES"` |
+| se elige Hora | Hora | `"HORA"` |
+| **se recarga la página entera** | Hora | `"HORA"` |
+| devuelta | Mes | `"MES"` |
+
+Importaba porque el valor nuevo tenía que pasar por la validación del servicio de preferencias —un
+`z.enum` con las escalas admitidas— y un valor que no esté en esa lista se rechaza en silencio: la
+escala se elegiría, se vería bien hasta recargar, y volvería a la de antes sin decir nada. Es el
+mismo tipo de fallo mudo que el filtro de esta noche, y por eso se comprueba recargando y no
+mirando la pantalla justo después de pulsar.
