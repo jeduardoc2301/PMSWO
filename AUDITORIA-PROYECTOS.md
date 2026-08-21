@@ -4115,3 +4115,55 @@ Se deja escrito y sin tocar a propósito. El arreglo no es poner otro `CeldaEdit
 —eso sería la tercera implementación de la misma celda, que es de lo que avisa el §6.4— sino que el
 esquema use la misma, con su mismo `renombrar`, sus mismas reglas de Enter y Escape y su mismo
 apunte en la pila de deshacer. Eso es trabajo de una tanda entera, no de la cola de ésta.
+
+## §6.4 · El Esquema ya renombra, y con la misma celda que las otras dos
+
+Arreglado el hallazgo de la tanda anterior. No se puso otra celda editable en el esquema —habría sido
+la tercera implementación de la misma cosa, que es justo de lo que avisa el §6.4— sino que las tres
+vistas llaman ahora a lo mismo:
+
+- la celda es `CeldaEditable`, la que ya usaban la Lista y el Gantt, con su `F2`, su Enter, su Escape
+  y su `validarNombre`;
+- lo que hace al guardar vive en `lib/projects/renombrar`, con las **cuatro decisiones** que se
+  pueden tomar mal por separado: si se escribe, cuándo se apunta, qué se apunta y qué pasa cuando el
+  servidor dice que no.
+
+Que esas cuatro tenían que vivir juntas lo demuestra su propia historia: el apunte **antes** de
+escribir apareció dos veces —una en el Esquema y otra en la Lista— con el mismo razonamiento escrito
+de otra forma. Es el defecto que deja la barra ofreciendo deshacer un cambio que nunca ocurrió.
+
+### La segunda mitad la encontró la pantalla, no las pruebas
+
+Con el arreglo puesto y las pruebas en verde, la primera medición en pantalla dijo esto: se escribía,
+el botón de deshacer se encendía… y **el nombre nuevo no aparecía**. La Lista dibuja de `workItems`,
+que es del padre y el padre sí lo recarga; el Esquema dibuja de **su propia** carga de `/schedule`,
+que ese aviso no toca.
+
+La vista ya sabía resolverlo doce líneas más abajo —la captura de avance es optimista—, así que el
+renombrado hace lo mismo: pinta el nombre nuevo sin esperar a la red y **devuelve el viejo si el
+servidor dice que no**. Dejar en pantalla un nombre que no está guardado es peor que no haber dejado
+escribir.
+
+### Demostrado en pantalla
+
+Celdas editables por formato, antes y después:
+
+| formato | antes | después | filas |
+|---|---|---|---|
+| **Esquema** (por omisión) | **0** | **127** | 127 |
+| Lista | 19 | 19 | 21 |
+| Agrupada | 18 | 18 | 21 |
+
+Y el recorrido entero sobre el plan de referencia, renombrando «Implementación Mobilize» desde el
+Esquema:
+
+| | |
+|---|---|
+| deshacer al entrar | `↶ apagado` `↷ apagado` |
+| tras `F2` | campo abierto con «Implementación Mobilize» |
+| tras escribir y pulsar Enter | **la marca está en pantalla** |
+| deshacer tras renombrar | `↶ ACTIVO` `↷ apagado` |
+| tras `Ctrl+Z` | **la marca se fue** |
+| deshacer tras deshacer | `↶ apagado` `↷ ACTIVO` |
+
+El plan de referencia queda verificado y sin ninguna línea con la marca de prueba.

@@ -343,3 +343,59 @@ describe('La marca de la ruta súper crítica', () => {
     expect(screen.queryByTestId('super-presenta')).not.toBeInTheDocument()
   })
 })
+
+describe('§6.2, §6.4 · en el Esquema también se renombra, y con la misma celda', () => {
+  /**
+   * El nombre se podía editar en los formatos Lista y Agrupada y aquí no, **siendo éste el formato
+   * por omisión**: la vista en la que aterriza quien entra por primera vez. Medido en pantalla antes
+   * de arreglarlo: el Esquema dibujaba 127 filas con **cero** celdas editables y la Lista 21 con 19.
+   *
+   * La celda es la misma que usan las otras dos y lo que hace al guardar también. Poner otra aquí
+   * habría sido la tercera implementación, que es justo de lo que avisa el §6.4.
+   */
+  it('sin `onRenombrar` la celda es texto, como antes', () => {
+    // Quien monta esta vista sin la capacidad de renombrar sigue viendo lo de siempre.
+    const { container } = dibujar()
+    expect(container.querySelectorAll('[data-editable]')).toHaveLength(0)
+    expect(screen.getByText('Presentar el plan de trabajo')).toBeInTheDocument()
+  })
+
+  it('con `onRenombrar` cada línea estrena su celda editable', () => {
+    const { container } = dibujar({ onRenombrar: vi.fn() })
+    expect(container.querySelectorAll('[data-editable]').length).toBeGreaterThan(0)
+  })
+
+  it('F2 la abre, como en cualquier hoja de cálculo', () => {
+    // Con teclado no hay doble pulsación: sin F2 esta columna sería inaccesible sin ratón.
+    dibujar({ onRenombrar: vi.fn() })
+    const celda = screen.getByRole('button', { name: 'Presentar el plan de trabajo' })
+    fireEvent.keyDown(celda, { key: 'F2' })
+    expect(screen.getByDisplayValue('Presentar el plan de trabajo')).toBeInTheDocument()
+  })
+
+  it('al confirmar avisa con el identificador de la línea y el nombre nuevo', () => {
+    const onRenombrar = vi.fn()
+    dibujar({ onRenombrar })
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Presentar el plan de trabajo' }), { key: 'F2' })
+    const campo = screen.getByDisplayValue('Presentar el plan de trabajo')
+    fireEvent.change(campo, { target: { value: 'Presentar el plan al banco' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(onRenombrar).toHaveBeenCalledWith('presenta', 'Presentar el plan al banco')
+  })
+
+  it('un nombre vacío no se guarda: la validación es la misma que en la Lista', () => {
+    const onRenombrar = vi.fn()
+    dibujar({ onRenombrar })
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Presentar el plan de trabajo' }), { key: 'F2' })
+    const campo = screen.getByDisplayValue('Presentar el plan de trabajo')
+    fireEvent.change(campo, { target: { value: '   ' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    expect(onRenombrar).not.toHaveBeenCalled()
+  })
+
+  it('los resúmenes también se renombran: son líneas del plan como las demás', () => {
+    const onRenombrar = vi.fn()
+    dibujar({ onRenombrar })
+    expect(screen.getByRole('button', { name: 'Inicio del plan' })).toBeInTheDocument()
+  })
+})

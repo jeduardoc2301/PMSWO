@@ -35,6 +35,7 @@ import { classifySuperCritical } from '@/lib/scheduling/critical-path'
 import { ganttLayout } from '@/lib/scheduling/gantt'
 import { programarConALAP } from '@/lib/scheduling/alap'
 import { WorkItemsOutline } from '@/components/projects/work-items-outline'
+import { renombrarLinea } from '@/lib/projects/renombrar'
 import { type Operacion, operacionDeBorrado, operacionDesde } from '@/lib/projects/undo-stack'
 import type { ModoDeRollup } from '@/lib/scheduling/rollup-modos'
 import { hoyCivil } from '@/lib/formato-fecha'
@@ -774,6 +775,49 @@ export function WorkItemsView({
             ausencias={estado.plan.ausencias}
             modoDeRollup={estado.plan.progressRollup}
             onModoDeRollupChange={cambiarModoDeRollup}
+            /**
+             * La misma funcion que usa la Lista (§6.4): renombrar tiene cuatro decisiones y
+             * tenerlas escritas dos veces es como acaban comportandose distinto.
+             *
+             * Y **optimista, como la captura de avance**, que es lo que este mismo archivo ya hacia
+             * doce lineas mas abajo. Aqui hizo falta descubrirlo midiendo: con solo llamar a
+             * `onWorkItemCreated` la escritura ocurria y el deshacer se armaba, pero **el nombre
+             * nuevo no aparecia en pantalla**. La Lista dibuja de `workItems`, que es del padre y el
+             * padre si lo recarga; el Esquema dibuja de su propia carga de `/schedule`, que ese aviso
+             * no toca.
+             *
+             * Si el servidor dice que no, se devuelve el nombre viejo: dejar en pantalla uno que no
+             * esta guardado es peor que no haber dejado escribir.
+             */
+            onRenombrar={(id, titulo) => {
+              const anterior = estado.fase === 'listo'
+                ? estado.plan.tasks.find((t) => t.id === id)?.name
+                : undefined
+              const poner = (nombre: string | undefined) => {
+                if (nombre === undefined) return
+                setEstado((previo) =>
+                  previo.fase === 'listo'
+                    ? {
+                        fase: 'listo',
+                        plan: {
+                          ...previo.plan,
+                          tasks: previo.plan.tasks.map((t) => (t.id === id ? { ...t, name: nombre } : t)),
+                        },
+                      }
+                    : previo,
+                )
+              }
+              poner(titulo)
+              void renombrarLinea({
+                id,
+                titulo,
+                anterior,
+                apuntar: onApuntarOperacion,
+                recargar: onWorkItemCreated,
+              }).then((escribio) => {
+                if (!escribio) poner(anterior)
+              })
+            }}
             cutoff={estado.plan.progressCutoff ?? hoyCivil()}
             cutoffFrozen={estado.plan.progressCutoff !== null}
             onCutoffChange={cambiarCorte}

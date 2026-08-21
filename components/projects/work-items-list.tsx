@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2, GripVertical } from 'lucide-react'
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
 import { type Operacion, operacionDeBorrado, operacionDesde } from '@/lib/projects/undo-stack'
+import { renombrarLinea } from '@/lib/projects/renombrar'
 import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
 import { ORDEN_DE_ESTADOS } from '@/lib/projects/dashboard-metrics'
 import { ORDEN_DE_PRIORIDAD } from '@/lib/projects/kanban-group'
@@ -617,45 +618,24 @@ export function WorkItemsList({
   const tramoDelMedio = columnasDeLaFila - 1 - tramoDelAvance
   const visible = (id: string) => encendidas.has(id)
 
+  /**
+   * Renombrar, con la **misma** función que el Esquema (§6.4).
+   *
+   * Aquí vivían las cuatro decisiones —escribir, apuntar después, qué apuntar y recargar aunque
+   * falle— y el Esquema no las tenía: en el formato por omisión no se podía renombrar. Copiarlas
+   * allí habría sido la segunda copia; están en `lib/projects/renombrar` y las dos llaman a lo
+   * mismo. El porqué de cada una está escrito allí.
+   */
   const renombrar = async (id: string, titulo: string): Promise<void> => {
-    const anterior = workItems.find((w) => w.id === id)?.title
-    if (anterior === titulo) return
-    try {
-      const r = await fetch(`/api/v1/work-items/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: titulo }),
-      })
-      if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      /**
-       * Se apunta **después** de que la escritura salga bien.
-       *
-       * Estaba antes, con el argumento de que «si la escritura falla, la recarga devuelve la
-       * pantalla a lo que hay en la base y el apunte queda inocuo». No queda inocuo: la pantalla
-       * vuelve, pero **la pila se queda con la entrada**, y la barra ofrece deshacer un cambio que
-       * nunca ocurrió. Es la segunda vez que aparece — la primera fue en el Esquema, con el mismo
-       * razonamiento escrito de otra forma.
-       *
-       * Lo que lo hace un defecto y no una molestia: la cabecera del gancho dice que la pila sólo
-       * avanza si la escritura salió bien, precisamente para que deshacer sea de fiar. Quien apunta
-       * también tiene que cumplirlo.
-       */
-      onApuntarOperacion?.(
-        operacionDesde(
-          `Renombrar «${(anterior ?? id).slice(0, 40)}»`,
-          [{ id, title: anterior }],
-          [{ id, title: titulo }],
-        ),
-      )
-      // Lo mismo que hace el diálogo al guardar: recargar las líneas y el plan. Sin esto la celda
-      // enseñaría el nombre nuevo y el panel de detalle el viejo.
-      onWorkItemCreated?.()
-    } catch {
-      // Si no se pudo escribir, la tabla se vuelve a dibujar con lo que había: mejor que dejar en
-      // pantalla un nombre que no está en la base.
-      onWorkItemCreated?.()
-    }
+    await renombrarLinea({
+      id,
+      titulo,
+      anterior: workItems.find((w) => w.id === id)?.title,
+      apuntar: onApuntarOperacion,
+      recargar: onWorkItemCreated,
+    })
   }
+
 
   /**
    * Exportar lo que se está viendo (§6.2).

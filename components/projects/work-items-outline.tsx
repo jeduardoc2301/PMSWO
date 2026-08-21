@@ -23,6 +23,7 @@
 
 import React, { useMemo, useRef, useState } from 'react'
 
+import { CeldaEditable, validarNombre } from '@/components/plan/celda-editable'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import {
   type DefinicionDeCalendario,
@@ -94,6 +95,19 @@ export interface WorkItemsOutlineProps {
    * las seis vistas comparten el resultado, que es justo lo que hace que sea *el mismo* filtro.
    */
   readonly idsVisibles?: ReadonlySet<string>
+  /**
+   * Renombrar una linea desde la celda del nombre (§6.2, §6.4).
+   *
+   * Sin ella la celda se dibuja como texto, que es lo que hacia esta vista **entera**: el nombre se
+   * podia editar en los formatos Lista y Agrupada y aqui no, siendo este el formato por omision.
+   * Medido en pantalla: el Esquema dibujaba 127 filas con **cero** celdas editables y la Lista 21
+   * con 19.
+   *
+   * La celda es la misma que usan las otras dos —`CeldaEditable`— y lo que hace al guardar tambien:
+   * `lib/projects/renombrar`. Poner otra aqui habria sido la tercera implementacion de la misma
+   * celda, que es justo de lo que avisa el §6.4.
+   */
+  readonly onRenombrar?: (id: string, titulo: string) => void
 }
 
 /**
@@ -141,6 +155,7 @@ export function WorkItemsOutline({
   desvios,
   barraDeLineaBase,
   idsVisibles,
+  onRenombrar,
 }: WorkItemsOutlineProps): React.JSX.Element {
   // ── El filtro se aplica al dibujar, nunca antes de programar ─────────────────────────────────
   // La primera versión recortaba las tareas y se las pasaba al motor. El motor recibía entonces los
@@ -349,6 +364,7 @@ export function WorkItemsOutline({
                 onEditItem={onEditItem}
                 onDeleteItem={onDeleteItem}
                 onAddChild={onAddChild}
+                onRenombrar={onRenombrar}
                 cutoff={cutoff}
                 calendar={base.calendar}
                 onToggle={alternar}
@@ -391,6 +407,7 @@ function Linea({
   onEditItem,
   onDeleteItem,
   onAddChild,
+  onRenombrar,
 }: {
   row: GanttRow
   wbs: string
@@ -406,6 +423,7 @@ function Linea({
   onEditItem?: (id: string) => void
   onDeleteItem?: (id: string) => void
   onAddChild?: (parentId: string) => void
+  onRenombrar?: (id: string, titulo: string) => void
 }) {
   // La fórmula del archivo, sobre las fechas del motor. En un resumen la duración es su lapso en
   // días hábiles y el avance es el acumulado ponderado — la misma pareja (G, H) que el archivo usa
@@ -449,12 +467,22 @@ function Linea({
               className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
             />
           ) : null}
-          <span
-            className={`truncate ${row.isSummary ? 'font-medium text-tinta' : 'text-tinta-2'}`}
-            title={row.name}
-          >
-            {row.name}
-          </span>
+          {onRenombrar ? (
+            <CeldaEditable
+              texto={row.name}
+              valor={row.name}
+              etiqueta={`Nombre de «${row.name}»`}
+              validar={validarNombre}
+              onGuardar={(v) => onRenombrar(row.id, v)}
+            />
+          ) : (
+            <span
+              className={`truncate ${row.isSummary ? 'font-medium text-tinta' : 'text-tinta-2'}`}
+              title={row.name}
+            >
+              {row.name}
+            </span>
+          )}
         </div>
       </td>
       <td className="truncate px-3 py-1.5 text-tinta-2" title={tipoDeLinea(row)}>{tipoDeLinea(row)}</td>
