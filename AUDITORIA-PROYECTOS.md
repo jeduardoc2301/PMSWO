@@ -4769,3 +4769,29 @@ list`.
 Es **exactamente** el mismo error de la tanda 40, con el mismo síntoma. Está anotado en la bitácora y
 lo repetí igual. Que una lección esté escrita no basta si lo que hay que cambiar es un reflejo: el
 reflejo es escribir código legible en un comentario, y aquí ese hábito rompe la cadena.
+
+## §4.4 · Crear un vínculo y quitarlo
+
+El §13 pide «dependencias FS/SS/FF/SF con lag, creadas arrastrando y editables en el detalle». El
+rechazo de ciclos ya estaba demostrado; faltaba el camino que **sí** debe funcionar:
+
+| paso | resultado |
+|---|---|
+| vínculos antes | **1 665** |
+| crear uno FS entre dos hojas libres | **201**, con su id |
+| releer el plan | **1 666** · el nuevo **está** |
+| quitarlo | **200** · quedan **1 665** → **limpio** |
+
+El par se eligió con cuidado: dos hojas seguidas en el orden del plan, sin vínculo entre ellas en
+ninguna dirección y con la primera terminando antes de que la segunda empiece. Así el vínculo es
+válido y no reprograma nada.
+
+La limpieza se comprobó **contando**, y el plan de referencia verifica entero después: 1 368 líneas y
+1 665 vínculos.
+
+### Sin sondas equivocadas esta vez
+
+Primera tanda de la noche en la que la medición sale a la primera. Las tres reglas que costaron ocho
+errores se aplicaron antes de escribir: leer el esquema de la ruta —`predecessorId` y `successorId`
+por consulta en el `DELETE`—, nada de acentos graves dentro de la expresión, y contar después de
+limpiar en vez de fiarse del código de estado.
