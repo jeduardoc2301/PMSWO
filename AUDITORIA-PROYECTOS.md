@@ -5319,3 +5319,47 @@ no pasa por el sitio que uno cree estar probando no prueba nada, y sólo se desc
 reparto tiene ahora su propia prueba, y ésa sí se pone roja.
 
 Suite: 3 617 en verde.
+
+## §2.1 · El avance en puntos base, y una celda que se comía el tercio
+
+Diez mil puntos base son el cien por cien, y un tercio son 3 333: un entero exacto donde
+`0.3333333333333333` es una aproximación que no sobrevive a una suma. `WorkItem.progressBp` guarda
+los enteros y manda; `progressPct` se mantiene al día en **la misma escritura**, venga el dato en la
+unidad que venga, para que no puedan separarse.
+
+### Lo que arregla en pantalla, que no era cosmético
+
+La celda enseñaba `Math.round(avance × 100)` y —esto es lo que importa— **se abría con ese número
+redondeado**. Capturar un tercio y volver a tocar la celda lo convertía en un 33 % redondo sin que
+nadie lo decidiera: el dato fino sólo sobrevivía mientras nadie mirara.
+
+Ahora dice la cifra que hay: «33,33 %» cuando hay un tercio y «50 %» cuando hay medio, sin ceros de
+relleno —«12,5» y no «12,50»—, porque los ceros de relleno prometen una precisión que nadie capturó.
+
+Y el deshacer guarda puntos base: con el porcentaje en coma flotante, deshacer un tercio devolvía
+`0.3333333333333333` en vez del 3 333 que había.
+
+### Una trampa que casi cuela
+
+El acoplamiento con el Tablero —capturar el 100 % mueve la tarjeta a la columna terminal— miraba
+sólo `progressPct`. Con la unidad nueva, capturar el 100 % en puntos base habría movido el número y
+**no** la tarjeta: la línea diría «terminada» con la tarjeta en «Backlog», que es exactamente la
+contradicción que ese acoplamiento existe para evitar, **reintroducida por la puerta de atrás de una
+unidad nueva**. Es el riesgo de toda migración aditiva y conviene tenerlo escrito: el camino viejo
+sigue funcionando y el nuevo se salta lo que colgaba de él.
+
+### Medido en pantalla
+
+| paso | lo que dijo |
+|---|---|
+| de partida | 0 % |
+| se escribe «33,33» | **33,33 %** |
+| se recarga la página entera | **33,33 %** |
+| lo que guarda la base | `progress = 0.3333` |
+| el campo vuelve a abrirse con | **«33,33»**, no «33» |
+| devuelta a cero | 0 %, y el plan verifica con cero líneas con avance |
+
+El respaldo (`scripts/rellenar-avance-bp.ts`) es idempotente y en el plan de referencia no escribe
+nada, que es lo correcto: no hay avance capturado que traducir.
+
+Suite: 3 626 en verde.
