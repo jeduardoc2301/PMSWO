@@ -4716,3 +4716,29 @@ Van seis en dos noches. La sexta tuvo consecuencia, y la anoto: **la fila de pru
 escrita** porque mi borrado falló, y hubo que quitarla por la base. El plan de referencia no se tocó
 —`SavedFilter` no es plan— pero la lección es que **una medición que escribe necesita su limpieza
 comprobada, no supuesta**. La comprobé: quedan 0 filtros guardados.
+
+## §4.6 · Líneas base: crear, listar, comparar y borrar
+
+El §13 pide «líneas base: crear, listar, seleccionar una, comparar en grid y en timeline». Hasta
+ahora sólo se había usado la foto que ya existía. El ciclo entero, contra la API real:
+
+| paso | resultado |
+|---|---|
+| listar antes | **200** · 1 foto («Plan comprometido con el banco») |
+| crear | **201** con su id |
+| comparar | **200** · 1 368 líneas, **las 1 368 con foto** |
+| borrar | **200** · quedan 1, las mismas que antes → **limpio** |
+
+Esta vez la limpieza se comprobó contando, que es la lección de la tanda anterior. Y el plan de
+referencia verifica entero después.
+
+### La cifra que NO doy por buena
+
+Mi sonda dijo «1 368 movidas contra la foto», lo cual es imposible en una foto recién tomada. Fui a
+mirar la forma de la respuesta antes de escribirlo como hallazgo: cada línea es
+`{ id, base, hoy: { start, finish, durationDays } }`, y yo comparaba `l.base.start` contra `l.start`
+—que no existe— en vez de contra **`l.hoy.start`**. Con `undefined` a un lado, las 1 368 «se habían
+movido».
+
+Séptima sonda equivocada. **El recorrido crear-listar-comparar-borrar queda demostrado; el número de
+líneas movidas contra una foto, no** — y no lo apunto como medido hasta volver con el campo correcto.
