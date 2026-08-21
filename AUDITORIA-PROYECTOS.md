@@ -4795,3 +4795,35 @@ Primera tanda de la noche en la que la medición sale a la primera. Las tres reg
 errores se aplicaron antes de escribir: leer el esquema de la ruta —`predecessorId` y `successorId`
 por consulta en el `DELETE`—, nada de acentos graves dentro de la expresión, y contar después de
 limpiar en vez de fiarse del código de estado.
+
+## §4.4 · Los cuatro tipos de vínculo, censados sobre el plan real
+
+Medición no destructiva sobre los 1 665 vínculos del plan de referencia:
+
+| tipo | cuántos | con desfase |
+|---|---|---|
+| SS | **802** | 117 |
+| FS | **704** | 277 |
+| FF | **159** | — |
+| **SF** | **0** | — |
+
+Los tres primeros están bien representados y **394 vínculos llevan desfase**, que es lo que hace que
+el §3.2 —«`lag` positivo = retraso, negativo = adelanto»— no sea teoría en este plan.
+
+### Lo que el censo deja claro
+
+**No hay ni un solo vínculo SF.** El motor lo soporta —hay pruebas suyas en `cpm.test.ts` y su fila
+en la tabla de anclajes— pero **contra datos reales no se ha ejercitado nunca**, porque el plan de
+referencia no usa ese tipo. Es el único de los cuatro del que no puedo decir «se ve funcionando en el
+plan», y lo dejo escrito como tal.
+
+### Novena sonda equivocada
+
+Quise comprobar que cada tipo se respeta leyendo `start` y `finish` de las tareas de `/schedule`, y
+salieron `undefined`. No es un defecto: **esa ruta devuelve el plan de entrada, no el resultado**.
+`PlanTask` lleva `id`, `name` y `duration`; las fechas las calcula el motor en el cliente, que es
+justo la arquitectura del §3.0 —el motor corre en el navegador para que plegar y filtrar no cueste
+red—.
+
+Confundí la entrada con el resultado. La comprobación por tipo queda **sin medir**, y no se apunta
+como cumplida.
