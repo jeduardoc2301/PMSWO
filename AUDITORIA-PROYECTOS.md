@@ -5363,3 +5363,41 @@ El respaldo (`scripts/rellenar-avance-bp.ts`) es idempotente y en el plan de ref
 nada, que es lo correcto: no hay avance capturado que traducir.
 
 Suite: 3 626 en verde.
+
+## §2.1 · Una línea puede empezar a las dos de la tarde
+
+Es el ejemplo que pone el spec al pedir que las fechas lleven hora, y era lo único que quedaba por
+poder decir: el motor calculaba en minutos desde hace tres tandas, pero ninguna línea podía
+**declarar** su hora. `WorkItem.startMinute` la guarda en minutos desde la medianoche, y el ancla
+que el servicio pone en cada línea la lleva hasta el motor.
+
+Va al lado de la fecha y no dentro: la columna es `DATE` y cambiarla a `DATETIME` obliga a revisar
+cada sitio que la lee, la compara o la escribe. El dato que faltaba es la hora, y es la hora lo que
+se añade.
+
+Una hora en la que no se trabaja se normaliza a la apertura: amarrar a las siete de la mañana es
+amarrar a las nueve, no adelantar la jornada. Sin eso, la línea diría que empieza a una hora en la
+que no hay nadie.
+
+**Medido en pantalla**, sobre una línea creada para la medición y borrada después —el plan vuelve a
+1 368 líneas y 1 665 vínculos—: cuatro horas de duración y las 14:00 declaradas dan **«Del
+2026-06-15 14:00 al 2026-06-15 18:00 · dura 4 h»**.
+
+### Lo que esto no entrega
+
+El §2.1 pide `timestamptz` con la zona del proyecto aplicada al presentar. Aquí no hay zonas —el
+sistema es deliberadamente sin huso, y está escrito en `reloj.ts`—, así que lo entregado es la
+**capacidad** (una línea con hora) y no la **forma** (fecha y hora en una sola columna, con zona).
+Elegir la zona de un proyecto es una decisión de producto, no una migración, y no se toma mientras
+el dueño duerme.
+
+### Una que casi cuela por atajar
+
+El bloque de la columna nueva se coló en `Project` en vez de en `WorkItem`: el par
+`startDate`/`estimatedEndDate` aparece en los **dos** modelos y reemplacé la primera aparición. Lo
+delató el compilador —dos errores de tipos que no estaban en la línea base— y no la lectura del
+resultado. Es la segunda vez esta noche que la cuenta total de errores de `tsc` sirve de red: filtrar
+esa salida por los archivos que uno cree haber tocado es exactamente cómo se esconde lo que uno no
+sabe que tocó.
+
+Suite: 3 631 en verde.
