@@ -4230,3 +4230,33 @@ mío y lo comprobé antes de acusar al código**:
 
 Anoche tres sondas equivocadas se convirtieron en tres hallazgos falsos. Hoy dos se quedaron en dos
 sondas equivocadas.
+
+## §5.4 · Mover a Terminado pone el avance al 100 %, medido
+
+Barrido activo del Tablero, el último de las seis vistas. **No hay defecto.**
+
+Agrupado por Estado —Backlog, To Do, In Progress, Blockers, Done—, arrastrando la tarjeta «1.1»
+(«Inicio: presentar y aprobar el plan de trabajo de Mobilize») de Backlog a Done:
+
+| | antes | después |
+|---|---|---|
+| avance de la tarjeta | **0 %** | **100 %** |
+| pastilla de atraso | −6,0 d | desaparece |
+| tarjetas en Done | 0 | 1 |
+| avisos en consola | — | ninguno |
+
+El criterio del §5.4 dice «al instante», y así es: la cifra cambia sin recargar, porque el tablero
+calcula el avance nuevo con **la misma función que el servidor** y lo pinta antes de que la respuesta
+vuelva.
+
+### Restaurado
+
+Esta medición sí escribe, y el verificador lo cazó: `conAvance 1` contra el 0 esperado. Se devolvió
+la línea a `BACKLOG` con avance cero y su columna original, y el plan vuelve a verificar entero.
+
+### Las seis vistas, recorridas también en activo
+
+Con ésta se cierra el barrido activo: **Lista** (renombrar y deshacer), **Esquema** (el defecto que
+se arregló en la tanda 38), **Gantt** (arrastrar una barra hasta el diálogo con sus cifras),
+**Calendario** (pintar un rango y abrir el alta con las fechas puestas), **Carga de trabajo** (los
+tres modos) y **Tablero** (mover a Terminado). Un defecto encontrado y arreglado; el resto, en pie.
