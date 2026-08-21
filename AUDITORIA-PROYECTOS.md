@@ -5868,3 +5868,41 @@ trabajo largo, no una reparación—:
 | la carga no mira los minutos | cambia una cifra que se mira a diario |
 
 Suite: 3 658 en verde.
+
+## §8 · La carga contaba jornadas que nadie trabaja
+
+Dos cosas, encontradas al llevar a la vista de Carga la misma lupa de la unidad.
+
+### Un punto de control también es un hito
+
+La clasificación miraba `kind === 'HITO'` y `PUNTO_DE_CONTROL` es la otra clase de hito. Medido en el
+plan de referencia: **23 líneas, las 23 con asignación**, cada una metiendo una jornada de carga que
+nadie trabaja.
+
+Es exactamente lo que el campo `isMilestone` existe para evitar —está escrito en su comentario, con
+los 86 hitos que lo causaron la primera vez— entrando por la puerta de al lado. **Quinta vez que este
+atajo muerde en este repositorio**, y las cinco por lo mismo: preguntar por un valor de `kind` en vez
+de por la clase.
+
+### Y la carga no miraba los minutos
+
+Pesaba una jornada por cada día que abarca la línea, así que media jornada al 100 % de dedicación
+cargaba ocho horas donde consume cuatro. Ahora reparte `duracionMin` entre los días hábiles que
+abarca, con la jornada de quien la trabaja como **techo** — y ese techo es lo que hace que una línea
+de jornadas enteras cargue exactamente lo que cargaba antes, incluida la persona con jornada de siete
+horas.
+
+### La rotura que no se puso roja
+
+Al validar rompiendo, la segunda siguió verde: ninguna prueba cubría la clasificación **en el
+servicio**, sólo el cálculo puro. Es la segunda vez esta noche que pasa lo mismo —la primera fue el
+reparto de los vínculos al panel— y la lección es idéntica: el arreglo vive en el cableado, así que
+la prueba tiene que pasar por el cableado.
+
+### Lo que queda por demostrar
+
+La vista dibuja sus 651 celdas con el arreglo puesto, pero no comparé celda a celda el antes y el
+después. La cifra que cambia —la carga diaria de cada persona— merece esa comparación con luz de día
+y no de madrugada.
+
+Suite: 3 665 en verde.
