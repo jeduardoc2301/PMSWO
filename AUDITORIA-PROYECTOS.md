@@ -4897,3 +4897,39 @@ que lee `work_items` directamente. Que las tres den 116 es lo que hace creíble 
 Es además el caso que el spec teme: la definición de «terminada» está en `estaTerminada`, una sola
 función, y por eso las dos pantallas no pueden separarse. Con «avance por debajo del 100 %» a secas
 coincidirían **por casualidad** hasta el día que existiera una línea cerrada al 50 %.
+
+## §2 · Empieza la migración a minutos: el cimiento
+
+La única pieza que quedaba de verdad, y está autorizada desde el 19 de agosto. Se empieza por lo que
+todo lo demás va a usar: `lib/scheduling/unidades.ts`, puro y probado con aritmética, sin tocar el
+esquema ni las vistas.
+
+El §2 da la razón sin rodeos: «los días decimales (`2.5`) hacen imposible el cálculo exacto con
+jornadas partidas y provocan **deriva acumulada**». Y el módulo la demuestra:
+
+| | |
+|---|---|
+| media jornada de ocho horas | **240** minutos |
+| media jornada de siete | **210** minutos |
+| 1 300 medias jornadas sumadas | **exactamente 650 días** |
+
+Esa diferencia entre 240 y 210 es la que «0,5 días» pierde, y sumada mil trescientas veces mueve el
+cierre del plan sin que nadie sepa por qué.
+
+Lleva además el `Work = Duration × Units` del §3.5 con el ejemplo verificado del spec —32 h con dos
+personas a jornada completa son dos días— y una jornada imposible **truena** en vez de devolver un
+`NaN` que se colaría hasta el cronograma.
+
+### Dos correcciones mías, y la segunda es la que importa
+
+**La primera:** escribí una prueba esperando que 120 minutos se leyeran «0,25 d» y el módulo devuelve
+«2 h». El módulo tenía razón — su propia regla es «la unidad más grande **que no mienta**», y
+«0,25 d» obliga a saber la jornada del proyecto mientras que «2 h» se entiende solo. Corregí la
+prueba, no el código.
+
+**La segunda:** probé el redondeo con un tercio de jornada, que da 160 justos. Al romper el arreglo
+—quitar el `Math.round`— la prueba **siguió en verde**: no estaba probando nada. Un séptimo sí sirve,
+480/7 son 68,571…, y con ese caso la prueba se pone roja al romperlo.
+
+Es la regla de esta sesión aplicada a mí mismo: **una prueba que no cae cuando el arreglo se rompe no
+existe**. La escribí, la validé, no cayó, y hubo que rehacerla.
