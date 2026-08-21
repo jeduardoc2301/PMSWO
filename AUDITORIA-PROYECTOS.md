@@ -5280,3 +5280,42 @@ vínculo (`lag_days`), el progreso (`Float` en vez de *basis points*) y las fech
 `DATE` y no pueden guardar una hora aunque el motor la calcule.
 
 Suite: 3 607 en verde.
+
+## §2.2 · El desfase de un vínculo, en minutos
+
+«Espera dos horas a que fragüe» no era decible: la columna guardaba días, así que había que elegir
+entre «cero días» y «un día», y las dos son falsas. `TaskDependency.lagMinutes` guarda el desfase
+fino —nulo cuando no lo hay— y el motor lo prefiere sobre los días, que pasan a ser su redondeo.
+
+Va **al lado** de `lag_days` y no en su lugar: el dato en días es el que entienden la importación
+del archivo, la exportación y el resto de las vistas.
+
+### Se dice en la unidad que no miente
+
+El rótulo de la flecha y la lista de vínculos del panel dicen **«FS +2 h»** donde antes decían «FS»
+a secas, y «+1 d» cuando el desfase sí es una jornada. La jornada del proyecto decide qué es un día:
+420 minutos son «+1 d» donde la jornada dura siete horas y «+7 h» donde dura ocho.
+
+### Lo que destapó, y que sólo se ve con horas
+
+Una línea empujada por un desfase de dos horas **empieza a las 11:00**, así que su jornada de
+trabajo se derrama al día siguiente: ocupa dos días de calendario y trabaja uno. El panel decía
+«Del 2026-06-16 al 2026-06-17 · 1 día hábil», que se lee como una contradicción.
+
+Ahora, cuando la línea no encaja con la jornada, las horas van **dentro** de las fechas: «Del
+2026-06-16 11:00 al 2026-06-17 11:00 · 1 día hábil». La fila lo dice con un campo propio
+—`alineadaConLaJornada`— en vez de que cada vista lo deduzca: casi todas las líneas encajan, y por
+eso las vistas pueden seguir hablando de días sin mentir.
+
+**Medido en pantalla**, sobre dos líneas creadas para la medición y borradas después —el plan vuelve
+a 1 368 líneas y 1 665 vínculos—: el vínculo se rotula «FS +2 h» en el panel de las dos, y la
+sucesora dice «Del 2026-06-16 11:00 al 2026-06-17 11:00».
+
+### Una rotura que no se puso roja
+
+Al validar las dos correcciones rompiéndolas, la segunda siguió verde: la prueba del rótulo le pasa
+al panel **la lista ya hecha**, así que no tocaba el reparto donde el dato se perdía. Una prueba que
+no pasa por el sitio que uno cree estar probando no prueba nada, y sólo se descubre rompiéndolo. El
+reparto tiene ahora su propia prueba, y ésa sí se pone roja.
+
+Suite: 3 617 en verde.
