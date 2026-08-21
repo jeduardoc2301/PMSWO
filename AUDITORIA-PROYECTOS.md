@@ -5818,3 +5818,22 @@ alguna de las capturas de avance de la noche todavía puesta —un avance captur
 y baja la diferencia, y 45,7 < 45,8 encaja con eso—, pero **no lo comprobé**, y una hipótesis que
 encaja no es una medición. Queda anotado como hilo abierto y no como defecto: todas las lecturas en
 estado estable coinciden, y ninguna de las otras cifras se movió.
+
+## §9 · La décima, cerrada con una medición
+
+El hilo abierto de la tanda anterior —el retraso que pasó de 45,7 % a 45,8 % entre dos lecturas—
+tenía una hipótesis razonable y ninguna prueba. Ahora la tiene:
+
+| estado | lo que dice el Panel |
+|---|---|
+| limpio | ▼ **45,8 %** de retraso |
+| con una línea al 100 % | ▼ **45,6 %** |
+| devuelta a cero | ▼ **45,8 %** |
+
+Una captura de avance **baja** la diferencia, que es lo que tiene que pasar, y la cifra vuelve
+exactamente a su sitio al deshacerla. Así que la lectura de 45,7 se tomó con alguna de las capturas
+de la noche todavía puesta: la explicación era correcta y ahora está medida.
+
+Lo que se lleva de aquí no es la décima, que no era un defecto. Es que **una hipótesis que encaja se
+parece mucho a una medición y no lo es**, y que comprobarla costó tres lecturas de pantalla — menos
+de lo que cuesta arrastrar una explicación inventada durante semanas.
