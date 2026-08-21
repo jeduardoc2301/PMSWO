@@ -5429,3 +5429,51 @@ evita sigue siendo la misma: leer el texto que la página enseña de verdad ante
 de un recorte.
 
 La segunda fue del mismo tipo: buscar «1 368» con espacio fino donde la página escribe «1368».
+
+## §2 · Al cambiar las fechas, los minutos se quedaban atrás
+
+El barrido tras el cambio de unidad encontró esto, y es del tipo que sólo aparece cuando se busca:
+desde que el motor programa en minutos, `durationMinutes` **manda** sobre los días. Y el arrastre del
+borde de la barra —el gesto con el que se estira una tarea— escribe **sólo la fecha de fin**.
+
+Estirar una tarea de un día a tres dejaba la línea con tres días en las fechas y 480 minutos
+guardados. El motor le hacía caso al minuto, y la barra volvía a encogerse sola sin que nadie
+pudiera explicar por qué.
+
+Medido en el motor antes de tocar nada: `duration: 3` con `duracionMin: 480` se programa del
+2026-06-01 al 2026-06-01. **Un día.**
+
+### El arreglo, y dónde va
+
+La ruta recalcula los minutos cuando cambian las fechas, y **no** lo hace cuando alguien manda los
+minutos a propósito: «esta línea dura cuatro horas» es una afirmación sobre la línea, no un efecto de
+sus fechas.
+
+La traducción de fechas a minutos pasa a estar escrita **una sola vez** y la comparten los dos que
+escriben: el respaldo que rellenó las 1 368 líneas y esta ruta. Escrita dos veces se separarían el
+día que una cambie — que es exactamente cómo se separaron `duration` y `durationMinutes` para
+empezar.
+
+### Medido en pantalla
+
+| momento | lo que dice el panel | lo que guarda la base |
+|---|---|---|
+| de partida | Del 2026-06-22 al 2026-06-22 · 1 día hábil | `duration=1 duracionMin=480` |
+| estirada | Del 2026-06-22 al **2026-06-24** · **3 días hábiles** | `duration=3 duracionMin=1440` |
+| devuelta | Del 2026-06-22 al 2026-06-22 · 1 día hábil | `duration=1 duracionMin=480` |
+
+Y la prueba de la ruta necesitó simular el calendario del proyecto, que antes no hacía falta:
+recalcular días hábiles obliga a saber qué días lo son.
+
+### La otra puerta, comprobada y no supuesta
+
+El arrastre que **mueve** una barra escribe por otro camino —el servicio de reprogramación— y ése no
+toca los minutos. No hace falta que los toque: mover conserva el tramo, así que los días siguen
+siendo los mismos y los minutos siguen valiendo.
+
+Queda anotada la condición que sí podría romperlo, para el que venga: **una línea con ausencias**.
+Ahí el motor estira el fin para contar sólo días trabajados, así que sus fechas abarcan más días
+hábiles de los que dura, y el invariante que comprueba el verificador —minutos = días × jornada—
+dejaría de cumplirse por una razón legítima. El plan de referencia no tiene ausencias capturadas, así
+que hoy no se puede medir; cuando las tenga, hay que decidir si el invariante se relaja o si los
+minutos pasan a salir del tramo real.
