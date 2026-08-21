@@ -183,14 +183,186 @@ function comienzoQuePide(
       ? reloj.abrir(instanteDe(fechaDe(predecesora.comienzo)))
       : predecesora.comienzo
 
+  /**
+   * Sumar o restar **cero** no es moverse, y en este reloj no es inocuo: `sumar(x, 0)` abre y
+   * `restar(x, 0)` cierra, porque los dos normalizan a un borde. Encadenados sobre un desfase nulo
+   * o una duración nula —un hito— eso corre la fecha un día en el calendario sin corregir ni un
+   * minuto de trabajo. Así que el cero no llama al reloj.
+   */
+  const conDesfase = (x: Instante): Instante => (desfase === 0 ? x : reloj.sumar(x, desfase))
+  const menosDuracion = (x: Instante): Instante => (duracion === 0 ? x : reloj.restar(x, duracion))
+
   switch (vinculo.type) {
+    // `FS` es el único que pide el instante **siguiente**: la sucesora empieza cuando la
+    // predecesora ya terminó. Se abre aquí y no en la normalización de la línea, porque un hito se
+    // queda donde lo dejen y con un `FS` el sitio correcto es el día de después.
     case 'FS':
-      return reloj.sumar(predecesora.fin, desfase)
+      return reloj.abrir(conDesfase(predecesora.fin))
     case 'SS':
-      return reloj.sumar(comienzoDeLaPredecesora, desfase)
+      return conDesfase(comienzoDeLaPredecesora)
     case 'FF':
-      return reloj.restar(reloj.sumar(predecesora.fin, desfase), duracion)
+      return menosDuracion(conDesfase(predecesora.fin))
     case 'SF':
-      return reloj.restar(reloj.sumar(comienzoDeLaPredecesora, desfase), duracion)
+      return menosDuracion(conDesfase(comienzoDeLaPredecesora))
+  }
+}
+
+/**
+ * El pase atrás en minutos (§3.3): hasta cuándo puede terminar cada línea sin mover el cierre.
+ *
+ * Es el espejo del de adelante y comparte su sitio en el mundo: va **al lado** del de días, se
+ * compara con él sobre el plan real, y no lo usa ninguna pantalla todavía.
+ *
+ * ## La holgura total y la libre no son la misma pregunta
+ *
+ * La **total** dice cuánto se puede atrasar la línea sin mover la fecha de cierre del plan. La
+ * **libre**, cuánto sin mover a ninguna sucesora de donde está hoy. Una tarea con tres jornadas de
+ * total y cero de libre se puede atrasar tres días sin tocar la entrega, pero al primer minuto ya
+ * empujó a quien venía detrás. Las dos se calculan con la misma fórmula por tipo de vínculo,
+ * cambiando las fechas tardías de las sucesoras por las tempranas.
+ *
+ * ## Lo que no hace, y hay que decirlo
+ *
+ * No aplica el compromiso propio de la línea (`dueDate`), ni la restricción `NO_EMPIEZA_DESPUES_DE`,
+ * ni la política de las terminales, ni un `deadline` del plan. Las cuatro están en el motor de días
+ * y las cuatro afectan al techo del fin tardío. El plan de referencia no usa ninguna, que es lo que
+ * permite comparar los dos motores hoy; el día que este módulo aspire a sustituir al otro, las
+ * cuatro tienen que estar aquí.
+ */
+export interface HolgurasEnMinutos {
+  readonly finTardio: ReadonlyMap<string, Instante>
+  readonly comienzoTardio: ReadonlyMap<string, Instante>
+  /** Holgura total, en minutos laborables. Negativa cuando la línea ya no llega. */
+  readonly total: ReadonlyMap<string, number>
+  /** Holgura libre, en minutos laborables. */
+  readonly libre: ReadonlyMap<string, number>
+}
+
+export function holgurasEnMinutos(
+  entrada: EntradaEnMinutos,
+  programa: ProgramaEnMinutos,
+): HolgurasEnMinutos {
+  const { reloj, tasks, dependencies } = entrada
+  const graph = buildDependencyGraph(tasks, dependencies)
+  const jornada = reloj.jornada.minutos
+
+  const finTardio = new Map<string, Instante>()
+  const comienzoTardio = new Map<string, Instante>()
+  const total = new Map<string, number>()
+  const libre = new Map<string, number>()
+
+  // Las tempranas, en el mismo formato que las tardías, para que la holgura libre use exactamente
+  // la misma fórmula cambiando sólo de qué mapa lee.
+  const comienzoTemprano = new Map<string, Instante>()
+  const finTemprano = new Map<string, Instante>()
+  for (const [id, linea] of programa.porId) {
+    comienzoTemprano.set(id, linea.comienzo)
+    finTemprano.set(id, linea.fin)
+  }
+
+  for (let i = graph.order.length - 1; i >= 0; i -= 1) {
+    const id = graph.order[i]
+    const linea = programa.porId.get(id)!
+    const salientes = graph.outgoing.get(id)!
+
+    // El techo de todas es el cierre del plan. Sin él, una línea cuyo único vínculo saliente es
+    // laxo saldría con holgura aunque sea ella la que fija la fecha de cierre.
+    let tardio = programa.fin
+    for (const vinculo of salientes) {
+      const permitido = finQuePermite(vinculo, comienzoTardio, finTardio, linea.duracion, jornada, reloj)
+      if (permitido < tardio) tardio = permitido
+    }
+
+    finTardio.set(id, tardio)
+    // El comienzo tardío de un hito es la apertura de su propio día, no el retroceso desde su fin
+    // —que no se movería, porque no dura—. Es la misma regla que en el pase adelante y por lo
+    // mismo: un hito marca un punto del día, así que quien se ata a su comienzo se ata a ese día.
+    // Sin esto, la predecesora de un hito por `FS` no tenía de dónde retroceder y salía con una
+    // jornada de holgura de más.
+    comienzoTardio.set(
+      id,
+      linea.duracion === 0 ? reloj.abrir(instanteDe(fechaDe(tardio))) : reloj.restar(tardio, linea.duracion),
+    )
+    /**
+     * Desde dónde se mide la holgura de un hito.
+     *
+     * Un hito no dura, así que su instante cae donde lo dejó su vínculo: la apertura de su día si
+     * lo empuja un `FS`, el cierre si lo ata un `FF`. Medir la holgura desde la apertura le regala
+     * la jornada entera de ese día —el hito no la trabaja, pero tampoco la tiene libre: el día ya
+     * pasó—. Se mide desde el cierre de su propio día, que es lo que cuenta el motor de días al
+     * restar ordinales.
+     */
+    const desdeDonde =
+      linea.duracion === 0
+        ? reloj.sumar(reloj.abrir(instanteDe(fechaDe(linea.fin))), jornada)
+        : linea.fin
+    const holguraTotal = reloj.entre(desdeDonde, tardio)
+    total.set(id, holguraTotal)
+
+    if (salientes.length === 0) {
+      libre.set(id, holguraTotal)
+    } else {
+      let permitidoLibre = Number.POSITIVE_INFINITY
+      for (const vinculo of salientes) {
+        const permitido = finQuePermite(vinculo, comienzoTemprano, finTemprano, linea.duracion, jornada, reloj)
+        if (permitido < permitidoLibre) permitidoLibre = permitido
+      }
+      // La libre nunca supera a la total: si una sucesora tiene sitio de sobra, quien manda sigue
+      // siendo el cierre del plan. Y nunca es negativa: eso lo dice la total.
+      libre.set(id, Math.max(0, Math.min(reloj.entre(desdeDonde, permitidoLibre), holguraTotal)))
+    }
+  }
+
+  return { finTardio, comienzoTardio, total, libre }
+}
+
+/**
+ * Hasta cuándo puede terminar la predecesora sin empujar a esta sucesora.
+ *
+ * Los dos mapas que recibe deciden qué holgura se está calculando: con las fechas **tardías** de
+ * las sucesoras sale la total, con las **tempranas** sale la libre. Es la misma tabla del pase
+ * adelante leída al revés, y el `−1` del `FS` tampoco está aquí, por la misma razón que allí no
+ * estaba el `+1`.
+ */
+function finQuePermite(
+  vinculo: Dependency,
+  comienzoDe: ReadonlyMap<string, Instante>,
+  finDe: ReadonlyMap<string, Instante>,
+  duracion: number,
+  jornada: number,
+  reloj: Reloj,
+): Instante {
+  const comienzoSucesora = comienzoDe.get(vinculo.successorId)
+  const finSucesora = finDe.get(vinculo.successorId)
+  if (comienzoSucesora === undefined || finSucesora === undefined) return Number.POSITIVE_INFINITY
+
+  const desfase = vinculo.lag * jornada
+
+  /**
+   * Todo lo que sale de aquí es un **fin**, así que se dice en forma de cierre.
+   *
+   * `restar` devuelve comienzos —es su contrato— y un comienzo y un cierre pueden ser el mismo
+   * instante de trabajo acumulado en dos días distintos del calendario: «el viernes a las nueve» y
+   * «el jueves a las seis». Como fin, el bueno es el segundo. Sin esto, 1 023 de las 1 368 líneas
+   * del plan real salían con una jornada de holgura de más, que es la forma cara de equivocarse:
+   * una holgura inventada dice «esto puede esperar».
+   */
+  const comoFin = (instante: Instante): Instante => reloj.cerrar(instante)
+  // El cero no llama al reloj, por lo mismo que en el pase adelante.
+  const menosDesfase = (x: Instante): Instante => (desfase === 0 ? x : reloj.restar(x, desfase))
+  const masDuracion = (x: Instante): Instante => (duracion === 0 ? x : reloj.sumar(x, duracion))
+
+  switch (vinculo.type) {
+    // `FS` y `FF` retroceden, y retroceder devuelve comienzos: hay que decirlo como fin. `SS` y
+    // `SF` avanzan la duración, y avanzar ya devuelve un cierre — salvo en un hito, que no avanza
+    // nada y se queda tal como vino.
+    case 'FS':
+      return comoFin(menosDesfase(comienzoSucesora))
+    case 'SS':
+      return masDuracion(menosDesfase(comienzoSucesora))
+    case 'FF':
+      return comoFin(menosDesfase(finSucesora))
+    case 'SF':
+      return masDuracion(menosDesfase(finSucesora))
   }
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createWorkCalendar } from '../calendar'
 import { comoHora, crearJornada, crearReloj } from '../reloj'
-import { programarEnMinutos } from '../programar-en-minutos'
+import { holgurasEnMinutos, programarEnMinutos } from '../programar-en-minutos'
 import type { Dependency, PlanTask } from '../types'
 
 const reloj = crearReloj(createWorkCalendar())
@@ -152,5 +152,74 @@ describe('El pase adelante en minutos', () => {
     const deSiete = crearReloj(createWorkCalendar(), crearJornada([{ desde: 9 * 60, hasta: 16 * 60 }]))
     const cuando = programar([{ id: 'a', name: 'Una jornada', duration: 1, duracionMin: 420 }], [], deSiete)
     expect(cuando('a')).toBe('2026-06-01 09:00 → 2026-06-01 16:00')
+  })
+})
+
+describe('El pase atrás en minutos', () => {
+  function holguras(tasks: PlanTask[], dependencies: Dependency[] = []) {
+    const entrada = { tasks, dependencies, reloj, comienzo: LUNES }
+    const programa = programarEnMinutos(entrada)
+    const h = holgurasEnMinutos(entrada, programa)
+    return (id: string) => ({
+      total: h.total.get(id)! / 480,
+      libre: h.libre.get(id)! / 480,
+      tardio: comoHora(h.finTardio.get(id)!),
+    })
+  }
+
+  it('lo que fija el cierre del plan no tiene holgura', () => {
+    const h = holguras(
+      [
+        { id: 'a', name: 'Larga', duration: 5, duracionMin: 2400 },
+        { id: 'b', name: 'Detrás', duration: 2, duracionMin: 960 },
+      ],
+      [{ predecessorId: 'a', successorId: 'b', type: 'FS', lag: 0 }],
+    )
+    expect(h('a').total).toBe(0)
+    expect(h('b').total).toBe(0)
+  })
+
+  it('una rama corta en paralelo tiene la holgura que le sobra', () => {
+    // La larga fija el cierre; la corta puede atrasarse tres jornadas sin moverlo.
+    const h = holguras([
+      { id: 'larga', name: 'Cinco jornadas', duration: 5, duracionMin: 2400 },
+      { id: 'corta', name: 'Dos jornadas', duration: 2, duracionMin: 960 },
+    ])
+    expect(h('larga').total).toBe(0)
+    expect(h('corta').total).toBe(3)
+    expect(h('corta').tardio).toBe('2026-06-05 18:00')
+  })
+
+  it('la libre y la total son dos preguntas distintas', () => {
+    // A tiene tres jornadas de total —el plan cierra el viernes— y **cero** de libre: al primer
+    // minuto empuja a B, que arranca pegada a ella.
+    const h = holguras(
+      [
+        { id: 'a', name: 'Primera', duration: 1, duracionMin: 480 },
+        { id: 'b', name: 'Segunda', duration: 1, duracionMin: 480 },
+        { id: 'largo', name: 'Lo que fija el cierre', duration: 5, duracionMin: 2400 },
+      ],
+      [{ predecessorId: 'a', successorId: 'b', type: 'FS', lag: 0 }],
+    )
+    expect(h('a').total).toBe(3)
+    expect(h('a').libre).toBe(0)
+    expect(h('b').total).toBe(3)
+    expect(h('b').libre).toBe(3)
+  })
+
+  it('y la holgura se cuenta en minutos: media jornada de margen son 240', () => {
+    const entrada = {
+      tasks: [
+        { id: 'corta', name: 'Media mañana', duration: 1, duracionMin: 240 },
+        { id: 'larga', name: 'Una jornada', duration: 1, duracionMin: 480 },
+      ],
+      dependencies: [],
+      reloj,
+      comienzo: LUNES,
+    }
+    const h = holgurasEnMinutos(entrada, programarEnMinutos(entrada))
+    // Lo que el motor de días no puede decir: a la corta le sobran cuatro horas del mismo día.
+    expect(h.total.get('corta')).toBe(240)
+    expect(h.total.get('larga')).toBe(0)
   })
 })

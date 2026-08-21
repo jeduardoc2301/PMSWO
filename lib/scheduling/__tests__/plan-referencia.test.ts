@@ -12,7 +12,7 @@ import { type GanttInput, collapseToLevel, ganttLayout } from '../gantt'
 import { importPlanFromXlsx } from '../import-plan'
 import { parentsFromLevels, rollUpProgress } from '../progress'
 import { comoHora, crearReloj, fechaDe } from '../reloj'
-import { programarEnMinutos } from '../programar-en-minutos'
+import { holgurasEnMinutos, programarEnMinutos } from '../programar-en-minutos'
 import { schedulePlan } from '../schedule'
 import { formatTraceability, reviewForClient } from '../traceability'
 import type { PlanTask } from '../types'
@@ -589,6 +589,38 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
         distintas
           .slice(0, 8)
           .map((d) => `${d.name}: ${comoHora(d.min.comienzo)}→${comoHora(d.min.fin)} contra ${d.dia.start}→${d.dia.finish}`),
+      ).toEqual([])
+    })
+
+    it('y da las mismas holguras: total y libre, línea a línea', () => {
+      // La trampa que el spec marca con un aviso: la holgura sale de una fórmula **por tipo de
+      // vínculo y con desfase**, no de restar dos fechas. Si el pase atrás en minutos se hubiera
+      // escrito a ojo, aquí saldrían cientos de líneas con holgura de más — que es la forma más
+      // cara de equivocarse, porque una holgura inventada dice «esto puede esperar».
+      const { tareas, enDias, enMinutos } = ambos()
+      const analisis = analyzeCriticalPath(enDias)
+      const holguras = holgurasEnMinutos(
+        {
+          tasks: tareas,
+          dependencies: plan.dependencies,
+          reloj: crearReloj(calendar),
+          comienzo: plan.declaredStart,
+        },
+        enMinutos,
+      )
+
+      const distintas = tareas
+        .map((t) => ({
+          name: t.name,
+          totalDias: analisis.totalFloat.get(t.id)!,
+          totalMin: holguras.total.get(t.id)! / 480,
+          libreDias: analisis.freeFloat.get(t.id)!,
+          libreMin: holguras.libre.get(t.id)! / 480,
+        }))
+        .filter((d) => d.totalDias !== d.totalMin || d.libreDias !== d.libreMin)
+
+      expect(
+        distintas.slice(0, 8).map((d) => `${d.name}: total ${d.totalMin} contra ${d.totalDias} · libre ${d.libreMin} contra ${d.libreDias}`),
       ).toEqual([])
     })
 
