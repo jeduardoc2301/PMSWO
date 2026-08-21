@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { createWorkCalendar } from '../calendar'
+import { analyzeCriticalPath } from '../cpm'
+import { schedulePlan } from '../schedule'
 import { comoHora, crearJornada, crearReloj } from '../reloj'
 import { holgurasEnMinutos, programarEnMinutos } from '../programar-en-minutos'
 import type { Dependency, PlanTask } from '../types'
@@ -221,5 +223,73 @@ describe('El pase atrás en minutos', () => {
     // Lo que el motor de días no puede decir: a la corta le sobran cuatro horas del mismo día.
     expect(h.total.get('corta')).toBe(240)
     expect(h.total.get('larga')).toBe(0)
+  })
+})
+
+/**
+ * Los cuatro techos del fin tardío, comparados con el motor de días.
+ *
+ * No se comprueban contra números escritos a mano sino contra el otro motor: es la misma pregunta
+ * que contesta la comparación sobre el plan de referencia, en casos que ese plan no tiene. Si los
+ * dos motores dicen lo mismo en un caso que ninguno de los dos ha visto antes, la regla está bien
+ * entendida y no sólo bien copiada.
+ */
+describe('Los cuatro techos, contra el motor de días', () => {
+  function comparar(
+    tasks: PlanTask[],
+    dependencies: Dependency[] = [],
+    opciones: { deadline?: string; terminales?: 'CIERRE_DEL_PLAN' | 'FIN_PROPIO' } = {},
+  ) {
+    const calendar = createWorkCalendar()
+    const enDias = schedulePlan({ tasks, dependencies, calendar, start: LUNES })
+    const analisis = analyzeCriticalPath(enDias, {
+      ...(opciones.deadline ? { deadline: opciones.deadline } : {}),
+      ...(opciones.terminales ? { terminalPolicy: opciones.terminales } : {}),
+    })
+    const entrada = { tasks, dependencies, reloj, comienzo: LUNES }
+    const h = holgurasEnMinutos(entrada, programarEnMinutos(entrada), opciones)
+
+    return tasks.map((t) => ({
+      id: t.id,
+      dias: analisis.totalFloat.get(t.id)!,
+      minutos: h.total.get(t.id)! / 480,
+    }))
+  }
+
+  const UNA: PlanTask[] = [{ id: 'a', name: 'Sola', duration: 2, duracionMin: 960 }]
+
+  it('el deadline del plan aprieta a todas', () => {
+    // Sin deadline, la única tarea del plan fija el cierre y no tiene holgura. Con uno una semana
+    // más tarde, le sobran los días de en medio — y el compromiso es terminar el día ANTERIOR.
+    expect(comparar(UNA)).toEqual([{ id: 'a', dias: 0, minutos: 0 }])
+    // Comprometerse para el 8 es terminar **el 8**, no el 7: son cuatro jornadas de margen y no tres.
+    expect(comparar(UNA, [], { deadline: '2026-06-08' })).toEqual([{ id: 'a', dias: 4, minutos: 4 }])
+  })
+
+  it('el compromiso propio de la línea también, y manda el más apretado', () => {
+    const conDue: PlanTask[] = [{ ...UNA[0], dueDate: '2026-06-04' }]
+    expect(comparar(conDue, [], { deadline: '2026-06-12' })).toEqual([{ id: 'a', dias: 2, minutos: 2 }])
+  })
+
+  it('«no empieza después de» amarra el arranque, y el techo del fin es esa fecha más la duración', () => {
+    const conSnlt: PlanTask[] = [
+      { ...UNA[0], compromiso: { type: 'NO_EMPIEZA_DESPUES_DE', date: '2026-06-03' } },
+    ]
+    expect(comparar(conSnlt, [], { deadline: '2026-06-12' })).toEqual([{ id: 'a', dias: 2, minutos: 2 }])
+  })
+
+  it('y con «fin propio», lo que no tiene sucesoras se queda sin holgura', () => {
+    const dos: PlanTask[] = [
+      { id: 'a', name: 'Corta', duration: 1, duracionMin: 480 },
+      { id: 'b', name: 'Larga', duration: 4, duracionMin: 1920 },
+    ]
+    expect(comparar(dos)).toEqual([
+      { id: 'a', dias: 3, minutos: 3 },
+      { id: 'b', dias: 0, minutos: 0 },
+    ])
+    expect(comparar(dos, [], { terminales: 'FIN_PROPIO' })).toEqual([
+      { id: 'a', dias: 0, minutos: 0 },
+      { id: 'b', dias: 0, minutos: 0 },
+    ])
   })
 })

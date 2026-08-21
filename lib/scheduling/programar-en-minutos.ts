@@ -42,7 +42,7 @@
 
 import { type DependencyGraph, buildDependencyGraph } from './dependencies'
 import { type IsoDate } from './date'
-import { type Instante, type Reloj, fechaDe, instanteDe } from './reloj'
+import { MINUTOS_POR_DIA, type Instante, type Reloj, fechaDe, instanteDe } from './reloj'
 import { type Dependency, type PlanTask } from './types'
 
 export interface EntradaEnMinutos {
@@ -221,14 +221,34 @@ function comienzoQuePide(
  * empujó a quien venía detrás. Las dos se calculan con la misma fórmula por tipo de vínculo,
  * cambiando las fechas tardías de las sucesoras por las tempranas.
  *
- * ## Lo que no hace, y hay que decirlo
+ * ## Los cuatro techos del fin tardío
  *
- * No aplica el compromiso propio de la línea (`dueDate`), ni la restricción `NO_EMPIEZA_DESPUES_DE`,
- * ni la política de las terminales, ni un `deadline` del plan. Las cuatro están en el motor de días
- * y las cuatro afectan al techo del fin tardío. El plan de referencia no usa ninguna, que es lo que
- * permite comparar los dos motores hoy; el día que este módulo aspire a sustituir al otro, las
- * cuatro tienen que estar aquí.
+ * Además de lo que piden las sucesoras, el fin tardío tiene cuatro topes, y los cuatro dicen «no
+ * más tarde de aquí»:
+ *
+ * 1. **El cierre del plan**, o el `deadline` si se pasa uno. Sin este techo, una línea cuyo único
+ *    vínculo saliente es laxo saldría con holgura aunque sea ella la que fija la fecha de cierre.
+ * 2. **El compromiso propio** de la línea: su `dueDate`, o un `DEBE_TERMINAR_EL` /
+ *    `NO_TERMINA_DESPUES_DE`. Son los casos 9 y 10 del §12: sin esto, una línea con fecha límite el
+ *    1 de marzo que la cadena empuja al 5 sale en verde porque el plan entero cierra en noviembre.
+ * 3. **`NO_EMPIEZA_DESPUES_DE`**, que amarra el arranque: su techo del fin es esa fecha más lo que
+ *    dura la línea.
+ * 4. **La política de las terminales**: con `FIN_PROPIO`, una línea sin sucesoras no llega hasta el
+ *    cierre del plan sino hasta su propio fin, y su holgura es cero.
  */
+export interface OpcionesDeHolgura {
+  /**
+   * Fecha comprometida del plan. El techo de todos los fines tardíos es el día **anterior**, igual
+   * que en el motor de días: una entrega comprometida para el 30 significa terminar el 29.
+   */
+  readonly deadline?: IsoDate
+  /**
+   * Qué hacer con una línea sin sucesoras. `CIERRE_DEL_PLAN` le da hasta el final —es lo que hace
+   * un CPM de manual— y `FIN_PROPIO` la deja en su propio fin, con holgura cero.
+   */
+  readonly terminales?: 'CIERRE_DEL_PLAN' | 'FIN_PROPIO'
+}
+
 export interface HolgurasEnMinutos {
   readonly finTardio: ReadonlyMap<string, Instante>
   readonly comienzoTardio: ReadonlyMap<string, Instante>
@@ -241,10 +261,24 @@ export interface HolgurasEnMinutos {
 export function holgurasEnMinutos(
   entrada: EntradaEnMinutos,
   programa: ProgramaEnMinutos,
+  opciones: OpcionesDeHolgura = {},
 ): HolgurasEnMinutos {
   const { reloj, tasks, dependencies } = entrada
   const graph = buildDependencyGraph(tasks, dependencies)
   const jornada = reloj.jornada.minutos
+
+  /**
+   * Hasta cuándo se puede trabajar en este plan.
+   *
+   * Con `deadline`, hasta el **cierre de ese mismo día**: comprometerse para el 8 es terminar el 8.
+   * Lo escribí al revés la primera vez —«terminar el 7»— y lo desmintió la comparación con el motor
+   * de días, que sólo retrocede la fecha cuando cae en día no laborable. Es la diferencia entre
+   * regalar una jornada de holgura a todo el plan y no regalarla.
+   */
+  const cierre =
+    opciones.deadline === undefined
+      ? programa.fin
+      : reloj.cerrar(instanteDe(opciones.deadline, MINUTOS_POR_DIA))
 
   const finTardio = new Map<string, Instante>()
   const comienzoTardio = new Map<string, Instante>()
@@ -265,12 +299,34 @@ export function holgurasEnMinutos(
     const linea = programa.porId.get(id)!
     const salientes = graph.outgoing.get(id)!
 
-    // El techo de todas es el cierre del plan. Sin él, una línea cuyo único vínculo saliente es
-    // laxo saldría con holgura aunque sea ella la que fija la fecha de cierre.
-    let tardio = programa.fin
-    for (const vinculo of salientes) {
-      const permitido = finQuePermite(vinculo, comienzoTardio, finTardio, linea.duracion, jornada, reloj)
-      if (permitido < tardio) tardio = permitido
+    // El techo de todas es el cierre del plan —o el compromiso, si lo hay—. Sin él, una línea cuyo
+    // único vínculo saliente es laxo saldría con holgura aunque sea ella la que fija la fecha.
+    let tardio = cierre
+    if (salientes.length === 0) {
+      if (opciones.terminales === 'FIN_PROPIO') tardio = linea.fin
+    } else {
+      for (const vinculo of salientes) {
+        const permitido = finQuePermite(vinculo, comienzoTardio, finTardio, linea.duracion, jornada, reloj)
+        if (permitido < tardio) tardio = permitido
+      }
+    }
+
+    // El compromiso propio de la línea es techo igual que el cierre del plan.
+    const task = graph.taskById.get(id)!
+    const comprometido = topeComprometidoEnMinutos(task, reloj)
+    if (comprometido !== undefined && comprometido < tardio) tardio = comprometido
+
+    // `NO_EMPIEZA_DESPUES_DE` amarra el arranque: su techo del fin es esa fecha más lo que dura.
+    const snlt =
+      task.constraint?.type === 'NO_EMPIEZA_DESPUES_DE'
+        ? task.constraint
+        : task.compromiso?.type === 'NO_EMPIEZA_DESPUES_DE'
+          ? task.compromiso
+          : null
+    if (snlt) {
+      const arranqueMaximo = reloj.cerrar(instanteDe(snlt.date))
+      const finMaximo = linea.duracion === 0 ? arranqueMaximo : reloj.sumar(arranqueMaximo, linea.duracion)
+      if (finMaximo < tardio) tardio = finMaximo
     }
 
     finTardio.set(id, tardio)
@@ -365,4 +421,38 @@ function finQuePermite(
     case 'SF':
       return masDuracion(menosDesfase(finSucesora))
   }
+}
+
+/**
+ * El techo del fin que impone el compromiso propio de la línea, si tiene alguno.
+ *
+ * La promesa puede llegar por tres sitios: `dueDate`, o un `DEBE_TERMINAR_EL` /
+ * `NO_TERMINA_DESPUES_DE` puesto en `constraint` o en `compromiso` —el segundo existe porque
+ * `constraint` puede estar ocupado por el ancla que pone el servidor—. Manda la más apretada.
+ *
+ * El techo es el cierre de **ese mismo día**: prometer para el 4 es terminar el 4. Si la fecha cae
+ * en día no laborable, el cierre del último día hábil anterior, que es lo que hace `cerrar`.
+ */
+function topeComprometidoEnMinutos(
+  task: {
+    readonly dueDate?: IsoDate
+    readonly constraint?: { readonly type: string; readonly date: IsoDate }
+    readonly compromiso?: { readonly type: string; readonly date: IsoDate }
+  },
+  reloj: Reloj,
+): Instante | undefined {
+  const fechas: IsoDate[] = []
+  if (task.dueDate) fechas.push(task.dueDate)
+  for (const c of [task.constraint, task.compromiso]) {
+    if (!c) continue
+    if (c.type === 'DEBE_TERMINAR_EL' || c.type === 'NO_TERMINA_DESPUES_DE') fechas.push(c.date)
+  }
+  if (fechas.length === 0) return undefined
+
+  let tope: Instante | undefined
+  for (const fecha of fechas) {
+    const instante = reloj.cerrar(instanteDe(fecha, MINUTOS_POR_DIA))
+    if (tope === undefined || instante < tope) tope = instante
+  }
+  return tope
 }
