@@ -4587,3 +4587,26 @@ del árbol**, no la numeración. El EDT va en su columna, no al principio del re
 
 Quinta sonda equivocada desde la regla, y la quinta que se queda en sonda: no se apunta como defecto
 del EDT, se apunta como medición pendiente.
+
+## §13 · Los hitos en rombo, cerrado; el EDT, sigue pendiente y por qué
+
+### Cerrado: los hitos se dibujan como rombo
+
+Avanzando el Calendario hasta un mes que sí los tiene —los cierres de ola del plan caen de
+septiembre a noviembre—: **11 hitos**, y **los 11 con su rombo**. El primero dice «◆ HITO ·
+Aprobación formal del diseño de…».
+
+La medición de la tanda anterior contó cero y no significaba nada: junio no tiene hitos. Ahora sí
+está visto.
+
+### Sigue pendiente: el EDT del Gantt
+
+La sonda buscó la celda `data-celda="wbs"` —esta vez el selector correcto, leído del componente— y
+devolvió «la columna wbs no está encendida». **No es un defecto**: es que la preferencia guardada de
+este usuario tiene esa columna apagada, y el panel de Campos decide qué se dibuja.
+
+Para medirlo hay que encenderla primero. Se deja anotado como lo que es —una medición que necesita un
+paso más— y no como criterio cumplido ni como fallo.
+
+Van dos noches diciendo esto mismo de cosas distintas, y conviene que quede claro por qué: **la
+diferencia entre «no lo he visto» y «no funciona» es la que hace que este informe sirva para algo**.
