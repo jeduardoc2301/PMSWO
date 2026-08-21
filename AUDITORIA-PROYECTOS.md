@@ -4968,3 +4968,139 @@ caminos que no se parecen. Un hito dura cero porque no consume calendario, y el 
 explícito para que «no lo hemos calculado» y «dura cero» no se confundan.
 
 El plan de referencia verifica entero después: 1 368 líneas y 1 665 vínculos.
+
+## §2 · Tercer paso: los minutos llegan a la pantalla
+
+Los dos pasos anteriores dejaron la aritmética y el dato en la base. Ninguno se veía, y un paso que
+no se ve no está demostrado.
+
+El servicio saca `durationMinutes` de cada línea y `minutosPorJornada` del proyecto, el trazado los
+pasa a la fila, y el Gantt los enseña en una columna nueva: **«Duración exacta»**. Va **al lado** de
+la de días, no en su lugar: quien lleva el plan en jornadas no tiene por qué empezar a leer minutos,
+y quien los necesita la enciende en el selector de campos.
+
+Dice la unidad más grande que no miente. Tres jornadas justas, «3 d»; cuatro horas, «4 h»; y 95
+minutos —que no son ni horas enteras ni un cuarto de jornada— «95 min».
+
+La jornada del proyecto sube hasta la celda porque los mismos 105 minutos son «105 min» donde la
+jornada dura ocho horas y «0,25 d» donde dura siete. Sin ese dato la columna diría lo mismo en los
+dos sitios, y uno de los dos sería falso.
+
+**Medido en pantalla**, sobre el plan de referencia: el selector la ofrece como «Duración exacta», la
+cabecera sale, la raíz dice **81 d** —los 38 880 minutos que entrega el API— y las hojas dicen 1 d,
+2 d, 7 d, 8 d y 12 d.
+
+Las tres pruebas se validaron rompiendo cada mitad: sin los minutos en la fila se ponen rojas tres;
+sin la jornada en la celda, una.
+
+## §3.1 · Las seis primitivas de tiempo laborable, y un índice que no hace falta
+
+El calendario de al lado cuenta días hábiles; éste cuenta los minutos dentro de esos días. Las seis
+que pide el spec, con sus nombres: `esLaborable`, `abrir` (nextWorkingInstant), `cerrar`
+(prevWorkingInstant), `sumar` (addWorkingTime), `restar` (subWorkingTime) y `entre` (diffWorkingTime).
+
+### Dos decisiones que el spec no toma
+
+**`abrir` y `cerrar` no son simétricas.** A las 13:00, con la jornada partida, abrir da las 14:00 —el
+trabajo se reanuda entonces— y cerrar da las 13:00 —el trabajo se detuvo ahí—. Con una sola función,
+la tarea que termina a la hora de comer aparece terminando después de comer.
+
+**Caer justo en el cierre se contesta cerrando.** Ocho horas desde el lunes a las 09:00 terminan el
+lunes a las 18:00, no el martes a las 09:00: lo segundo pinta la barra dos días de ancho y dispara un
+día tarde todo lo que cuelgue de ese fin.
+
+### La desviación, con su prueba
+
+El spec pide precomputar un índice de minutos acumulados cada quince, para el rango del proyecto ±1
+año, y buscar en él por bisección. **Ese índice existe porque da por hecho un bucle día a día.**
+
+Aquí no hay bucle. Los minutos hasta un instante son `díasHábilesAntes × jornada + loTrabajadoHoy`,
+y el primer factor ya lo da el calendario en tiempo constante; avanzar N minutos es sumarlos a ese
+total y deshacer la división. Sale exacto, no ocupa memoria y no envejece: un índice de un año miente
+en cuanto alguien planifica a dieciocho meses, y no avisa.
+
+La prueba que lo sostiene **no mide segundos** —dependen de la máquina— sino cuántas veces se toca el
+calendario: sumar diez minutos y sumar diecinueve años lo tocan el mismo número de veces. Se validó
+metiendo el bucle día a día y viéndola ponerse roja.
+
+Los casos que el spec nombra como los que hunden a todos los clones están todos: jornada partida,
+festivos consecutivos —dos seguidos, que es lo que rompe el atajo de «si cae en festivo, suma uno»—,
+semana de seis días, duración cero, y el cruce de medianoche cuando el que cruza es el trabajo. El
+turno nocturno se **rechaza al construir la jornada** en vez de contestar cualquier cosa: deja sin
+respuesta a qué día hábil pertenece la madrugada, y de esa respuesta cuelgan el roll-up y la carga.
+
+## §2 · Cuarto paso: escribir la duración, y el verificador que lo cazó
+
+La celda de duración exacta se edita: acepta «4 h», «90 min», «1,5 d» o un número pelado —que son
+días, la unidad en la que está escrito el plan— y guarda minutos.
+
+Con una limitación deliberada: los minutos afinan **dentro** de los días que la línea ya tiene.
+Convertir una tarea de un día en una de tres mueve todo lo que cuelga de ella, y eso ya tiene su
+camino —el borde de la barra, que avisa de cuántas líneas se moverán antes de escribir nada—. Dos
+caminos que escriben lo mismo con avisos distintos es como se cuelan los planes rotos.
+
+**Medido en pantalla**: la celda de «Aprobar el plan de trabajo por parte del banco» se abre con
+«1 d»; «3 d» se queda abierta con `aria-invalid` y el motivo; «4 h» se guarda; y tras recargar la
+página entera sigue diciendo «4 h».
+
+### El verificador crece por tercera vez, otra vez por lo mismo
+
+Esa medición escribió 240 minutos en una línea real y **mi restauración no llegó a escribirse**: la
+sonda leía con un `dormir` fijo y las tres lecturas salieron corridas un paso. Ninguna de las siete
+cuentas del verificador lo habría notado —ni las líneas, ni los vínculos, ni el cierre, ni las fechas
+al revés—. Ahora comprueba que los minutos cuadren con los días en las 1 368, y fue esa comprobación,
+añadida la misma noche, la que lo cazó.
+
+Y la primera versión de la comprobación acusó a **23 líneas sanas**: conté los hitos con
+`kind === 'HITO'` cuando la clase de hito incluye también `PUNTO_DE_CONTROL`. Es el mismo error que
+el de «resumen es tener hijas», con otro nombre. Ahora comparte criterio con el respaldo en vez de
+repetirlo.
+
+## §4.3 · La sexta escala, que tres comentarios daban por imposible
+
+«Escalas de zoom: hora, día, semana, mes, trimestre, año.» Estaban las cinco últimas, y en tres
+sitios del código había un comentario explicando por qué la primera no podía estar: el motor trabaja
+en ordinales de día hábil, ninguna tarea tiene hora, y un eje por horas dibujaría ocho columnas
+idénticas por jornada.
+
+Era cierto cuando se escribió. Dejó de serlo con la duración en minutos, y **ninguno de los tres se
+enteró**. Así envejecen los comentarios que explican una ausencia: se escriben una vez y se quedan
+afirmando la pared después de que alguien la tirara.
+
+| medido en pantalla, escala Hora | resultado |
+|---|---|
+| escalas que ofrece la barra | Hora · Día · Semana · Mes · Trimestre · Año |
+| cabecera de un día | 09 10 11 12 **14** 15 16 17 |
+| una línea de una jornada | 192 px |
+| la misma, escrita a «4 h» | 96 px |
+
+Las 13:00 no salen: es la comida, y un eje de tiempo laborable no le reserva sitio a lo que no se
+trabaja, igual que no se lo reserva al fin de semana.
+
+## §2 · Lo que la barra mide y lo que la línea ocupa no son lo mismo
+
+El ancho de la barra pasó a salir de los minutos y se volvió fraccionario. `width` significaba las
+dos cosas a la vez, y media docena de sitios leían el significado que ya no era:
+
+- el panel de detalle decía «0,5 días hábiles», que no es una duración que exista en un cronograma
+  de días;
+- el arrastre del borde de la barra proponía duraciones de día y medio;
+- la etiqueta del tirador decía «ahora 0,5 días»;
+- y la celda de duración **rechazaba su propio valor**: «4 h» son 1 día y 1 ≠ 0,5.
+
+Lo encontró la medición en pantalla, al intentar devolver una línea a su valor y no poder. La primera
+vez lo arreglé por el lado equivocado —un `Math.ceil` en quien preguntaba, en vez de arreglar lo que
+respondía—; a la segunda, dos campos: `width`, los días hábiles que ocupa, entero, que leen la
+columna, el panel, el arrastre y la validación; y `anchoExacto`, lo que mide al dibujarla, que sólo
+lee quien pinta.
+
+Y el panel dice las dos cosas cuando difieren: **«1 día hábil · dura 4 h»**. Sólo los días deja
+creyendo que llena la jornada; sólo las horas esconde que bloquea el día entero. Medido en pantalla
+sobre la línea real, ida y vuelta.
+
+De paso, un error de tipos que llevaba dos commits sin compilar y que no vi **porque filtré la salida
+de `tsc` por los archivos que estaba tocando**: `PlanRemoto` no declaraba `minutosPorJornada` aunque
+la ruta ya lo devolvía. Filtrar la salida de un compilador por lo que uno cree haber tocado es
+exactamente cómo se esconde lo que uno no sabe que tocó.
+
+Suite: 3 565 en verde. El plan de referencia verifica entero, ahora también en minutos.
