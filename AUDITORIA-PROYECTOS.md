@@ -5617,3 +5617,24 @@ el alta pasó a depender de algo que antes no miraba. Cuando una prueba de otro 
 un dato nuevo, es que la dependencia es real y no un detalle de implementación.
 
 Suite: 3 643 en verde.
+
+## §2 · La foto de línea base guarda los minutos
+
+Siguiendo por los sitios donde el plan se **copia** a otro lado, la foto de línea base guardaba las
+fechas y los días, pero no los minutos. Una tarea de cuatro horas quedaba retratada como «un día»,
+y desde la foto no hay forma de recuperar la hora.
+
+Ahora los guarda al tomarla, por la misma razón por la que ya guardaba los días además de las
+fechas: el calendario puede cambiar y la foto tiene que decir **lo que se prometió**, no lo que hoy
+se deduciría. Nulo en las fotos anteriores, que es distinto de cero: significa «esta foto no lo
+miró».
+
+**Medido**: se pone una línea del plan real a cuatro horas, se toma una foto desde la aplicación, y
+la fila guardada dice `durationDays: 1` y `durationMinutes: 240` — un día de calendario y cuatro
+horas de trabajo, que es exactamente lo que pasa. La foto y la línea se devolvieron a su sitio.
+
+Y lo que no hace todavía, dicho para que no se lea como cerrado: **la barra fantasma que dibuja el
+Gantt sigue midiéndose en días**, así que una línea sub-diaria se compara contra su foto con
+precisión de día. El dato ya está guardado; usarlo al dibujar es lo que falta.
+
+Suite: 3 645 en verde.
