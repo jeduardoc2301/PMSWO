@@ -5401,3 +5401,31 @@ esa salida por los archivos que uno cree haber tocado es exactamente cómo se es
 sabe que tocó.
 
 Suite: 3 631 en verde.
+
+## Barrido de cifras tras el cambio de unidad del motor
+
+Cambiar de unidad la pieza que programa el plan pide algo más que ver si las vistas cargan: hay que
+volver a contar. Las cifras, contra las que ya están medidas en tandas anteriores:
+
+| vista | cifra | contra |
+|---|---|---|
+| Panel de control | **1 243** líneas de trabajo · **116 atrasadas** · 125 resúmenes | las mismas de la tanda 63 |
+| Tablero Kanban | 804 tarjetas | igual |
+| Carga de trabajo | 651 celdas | igual |
+| Calendario | 13 barras | igual |
+| Timeline | 28 barras al nivel 1 | igual |
+| el plan, del API | 1 368 líneas · 1 665 vínculos · arranque 2026-06-01 · cierre 2026-11-30 | igual |
+
+Ninguna se movió, que es lo que tenía que pasar: las 1 368 líneas duran jornadas enteras y el motor
+en minutos las coloca donde las colocaba el de días.
+
+### Y estuve a punto de anotar un defecto que no existía
+
+La primera sonda leyó «atrasadas → 0» y casi entra en la bitácora como regresión. El Panel dice
+**«1243 líneas de trabajo · 116 atrasadas · 0 sin responsable del cliente»**: el 116 va **antes** del
+rótulo y mi sonda cortaba desde la palabra hacia adelante, recogiendo el cero de la métrica
+siguiente. Es la séptima vez que una sonda mal escrita produce un hallazgo falso, y la regla que lo
+evita sigue siendo la misma: leer el texto que la página enseña de verdad antes de sacar conclusiones
+de un recorte.
+
+La segunda fue del mismo tipo: buscar «1 368» con espacio fino donde la página escribe «1368».
