@@ -4513,3 +4513,30 @@ patrón no los cogía: buscaba «§12 caso N» y el comentario dice «los **caso
 Es la misma clase de error que las sondas de anoche —buscar una forma supuesta en vez de la escrita—
 sólo que aquí sobre el propio repositorio en vez de sobre la pantalla. La diferencia es que esta vez
 lo comprobé antes de escribir «faltan tres casos» en la bitácora.
+
+## El spec, recorrido entero
+
+Con el §12 censado se cierra el recorrido. Cada sección se comprobó contra sus propios criterios y
+con la medición al lado:
+
+| sección | cómo se recorrió | resultado |
+|---|---|---|
+| §3 · el motor | holgura libre, las ocho restricciones, el deadline, el roll-up y los objetivos del §3.8 medidos | sin defecto |
+| §4 · Gantt | arrastre hasta el diálogo, hitos, línea base, inserción | **4 defectos**, arreglados |
+| §5 · Tablero | paginación, 0 %→100 % al mover | **1 defecto**, arreglado |
+| §6 · Lista | tres formatos, CSV agrupado, edición inline | **3 defectos**, arreglados |
+| §7 · Calendario | rango arrastrado, esqueleto, memoria del modo | **2 defectos**, arreglados |
+| §8 · Carga | los seis criterios, y 4 550 celdas en 1,3 ms | sin defecto |
+| §9 · Panel | cifras y progreso planificado contra cálculo a mano | sin defecto |
+| §10 · transversal | filtro, preferencias, permisos, esqueletos | **5 defectos**, arreglados |
+| §12 · los 24 casos | censados uno a uno | los 24 cubiertos |
+
+Lo que queda pendiente no es trabajo: es la migración de duración a minutos del §2 —que arrastra la
+sexta escala del Gantt—, el modo claro y el tiempo real. Tres decisiones.
+
+### Lo que no se demostró en pantalla, dicho una vez más
+
+El caso negativo de los permisos —un usuario con `view_list` y sin `view_gantt`, o con
+`edit_tracking` y sin `edit_schedule`, recibiendo su 403— **necesita un segundo rol en la base**.
+Está cubierto por prueba y no por medición, y se repite aquí para que el recorrido no se lea como si
+todo tuviera evidencia de pantalla. No la tiene: eso sí.
