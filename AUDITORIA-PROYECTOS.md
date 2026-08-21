@@ -4392,3 +4392,35 @@ Las dos arregladas; las otras tres estaban bien.
 Con el arreglo puesto, `custom-fields` responde **200 con su campo** y `schedule` **200 con las
 1 368 líneas**. La lista larga no convierte la guardia en «pasa cualquiera»: hay prueba de que quien
 no tiene ninguno de los seis sigue recibiendo 403.
+
+## §10.1 · `edit_schedule` frente a `edit_tracking`: el reparto está bien
+
+El spec llama a esta distinción «**el permiso más útil de todo el sistema y el que casi nadie
+implementa**», así que merecía el mismo censo que las lecturas. **No hay defecto.**
+
+Quince rutas escriben. El reparto:
+
+| ruta | pide |
+|---|---|
+| `dependencies`, `reschedule`, `calendar`, `baselines`, `apply-template`, `work-items/reorder`, `work-items/restore`, `absences`, `assignments`, `projects/[id]`, `work-items` (alta) | `edit_schedule` |
+| `work-items/[id]/status` | **sólo** `edit_tracking` |
+| `work-items/[id]` | **las dos, según el campo** |
+
+La última es la que importa, y está resuelta donde tiene que estarlo: cualquier escritura exige
+`edit_tracking`, y **sólo si vienen fechas** se exige además `edit_schedule`. El comentario del
+código nombra el caso exacto del spec —un colaborador con `edit_tracking` y sin `edit_schedule` que
+movía una línea del 2026-06-12— y hay dos suites dedicadas: `guardias-antes-de-escribir` y
+`fechas-antes-de-escribir`.
+
+Es decir: un ejecutor puede poner su tarea en curso, capturar avance y cambiar su estado, y **no
+puede mover una fecha**. Que es exactamente lo que el §10.1 pide.
+
+### Lo que no demostré en pantalla
+
+Igual que con las lecturas: el caso que lo prueba de verdad —un usuario con `edit_tracking` y sin
+`edit_schedule` recibiendo un 403 al mover una fecha— **necesita un segundo rol en la base**. Está
+cubierto por prueba y no por medición, y lo digo en vez de dejarlo implícito.
+
+Con esto el §10.1 queda recorrido entero: los diez permisos existen con el nombre del spec, la barra
+de pestañas los respeta, las lecturas ya no piden el permiso de otra vista —dos defectos arreglados—
+y las escrituras reparten bien las dos clases de edición.
