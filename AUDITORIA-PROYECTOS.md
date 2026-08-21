@@ -5171,3 +5171,56 @@ referencia no usa ninguna de las cuatro, que es lo que permite comparar hoy; el 
 sustituir al otro, las cuatro tienen que estar.
 
 Suite: 3 599 en verde.
+
+## §3.3 · Paridad: el motor en minutos ya sabe lo mismo que el de días
+
+Con los cuatro techos del pase atrás y las ausencias, el motor en minutos tiene lo mismo que el de
+días: pase adelante, pase atrás, restricciones que empujan, compromisos que aprietan y ausencias que
+estiran. Lo único que le falta es que alguien lo use.
+
+### Los cuatro techos, y una convención que yo tenía al revés
+
+El fin tardío tiene cuatro topes además de lo que piden las sucesoras: el cierre del plan o su
+`deadline`, el compromiso propio de la línea, `NO_EMPIEZA_DESPUES_DE` —que amarra el arranque— y la
+política de las terminales.
+
+Las pruebas no comparan contra números escritos a mano: comparan contra el otro motor, en casos que
+el plan de referencia no tiene. Si los dos dicen lo mismo en un caso que ninguno ha visto antes, la
+regla está entendida y no sólo copiada. Y ahí saltó una que yo tenía al revés: había escrito que
+comprometerse para el día 8 es terminar el **7**, con su comentario explicándolo, y el motor de días
+dice que es terminar el **8** —`previous()` sólo retrocede cuando la fecha cae en día no laborable—.
+Es una jornada de holgura regalada a todas las líneas del plan, con una explicación al lado de por
+qué estaba bien.
+
+### Las ausencias
+
+Una línea cuenta jornadas **trabajadas**, no transcurridas: cinco jornadas que se cruzan con tres
+días de ausencia terminan tres días más tarde. Y si su gente no está el día en que le tocaba empezar,
+empieza cuando vuelve. Un hito no se mueve: las ausencias dicen cuándo se puede trabajar, y un hito
+no es trabajo sino una marca.
+
+El bucle día a día sólo aparece cuando hay ausencias capturadas —igual que en el motor de días— y
+lleva el mismo tope de diez años, por la misma razón: una ausencia abierta colgaría el pase adelante
+sin dejar rastro de por qué.
+
+### El barrido de las seis vistas
+
+Esta noche se tocaron el servicio del plan, la definición del calendario del proyecto y la forma de
+las filas del Gantt, así que se recorrieron las seis vistas en pantalla buscando lo que se hubiera
+roto. Ninguna:
+
+| vista | lo que dibuja |
+|---|---|
+| Resumen | carga |
+| Tablero Kanban | **804** tarjetas |
+| Elementos de Trabajo | carga |
+| Timeline | 28 barras y 112 celdas de rejilla |
+| Calendario | 13 barras |
+| Carga de trabajo | 651 celdas |
+| Panel de control | carga |
+
+Y una corrección de método, anotada para no repetirla: la primera versión del barrido dio «0 filas»
+en tres vistas y no era un defecto, era **mi selector** —buscaba `tarjeta-` donde el Tablero escribe
+`edt-tarjeta-`—. Es la misma regla de siempre: leer el componente antes de escribir la sonda.
+
+Suite: 3 607 en verde.
