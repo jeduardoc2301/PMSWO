@@ -4359,3 +4359,36 @@ al volver a exigir sólo el primer permiso, las dos que importan se ponen rojas.
 
 Lo digo aquí en vez de dejarlo implícito porque la regla de esta sesión es que un cierre sólo cuenta
 demostrado en pantalla. Éste está cerrado a medias, y ésa es la mitad que falta.
+
+## §10.1 · El mismo molde, otra vez: `custom-fields`
+
+Barriendo las dieciséis rutas con guardia buscando el defecto de la tanda anterior, apareció otra con
+la misma forma. `/custom-fields` exigía **`view_gantt` a secas**, y de ahí salen los campos
+personalizados que el §10.2 nombra entre los criterios del **filtro compartido por las seis vistas**.
+
+Ésta era **peor de encontrar** que la de `/schedule`. Aquélla daba un 403 visible: se entraba a la
+Lista y la vista se caía con su mensaje. Ésta no rompe nada — el cliente se cae de pie a un catálogo
+vacío, con su comentario y todo («sin catálogo se filtra por los campos de siempre») — así que un
+perfil sin Gantt **perdía los campos propios del filtro en las seis vistas y nadie veía un error**.
+
+Un fallo silencioso que degrada bien es más difícil de encontrar que uno que revienta, y ésta es la
+demostración: el mismo defecto, la ruta de al lado, y hasta hoy invisible.
+
+### El censo, que es lo que lo encontró
+
+Dieciséis rutas con guardia. Once exigen sólo permisos de escritura y no aplican. De las cinco que
+piden permiso de vista, **dos servían a más vistas de las que su permiso nombra**:
+
+| ruta | exigía | a quién sirve |
+|---|---|---|
+| `schedule` | `view_gantt` | Gantt, **Lista** y **Calendario** |
+| `custom-fields` | `view_gantt` | el filtro de **las seis** |
+| `kanban`, `dashboard`, `workload` | el suyo | su vista, y sólo la suya |
+
+Las dos arregladas; las otras tres estaban bien.
+
+### Demostrado en pantalla
+
+Con el arreglo puesto, `custom-fields` responde **200 con su campo** y `schedule` **200 con las
+1 368 líneas**. La lista larga no convierte la guardia en «pasa cualquiera»: hay prueba de que quien
+no tiene ninguno de los seis sigue recibiendo 403.

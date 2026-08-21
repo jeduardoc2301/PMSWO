@@ -68,3 +68,42 @@ describe('§10.1 · varios permisos: basta uno', () => {
     expect(await r!.json()).toEqual({ error: 'Forbidden', message: 'No tienes acceso al plan.' })
   })
 })
+
+describe('§10.1 · el molde: una ruta que sirve a varias vistas', () => {
+  /**
+   * Salió dos veces con la misma forma. `/schedule` carga el plan del Gantt, la Lista y el
+   * Calendario, y `/custom-fields` da los campos propios que el §10.2 nombra entre los criterios del
+   * **filtro compartido por las seis**. Las dos exigían `view_gantt` a secas.
+   *
+   * La de `/schedule` daba un 403 visible; la de `/custom-fields` era peor de encontrar, porque el
+   * cliente se cae de pie a un catálogo vacío: el filtro perdía sus campos propios **en las seis
+   * vistas** y no lo decía.
+   */
+  const LAS_SEIS = [
+    'view_gantt',
+    'view_list',
+    'view_board',
+    'view_calendar',
+    'view_workload',
+    'view_dashboard',
+  ] as const
+
+  it('quien sólo tiene la última de la lista entra igual', async () => {
+    vi.mocked(authorize)
+      .mockRejectedValueOnce(negar())
+      .mockRejectedValueOnce(negar())
+      .mockRejectedValueOnce(negar())
+      .mockRejectedValueOnce(negar())
+      .mockRejectedValueOnce(negar())
+      .mockResolvedValueOnce(undefined as never)
+    await expect(exigirPermiso('u1', 'p1', LAS_SEIS)).resolves.toBeNull()
+    expect(authorize).toHaveBeenCalledTimes(6)
+  })
+
+  it('y quien no tiene ninguna de las seis sigue recibiendo 403', async () => {
+    // Que la lista sea larga no puede convertirla en «pasa cualquiera».
+    vi.mocked(authorize).mockRejectedValue(negar())
+    const r = await exigirPermiso('u1', 'p1', LAS_SEIS)
+    expect(r!.status).toBe(403)
+  })
+})

@@ -57,7 +57,23 @@ async function getHandler(
   const { id: projectId } = await context.params
   // Ver el catálogo es parte de ver el proyecto: quien mira un filtro guardado necesita saber por
   // qué campo filtra aunque no pueda administrarlos.
-  const negado = await exigirPermiso(authContext.userId, projectId, 'view_gantt')
+  /**
+   * Cualquiera de las seis vistas, porque el catalogo es del **filtro** y el filtro es transversal.
+   *
+   * Pedía `view_gantt` a secas, y de aqui salen los campos personalizados que el §10.2 nombra
+   * entre los criterios del filtro compartido. Un perfil con `view_list` y sin Gantt recibia 403,
+   * el cliente se caía de pie a un catálogo vacío —sin romperse— y **el filtro perdia sus campos
+   * propios en las seis vistas** sin decir por que. Es el mismo molde que `/schedule`: una ruta que
+   * sirve a varias vistas exigiendo el permiso de una.
+   */
+  const negado = await exigirPermiso(authContext.userId, projectId, [
+    'view_gantt',
+    'view_list',
+    'view_board',
+    'view_calendar',
+    'view_workload',
+    'view_dashboard',
+  ])
   if (negado) return negado
 
   const campos = await catalogoDelProyecto(projectId, authContext.organizationId)
