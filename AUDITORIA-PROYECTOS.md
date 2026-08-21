@@ -4689,3 +4689,30 @@ Porque a las once de la noche, con cinco sondas equivocadas encima, «esto se ve
 suficiente para tocar una decisión de producto que alguien tomó con un motivo. Esta sesión ha
 enseñado dos veces lo contrario —comentarios que envejecieron mintiendo— pero también que **la mitad
 de las veces el comentario tiene razón y el que va con prisa soy yo**.
+
+## §10.2 · Filtros guardados con nombre y compartidos: funcionan
+
+El §10.2 pide que los filtros «se guarden con nombre (`SavedFilter`), se marquen como compartidos con
+el proyecto, y se apliquen también a la exportación». Medido de punta a punta contra la API real:
+
+| paso | resultado |
+|---|---|
+| listar antes | **200**, 0 filtros |
+| guardar con nombre y compartido | **201**, con su id |
+| listar después | el filtro aparece, con `isShared: true` y su nombre |
+
+Lo de la exportación ya estaba demostrado en la tanda 28: el CSV lleva en su cabecera «1243 de 1368
+líneas», que es la cuenta **filtrada**.
+
+### Dos sondas equivocadas más, las dos mías
+
+1. Mandé el árbol del filtro en un campo `definition`; la ruta lo espera en **`expression`** —lo dice
+   su esquema, con el porqué de no validarlo con zod al lado—. Devolvió un 400 honesto: «se esperaba
+   un objeto».
+2. Borré con `DELETE /filters/{id}` y la ruta usa **`DELETE /filters?id=…`**, que es lo que hace la
+   propia interfaz. Un 404 que era mío, no de la ruta.
+
+Van seis en dos noches. La sexta tuvo consecuencia, y la anoto: **la fila de prueba se quedó
+escrita** porque mi borrado falló, y hubo que quitarla por la base. El plan de referencia no se tocó
+—`SavedFilter` no es plan— pero la lección es que **una medición que escribe necesita su limpieza
+comprobada, no supuesta**. La comprobé: quedan 0 filtros guardados.
