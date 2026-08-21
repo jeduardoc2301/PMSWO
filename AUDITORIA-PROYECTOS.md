@@ -4561,3 +4561,29 @@ testid — su panel se reconoce por lo que dice, «N líneas más el AAAA-MM-DD�
 
 Van cuatro sondas equivocadas desde que anoté la regla. Las cuatro se quedaron en sondas: ninguna
 llegó a la bitácora como defecto. Antes de la regla, tres de tres sí llegaron.
+
+## §13 · Tres puntos más del Calendario y el Gantt: uno medido, dos no
+
+### Medido: el corte de barras entre semanas
+
+En el mes de junio del plan de referencia hay **13 barras** dibujadas y **5 tareas aparecen en varios
+trozos** — una por cada semana que cruzan. Es el criterio «corte correcto entre semanas y entre
+meses», y se cumple: cada trozo lleva su propia columna de arranque, así que una tarea de diez días
+no se dibuja como una barra que se sale del mes.
+
+### No medido: los hitos en rombo
+
+**Junio no tiene ningún hito.** Los del plan de referencia son los cierres de ola, que caen de
+septiembre a noviembre. La sonda contó cero, y eso no dice nada del rombo: dice que el mes elegido no
+tenía con qué probarlo.
+
+Queda pendiente de medir en un mes que sí los tenga. Se anota como no medido y no como cumplido,
+porque el código dibuje `◆` no es lo mismo que haberlo visto.
+
+### No medido: el EDT del Gantt
+
+La sonda tomó el primer trozo de texto de cada fila y devolvió `▾ | ▸ | ▸ | ▸…` — los **triángulos
+del árbol**, no la numeración. El EDT va en su columna, no al principio del renglón.
+
+Quinta sonda equivocada desde la regla, y la quinta que se queda en sonda: no se apunta como defecto
+del EDT, se apunta como medición pendiente.
