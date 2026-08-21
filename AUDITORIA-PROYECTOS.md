@@ -4047,3 +4047,38 @@ cambia sin que la vista vuelva a pedir nada.
 El primer montaje daba **cero filas sobrecargadas** y estuve a punto de anotarlo como hallazgo. Eran
 dos tareas al 50 % solapadas: exactamente el 100 %, y la sobrecarga es `>`, no `≥`. El montaje era
 mío. Solapando las tres del todo salen las 50 filas en rojo que tenían que salir.
+
+## Barrido de las seis vistas en pantalla: limpio
+
+Con el §3 y el §8 recorridos sin hallazgos, tocaba lo que el guion dice para ese caso: buscar
+defectos midiendo. Se recorrieron las seis vistas del proyecto de referencia con un recolector
+puesto **dentro de la página** —`console.error`, `error` y `unhandledrejection`—, que sobrevive a los
+cambios de pestaña, que es justo cuando hay que mirar.
+
+| vista | monta | nodos | NaN | undefined | ∞ | `[object Object]` | avisos |
+|---|---|---|---|---|---|---|---|
+| Tablero Kanban | sí | 24 198 | no | no | no | no | 0 |
+| Elementos de Trabajo | sí | 3 153 | no | no | no | no | 0 |
+| Timeline | sí | 917 | no | no | no | no | 0 |
+| Calendario | sí | 370 | no | no | no | no | 0 |
+| Carga de trabajo | sí | 1 133 | no | no | no | no | 0 |
+| Panel de control | sí | 1 316 | no | no | no | no | 0 |
+
+**Cero avisos distintos** en las seis.
+
+### Lo único que llamó la atención, y lo que resultó ser
+
+El Tablero pesa **24 198 nodos contra los 3 153 de la siguiente**. Perseguido hasta el fondo: 130
+columnas dibujadas, 804 tarjetas en el DOM, 104 columnas vacías, 26 filas de fase y **ninguna fila de
+fase entera vacía**.
+
+No es un defecto: la rejilla se dibuja completa para que las columnas queden alineadas de una fase a
+la siguiente, y la paginación funciona. Pero el comentario de `TARJETAS_POR_TANDA` **decía sólo la
+mitad**: contaba las 1 243 tarjetas y los 36 098 nodos de antes y no lo que queda después. Quien lea
+«cincuenta por tanda» supondrá cincuenta tarjetas en pantalla, y hay ochocientas — porque **el tope
+es por instancia de columna** y agrupado por fases hay 26 × 5 = 130 instancias, cada una con su
+cuenta. El techo real es 50 × 130.
+
+Se deja así a propósito —una cuenta compartida entre instancias haría que desplegar una columna
+plegara otra— pero ahora está escrito con las dos cifras. Es el cuarto comentario de esta sesión que
+decía algo cierto y dejaba fuera lo que hacía falta para entenderlo.

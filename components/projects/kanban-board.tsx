@@ -363,6 +363,21 @@ interface KanbanColumnProps {
  *
  * Medido en el tablero del plan de referencia antes de esto: **1 243 tarjetas** en el DOM, 36 098
  * nodos en la página y **20 segundos** hasta que el tablero se podía usar.
+ *
+ * ## Y cuánto queda, que no es lo que este número sugiere
+ *
+ * Medido después, en el mismo tablero: **804 tarjetas y 24 198 nodos**. Es una tercera parte menos,
+ * no la desaparición que «cincuenta por tanda» hace imaginar, y la razón es que **el tope es por
+ * instancia de columna**: agrupado por fases hay 26 fases × 5 estados = **130 columnas**, cada una
+ * con su propia cuenta de cincuenta. El techo real es 50 × 130, no 50 × 5.
+ *
+ * Se deja así a propósito —una cuenta compartida entre instancias haría que desplegar una columna
+ * plegara otra, que es peor que dibujar de más— pero queda escrito, porque quien lea «50» y no esto
+ * supondrá que en pantalla hay cincuenta tarjetas y hay ochocientas.
+ *
+ * De las 130 columnas, **104 salen vacías** en este plan: cada fase tiene sus líneas en un solo
+ * estado. La rejilla se dibuja entera a propósito, para que las columnas queden alineadas de una
+ * fase a la siguiente.
  */
 const TARJETAS_POR_TANDA = 50
 
