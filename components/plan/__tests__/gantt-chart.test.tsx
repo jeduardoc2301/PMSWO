@@ -451,3 +451,78 @@ describe('La columna de duración exacta', () => {
     expect(screen.getByText('24 h')).toBeInTheDocument()
   })
 })
+
+/**
+ * Escribir la duración exacta.
+ *
+ * La celda acepta la unidad que quiera quien escribe y guarda minutos. Lo que no acepta es cambiar
+ * el número de días desde aquí: eso mueve a todo lo que cuelga de la línea y tiene su propio camino,
+ * el del borde de la barra, que avisa antes de escribir.
+ */
+describe('Escribir la duración exacta', () => {
+  const UNA_JORNADA: PlanTask[] = [
+    { id: 'sola', name: 'Revisar el inventario', duration: 1, duracionMin: 480 },
+  ]
+  const SOLO_LA_EXACTA = COLUMNAS.filter((c) => c.id === 'name' || c.id === 'duracionMin')
+
+  function editable(onEditarCelda: (id: string, campo: string, v: string) => void) {
+    render(
+      <GanttChart
+        layout={trazar(UNA_JORNADA)}
+        dayWidth={DIA}
+        columnas={SOLO_LA_EXACTA}
+        onEditarCelda={onEditarCelda as never}
+      />,
+    )
+    fireEvent.doubleClick(screen.getByText('1 d'))
+    return screen.getByLabelText('Duración exacta de «Revisar el inventario»') as HTMLInputElement
+  }
+
+  it('se abre con lo mismo que enseña, para poder teclearlo tal cual', () => {
+    expect(editable(vi.fn()).value).toBe('1 d')
+  })
+
+  it('guarda lo que se escriba, en la unidad que se escriba', () => {
+    const guardar = vi.fn()
+    const campo = editable(guardar)
+    fireEvent.change(campo, { target: { value: '4 h' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+
+    expect(guardar).toHaveBeenCalledWith('sola', 'duracionMin', '4 h')
+  })
+
+  it('pero no deja cambiar los días desde aquí, y dice por qué', () => {
+    const guardar = vi.fn()
+    const campo = editable(guardar)
+    fireEvent.change(campo, { target: { value: '3 d' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+
+    // El motivo se enseña donde lo enseña esta celda: en el `title` del campo, que sigue abierto.
+    expect(guardar).not.toHaveBeenCalled()
+    expect(campo.getAttribute('aria-invalid')).toBe('true')
+    expect(campo.title).toMatch(/Eso ocupa 3 días y la línea tiene 1/)
+  })
+
+  it('ni escribir algo que no es una duración', () => {
+    const guardar = vi.fn()
+    const campo = editable(guardar)
+    fireEvent.change(campo, { target: { value: 'cuatro horas' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+
+    expect(guardar).not.toHaveBeenCalled()
+    expect(campo.title).toMatch(/No se entiende/)
+  })
+
+  it('y un hito no se edita: su duración es cero por definición', () => {
+    render(
+      <GanttChart
+        layout={trazar([{ id: 'h', name: 'Ambiente listo', duration: 0, kind: 'HITO', duracionMin: 0 }])}
+        dayWidth={DIA}
+        columnas={SOLO_LA_EXACTA}
+        onEditarCelda={vi.fn()}
+      />,
+    )
+    fireEvent.doubleClick(screen.getByText('0'))
+    expect(screen.queryByLabelText(/Duración exacta/)).toBeNull()
+  })
+})

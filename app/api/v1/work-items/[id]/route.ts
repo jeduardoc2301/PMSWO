@@ -39,6 +39,14 @@ const updateWorkItemSchema = z.object({
   ownerId: z.string().uuid().optional(),
   phase: z.string().nullable().optional(),
   estimatedHours: z.number().int().min(0).nullable().optional(),
+  /**
+   * Duración en minutos laborables (§2). `null` la deja sin calcular.
+   *
+   * El tope no es decorativo: son cuarenta jornadas de ocho horas, y una duración mayor que eso
+   * escrita a mano es casi siempre un dedazo —«480» queriendo decir «4 h»—. Que lo diga el esquema
+   * y no una pantalla, porque la pantalla no es la única que escribe aquí.
+   */
+  durationMinutes: z.number().int().min(0).max(19_200).nullable().optional(),
   // Avance real de 0 a 1, como lo captura quien revisa el plan. Es el insumo del estado al corte y
   // del atraso en días; el resumen no se captura, se acumula ponderado desde las hojas.
   progressPct: z.number().min(0).max(1).optional(),
@@ -325,6 +333,8 @@ async function updateWorkItemHandler(
         ...(updateData.ownerId && { ownerId: updateData.ownerId }),
         ...(updateData.phase !== undefined && { phase: updateData.phase }),
         ...(updateData.estimatedHours !== undefined && { estimatedHours: updateData.estimatedHours }),
+        // Contra undefined y no por verdadero: cero minutos es un hito, y por verdadero se perdería.
+        ...(updateData.durationMinutes !== undefined && { durationMinutes: updateData.durationMinutes }),
         // Contra undefined y no por verdadero: null significa «súbela a la raíz», y por verdadero
         // ese movimiento se perdería en silencio.
         ...(updateData.parentId !== undefined && { parentId: updateData.parentId }),

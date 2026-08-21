@@ -23,7 +23,7 @@ import {
 import { CeldaEditable, validarAvance, validarNombre } from '@/components/plan/celda-editable'
 import { accionDeTeclado } from '@/lib/plan/atajos'
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
-import { MINUTOS_POR_JORNADA, comoTexto } from '@/lib/scheduling/unidades'
+import { MINUTOS_POR_JORNADA, comoTexto, leerDuracion } from '@/lib/scheduling/unidades'
 
 export interface GanttChartProps {
   readonly layout: GanttLayout
@@ -77,7 +77,7 @@ export interface GanttChartProps {
    * Solo llega con un valor válido y distinto del que había: la celda ya descartó lo demás, así que
    * quien recibe esto puede escribir sin volver a comprobar nada.
    */
-  readonly onEditarCelda?: (id: string, campo: 'name' | 'progress', valor: string) => void
+  readonly onEditarCelda?: (id: string, campo: 'name' | 'progress' | 'duracionMin', valor: string) => void
   /**
    * Atajos de teclado sobre una fila (§4.4): sangrar, anular sangría, abrir el detalle.
    *
@@ -165,6 +165,33 @@ function ValorDeLaFoto({ row, columnaId }: { row: GanttRow; columnaId: string })
       {Math.abs(corrimiento)} d
     </span>
   )
+}
+
+/**
+ * Qué se admite al escribir la duración exacta de una línea.
+ *
+ * Los minutos afinan **dentro** de los días que ya tiene la línea; no los cambian. La regla es que
+ * `ceil(minutos ÷ jornada)` siga siendo el mismo número de días hábiles que ocupa la barra.
+ *
+ * Es una limitación de verdad y conviene decirla en voz alta: convertir una tarea de un día en una
+ * de tres desde esta celda tendría que mover a todo lo que cuelga de ella, y eso ya tiene su camino
+ * —arrastrar el borde de la barra, que avisa de cuántas líneas se mueven antes de escribir nada—.
+ * Dos caminos que escriben lo mismo con avisos distintos es como se cuelan los planes rotos.
+ */
+export function validarDuracion(
+  valor: string,
+  minutosPorJornada: number,
+  diasDeLaLinea: number,
+): string | null {
+  const leido = leerDuracion(valor, minutosPorJornada)
+  if ('motivo' in leido) return leido.motivo
+  if (leido.minutos === 0) return 'Una tarea con cero minutos es un hito; cámbiale la clase.'
+
+  const dias = Math.ceil(leido.minutos / minutosPorJornada)
+  if (dias !== diasDeLaLinea) {
+    return `Eso ocupa ${dias} ${dias === 1 ? 'día' : 'días'} y la línea tiene ${diasDeLaLinea}. Los días se cambian arrastrando el borde de la barra.`
+  }
+  return null
 }
 
 function contenidoDe(
@@ -419,7 +446,17 @@ export function GanttChart({
                       className="shrink-0 overflow-hidden border-b border-borde"
                       style={{ width: anchoPorColumna[i] }}
                     >
-                      {columna.id === 'progress' && onEditarCelda ? (
+                      {columna.id === 'duracionMin' && onEditarCelda && !row.hasChildren && !row.isMilestone ? (
+                        <CeldaEditable
+                          texto={contenidoDe(row, columna.id, primera + k, minutosPorJornada)}
+                          // Se edita con el mismo texto que se enseña: quien ve «4 h» teclea «4 h».
+                          valor={row.duracionMin === undefined ? '' : comoTexto(row.duracionMin, minutosPorJornada)}
+                          etiqueta={`Duración exacta de «${row.name}»`}
+                          validar={(v) => validarDuracion(v, minutosPorJornada, row.width)}
+                          alineadoALaDerecha
+                          onGuardar={(v) => onEditarCelda(row.id, 'duracionMin', v)}
+                        />
+                      ) : columna.id === 'progress' && onEditarCelda ? (
                         <CeldaEditable
                           texto={contenidoDe(row, columna.id, primera + k, minutosPorJornada)}
                           valor={String(Math.round(row.progress * 100))}

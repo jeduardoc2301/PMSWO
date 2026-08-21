@@ -23,6 +23,7 @@
  *   funciona.
  */
 
+import { MINUTOS_POR_JORNADA, leerDuracion } from '@/lib/scheduling/unidades'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
@@ -574,10 +575,47 @@ export function PlanWorkspace({
    * editan aquí: tienen que pasar por la previsualización que ya usa el arrastre, y prometerlo con
    * un doble clic sería saltarse el aviso.
    */
-  const editarCelda = async (id: string, campo: 'name' | 'progress', valor: string) => {
+  const editarCelda = async (
+    id: string,
+    campo: 'name' | 'progress' | 'duracionMin',
+    valor: string,
+  ) => {
     const linea = tasks.find((t) => t.id === id)
     if (!linea) return
     setErrorDeJerarquia(null)
+
+    // La duración exacta se teclea en la unidad que se quiera —«4 h», «90 min», «1,5 d»— y se
+    // guarda siempre en minutos. Lo que no cabe en los días que ya tiene la línea lo para la celda
+    // antes de llegar aquí; esto es la segunda guardia, para quien llame por otro camino.
+    if (campo === 'duracionMin') {
+      const leido = leerDuracion(valor, minutosPorJornada ?? MINUTOS_POR_JORNADA)
+      if ('motivo' in leido) {
+        setErrorDeJerarquia(leido.motivo)
+        return
+      }
+      const antesMin = linea.duracionMin ?? null
+      const despuesMin = { durationMinutes: leido.minutos }
+      try {
+        const r = await fetch(`/api/v1/work-items/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(despuesMin),
+        })
+        if (!r.ok) {
+          const cuerpo = await r.json().catch(() => ({}))
+          throw new Error(cuerpo.message ?? `HTTP ${r.status}`)
+        }
+        onOperacion?.({
+          etiqueta: `Duración de «${linea.name}»`,
+          hacer: [{ workItemId: id, campos: despuesMin }],
+          deshacer: [{ workItemId: id, campos: { durationMinutes: antesMin } }],
+        })
+        onPlanCambiado?.()
+      } catch (e) {
+        setErrorDeJerarquia(e instanceof Error ? e.message : 'No se pudo escribir el cambio.')
+      }
+      return
+    }
 
     const antes = campo === 'name' ? { title: linea.name } : { progressPct: linea.progress ?? 0 }
     const despues =

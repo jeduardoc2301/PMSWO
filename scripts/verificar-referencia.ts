@@ -10,6 +10,24 @@
  */
 
 import prisma from '../lib/prisma'
+import { createWorkCalendar } from '../lib/scheduling/calendar'
+import { toDayNumber } from '../lib/scheduling/date'
+import { esClaseDeHito } from '../lib/scheduling/kinds'
+
+const calendario = createWorkCalendar()
+
+/**
+ * Días hábiles de una línea, exactamente como los cuenta el relleno de minutos.
+ *
+ * Se comparte el criterio a propósito: escrito dos veces, la primera vez que lo escribí por mi
+ * cuenta acusé a 23 líneas sanas —conté los hitos por `kind === 'HITO'` cuando la clase de hito
+ * incluye también `PUNTO_DE_CONTROL`, y no normalicé los extremos que caen en fin de semana—.
+ */
+function diasHabiles(desde: Date, hasta: Date): number {
+  const a = calendario.ordinalOf(calendario.next(toDayNumber(desde.toISOString().slice(0, 10))))
+  const b = calendario.ordinalOf(calendario.previous(toDayNumber(hasta.toISOString().slice(0, 10))))
+  return Math.max(1, b - a + 1)
+}
 
 /** Lo que el plan de referencia tiene que decir siempre. */
 const ESPERADO = {
@@ -25,6 +43,16 @@ const ESPERADO = {
   arranque: '2026-06-01',
   // Y las fotos, que una medición de permisos crea sin querer y nadie vuelve a mirar.
   lineasBase: 1,
+  /**
+   * Líneas cuya duración en minutos no cuadra con sus días (§2).
+   *
+   * En el plan de referencia todo dura jornadas enteras, así que `minutos = días × 480` en las
+   * 1 368. La comprobación existe porque midiendo la celda de duración exacta escribí «4 h» sobre
+   * una línea real, y ninguna de las siete cuentas de arriba lo habría notado: ni el número de
+   * líneas, ni los vínculos, ni el cierre, ni las fechas al revés. Es el tercer verificador que
+   * crece por el mismo motivo — una medición que escribe deja rastro donde nadie mira—.
+   */
+  minutosSinCuadrar: 0,
 }
 
 async function main(): Promise<void> {
@@ -75,6 +103,31 @@ async function main(): Promise<void> {
     )
   }
 
+  /**
+   * Los minutos contra los días, línea a línea.
+   *
+   * Los días hábiles se cuentan con el mismo criterio que el resto del sistema —ambos extremos
+   * incluidos—, así que una línea de un día tiene 480 minutos y un hito, cero.
+   */
+  const minutos = await prisma.workItem.findMany({
+    where: { projectId },
+    select: { id: true, title: true, kind: true, durationMinutes: true, startDate: true, estimatedEndDate: true },
+  })
+  const jornada = (await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+    select: { minutosPorJornada: true },
+  })).minutosPorJornada
+  const sinCuadrar = minutos.filter((m) => {
+    const dias = diasHabiles(m.startDate, m.estimatedEndDate)
+    const esperados = esClaseDeHito(m.kind) ? 0 : dias * jornada
+    return m.durationMinutes !== esperados
+  })
+  for (const m of sinCuadrar.slice(0, 10)) {
+    console.log(
+      `     ${m.title.slice(0, 50)}  ${m.durationMinutes} min contra ${diasHabiles(m.startDate, m.estimatedEndDate)} d`,
+    )
+  }
+
   const proyecto = await prisma.project.findUniqueOrThrow({
     where: { id: projectId },
     select: { startDate: true },
@@ -90,6 +143,7 @@ async function main(): Promise<void> {
     alReves: alReves.length,
     arranque: proyecto.startDate.toISOString().slice(0, 10),
     lineasBase,
+    minutosSinCuadrar: sinCuadrar.length,
   }
 
   let todoBien = true

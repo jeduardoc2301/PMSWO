@@ -6,6 +6,7 @@ import {
   aMinutos,
   comoTexto,
   jornadaValida,
+  leerDuracion,
   trabajoEnMinutos,
 } from '../unidades'
 
@@ -113,5 +114,54 @@ describe('§3.5 · Work = Duration × Units', () => {
 
   it('la jornada por omisión son las ocho horas del spec', () => {
     expect(MINUTOS_POR_JORNADA).toBe(480)
+  })
+})
+
+describe('leerDuracion', () => {
+  const minutosDe = (texto: string, jornada?: number) => {
+    const leido = leerDuracion(texto, jornada)
+    return 'minutos' in leido ? leido.minutos : `MOTIVO: ${leido.motivo}`
+  }
+
+  it('lee las tres unidades, con espacio y sin él', () => {
+    expect(minutosDe('4h')).toBe(240)
+    expect(minutosDe('4 h')).toBe(240)
+    expect(minutosDe('90 min')).toBe(90)
+    expect(minutosDe('90m')).toBe(90)
+    expect(minutosDe('2 d')).toBe(960)
+  })
+
+  it('un número pelado son días, que es la unidad en la que está escrito el plan', () => {
+    expect(minutosDe('3')).toBe(1440)
+    expect(minutosDe('0')).toBe(0)
+  })
+
+  it('la coma y el punto valen lo mismo', () => {
+    expect(minutosDe('1,5 d')).toBe(720)
+    expect(minutosDe('1.5d')).toBe(720)
+    expect(minutosDe('0,5')).toBe(240)
+  })
+
+  it('y la jornada del proyecto manda sobre los días', () => {
+    // Media jornada son 240 minutos donde dura ocho horas y 210 donde dura siete.
+    expect(minutosDe('0,5 d', 420)).toBe(210)
+    // Las horas, en cambio, son horas en todas partes.
+    expect(minutosDe('4 h', 420)).toBe(240)
+  })
+
+  it('lo que no es una duración se contesta con una frase, no con una excepción', () => {
+    expect(minutosDe('')).toBe('MOTIVO: Escribe una duración: «4 h», «90 min», «1,5 d».')
+    expect(minutosDe('cuatro horas')).toContain('No se entiende')
+    expect(minutosDe('-2 d')).toBe('MOTIVO: Una duración no puede ser negativa.')
+  })
+
+  it('y lo que se lee se puede volver a escribir', () => {
+    // La ida y la vuelta tienen que cerrar: es lo que garantiza que lo que la celda enseña se puede
+    // volver a teclear tal cual sin que el valor cambie por el camino.
+    for (const texto of ['4 h', '90 min', '2 d', '1,5 d']) {
+      const leido = leerDuracion(texto)
+      expect('minutos' in leido).toBe(true)
+      if ('minutos' in leido) expect(minutosDe(comoTexto(leido.minutos))).toBe(leido.minutos)
+    }
   })
 })
