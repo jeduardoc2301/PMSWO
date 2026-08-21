@@ -5927,3 +5927,30 @@ sobreviven años.
 
 La medición se hizo volviendo el servicio al comportamiento anterior, leyendo la pantalla, y
 restaurándolo: el árbol queda limpio y la suite verde.
+
+## El atajo de los hitos, barrido en todo el repositorio
+
+Después de que `kind === 'HITO'` metiera 23 jornadas de carga fantasma en el §8, en vez de arreglar
+sólo ese sitio busqué el mismo atajo en todas partes. Aparecieron **tres más**:
+
+| dónde | qué hacía |
+|---|---|
+| el Tablero | calculaba el atraso de una tarjeta como si un punto de control durara días |
+| el Calendario | lo dibujaba como una barra en vez de como la marca que es |
+| el servicio del plan | le da duración por fechas — **medido y sin tocar** |
+
+Los dos primeros ya preguntan por la clase de hito. El tercero se deja: cambiar la duración de 23
+líneas del plan mueve sus barras, y eso quiere luz de día.
+
+### Por qué este atajo es tan persistente
+
+Van seis veces. Y la razón está en los números: **`kind === 'HITO'` funciona para 86 de las 109
+líneas** que debería cubrir. Falla en el 21 % restante y **en silencio** — ninguna pantalla se rompe,
+ninguna prueba se pone roja, y el número que sale es plausible. Un atajo que acierta cuatro de cada
+cinco veces es mucho más difícil de erradicar que uno que falla siempre.
+
+La prueba nueva compara las dos clases entre sí **y** contra una actividad, e incluye el caso «no
+enseña nada»: que un hito no lleve insignia de atraso también es una respuesta, y las dos clases
+tienen que darla igual.
+
+Suite: 3 666 en verde.
