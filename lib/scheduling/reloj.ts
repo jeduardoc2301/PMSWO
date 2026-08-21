@@ -313,7 +313,13 @@ export function crearReloj(calendario: WorkCalendar, jornada: Jornada = JORNADA_
 
   function restar(instante: Instante, minutos: number): Instante {
     if (minutos < 0) return sumar(instante, -minutos)
-    const total = acumulado(cerrar(instante)) - minutos
+    const fin = cerrar(instante)
+    // Retroceder cero no es retroceder: se contesta el mismo instante, cerrado. La forma de abrir
+    // —que es la que usa el resto de la función— diría «el día siguiente a las nueve», que es el
+    // mismo instante de trabajo acumulado y otro día del calendario. Un hito atado con `FF+0` cae
+    // el día en que termina su predecesora, y por esto caía al siguiente.
+    if (minutos === 0) return fin
+    const total = acumulado(fin) - minutos
     const ordinal = Math.floor(total / minutosPorJornada)
     // Hacia atrás se busca un comienzo, así que el límite se contesta abriendo el día: es la
     // asimetría de `abrir` y `cerrar`, aquí otra vez y por la misma razón.

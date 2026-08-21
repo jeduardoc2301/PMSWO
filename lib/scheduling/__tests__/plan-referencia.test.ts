@@ -11,7 +11,8 @@ import { type CriterionRow, reviewExitCriteria } from '../exit-criteria'
 import { type GanttInput, collapseToLevel, ganttLayout } from '../gantt'
 import { importPlanFromXlsx } from '../import-plan'
 import { parentsFromLevels, rollUpProgress } from '../progress'
-import { comoHora, fechaDe } from '../reloj'
+import { comoHora, crearReloj, fechaDe } from '../reloj'
+import { programarEnMinutos } from '../programar-en-minutos'
 import { schedulePlan } from '../schedule'
 import { formatTraceability, reviewForClient } from '../traceability'
 import type { PlanTask } from '../types'
@@ -540,6 +541,60 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
 
     it('el plan de referencia está sin avance capturado, y el prorrateo lo dice', () => {
       expect(rollUpProgress(jerarquia()).progress).toBe(0)
+    })
+  })
+
+  /**
+   * El motor en minutos contra el motor en días, sobre el plan entero.
+   *
+   * Son dos programadores independientes —uno cuenta ordinales de día hábil, el otro minutos dentro
+   * del día— recorriendo los mismos 1 665 vínculos, 394 de ellos con desfase. Que coincidan en las
+   * 1 368 líneas es lo que autoriza a plantearse el cambio de unidad del motor; mientras no
+   * coincidan, el de minutos es un experimento y no un candidato.
+   *
+   * El plan de referencia no tiene restricciones de fecha ni ausencias —está medido: cero de las
+   * dos— así que la comparación es limpia: lo único que separa a los dos programadores es la unidad.
+   */
+  describe('el motor en minutos', () => {
+    function ambos() {
+      const tareas = conJerarquia().map((t) => ({ ...t, duracionMin: t.duration * 480 }))
+      const enDias = schedulePlan({
+        tasks: tareas,
+        dependencies: plan.dependencies,
+        calendar,
+        start: plan.declaredStart,
+      })
+      const enMinutos = programarEnMinutos({
+        tasks: tareas,
+        dependencies: plan.dependencies,
+        reloj: crearReloj(calendar),
+        comienzo: plan.declaredStart,
+      })
+      return { tareas, enDias, enMinutos }
+    }
+
+    it('coloca las 1 368 líneas en los mismos días que el motor de días', () => {
+      const { tareas, enDias, enMinutos } = ambos()
+
+      const distintas = tareas
+        .map((t) => {
+          const dia = enDias.byId.get(t.id)!
+          const min = enMinutos.porId.get(t.id)!
+          return { name: t.name, dia, min }
+        })
+        .filter(({ dia, min }) => fechaDe(min.comienzo) !== dia.start || fechaDe(min.fin) !== dia.finish)
+
+      expect(tareas).toHaveLength(1368)
+      expect(
+        distintas
+          .slice(0, 8)
+          .map((d) => `${d.name}: ${comoHora(d.min.comienzo)}→${comoHora(d.min.fin)} contra ${d.dia.start}→${d.dia.finish}`),
+      ).toEqual([])
+    })
+
+    it('y cierra el plan el mismo día', () => {
+      const { enDias, enMinutos } = ambos()
+      expect(fechaDe(enMinutos.fin)).toBe(enDias.finish)
     })
   })
 

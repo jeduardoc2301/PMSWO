@@ -180,6 +180,15 @@ describe('El reloj laborable', () => {
       }
     })
 
+    it('restar cero no mueve nada: cierra donde estaba', () => {
+      // Parece una perogrullada y no lo es: `restar` devuelve un comienzo, así que la forma de
+      // abrir contestaría «el día siguiente a las nueve» —el mismo instante de trabajo acumulado,
+      // otro día del calendario—. Un hito atado con `FF+0` al fin de una tarea cae **el día en que
+      // esa tarea termina**, y con la forma de abrir caía al siguiente: son 47 hitos del plan real.
+      expect(comoHora(reloj.restar(alas(LUNES, 18), 0))).toBe('2026-06-01 18:00')
+      expect(comoHora(reloj.restar(alas(LUNES, 13), 0))).toBe('2026-06-01 13:00')
+    })
+
     it('al revés no da negativo: da cero', () => {
       expect(reloj.entre(alas(VIERNES, 9), alas(LUNES, 9))).toBe(0)
     })
