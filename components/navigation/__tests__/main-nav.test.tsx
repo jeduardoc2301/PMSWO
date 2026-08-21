@@ -18,6 +18,8 @@ vi.mock('next-intl', () => ({
       'nav.settings': 'Settings',
       'nav.signOut': 'Sign Out',
       'templates.title': 'Templates',
+      'nav.plegarBarra': 'Ocultar el menú',
+      'nav.desplegarBarra': 'Mostrar el menú',
     }
     return translations[key] || key
   },
@@ -211,28 +213,80 @@ describe('MainNav', () => {
   })
 
   /**
-   * ⚠️ La barra dejó de tener cajón móvil: hoy es una columna fija de 256 px pegada a la izquierda,
-   * sin botón de menú ni clases de desplazamiento. En una pantalla de teléfono eso se come el
-   * ancho útil. No es un problema de esta prueba, es una capacidad que se perdió; queda escrita y
-   * omitida para que el dato no desaparezca con ella.
+   * La barra vuelve a poder esconderse — y esta prueba es la que estaba omitida.
+   *
+   * Decía: «no es un problema de esta prueba, es una capacidad que se perdió; queda escrita y
+   * omitida para que el dato no desaparezca con ella». Aquí vuelve, pero **no con su forma
+   * anterior**, y conviene que quede dicho por qué. Aquella esperaba clases `translate-x-0` y
+   * `-translate-x-full` sobre el `<aside>` y un `aria-label` en inglés.
+   *
+   * Hoy el desplazamiento no vive en las clases del elemento sino en `globals.css`, colgando de un
+   * `data-barra` estampado en `<html>`. No es un capricho: el ancho de la barra está escrito
+   * también en el `ml-64` de cinco layouts de SERVIDOR, y un estado de React dentro de este
+   * componente no llega hasta ellos sin convertirlos en cliente. Así que lo que se comprueba es lo
+   * que de verdad decide: el atributo.
    */
-  it.skip('toggles sidebar on mobile menu button click (el cajón móvil se eliminó)', () => {
-    render(<MainNav {...defaultProps} />)
-    
-    const menuButton = screen.getByLabelText('Toggle menu')
-    expect(menuButton).toBeInTheDocument()
-    
-    // The sidebar should be open by default
-    const sidebar = screen.getByRole('complementary', { hidden: true })
-    expect(sidebar).toHaveClass('translate-x-0')
-    
-    // Click to close
-    fireEvent.click(menuButton)
-    expect(sidebar).toHaveClass('-translate-x-full')
-    
-    // Click to open again
-    fireEvent.click(menuButton)
-    expect(sidebar).toHaveClass('translate-x-0')
+  describe('plegar y desplegar la barra', () => {
+    const estampado = () => document.documentElement.getAttribute('data-barra')
+
+    beforeEach(() => {
+      document.documentElement.removeAttribute('data-barra')
+    })
+
+    it('ofrece los dos botones, cada uno con su nombre dicho', () => {
+      render(<MainNav {...defaultProps} />)
+
+      const plegar = screen.getByTestId('plegar-barra')
+      const desplegar = screen.getByTestId('desplegar-barra')
+
+      expect(plegar).toHaveAttribute('aria-label', 'Ocultar el menú')
+      expect(desplegar).toHaveAttribute('aria-label', 'Mostrar el menú')
+      // Sin `title` no hay pista al pasar el ratón; sin `aria-label` un lector anuncia «botón».
+      expect(plegar).toHaveAttribute('title', 'Ocultar el menú')
+      expect(desplegar).toHaveAttribute('title', 'Mostrar el menú')
+    })
+
+    it('los dos hablan del mismo elemento, y ese elemento existe', () => {
+      const { container } = render(<MainNav {...defaultProps} />)
+
+      const barra = container.querySelector('#barra-lateral')
+      expect(barra).not.toBeNull()
+      expect(barra!.tagName.toLowerCase()).toBe('aside')
+      expect(screen.getByTestId('plegar-barra')).toHaveAttribute('aria-controls', 'barra-lateral')
+      expect(screen.getByTestId('desplegar-barra')).toHaveAttribute('aria-controls', 'barra-lateral')
+    })
+
+    it('plegar estampa el atributo, y desplegar lo devuelve', () => {
+      render(<MainNav {...defaultProps} />)
+
+      expect(estampado()).toBeNull()
+      fireEvent.click(screen.getByTestId('plegar-barra'))
+      expect(estampado()).toBe('plegada')
+      fireEvent.click(screen.getByTestId('desplegar-barra'))
+      expect(estampado()).toBe('abierta')
+    })
+
+    /**
+     * El botón de sacarla vive FUERA del `<aside>`, y no es un detalle de maquetación: dentro se
+     * iría con él al plegarse y no habría forma de volver.
+     */
+    it('el botón de mostrar el menú no está dentro del menú', () => {
+      const { container } = render(<MainNav {...defaultProps} />)
+
+      const barra = container.querySelector('#barra-lateral')!
+      expect(barra.contains(screen.getByTestId('plegar-barra'))).toBe(true)
+      expect(barra.contains(screen.getByTestId('desplegar-barra'))).toBe(false)
+    })
+
+    /**
+     * Cada botón declara un `aria-expanded` fijo porque el CSS esconde el que no toca. Si el valor
+     * saliera de un estado de React, durante la hidratación los dos dirían lo mismo y uno mentiría.
+     */
+    it('cada botón dice el estado que le corresponde', () => {
+      render(<MainNav {...defaultProps} />)
+      expect(screen.getByTestId('plegar-barra')).toHaveAttribute('aria-expanded', 'true')
+      expect(screen.getByTestId('desplegar-barra')).toHaveAttribute('aria-expanded', 'false')
+    })
   })
 
   // El avatar muestra dos iniciales, no una: «John Doe» sale como «JD».

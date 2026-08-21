@@ -22,7 +22,10 @@ import {
   CalendarRange,
   ShieldAlert,
   Command,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
+import { alternarBarra } from '@/lib/projects/barra'
 
 interface MainNavProps {
   user: {
@@ -138,8 +141,21 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('')
 
+  /*
+    Plegar y desplegar es **escribir un atributo en `<html>`**, no un estado de React.
+
+    El ancho vive en dos sitios que no se hablan —el `w-64` de aquí y el `ml-64` de cinco layouts de
+    servidor—, así que quien mueve las cosas es `globals.css` leyendo `data-barra`. Ver
+    `lib/projects/barra.ts`, que explica por qué, y el guion sin parpadeo del layout raíz.
+  */
+  const alternar = () => alternarBarra(document.documentElement)
+
   return (
-    <aside className="fixed top-0 left-0 z-40 h-screen w-64 flex flex-col"
+    <>
+    <aside
+      id="barra-lateral"
+      data-barra-lateral
+      className="fixed top-0 left-0 z-40 h-screen w-64 flex flex-col"
       style={{ background: 'var(--superficie)', borderRight: '1px solid #1f1f23' }}>
 
       {/* Logo */}
@@ -154,6 +170,28 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
             <div className="text-[10px] text-tinta-3 leading-none mt-0.5">SoftwareOne</div>
           </div>
         </Link>
+
+        {/*
+          `aria-label` y `title` no son opcionales en un botón sin texto: sin ellos un lector de
+          pantalla anuncia «botón» y no hay forma de saber cuál es. Es la misma lección que dejó
+          escrita la lista de elementos de trabajo.
+
+          El `aria-expanded` puede ir fijo porque este botón SÓLO existe con la barra abierta —lo
+          esconde el CSS cuando está plegada—, así que nunca llega a mentir durante la hidratación.
+        */}
+        <button
+          type="button"
+          onClick={alternar}
+          data-boton-de-barra="plegar"
+          data-testid="plegar-barra"
+          aria-controls="barra-lateral"
+          aria-expanded={true}
+          aria-label={t('nav.plegarBarra')}
+          title={t('nav.plegarBarra')}
+          className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
+        >
+          <PanelLeftClose className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -260,5 +298,27 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
         </div>
       </div>
     </aside>
+
+    {/*
+      El botón para sacarla otra vez vive FUERA del `<aside>`: si estuviera dentro se iría con él.
+
+      Queda flotando sobre el contenido, arriba a la izquierda, en el hueco que deja la barra al
+      marcharse. Lo esconde el CSS mientras la barra está abierta.
+    */}
+    <button
+      type="button"
+      onClick={alternar}
+      data-boton-de-barra="desplegar"
+      data-testid="desplegar-barra"
+      aria-controls="barra-lateral"
+      aria-expanded={false}
+      aria-label={t('nav.desplegarBarra')}
+      title={t('nav.desplegarBarra')}
+      className="fixed top-3 left-2 z-50 w-8 h-8 flex items-center justify-center rounded-lg text-tinta-2 hover:text-tinta transition-all"
+      style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}
+    >
+      <PanelLeftOpen className="h-4 w-4" />
+    </button>
+    </>
   )
 }

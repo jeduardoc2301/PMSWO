@@ -19,6 +19,7 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
+import { guionSinParpadeoDeLaBarra } from '@/lib/projects/barra'
 import { guionSinParpadeo } from '@/lib/projects/tema'
 
 export const metadata: Metadata = {
@@ -95,6 +96,14 @@ export default async function LocaleLayout({
           servidor, y eso es exactamente lo que se busca.
         */}
         <script dangerouslySetInnerHTML={{ __html: guionSinParpadeo() }} />
+        {/*
+          Y lo mismo con la barra lateral: si esta persona la dejó plegada, el servidor no lo sabe,
+          así que sin este guion la página llega abierta y la barra se cierra sola en cuanto React se
+          hidrata. Un fogonazo de la barra cerrándose en cada navegación es peor que no poder
+          plegarla. Van dos guiones separados a propósito: son dos elecciones independientes y un
+          fallo en una no debe llevarse la otra por delante.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: guionSinParpadeoDeLaBarra() }} />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProviderWrapper>

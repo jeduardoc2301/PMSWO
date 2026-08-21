@@ -48,7 +48,9 @@
     "agreements": "Acordos",
     "settings": "Configurações",
     "signOut": "Sair",
-    "plan": "Plano"
+    "plan": "Plano",
+    "plegarBarra": "Ocultar o menu",
+    "desplegarBarra": "Mostrar o menu"
   },
   "auth": {
     "signIn": "Entrar",

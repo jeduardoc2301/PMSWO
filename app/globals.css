@@ -711,3 +711,64 @@ body {
   .info-state-card { grid-template-columns: 1fr; }
   .info-state-card-right { border-left: 0; border-top: 1px solid #1f1f24; }
 }
+
+/* ── La barra lateral, plegada o abierta ─────────────────────────────────────────────────────────
+
+   El ancho de la barra vivía escrito por duplicado: el `w-64` del `<aside>`, que es un componente
+   de cliente, y el `ml-64` de los cinco `<main>` de sección, que son layouts de SERVIDOR. Un estado
+   de React en el menú no llega al margen del contenido sin convertir esos cinco layouts en cliente.
+
+   Así que el estado se estampa como `data-barra` en `<html>` —igual que el tema— y el movimiento lo
+   hace esta hoja. El menú sólo escribe el atributo. Ver `lib/projects/barra.ts`.
+
+   Estas reglas van FUERA de cualquier `@layer`, y eso es a propósito: lo no estratificado gana a las
+   utilidades de Tailwind pase lo que pase con la especificidad, así que `margin-left: 0` vence a
+   `ml-64` sin necesidad de `!important`.                                                          */
+
+aside[data-barra-lateral] {
+  transition: transform 200ms ease, visibility 0s;
+}
+
+main {
+  transition: margin-left 200ms ease;
+}
+
+[data-barra='plegada'] aside[data-barra-lateral] {
+  transform: translateX(-100%);
+  /*
+    `visibility` retrasada hasta que acabe el desplazamiento.
+
+    Sin ella la barra se va de la pantalla pero sigue existiendo para el teclado y para un lector:
+    se tabula por seis enlaces invisibles. Con ella y sin el retraso, desaparecería de golpe en vez
+    de deslizarse. De ahí las dos transiciones: la forma tarda 200 ms, el ser visible tarda cero
+    pero empieza a los 200.                                                                       */
+  visibility: hidden;
+  transition: transform 200ms ease, visibility 0s linear 200ms;
+}
+
+[data-barra='plegada'] main {
+  /*
+    No cero: el ancho del botón de sacarla.
+
+    Medido en pantalla — con `margin-left: 0` el botón flotante se solapaba 12 px con la flecha de
+    volver de la cabecera, que es **otro botón**. Un control que tapa a otro no es un detalle
+    estético: se pulsa el que no era.
+
+    Confiar en el relleno propio de cada página no sirve porque no todas tienen el mismo. Así que el
+    hueco lo abre esta regla, y mide lo que mide el botón: 8 px de margen + 32 de botón + 8. De los
+    256 px que se ganan al plegar se devuelven 48, y quedan 208.                                   */
+  margin-left: 3rem;
+}
+
+/* Cada botón sólo existe cuando su gesto tiene sentido. Al salir de CSS y no de un estado de React,
+   ninguno de los dos parpadea ni miente en su `aria-expanded` durante la hidratación. */
+[data-barra='plegada'] [data-boton-de-barra='plegar'] { display: none; }
+:root:not([data-barra='plegada']) [data-boton-de-barra='desplegar'] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  aside[data-barra-lateral],
+  [data-barra='plegada'] aside[data-barra-lateral],
+  main {
+    transition: none;
+  }
+}

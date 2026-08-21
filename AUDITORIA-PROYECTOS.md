@@ -6053,3 +6053,76 @@ etiquetas de la importación y la propia definición de `esClaseDeHito`.
 
 Con esto el atajo queda cerrado: séptima vez que muerde, y la primera en que el barrido que lo busca
 cubre el repositorio entero.
+
+## §10 · La barra lateral se puede esconder, y el contenido se corre
+
+Pedido a mano, fuera del recorrido del spec: poder ocultar el menú de la izquierda con un botón,
+sacarlo otra vez, y que el área de trabajo se ensanche.
+
+### Por qué no es un `useState` en el menú
+
+El ancho de la barra estaba escrito **en dos sitios que no se hablan**: el `w-64` del `<aside>`, que
+es un componente de cliente, y el `ml-64` de **cinco** `<main>` de sección, que son layouts de
+servidor. Un estado de React dentro del menú no llega hasta ellos sin convertir los cinco en cliente,
+y eso es un precio alto por un botón.
+
+Así que el estado se estampa como `data-barra` en `<html>` y **los dos anchos salen de CSS**. El menú
+sólo escribe el atributo. Es exactamente lo que ya hacía el tema —incluido el guion en línea que
+estampa antes del primer pintado—, y copiarlo evita inventar un segundo mecanismo para el mismo
+problema. Sin ese guion la página llegaría abierta y la barra se cerraría sola en cada navegación.
+
+Las reglas van **fuera de todo `@layer`**, a propósito: lo no estratificado gana a las utilidades de
+Tailwind pase lo que pase con la especificidad, así que `margin-left` vence a `ml-64` sin `!important`.
+
+### El botón que tapaba a otro botón
+
+La primera versión dejaba el contenido a ancho completo y el botón de sacar la barra flotando encima.
+Medido en pantalla: **se solapaba 12 px con la flecha de volver**, que es otro botón. Un control que
+tapa a otro no es un defecto estético — se pulsa el que no era.
+
+Confiar en el relleno propio de cada página no servía porque no todas tienen el mismo. El hueco lo
+abre ahora la regla de CSS y mide lo que mide el botón: de los 256 px que se ganan se devuelven 48.
+
+### Medido en pantalla, en las cinco secciones y las siete pestañas
+
+| | abierta | plegada |
+|---|---|---|
+| área de trabajo | 1178 px | **1386 px** |
+| caja del Gantt | 1056 px | **1264 px** |
+| choques con el contenido | — | **0** |
+| desborde horizontal | no | no |
+
+Los 208 px de ganancia son idénticos en `/dashboard`, `/projects`, `/templates`, `/settings` y
+`/consultant-performance`, y en las siete pestañas del proyecto. El Gantt se rehace con el mismo
+delta, que era el riesgo real: mide su propio ancho y está virtualizado.
+
+Comprobado además: el estado **sobrevive a la recarga**; en modo claro el botón se adapta solo porque
+usa los tokens del tema; y `/es/plan` no monta barra ni botón huérfano.
+
+### La barra plegada desaparece también para el teclado
+
+`visibility: hidden` con la transición retrasada 200 ms. Sin ella la barra se va de la pantalla pero
+sigue existiendo para el teclado y para un lector: se tabula por seis enlaces invisibles. Sin el
+retraso, desaparecería de golpe en vez de deslizarse.
+
+Y cada botón lleva un `aria-expanded` **fijo**, no derivado de un estado: como el CSS esconde el que
+no toca, ninguno llega a mentir durante la hidratación.
+
+### Una prueba omitida que vuelve viva
+
+`main-nav.test.tsx` guardaba una prueba en `it.skip` que decía: *«no es un problema de esta prueba, es
+una capacidad que se perdió; queda escrita y omitida para que el dato no desaparezca con ella»*. Era
+el cajón móvil. Vuelve, pero **no con su forma anterior** —esperaba clases `translate-x-0` sobre el
+`<aside>` y un `aria-label` en inglés—, y queda dicho por qué en su propio comentario: hoy lo que
+decide es el atributo, no las clases.
+
+Catorce pruebas nuevas: nueve del módulo de estado y cinco del menú. Validadas rompiendo el arreglo
+**dos veces por separado** —el botón que no escribe nada, y el botón de sacarla metido dentro de la
+barra que se va—, y cada rotura tumbó exactamente su prueba y ninguna otra. Suite 3 685, tipos 712 sin
+cambio.
+
+### Lo que vi de paso y no toqué
+
+- **`/es/plan` no tiene layout**: aparece en el menú pero se abre sin barra lateral. Es previo a esto.
+- **La barra pinta sus bordes con `#1f1f23` en duro** en vez de `var(--borde)` (`main-nav.tsx:143`,
+  146 y 214), así que en modo claro se le ven tres líneas oscuras. También previo.
