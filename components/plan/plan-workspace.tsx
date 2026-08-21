@@ -95,6 +95,13 @@ export interface PlanWorkspaceProps {
   /** Fecha comprometida contra la cual se mide el margen. */
   readonly deadline: string
   readonly projectName: string
+  /**
+   * Minutos de una jornada laboral en este proyecto (§2). Ocho horas si no llega.
+   *
+   * Sube hasta aquí desde el proyecto porque es lo que traduce los minutos de una línea a algo que
+   * se pueda leer: los mismos 480 minutos son una jornada en un proyecto y jornada y pico en otro.
+   */
+  readonly minutosPorJornada?: number
   /** De dónde salió el plan, para el renglón de origen: «archivo · N líneas», por ejemplo. */
   readonly origin?: string
   readonly warnings?: readonly string[]
@@ -189,6 +196,7 @@ export function PlanWorkspace({
   start,
   deadline,
   projectName,
+  minutosPorJornada,
   origin,
   warnings = [],
   barraDeFiltro,
@@ -1141,6 +1149,7 @@ export function PlanWorkspace({
               dayWidth={anchoDeDiaPara(scale)}
               layout={layoutFiltrado}
               columnas={columnasVisibles(preferencia)}
+              minutosPorJornada={minutosPorJornada}
               divisor={posicionDelDivisor(preferencia)}
               onDivisorCambiado={(posicion) =>
                 // Un 0 es el doble clic del tirador: «vuelve a lo que ocupen las columnas».

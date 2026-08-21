@@ -23,6 +23,7 @@ import {
 import { CeldaEditable, validarAvance, validarNombre } from '@/components/plan/celda-editable'
 import { accionDeTeclado } from '@/lib/plan/atajos'
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
+import { MINUTOS_POR_JORNADA, comoTexto } from '@/lib/scheduling/unidades'
 
 export interface GanttChartProps {
   readonly layout: GanttLayout
@@ -46,6 +47,13 @@ export interface GanttChartProps {
   readonly divisor?: number
   /** Al soltar el divisor. Llega la posición nueva en píxeles. */
   readonly onDivisorCambiado?: (posicion: number) => void
+  /**
+   * Cuantos minutos dura una jornada en este proyecto (§2).
+   *
+   * Hace falta aqui porque «480 min» se dice «1 d» en un proyecto de ocho horas y «1,14 d» en uno
+   * de siete: el mismo numero de minutos no significa lo mismo en dos calendarios distintos.
+   */
+  readonly minutosPorJornada?: number
   /** Al soltar el divisor de una columna. Sin esto, las columnas no se pueden redimensionar. */
   readonly onAnchoCambiado?: (id: string, ancho: number) => void
   readonly selectedId?: string | null
@@ -159,7 +167,12 @@ function ValorDeLaFoto({ row, columnaId }: { row: GanttRow; columnaId: string })
   )
 }
 
-function contenidoDe(row: GanttRow, columnaId: string, indice: number): string {
+function contenidoDe(
+  row: GanttRow,
+  columnaId: string,
+  indice: number,
+  minutosPorJornada = MINUTOS_POR_JORNADA,
+): string {
   switch (columnaId) {
     // El EDT jerárquico del plan entero. Antes era un contador de posición dentro de lo visible, y
     // eso daba dos números distintos para la misma línea según se mirara el Gantt o el esquema — y
@@ -181,6 +194,9 @@ function contenidoDe(row: GanttRow, columnaId: string, indice: number): string {
       return row.finish
     case 'duration':
       return row.isMilestone ? '—' : String(row.width)
+    case 'duracionMin':
+      // Sin minutos calculados no se inventa nada: la raya dice «esta linea todavia va en dias».
+      return row.duracionMin === undefined ? '—' : comoTexto(row.duracionMin, minutosPorJornada)
     case 'float':
       return row.totalFloat === 0 ? 'sin holgura' : String(row.totalFloat)
     case 'freeFloat':
@@ -218,6 +234,7 @@ export function GanttChart({
   dayWidth = DAY_WIDTH,
   rowHeight = ROW_HEIGHT,
   columnas = COLUMNAS_POR_OMISION,
+  minutosPorJornada = MINUTOS_POR_JORNADA,
   anchos = {},
   onAnchoCambiado,
   selectedId = null,
@@ -404,7 +421,7 @@ export function GanttChart({
                     >
                       {columna.id === 'progress' && onEditarCelda ? (
                         <CeldaEditable
-                          texto={contenidoDe(row, columna.id, primera + k)}
+                          texto={contenidoDe(row, columna.id, primera + k, minutosPorJornada)}
                           valor={String(Math.round(row.progress * 100))}
                           etiqueta={`Avance de «${row.name}»`}
                           validar={validarAvance}
@@ -432,7 +449,7 @@ export function GanttChart({
                           }`}
                           style={{ height: rowHeight }}
                         >
-                          {contenidoDe(row, columna.id, primera + k)}
+                          {contenidoDe(row, columna.id, primera + k, minutosPorJornada)}
                           <ValorDeLaFoto row={row} columnaId={columna.id} />
                         </span>
                       )}

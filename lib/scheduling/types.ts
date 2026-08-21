@@ -235,6 +235,14 @@ export interface PlanTask {
    */
   readonly estimacionMin?: number
   /**
+   * Duracion en minutos laborables (§2), cuando ya se calculo.
+   *
+   * Va **al lado** de `duration`, que sigue en dias habiles: la migracion no cambia la unidad del
+   * motor todavia. Lo que hace es que el dato bueno viaje, para que las vistas puedan leerlo y para
+   * que el dia que el motor cambie de unidad no haya que ir a buscarlo.
+   */
+  readonly duracionMin?: number
+  /**
    * Minutos de trabajo que aporta al día toda la gente asignada a esta línea.
    *
    * Ya viene con la dedicación aplicada: dos personas a media jornada de ocho horas son 480, no 960.

@@ -83,6 +83,13 @@ export interface ProjectPlan {
    * misma línea, y el que mira no tendría forma de saber cuál es la buena.
    */
   readonly progressRollup: ModoDeRollup
+  /**
+   * Minutos de jornada del proyecto (§2). Ocho horas por omision.
+   *
+   * Viaja con el plan porque es la unidad con la que se leen todas sus duraciones: sin ella, quien
+   * dibuja «0,5 d» no sabe si son cuatro horas o tres y media.
+   */
+  readonly minutosPorJornada: number
 }
 
 /**
@@ -106,6 +113,7 @@ export async function loadProjectPlan(
       estimatedEndDate: true,
       progressCutoffDate: true,
       progressRollup: true,
+      minutosPorJornada: true,
     },
   })
   if (!project) return null
@@ -129,6 +137,7 @@ export async function loadProjectPlan(
         constraintType: true,
         constraintDate: true,
         estimatedHours: true,
+        durationMinutes: true,
         startDate: true,
         estimatedEndDate: true,
       },
@@ -185,6 +194,10 @@ export async function loadProjectPlan(
       name: item.title,
       duration: kind === 'HITO' ? 0 : duracionHabil(calendar, item.startDate, item.estimatedEndDate),
       ...(item.estimatedHours !== null ? { estimacionMin: item.estimatedHours * 60 } : {}),
+      // La duracion en minutos laborables (§2), cuando ya se calculo. Va AL LADO de `duration`, que
+      // sigue en dias: la migracion no cambia la unidad del motor todavia, solo empieza a llevar la
+      // buena para que las vistas puedan leerla.
+      ...(item.durationMinutes !== null ? { duracionMin: item.durationMinutes } : {}),
       ...(capacidad.has(item.id) ? { capacidadDiariaMin: capacidad.get(item.id)! } : {}),
       kind,
       party: item.party as ResponsibleParty,
@@ -233,6 +246,7 @@ export async function loadProjectPlan(
     // Lo guardado, saneado: cualquier otra cosa en la columna vuelve al ponderado, que es lo que la
     // aplicación ha calculado siempre.
     progressRollup: project.progressRollup === 'PROMEDIO' ? 'PROMEDIO' : 'DURACION',
+    minutosPorJornada: project.minutosPorJornada,
   }
 }
 

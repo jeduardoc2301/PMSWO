@@ -115,6 +115,15 @@ export interface GanttRow {
   /** Días hábiles que se corrió el **cierre** contra la foto. Positivo es más tarde. */
   readonly baseFinishDrift?: number
 
+  /**
+   * Duracion en minutos laborables (§2), si la linea ya la tiene calculada.
+   *
+   * La columna «Duracion» sigue enseñando dias; esta es la que permite enseñar «3 h» o «90 min»
+   * cuando la duracion no cae en jornadas enteras, que es justo lo que los dias decimales no podian
+   * decir sin mentir.
+   */
+  readonly duracionMin?: number
+
   readonly totalFloat: number
   /**
    * Holgura libre en días hábiles: cuánto se puede atrasar sin mover a ninguna sucesora.
@@ -558,6 +567,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     return {
       id: task.id,
       name: task.name,
+      ...(task.duracionMin !== undefined ? { duracionMin: task.duracionMin } : {}),
       wbs: edt.get(task.id) ?? '',
       // Un hito vencido también cuenta: es una fecha que pasó sin ocurrir, que es peor que una
       // tarea a medias.

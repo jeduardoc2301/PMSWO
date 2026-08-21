@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { GanttChart, elbow } from '../gantt-chart'
+import { COLUMNAS } from '@/lib/plan/gantt-columns'
 import { createWorkCalendar } from '@/lib/scheduling/calendar'
 import { analyzeCriticalPath } from '@/lib/scheduling/cpm'
 import { classifySuperCritical } from '@/lib/scheduling/critical-path'
@@ -383,5 +384,70 @@ describe('§4.6 · un hito lleva lo mismo que una barra alrededor', () => {
     expect(fin).not.toBeNull()
     // Un hito mide cero: sin separarlos, los dos caen en el mismo píxel y sólo uno se agarra.
     expect((inicio as HTMLElement).style.left).not.toBe((fin as HTMLElement).style.left)
+  })
+})
+
+/**
+ * La duración exacta (§2).
+ *
+ * La columna de siempre dice días hábiles y se queda corta en cuanto una línea no dura jornadas
+ * enteras: media jornada y una jornada y media se leen igual de mal. Esta columna dice los minutos
+ * en la unidad más grande que no miente, y por eso depende de cuánto dura una jornada aquí: los
+ * mismos 210 minutos son 3,5 horas en cualquier proyecto, pero media jornada sólo donde la jornada
+ * dura siete horas.
+ */
+describe('La columna de duración exacta', () => {
+  const CON_MINUTOS: PlanTask[] = [
+    { id: 'media', name: 'Media jornada', duration: 1, duracionMin: 240 },
+    { id: 'larga', name: 'Tres jornadas', duration: 3, duracionMin: 1440 },
+    { id: 'rara', name: 'Un rato', duration: 1, duracionMin: 95 },
+    { id: 'cuarto', name: 'Un cuarto de jornada', duration: 1, duracionMin: 105 },
+    { id: 'vieja', name: 'Sin minutos todavía', duration: 2 },
+  ]
+  const SOLO_LA_EXACTA = COLUMNAS.filter((c) => c.id === 'name' || c.id === 'duracionMin')
+
+  it('dice los minutos en la unidad más grande que no miente', () => {
+    render(
+      <GanttChart layout={trazar(CON_MINUTOS)} dayWidth={DIA} columnas={SOLO_LA_EXACTA} />,
+    )
+
+    // 1440 min con jornada de 8 h son tres jornadas justas; 240 no llegan a una, así que se dicen
+    // en horas; 95 no son horas enteras ni un cuarto de jornada, y ahí sí toca decir minutos.
+    expect(screen.getByText('3 d')).toBeInTheDocument()
+    expect(screen.getByText('4 h')).toBeInTheDocument()
+    expect(screen.getByText('95 min')).toBeInTheDocument()
+  })
+
+  it('la línea que todavía no tiene minutos calculados no se los inventa', () => {
+    render(
+      <GanttChart layout={trazar(CON_MINUTOS)} dayWidth={DIA} columnas={SOLO_LA_EXACTA} />,
+    )
+
+    // Cuatro líneas, y sólo una sin minutos: la raya tiene que salir una vez y no cuatro.
+    expect(screen.getAllByText('—')).toHaveLength(1)
+  })
+
+  it('y lo dice según cuánto dura una jornada en este proyecto', () => {
+    // Los mismos 105 minutos: en un proyecto de ocho horas no son nada redondo y hay que decirlos
+    // en minutos; en uno de siete son justo un cuarto de jornada, y así es como los lee quien
+    // planea. Sin la jornada del proyecto, la columna diría lo mismo en los dos sitios.
+    const { rerender } = render(
+      <GanttChart layout={trazar(CON_MINUTOS)} dayWidth={DIA} columnas={SOLO_LA_EXACTA} />,
+    )
+    expect(screen.getByText('105 min')).toBeInTheDocument()
+
+    rerender(
+      <GanttChart
+        layout={trazar(CON_MINUTOS)}
+        dayWidth={DIA}
+        columnas={SOLO_LA_EXACTA}
+        minutosPorJornada={420}
+      />,
+    )
+
+    expect(screen.queryByText('105 min')).toBeNull()
+    expect(screen.getByText('0,25 d')).toBeInTheDocument()
+    // Y las tres jornadas de antes ya no son tres jornadas de siete horas: son 24 horas.
+    expect(screen.getByText('24 h')).toBeInTheDocument()
   })
 })

@@ -50,6 +50,9 @@ export const COLUMNAS: readonly ColumnaDelGantt[] = Object.freeze([
   { id: 'start', etiqueta: 'Inicio', grupo: 'Cronograma', ancho: 100, minimo: 88 },
   { id: 'finish', etiqueta: 'Fin', grupo: 'Cronograma', ancho: 100, minimo: 88 },
   { id: 'duration', etiqueta: 'Duración', grupo: 'Cronograma', ancho: 84, minimo: 60, numerica: true },
+  // La misma duracion en la unidad del §2. Va aparte y no sustituye a la de dias: quien lleva el
+  // plan en jornadas no tiene por que empezar a leer minutos, y quien los necesita los enciende.
+  { id: 'duracionMin', etiqueta: 'Duración exacta', grupo: 'Cronograma', ancho: 104, minimo: 64, numerica: true },
   { id: 'deadline', etiqueta: 'Comprometida', grupo: 'Cronograma', ancho: 108, minimo: 88 },
   { id: 'constraint', etiqueta: 'Restricción', grupo: 'Cronograma', ancho: 132, minimo: 80 },
   { id: 'effort', etiqueta: 'Esfuerzo', grupo: 'Cronograma', ancho: 84, minimo: 60, numerica: true },

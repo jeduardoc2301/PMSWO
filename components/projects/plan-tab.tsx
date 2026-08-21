@@ -170,6 +170,7 @@ export function PlanTab({
       start={plan.start}
       deadline={plan.deadline}
       projectName={plan.projectName}
+      minutosPorJornada={plan.minutosPorJornada}
       origin={`${plan.tasks.length.toLocaleString('es-MX')} líneas · ${plan.dependencies.length.toLocaleString('es-MX')} vínculos`}
     />
   )
