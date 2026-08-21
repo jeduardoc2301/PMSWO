@@ -5694,3 +5694,24 @@ cierre, y entonces hay que venir a cambiarla por la que diga que son iguales. Un
 una bitácora envejece sin avisar; una prueba no.
 
 Suite: 3 651 en verde.
+
+## El avance, vista por vista
+
+Capturado un tercio —3 333 puntos base— en una línea del plan real:
+
+| vista | lo que enseña | qué es |
+|---|---|---|
+| Gantt | **33,33 %**, y se abre a editar con «33,33» | escribe |
+| Lista | el campo abre con **33.33** | escribe |
+| Tablero | **33 %** en la tarjeta | sólo lee |
+| Panel | el avance temporal agregado, no el de la línea | sólo lee |
+
+Las dos que **escriben** dicen la cifra entera, que era lo que había que arreglar y ya está
+arreglado. La que redondea —la tarjeta del Tablero— sólo lee, así que su «33 %» no destruye nada:
+es una tarjeta compacta y redondear ahí es una decisión de presentación defendible.
+
+Queda anotado como observación y no como defecto, con la distinción dicha en voz alta porque es la
+que decide si algo hay que tocar: **un redondeo al leer es una elección; un redondeo en el campo con
+el que se escribe es una pérdida de datos.** Los dos se ven igual en la pantalla y no son lo mismo.
+
+Y el atraso coincide en las dos vistas que lo enseñan: −3,3 días en el Tablero y en la Lista.
