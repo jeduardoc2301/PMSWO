@@ -4488,3 +4488,28 @@ cálculo independiente. No hay defecto.
 Un detalle que la cuenta a mano deja claro de paso: los 131 días salieron contando **sólo fines de
 semana**, sin festivos, y coincidieron. O sea que este proyecto no tiene festivos propios
 configurados — que es cierto, y explica por qué el almanaque y el motor dan lo mismo.
+
+## §12 · Los veinticuatro casos, censados uno a uno
+
+Último trozo del spec sin recorrer con esta dureza. La batería `bateria-12.test.ts` tiene diecinueve
+casos y **el resto vive donde le toca**: el 9 y el 10 en `cpm.ts` con el deadline, el 11 en `gantt.ts`
+con las fechas de resumen, el 17 en el esquema con las ausencias, el 2 y el 23 en el control de
+escalas del Gantt. Contando las citas por número en todo el repositorio salen **23 de 24**.
+
+El que faltaba era el **18** —«recurso con 10 h asignadas un día de 8 h»—, y no porque no estuviera
+cubierto: es el criterio del §8.5 que se demostró en pantalla con las **101 celdas rojas en los tres
+modos**, y tiene su prueba con las cifras exactas (600 minutos contra 480). Lo que faltaba era **la
+cita**. Se le puso, porque un caso cubierto que nadie sabe que está cubierto se vuelve a escribir
+tarde o temprano.
+
+Ahora el censo da los 24.
+
+### Y otra vez el mismo tropiezo
+
+El primer censo dio 21 y me faltaban el 2, el 18 y el 23. Dos de esos tres estaban citados y mi
+patrón no los cogía: buscaba «§12 caso N» y el comentario dice «los **casos 2 y 23** del §12», con el
+§12 detrás y en plural.
+
+Es la misma clase de error que las sondas de anoche —buscar una forma supuesta en vez de la escrita—
+sólo que aquí sobre el propio repositorio en vez de sobre la pantalla. La diferencia es que esta vez
+lo comprobé antes de escribir «faltan tres casos» en la bitácora.

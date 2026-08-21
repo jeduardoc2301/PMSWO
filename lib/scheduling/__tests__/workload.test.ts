@@ -160,6 +160,13 @@ describe('§8.3 · la carga', () => {
   })
 })
 
+/**
+ * Es también el **caso 18 del §12**: «recurso con 10 h asignadas un día de 8 h → modo Horas: `10` en
+ * rojo · modo Porcentajes: `125 %` en rojo · modo Tareas: sólo resaltado de celda».
+ *
+ * Se cita por su número porque era el único de los veinticuatro sin cita en el repositorio, y un
+ * caso cubierto que nadie sabe que está cubierto se vuelve a escribir tarde o temprano.
+ */
 describe('§8.5 · diez horas en un día de ocho salen en rojo', () => {
   const sobrecargada = entrada({
     tasks: [tarea({ id: 't1' }), tarea({ id: 't2' })],
