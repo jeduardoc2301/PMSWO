@@ -110,3 +110,32 @@ describe('changeStatus aplica el acoplamiento del §5.2', () => {
     expect(data.estimatedEndDate).toBeUndefined()
   })
 })
+
+/**
+ * El avance en las dos unidades (§2.1), que es lo que faltaba desde que el plan lee los puntos base.
+ *
+ * Medido en pantalla antes de escribir esto: mover una tarjeta a «Terminado» dejaba el Tablero
+ * diciendo **100 %** y el Gantt diciendo **0 %** sobre la misma línea. El acoplamiento escribía el
+ * porcentaje y no los puntos, y el plan lee los puntos.
+ */
+describe('§2.1 · el acoplamiento escribe el avance en las dos unidades', () => {
+  it('a la columna terminal, cien por cien en las dos', async () => {
+    const data = await moverA({ isDone: true, columnType: KanbanColumnType.DONE }, { progressPct: 0.4 }, WorkItemStatus.DONE)
+
+    expect(data.progressPct).toBe(1)
+    expect(data.progressBp).toBe(10000)
+  })
+
+  it('a la inicial, cero en las dos', async () => {
+    const data = await moverA({ isInitial: true, columnType: KanbanColumnType.BACKLOG }, { progressPct: 1 }, WorkItemStatus.BACKLOG)
+
+    expect(data.progressPct).toBe(0)
+    expect(data.progressBp).toBe(0)
+  })
+
+  it('y a una intermedia, lo capturado va en las dos', async () => {
+    const data = await moverA({ columnType: KanbanColumnType.IN_PROGRESS }, { progressPct: 0.4 }, WorkItemStatus.IN_PROGRESS)
+
+    expect(data.progressBp).toBe(Math.round(data.progressPct * 10000))
+  })
+})

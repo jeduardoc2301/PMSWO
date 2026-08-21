@@ -12,6 +12,7 @@
  * escribir sobre el hueco de una línea ajena. Aquí se comprueba que **no exista** antes de reponer.
  */
 
+import { aPuntosBase } from '@/lib/plan/porcentaje'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -109,6 +110,9 @@ async function postHandler(
       estimatedEndDate: new Date(l.estimatedEndDate),
       estimatedHours: l.estimatedHours ?? null,
       progressPct: l.progressPct ?? 0,
+      // También en puntos base: una línea restaurada tiene que volver con su avance, y el plan lo
+      // lee de ahí (§2.1).
+      progressBp: aPuntosBase(l.progressPct ?? 0),
     },
   })
 

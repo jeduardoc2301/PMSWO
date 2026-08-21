@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { aPuntosBase } from '@/lib/plan/porcentaje'
 import { estadoDeLaColumna, progresoAlMover } from '@/lib/projects/status-progress'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { validarPadre } from '@/services/hierarchy'
@@ -814,6 +815,10 @@ export class WorkItemService {
           status: newStatus,
           kanbanColumnId: kanbanColumn.id,
           progressPct: nuevoAvance,
+          // Y los puntos base, que son los que lee el plan (§2.1). Sin esta línea, mover una
+          // tarjeta a «Terminado» dejaba el Tablero diciendo 100 % y el Gantt diciendo 0 % sobre la
+          // misma línea: medido en pantalla antes de escribirla.
+          progressBp: aPuntosBase(nuevoAvance),
           completedAt,
         },
       })

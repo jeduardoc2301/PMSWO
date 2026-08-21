@@ -35,6 +35,7 @@
  * piso (restricción «no antes de») y solo rellena la fecha si una línea no la trae.
  */
 
+import { aPuntosBase } from '@/lib/plan/porcentaje'
 import { randomUUID } from 'crypto'
 import { COLUMNAS_POR_OMISION } from '@/lib/projects/default-columns'
 
@@ -292,6 +293,8 @@ function datosDePlan(
     // la vista de compromisos no tendría contra qué medir el semáforo.
     dueDate: esCliente ? new Date(`${finish}T00:00:00Z`) : null,
     progressPct: progress,
+    // El avance en las dos unidades: el plan lee los puntos base (§2.1).
+    progressBp: aPuntosBase(progress),
     sourceFile: fila.source.file,
     sourceVersion: 'V7',
     sourceSheet: fila.source.sheet,
