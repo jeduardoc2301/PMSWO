@@ -28,6 +28,8 @@ import {
 } from './availability'
 import type { WorkCalendar } from './calendar'
 import { type DependencyGraph, SchedulingError, buildDependencyGraph } from './dependencies'
+import { type ProgramaEnMinutos, programarEnMinutos } from './programar-en-minutos'
+import { type Jornada, crearReloj, diaDe, jornadaPorOmisionDe } from './reloj'
 import type { Dependency, PlanTask, ScheduledTask } from './types'
 
 /**
@@ -70,6 +72,14 @@ export interface SchedulePlanInput {
    * qué es una vacación ni a quién pertenece: solo qué días no cuentan para qué tarea.
    */
   readonly noDisponible?: ReadonlyMap<string, OrdinalesNoDisponibles>
+  /**
+   * La jornada del proyecto (§2). Ocho horas partidas por la comida si no llega.
+   *
+   * Entra aquí porque desde ahora **el pase adelante se calcula en minutos** y los ordinales de día
+   * salen de ahí: sin saber cuánto dura una jornada no se puede decir dónde termina algo que dura
+   * cuatro horas.
+   */
+  readonly jornada?: Jornada
 }
 
 export interface Schedule {
@@ -85,6 +95,16 @@ export interface Schedule {
   readonly start: IsoDate
   /** Fecha en que cierra el plan: el fin más tardío de todas sus tareas. */
   readonly finish: IsoDate
+  /**
+   * El mismo pase adelante, con hora (§2).
+   *
+   * Es de donde salen los ordinales de arriba, no un cálculo paralelo: una tarea de cuatro horas
+   * empieza a las nueve y termina a la una, y su ordinal es el día en que caen esas dos horas. Quien
+   * necesite la precisión la tiene; quien no, sigue leyendo días como siempre.
+   */
+  readonly enMinutos: ProgramaEnMinutos
+  /** La jornada con la que se calculó. */
+  readonly jornada: Jornada
 }
 
 /**
@@ -101,79 +121,40 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
     throw new SchedulingError('PLAN_VACIO', 'El plan no tiene ninguna tarea que programar.')
   }
 
-  const planStart = calendar.ordinalOf(calendar.next(toDayNumber(input.start)))
+  /**
+   * El pase adelante, en minutos laborables (§2).
+   *
+   * Esto era un bucle de ordinales de día hábil y ahora es una llamada: el cálculo vive en
+   * `programar-en-minutos`, se escribió al lado del de días y se demostró que dice lo mismo sobre
+   * las 1 368 líneas del plan de referencia —cada línea en el mismo día, el mismo cierre y las
+   * mismas holguras— antes de ponerlo aquí.
+   *
+   * Lo que cambia con el cambio de unidad es lo que **antes no se podía decir**: dos tareas de
+   * cuatro horas encadenadas caben el mismo día, y una que empieza a media mañana termina a media
+   * tarde. En días, la segunda empezaba mañana porque hoy «ya estaba ocupado».
+   */
+  const jornada = input.jornada ?? jornadaPorOmisionDe(480)
+  const reloj = crearReloj(calendar, jornada)
+  const enMinutos = programarEnMinutos({
+    tasks,
+    dependencies,
+    reloj,
+    comienzo: input.start,
+    ...(input.noDisponible ? { noDisponible: input.noDisponible } : {}),
+  })
+
+  /** El ordinal de día hábil en que cae un instante. Es la traducción de vuelta, y la única. */
+  const ordinalDe = (instante: number): number => calendar.ordinalOf(diaDe(instante))
 
   const earlyStart = new Map<string, number>()
   const earlyFinish = new Map<string, number>()
   const driver = new Map<string, Dependency | null>()
 
   for (const id of graph.order) {
-    const task = graph.taskById.get(id)!
-    const tramo = span(task.duration)
-    const fuera = input.noDisponible?.get(id) ?? SIEMPRE_DISPONIBLE
-
-    let start = planStart
-    let drivingDependency: Dependency | null = null
-
-    for (const dependency of graph.incoming.get(id)!) {
-      const required = requiredStart(dependency, earlyStart, earlyFinish, tramo)
-      if (required > start) {
-        start = required
-        drivingDependency = dependency
-      }
-    }
-
-    // Una restricción de fecha se aplica al final, sobre lo que pidieron las predecesoras.
-    //
-    // Las tres que solo COMPROMETEN —`DEBE_TERMINAR_EL`, `NO_EMPIEZA_DESPUES_DE`,
-    // `NO_TERMINA_DESPUES_DE`— no aparecen aquí, y no es un olvido: son promesas, no empujones. Si
-    // la cadena lleva la tarea más allá, se queda donde la cadena la puso y el pase atrás la marca
-    // con holgura negativa. Adelantarla para que cuadre sería inventarse capacidad que nadie tiene
-    // y declarar cumplido algo que no lo está.
-    if (task.constraint && EMPUJAN.has(task.constraint.type)) {
-      const constrained = calendar.ordinalOf(calendar.next(toDayNumber(task.constraint.date)))
-      if (task.constraint.type === 'DEBE_EMPEZAR_EL') {
-        // La única que pisa hacia atrás: quien la pone está diciendo «este día y no otro», y si la
-        // cadena la empujaba más allá, el pase atrás se lo cobra a la predecesora con holgura
-        // negativa. Eso es lo que promete la restricción y es lo que hace MS Project.
-        //
-        // Lo que no puede es pisar el **arranque del plan**. El §3.3 acota el inicio temprano «por
-        // Project.Start, restricciones y calendario», en ese orden, y sin este suelo una línea con
-        // `DEBE_EMPEZAR_EL` el 4 de mayo hacía que un plan que arranca el 1 de junio devolviera
-        // **2026-05-04** como su primer día: el plan empezaba un mes antes que él mismo.
-        //
-        // Debajo del suelo la restricción es imposible, no floja: la fecha se queda en el arranque
-        // y el que mira ve la línea el primer día, que es lo más cerca que puede estar de lo pedido.
-        start = Math.max(planStart, constrained)
-        drivingDependency = null
-      } else if (task.constraint.type === 'NO_TERMINA_ANTES_DE') {
-        // Amarra el FIN, no el arranque: hay que retroceder el tramo para saber cuándo empezar.
-        // Una tarea de cinco días que no puede terminar antes del viernes empieza el lunes.
-        const desdeElFin = constrained - tramo
-        if (desdeElFin > start) {
-          start = desdeElFin
-          drivingDependency = null
-        }
-      } else if (constrained > start) {
-        start = constrained
-        drivingDependency = null
-      }
-    }
-
-    // Si quien lleva la tarea no está el día en que le tocaba empezar, empieza cuando vuelve: una
-    // tarea que arranca sin nadie es una fecha que el plan promete y la persona ya sabe que no.
-    //
-    // Un hito no: las ausencias dicen cuándo se puede TRABAJAR, y un hito no es trabajo sino una
-    // marca. Su fecha sale de sus predecesoras y de su restricción, que es donde vive el compromiso.
-    // Deslizarlo porque alguien está de vacaciones movería una fecha pactada en silencio, y el
-    // motor no tiene forma de saber si esa persona hace falta para que el hito ocurra.
-    if (task.duration > 0) start = primerDiaDisponible(start, fuera)
-
-    earlyStart.set(id, start)
-    // El fin cuenta días TRABAJADOS, no transcurridos. Sin ausencias esto es `start + tramo` y no
-    // cuesta nada; con ellas, la tarea se estira por los días en que su gente no está.
-    earlyFinish.set(id, finConDisponibilidad(start, task.duration, fuera))
-    driver.set(id, drivingDependency)
+    const linea = enMinutos.porId.get(id)!
+    earlyStart.set(id, ordinalDe(linea.comienzo))
+    earlyFinish.set(id, ordinalDe(linea.fin))
+    driver.set(id, linea.vinculoQueManda)
   }
 
   const scheduled: ScheduledTask[] = graph.tasks.map((task) => ({
@@ -204,6 +185,8 @@ export function schedulePlan(input: SchedulePlanInput): Schedule {
     earlyFinish,
     start: toIsoDate(calendar.dayOfOrdinal(firstStart)),
     finish: toIsoDate(calendar.dayOfOrdinal(lastFinish)),
+    enMinutos,
+    jornada,
   })
 }
 

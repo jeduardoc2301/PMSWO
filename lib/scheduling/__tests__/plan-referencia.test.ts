@@ -708,13 +708,18 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
         calendar,
       })
 
-      // Todas las líneas del plan duran jornadas enteras, así que todas abren a las nueve; las que
-      // duran algo cierran a las seis, y los hitos cierran cuando abren porque no consumen nada.
-      const abren = new Set(layout.rows.map((r) => comoHora(r.comienzoInstante).slice(11)))
-      const cierran = new Set(layout.rows.filter((r) => !r.isMilestone).map((r) => comoHora(r.finInstante).slice(11)))
+      // Todas las líneas que **trabajan** abren a las nueve y cierran a las seis, porque todas duran
+      // jornadas enteras. Los hitos no: un hito no consume tiempo, así que cae donde lo deja su
+      // vínculo —la apertura del día si lo trae un `FS`, el cierre si lo ata un `FF`— y las dos
+      // cosas son ciertas a la vez en un plan con 109 hitos.
+      const trabajan = layout.rows.filter((r) => !r.isMilestone)
+      const abren = new Set(trabajan.map((r) => comoHora(r.comienzoInstante).slice(11)))
+      const cierran = new Set(trabajan.map((r) => comoHora(r.finInstante).slice(11)))
+      const hitos = new Set(layout.rows.filter((r) => r.isMilestone).map((r) => comoHora(r.comienzoInstante).slice(11)))
 
       expect([...abren]).toEqual(['09:00'])
       expect([...cierran]).toEqual(['18:00'])
+      expect([...hitos].sort()).toEqual(['09:00', '18:00'])
     })
 
     it('dibuja las 1 368 líneas y los 1 665 vínculos del archivo', () => {

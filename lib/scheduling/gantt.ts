@@ -628,25 +628,28 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     /**
      * El comienzo y el fin con hora.
      *
-     * Los minutos que se suman son los de la línea cuando los tiene, y el ancho en jornadas cuando
-     * no: así una línea sin migrar sigue terminando donde el motor dice que termina, y una migrada
-     * termina donde de verdad termina.
+     * Salen del programa en minutos que ya calculó el motor, no de volver a derivarlos desde la
+     * fecha: derivarlos abría siempre a las nueve, y entonces dos tareas de cuatro horas que el
+     * motor coloca una detrás de otra el mismo día se enseñaban las dos a las 09:00. La fecha era
+     * correcta y la hora, inventada — el peor de los dos errores, porque la fecha respalda la hora.
+     *
+     * Un resumen plegado es la excepción: su tramo lo acumulan sus hijas, así que su comienzo y su
+     * fin salen de ese tramo y no de su propia línea, que no se ejecuta.
      */
+    const enMinutos = schedule.enMinutos?.porId.get(task.id)
     const inicioCivil = tramo?.start ?? scheduled?.start ?? schedule.start
-    const comienzoInstante = reloj.abrir(instanteDe(inicioCivil))
+    const comienzoInstante =
+      tramo === undefined && enMinutos !== undefined
+        ? enMinutos.comienzo
+        : reloj.abrir(instanteDe(inicioCivil))
     const finInstante =
-      // El tramo manda sobre la clase. Un hito **con hijas** —los cuatro habilitadores del plan de
-      // referencia son eso: «HAB-01 · Ambiente QA mínimo operativo», con su rama debajo— tiene
-      // duración propia cero y un tramo acumulado de semanas. Tratarlo como hito lo dejaba
-      // terminando el día que empieza, y eso son nueve días de menos en el mayor de los cuatro.
-      tramo === undefined && (scheduled?.isMilestone ?? false)
-        ? comienzoInstante
-        : reloj.sumar(
-            comienzoInstante,
-            task.duracionMin !== undefined && !children.has(task.id) && !tramo
-              ? task.duracionMin
-              : width * minutosPorJornada,
-          )
+      tramo === undefined && enMinutos !== undefined
+        ? enMinutos.fin
+        : tramo === undefined && (scheduled?.isMilestone ?? false)
+          ? comienzoInstante
+          // El tramo manda sobre la clase: un hito **con hijas** —los cuatro habilitadores del plan
+          // de referencia— tiene duración propia cero y un tramo acumulado de semanas.
+          : reloj.sumar(comienzoInstante, width * minutosPorJornada)
 
     const esResumen = task.kind === 'RESUMEN' || children.has(task.id)
     const progress = clamp(esResumen ? (acumulado?.get(task.id)?.progress ?? task.progress ?? 0) : (task.progress ?? 0))

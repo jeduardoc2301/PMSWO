@@ -105,10 +105,11 @@ describe('El pase adelante en minutos', () => {
           { predecessorId: 'a', successorId: 'b', type: 'SF', lag: 0 },
         ],
       )
-      // A abre el jueves; B tiene que haber terminado para entonces, así que cierra el miércoles a
-      // las seis —el mismo instante de trabajo que el jueves a las nueve— y abre el martes.
+      // A abre el jueves y B tiene que haber terminado para entonces. «Para entonces» incluye el
+      // jueves: el §12 caso 6 dice que B no puede terminar **antes** de que A empiece, y terminar el
+      // mismo día es un relevo, no un solapamiento. Así que B cierra el jueves y abre el miércoles.
       expect(cuando('a')).toBe('2026-06-04 09:00 → 2026-06-05 18:00')
-      expect(cuando('b')).toBe('2026-06-02 09:00 → 2026-06-03 18:00')
+      expect(cuando('b')).toBe('2026-06-03 09:00 → 2026-06-04 18:00')
     })
 
     it('y el arranque del plan es un suelo: lo que pediría empezar antes se queda el primer día', () => {

@@ -16,6 +16,18 @@
  * 1 665 vínculos, 394 de ellos con desfase— y sólo entonces tiene sentido plantearse el cambio. Es
  * el mismo camino que siguieron las columnas de minutos: primero al lado, luego encima.
  *
+ * ## La regla que hay que tener delante todo el rato
+ *
+ * **Un comienzo se dice en forma de apertura y un fin en forma de cierre.** «El viernes a las seis»
+ * y «el lunes a las nueve» son el mismo instante de trabajo acumulado en dos días distintos del
+ * calendario, y cuál de los dos es el bueno depende de qué se esté nombrando. Todos los errores que
+ * costó ajustar este módulo contra el motor de días fueron variantes de esto: un fin dicho como
+ * comienzo se lee un día tarde, y un comienzo dicho como fin, un día pronto.
+ *
+ * De ahí salen las tres normalizaciones que aparecen en las reglas de abajo: `abrir` sobre lo que
+ * sale de un comienzo, `cerrar` sobre lo que sale de un fin, y **nada** sobre lo que no se movió
+ * —sumar cero también normaliza, y encadenado corre la fecha sin corregir un solo minuto—.
+ *
  * ## Las cuatro reglas, y el `+1` que aquí no está
  *
  * El motor de días dice que un `FS` empieza en `finDeLaPredecesora + 1`, porque su fin es el
@@ -70,6 +82,13 @@ export interface LineaEnMinutos {
   readonly fin: Instante
   /** Minutos laborables que dura. Cero en un hito. */
   readonly duracion: number
+  /**
+   * El vínculo que decidió dónde empieza, o `null` si la puso el arranque del plan o su restricción.
+   *
+   * Es lo que permite contestar «¿por qué está aquí esta línea?» sin recalcular nada, que es la
+   * primera pregunta de cualquiera que mire un plan y no le cuadre una fecha.
+   */
+  readonly vinculoQueManda: Dependency | null
 }
 
 export interface ProgramaEnMinutos {
@@ -105,9 +124,13 @@ export function programarEnMinutos(entrada: EntradaEnMinutos): ProgramaEnMinutos
     const fuera = entrada.noDisponible?.get(id)
 
     let comienzo = arranque
+    let vinculoQueManda: Dependency | null = null
     for (const vinculo of graph.incoming.get(id)!) {
       const pedido = comienzoQuePide(vinculo, porId, duracion, jornada, reloj)
-      if (pedido > comienzo) comienzo = pedido
+      if (pedido > comienzo) {
+        comienzo = pedido
+        vinculoQueManda = vinculo
+      }
     }
 
     // La restricción se aplica al final, sobre lo que pidieron las predecesoras, igual que en el
@@ -118,14 +141,20 @@ export function programarEnMinutos(entrada: EntradaEnMinutos): ProgramaEnMinutos
         // La única que pisa hacia atrás: quien la pone dice «este día y no otro». Lo que no puede
         // pisar es el arranque del plan, o el plan empezaría antes que él mismo.
         comienzo = Math.max(arranque, fijada)
+        // Y a partir de aquí no manda ningún vínculo: manda la restricción.
+        vinculoQueManda = null
       } else if (task.constraint.type === 'NO_TERMINA_ANTES_DE') {
         // Amarra el fin: se retrocede la duración desde el cierre de ese día para saber cuándo
         // habría que empezar. Una tarea de cinco jornadas que no puede cerrar antes del viernes
         // abre el lunes.
         const desdeElFin = reloj.restar(reloj.sumar(fijada, jornada), duracion)
-        if (desdeElFin > comienzo) comienzo = desdeElFin
+        if (desdeElFin > comienzo) {
+          comienzo = desdeElFin
+          vinculoQueManda = null
+        }
       } else if (task.constraint.type === 'NO_ANTES_DE' && fijada > comienzo) {
         comienzo = fijada
+        vinculoQueManda = null
       }
     }
 
@@ -154,6 +183,7 @@ export function programarEnMinutos(entrada: EntradaEnMinutos): ProgramaEnMinutos
       comienzo,
       fin: duracion === 0 ? comienzo : finConAusencias(comienzo, duracion, fuera, reloj),
       duracion,
+      vinculoQueManda,
     })
   }
 
@@ -188,23 +218,20 @@ function comienzoQuePide(
   const desfase = vinculo.lag * jornada
 
   /**
-   * El comienzo de la predecesora, visto por quien se ata a él.
+   * La predecesora, vista por quien se ata a ella.
    *
-   * Un hito no consume tiempo, así que su instante cae donde lo dejó lo que lo empuja —a menudo el
-   * cierre de una jornada, si lo ata un `FF`—. Para quien se ata a su **comienzo** eso sería el
-   * final del día, y una tarea que arranca «cuando se cierra la fase» arrancaría a la mañana
-   * siguiente. No es lo que dice el archivo de MS Project del que sale el plan de referencia, ni lo
-   * que hace MS Project: un hito marca un punto del día, y quien arranca con él arranca ese día.
+   * Un hito no consume tiempo, así que su instante cae donde lo dejó lo que lo empuja: la apertura
+   * de un día si lo trae un `FS`, el cierre de otro si lo ata un `FF`. Para quien se ata a él eso
+   * es una fuente de errores de un día en las dos direcciones — arrancaría la mañana siguiente al
+   * cierre de una fase, o terminaría la víspera de un hito.
    *
-   * Así que para un hito se toma la apertura de su propio día. Para todo lo demás, su comienzo tal
-   * cual: una tarea que empieza a las dos de la tarde arrastra a su `SS` a las dos de la tarde, que
-   * es justo la precisión que este motor viene a dar.
+   * La regla que lo resuelve es una sola y es la que usa el motor de días: **un hito ocupa su día**.
+   * Su comienzo, para quien lo mire, es la apertura de ese día; su fin, el cierre. Lo dice el
+   * archivo de MS Project del que sale el plan de referencia y lo hace MS Project.
+   *
+   * Para todo lo que sí es trabajo, sus instantes tal cual: una tarea que termina a la una arrastra
+   * a su `FS` a las dos de la tarde, que es justo la precisión que este motor viene a dar.
    */
-  const comienzoDeLaPredecesora =
-    predecesora.duracion === 0
-      ? reloj.abrir(instanteDe(fechaDe(predecesora.comienzo)))
-      : predecesora.comienzo
-
   /**
    * Sumar o restar **cero** no es moverse, y en este reloj no es inocuo: `sumar(x, 0)` abre y
    * `restar(x, 0)` cierra, porque los dos normalizan a un borde. Encadenados sobre un desfase nulo
@@ -214,18 +241,42 @@ function comienzoQuePide(
   const conDesfase = (x: Instante): Instante => (desfase === 0 ? x : reloj.sumar(x, desfase))
   const menosDuracion = (x: Instante): Instante => (duracion === 0 ? x : reloj.restar(x, duracion))
 
+  const esHito = predecesora.duracion === 0
+  const comienzoDeLaPredecesora = esHito
+    ? reloj.abrir(instanteDe(fechaDe(predecesora.comienzo)))
+    : predecesora.comienzo
+  const finDeLaPredecesora = esHito ? cierreDelDiaDe(predecesora.fin, reloj) : predecesora.fin
+
   switch (vinculo.type) {
     // `FS` es el único que pide el instante **siguiente**: la sucesora empieza cuando la
     // predecesora ya terminó. Se abre aquí y no en la normalización de la línea, porque un hito se
     // queda donde lo dejen y con un `FS` el sitio correcto es el día de después.
     case 'FS':
-      return reloj.abrir(conDesfase(predecesora.fin))
+      return reloj.abrir(conDesfase(finDeLaPredecesora))
+    /**
+     * `SS` y `SF` leen el **comienzo** de la predecesora, y un comienzo se dice en forma de
+     * apertura. Sin esto, un desfase de una jornada sobre una apertura da el cierre del **mismo**
+     * día —el mismo instante de trabajo acumulado— y la sucesora no se movía del sitio.
+     */
     case 'SS':
-      return conDesfase(comienzoDeLaPredecesora)
+      return reloj.abrir(conDesfase(comienzoDeLaPredecesora))
+    /**
+     * `FF` lee el **fin** de la predecesora, y un fin se dice en forma de cierre. Con un desfase
+     * negativo, `restar` devuelve la apertura del día siguiente —el mismo instante de trabajo— y la
+     * sucesora se quedaba un día tarde.
+     */
     case 'FF':
-      return menosDuracion(conDesfase(predecesora.fin))
+      return menosDuracion(reloj.cerrar(conDesfase(finDeLaPredecesora)))
+    /**
+     * `SF` une **comienzo con fin**, y esos dos sí pueden caer el mismo día.
+     *
+     * El §12 caso 6 lo dice así: «B no puede terminar antes de que A empiece», y terminar el mismo
+     * día en que A arranca lo cumple — es un relevo. Por eso el fin exigido es el **cierre del día**
+     * en que A empieza y no el instante exacto: pedir el instante haría que B terminara la víspera,
+     * que es justo lo que ese caso dice que no puede pasar.
+     */
     case 'SF':
-      return menosDuracion(conDesfase(comienzoDeLaPredecesora))
+      return menosDuracion(cierreDelDiaDe(reloj.abrir(conDesfase(comienzoDeLaPredecesora)), reloj))
   }
 }
 
@@ -539,4 +590,9 @@ function finConAusencias(
 
   // Se agotó la búsqueda: se contesta lo que habría salido sin ausencias a partir de aquí.
   return restantes > 0 ? reloj.sumar(ultimoFin, restantes) : ultimoFin
+}
+
+/** El instante en que cierra la jornada del día en que cae éste. */
+function cierreDelDiaDe(instante: Instante, reloj: Reloj): Instante {
+  return reloj.sumar(reloj.abrir(instanteDe(fechaDe(instante))), reloj.jornada.minutos)
 }
