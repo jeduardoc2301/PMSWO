@@ -5906,3 +5906,24 @@ después. La cifra que cambia —la carga diaria de cada persona— merece esa c
 y no de madrugada.
 
 Suite: 3 665 en verde.
+
+## §8 · La comparación celda a celda, en pantalla
+
+Lo que le faltaba al arreglo de la carga. Misma vista, misma ventana, el mismo día:
+
+| comportamiento | celdas con carga | suma de la rejilla | días en rojo |
+|---|---|---|---|
+| el de antes | 199 | **1 224** | 104 |
+| con el arreglo | 199 | **1 216** | 104 |
+
+**Ocho horas de carga que nadie trabaja, desaparecidas** — una jornada exacta, que es el punto de
+control con asignación que cae dentro de la ventana visible. Los otros 22 están fuera de ella: el
+efecto completo se ve al recorrer el rango entero del plan, no en una pantalla.
+
+Que las celdas con carga y los días en rojo **no cambien** es parte del resultado y conviene decirlo:
+la jornada fantasma se sumaba a un día que ya tenía trabajo, así que no inventaba una sobrecarga
+nueva —sólo engordaba una que ya existía—. Un defecto que no cambia el semáforo es de los que
+sobreviven años.
+
+La medición se hizo volviendo el servicio al comportamiento anterior, leyendo la pantalla, y
+restaurándolo: el árbol queda limpio y la suite verde.
