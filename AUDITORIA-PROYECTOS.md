@@ -4424,3 +4424,37 @@ cubierto por prueba y no por medición, y lo digo en vez de dejarlo implícito.
 Con esto el §10.1 queda recorrido entero: los diez permisos existen con el nombre del spec, la barra
 de pestañas los respeta, las lecturas ya no piden el permiso de otra vista —dos defectos arreglados—
 y las escrituras reparten bien las dos clases de edición.
+
+## §9.2 · Las cifras del Panel, contra un cálculo hecho aparte
+
+El criterio del §9 pide «fórmulas verificadas **contra cálculo manual**». Se calcularon las cifras
+por separado, leyendo la base con un guion propio, y se compararon con lo que el Panel devuelve:
+
+| | calculado aparte | el Panel |
+|---|---|---|
+| líneas | 1 368 | **1 368** |
+| resúmenes | 125 | **125** |
+| hojas | 1 243 | **1 243** |
+| atrasadas | 116 | **116** |
+| hitos | 86 | **109** |
+| progreso global | 0 | **0** |
+
+Cinco de seis, exactas. Y **la sexta era mía**.
+
+### El mismo error de siempre, con otra cara
+
+Conté los hitos como `kind === 'HITO'` y salieron 86. El Panel usa `esClaseDeHito`, que cuenta
+también los **puntos de control**: 86 + 23 = **109**, que es justo su cifra.
+
+Es el hermano del error que esta bitácora lleva anotado cuatro veces —«resumen» es **tener hijas**,
+nunca `kind === 'RESUMEN'`— y que en este mismo plan da 125 contra 121. Lo llamativo es que el Panel
+acierta el difícil: mi cuenta independiente de resúmenes por descendencia dio 125 y la suya también,
+mientras la columna `kind` diría 121.
+
+Así que la lección se amplía: **en este modelo, el campo `kind` casi nunca es la definición**. Ni
+para los resúmenes ni para los hitos. Quien cuente por la etiqueta se equivoca en las dos.
+
+### Estado
+
+El §9.2 queda comprobado contra cálculo independiente, con las seis cifras cuadrando una vez
+corregida la mía. No hay defecto.
