@@ -285,3 +285,90 @@ function toIso(anio: number, mes: number, dia: number, mas: number): IsoDate {
   const d = new Date(Date.UTC(anio, mes - 1, dia + mas))
   return d.toISOString().slice(0, 10) as IsoDate
 }
+
+describe('§3.8 · reprogramar crece de forma lineal, no cuadrática', () => {
+  /**
+   * `rescheduleFrom()` es lo que corre **en cada arrastre de barra**, y el §3.8 le pone menos de 50
+   * ms con diez mil tareas. Medido fuera de la suite en una máquina en reposo: **38,8 ms** empujando
+   * 8 001 líneas. Cumple, pero con un 22 % de margen — el más ajustado de los cuatro objetivos.
+   *
+   * La prueba de carga que ya había mide **reloj a 1 368 líneas con un tope de 500 ms**, y eso no
+   * atrapa lo que de verdad hay que temer aquí: una regresión de orden. Con mil trescientas líneas
+   * un algoritmo cuadrático sigue siendo rápido, así que el tope no se cruzaría y nadie se
+   * enteraría hasta que un plan grande lo hiciera imposible de usar.
+   *
+   * Así que se cuenta en vez de cronometrar, como en el §12 caso 24 —cuya versión con reloj se puso
+   * roja cuatro veces con el motor intacto—. Contar visitas a los vínculos mide **el algoritmo** y
+   * da el mismo número en una máquina en reposo y en una hirviendo.
+   */
+  function cadenaContada(n: number) {
+    const tasks: PlanTask[] = Array.from({ length: n }, (_, i) => ({
+      id: `t${i}`,
+      name: `Línea ${i}`,
+      duration: 2,
+      kind: 'ACTIVIDAD' as const,
+    }))
+    const crudas: Dependency[] = Array.from({ length: n - 1 }, (_, i) => ({
+      predecessorId: `t${i}`,
+      successorId: `t${i + 1}`,
+      type: 'FS' as const,
+      lag: 0,
+    }))
+    let visitas = 0
+    // Un `Proxy` por vínculo: cada vez que el motor mira uno de sus campos, se cuenta. No toca el
+    // código de producción — lo que se mide es cuántas veces lo recorre, que es justo la pregunta.
+    const dependencies = crudas.map((d) =>
+      new Proxy(d, {
+        get(destino, campo, receptor) {
+          visitas += 1
+          return Reflect.get(destino, campo, receptor)
+        },
+      }),
+    )
+    const fechas = new Map(
+      tasks.map((t, i) => [t.id, { start: toIso(2026, 6, 1, i * 2), finish: toIso(2026, 6, 1, i * 2 + 1) }]),
+    )
+    return { tasks, dependencies, fechas, visitas: () => visitas }
+  }
+
+  /** Lineal da ≈2 al doblar. Se deja hasta 3; cuadrático daría ≈4. */
+  const CRECE_AL_DOBLAR = 3
+
+  it('doblar el plan dobla el trabajo, no lo cuadruplica', () => {
+    const mitad = cadenaContada(2_000)
+    const entero = cadenaContada(4_000)
+
+    // Se mueve la primera: el peor caso, porque empuja a todas las demás.
+    reprogramarDesde({
+      tasks: mitad.tasks,
+      dependencies: mitad.dependencies,
+      calendar,
+      fechas: mitad.fechas,
+      movida: { id: 't0', start: toIso(2027, 1, 4, 0) },
+    })
+    reprogramarDesde({
+      tasks: entero.tasks,
+      dependencies: entero.dependencies,
+      calendar,
+      fechas: entero.fechas,
+      movida: { id: 't0', start: toIso(2027, 1, 4, 0) },
+    })
+
+    const razon = entero.visitas() / mitad.visitas()
+    expect(razon).toBeGreaterThan(1.5)
+    expect(razon).toBeLessThan(CRECE_AL_DOBLAR)
+  })
+
+  it('y empuja a todas las que quedan en falso, que es lo que hace que la cuenta valga', () => {
+    // Sin esto, un motor que no empujara nada pasaría la prueba de arriba con la razón perfecta.
+    const entero = cadenaContada(4_000)
+    const r = reprogramarDesde({
+      tasks: entero.tasks,
+      dependencies: entero.dependencies,
+      calendar,
+      fechas: entero.fechas,
+      movida: { id: 't0', start: toIso(2027, 1, 4, 0) },
+    })
+    expect(r.cambios.length).toBe(4_000)
+  })
+})

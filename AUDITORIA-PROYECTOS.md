@@ -3945,3 +3945,52 @@ esquema declarado, en silencio y sin que nadie viera un error.
 
 Y en la base, una fila nueva: `CALENDARIO {"modo":"SEMANA"}`, con lo que las seis vistas guardan ya
 su preferencia.
+
+## §3 · El motor, recorrido entero: sano, con un guardián que faltaba
+
+Se auditó el §3 completo contra el spec, punto por punto. **No hay defecto de producto.** Lo que
+sigue es lo comprobado, porque un «está bien» sin decir contra qué se comprobó no vale nada.
+
+### Lo que el spec avisa y aquí está bien
+
+El §3.3 dedica un aviso a la **fórmula simplificada de la holgura libre** —`min(ES_j) − EF_i`— que
+«circula por internet y es incorrecta», con su caso: `A —FS+3→ B` daría holgura libre 3 cuando la
+real es 0. `latestFinish` la calcula **por tipo de vínculo y con desfase**, y el caso exacto del spec
+ya estaba en `cpm.test.ts` dando 0.
+
+Las **ocho restricciones** del §3.4 están las ocho, con la sigla de MS Project de cada una —SNET,
+FNET, SNLT, FNLT, MSO, MFO más ASAP y ALAP—. El **deadline** hace lo que el spec pide y sólo eso: no
+mueve el cronograma y acota la fecha tardía, con los casos 9 y 10 del §12 citados en el código.
+
+En el roll-up del §3.6, **un hito pesa cero**, así que queda fuera del numerador y del denominador
+del modo ponderado, que es lo que el spec pide con esas palabras. Un bloque que sólo agrupa hitos
+—peso total cero— cae al promedio simple en vez de dividir por cero.
+
+### Los objetivos del §3.8, medidos
+
+Con **10 000 tareas y 8 000 vínculos**, mejor de cinco, fuera de la suite:
+
+| operación | medido | objetivo |
+|---|---|---|
+| `schedule()` completo | **28,1 ms** | < 400 ms |
+| `analyzeCriticalPath()` | 17,9 ms | — |
+| `rescheduleFrom()` al mover la primera | **38,8 ms** | < 50 ms |
+
+Los dos se cumplen. El de reprogramar es el más ajustado de los cuatro: **22 % de margen**, empujando
+8 001 líneas.
+
+### Lo que sí faltaba
+
+`rescheduleFrom()` es lo que corre **en cada arrastre de barra**, y su única prueba de carga medía
+**reloj a 1 368 líneas con un tope de 500 ms**. Eso no atrapa lo que de verdad hay que temer: una
+regresión de orden. Con mil trescientas líneas un algoritmo cuadrático sigue siendo rápido, así que
+el tope no se cruzaría y nadie se enteraría hasta que un plan grande lo hiciera imposible de usar.
+
+Ahora se **cuenta** en vez de cronometrar, como en el §12 caso 24 —cuya versión con reloj se puso
+roja cuatro veces con el motor intacto—: doblar el plan tiene que doblar las visitas a los vínculos,
+no cuadruplicarlas. Validado volviendo el algoritmo cuadrático a propósito —cambiando el índice de
+sucesoras por un `filter` sobre todos los vínculos—: la razón salta de ≈2 a **3,996** y la prueba se
+pone roja.
+
+La acompaña una segunda que comprueba que la reprogramación **empuja las 4 000 líneas**: sin ella, un
+motor que no empujara nada pasaría la de la razón con la proporción perfecta.
