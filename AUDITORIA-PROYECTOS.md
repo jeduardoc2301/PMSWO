@@ -4540,3 +4540,24 @@ El caso negativo de los permisos —un usuario con `view_list` y sin `view_gantt
 `edit_tracking` y sin `edit_schedule`, recibiendo su 403— **necesita un segundo rol en la base**.
 Está cubierto por prueba y no por medición, y se repite aquí para que el recorrido no se lea como si
 todo tuviera evidencia de pantalla. No la tiene: eso sí.
+
+## §13 · El «N líneas más» del Calendario, medido
+
+Punto de la lista final que no tenía medida. Sobre el mes de junio del plan de referencia:
+
+| | |
+|---|---|
+| días que desbordan | **17** |
+| lo que dice el primero | «3 líneas más» |
+| al pulsarlo | se abre el panel encabezado **«3 líneas más el 2026-06-19»**, con sus renglones |
+
+Funciona de punta a punta. No hay defecto.
+
+### Cuarta sonda equivocada, y la cuarta cazada a tiempo
+
+La primera medición dijo «no se abrió el panel del día», y otra vez era mía: busqué
+`data-testid="panel-del-dia"`, que es **el de la Carga de trabajo**. El Calendario no usa ese
+testid — su panel se reconoce por lo que dice, «N líneas más el AAAA-MM-DD».
+
+Van cuatro sondas equivocadas desde que anoté la regla. Las cuatro se quedaron en sondas: ninguna
+llegó a la bitácora como defecto. Antes de la regla, tres de tres sí llegaron.
