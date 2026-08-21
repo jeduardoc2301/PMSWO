@@ -1,4 +1,5 @@
 // `React` en el ámbito porque este archivo usa `React.Fragment` de forma explícita.
+import { instanteDe } from '@/lib/scheduling/reloj'
 import React from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
@@ -33,6 +34,12 @@ function fila(overrides: Partial<GanttRow> = {}): GanttRow {
     isMilestone: false,
     x: 0,
     width: 5,
+    anchoExacto: 5,
+    // Las 09:00 del primer día y las 18:00 del último: lo que el reloj laborable devuelve para una
+    // línea de cinco jornadas. Se escriben aquí para que el panel reciba una fila completa; los
+    // casos que hablan de horas los pisan con los suyos.
+    comienzoInstante: instanteDe('2026-06-01', 9 * 60),
+    finInstante: instanteDe('2026-06-05', 18 * 60),
     totalFloat: 3,
     freeFloat: 3,
     isCritical: false,
@@ -142,9 +149,22 @@ describe('El detalle dice cuándo', () => {
   it('y si no llena el día que ocupa, lo dice: los días y lo que dura', () => {
     // Una tarea de cuatro horas ocupa un día del cronograma. Decir sólo «1 día hábil» deja a quien
     // lee creyendo que llena la jornada, y decir sólo «4 h» esconde que bloquea el día entero.
-    dibujar({ row: fila({ start: '2026-06-01', finish: '2026-06-01', width: 1, duracionMin: 240 }) })
+    dibujar({
+      row: fila({
+        start: '2026-06-01',
+        finish: '2026-06-01',
+        width: 1,
+        duracionMin: 240,
+        comienzoInstante: instanteDe('2026-06-01', 9 * 60),
+        finInstante: instanteDe('2026-06-01', 13 * 60),
+      }),
+    })
 
-    expect(screen.getByText('Del 2026-06-01 al 2026-06-01 · 1 día hábil · dura 4 h')).toBeInTheDocument()
+    // Y con la hora, que es lo que la fecha civil no puede decir: cuatro horas que empiezan cuando
+    // abre la jornada terminan a la una, no «ese día en algún momento».
+    expect(
+      screen.getByText('Del 2026-06-01 al 2026-06-01 · 1 día hábil · dura 4 h, de 09:00 a 13:00'),
+    ).toBeInTheDocument()
   })
 
   it('pero no repite lo mismo dos veces cuando la línea dura jornadas enteras', () => {

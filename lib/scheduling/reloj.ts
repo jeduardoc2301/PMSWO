@@ -223,22 +223,31 @@ export function crearReloj(calendario: WorkCalendar, jornada: Jornada = JORNADA_
   /**
    * El minuto del día en el que se llevan trabajados `resto` minutos.
    *
-   * Con `resto` cero contesta la apertura del primer turno, y con la jornada entera, el cierre del
-   * último: las dos puntas del día, que son las dos formas de caer justo en un límite.
+   * Caer justo en el límite de un turno tiene dos respuestas legítimas —el cierre de la mañana y la
+   * apertura de la tarde son el mismo instante de trabajo acumulado— y cuál es la buena depende de
+   * qué se esté calculando: un **fin** cierra, un **comienzo** abre. Es la misma asimetría que
+   * `abrir` y `cerrar`, dentro del día.
+   *
+   * Estuvo mal escrita: sólo se contemplaba el límite del día y no el de la comida, así que una
+   * tarea de cuatro horas terminaba «a las 14:00». Lo encontró el panel de detalle en pantalla, no
+   * una prueba — las 1 368 líneas del plan de referencia duran jornadas enteras y nunca caen en ese
+   * límite.
    */
-  function minutoConTrabajo(resto: number): number {
+  function minutoConTrabajo(resto: number, cerrando = false): number {
     let llevado = 0
     for (const turno of turnos) {
       const cabe = turno.hasta - turno.desde
-      if (resto < llevado + cabe) return turno.desde + (resto - llevado)
+      if (cerrando ? resto <= llevado + cabe : resto < llevado + cabe) {
+        return turno.desde + (resto - llevado)
+      }
       llevado += cabe
     }
     return turnos[turnos.length - 1].hasta
   }
 
   /** El instante que ocupa ese resto dentro del día hábil número `ordinal`. */
-  function enElOrdinal(ordinal: number, resto: number): Instante {
-    return calendario.dayOfOrdinal(ordinal) * MINUTOS_POR_DIA + minutoConTrabajo(resto)
+  function enElOrdinal(ordinal: number, resto: number, cerrando = false): Instante {
+    return calendario.dayOfOrdinal(ordinal) * MINUTOS_POR_DIA + minutoConTrabajo(resto, cerrando)
   }
 
   function acumulado(instante: Instante): number {
@@ -297,7 +306,9 @@ export function crearReloj(calendario: WorkCalendar, jornada: Jornada = JORNADA_
       ordinal -= 1
       resto = minutosPorJornada
     }
-    return enElOrdinal(ordinal, resto)
+    // Cerrando, porque `sumar` devuelve un fin. Vale para el límite del día —que ya lo resolvía la
+    // línea de arriba— y para el de cada turno, que no lo resolvía nadie.
+    return enElOrdinal(ordinal, resto, minutos > 0)
   }
 
   function restar(instante: Instante, minutos: number): Instante {

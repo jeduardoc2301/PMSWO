@@ -11,6 +11,7 @@ import { type CriterionRow, reviewExitCriteria } from '../exit-criteria'
 import { type GanttInput, collapseToLevel, ganttLayout } from '../gantt'
 import { importPlanFromXlsx } from '../import-plan'
 import { parentsFromLevels, rollUpProgress } from '../progress'
+import { comoHora, fechaDe } from '../reloj'
 import { schedulePlan } from '../schedule'
 import { formatTraceability, reviewForClient } from '../traceability'
 import type { PlanTask } from '../types'
@@ -567,6 +568,67 @@ describe.skipIf(!HAY_ARCHIVO)('El plan de referencia', () => {
         ...opciones,
       })
     }
+
+    /**
+     * El reloj laborable contra el motor de días, sobre las 1 368 líneas.
+     *
+     * Son dos aritméticas distintas: el motor cuenta ordinales de día hábil y el reloj cuenta
+     * minutos dentro de esos días. Que coincidan en un caso de tres líneas no dice gran cosa; que
+     * coincidan en las 1 368 del plan real —con sus fines de semana, sus hitos y sus resúmenes de
+     * ochenta días— es lo que acredita que el instante que se enseña no se ha inventado un día.
+     *
+     * Es también la prueba que caza el error clásico del límite: si el fin que cae al cierre de la
+     * jornada contestara la apertura del día siguiente, aquí saldrían cientos de líneas terminando
+     * un día tarde.
+     */
+    it('el instante de cada línea cae en el mismo día que el motor calculó', () => {
+      const conMinutos = conJerarquia().map((t) => ({ ...t, duracionMin: t.duration * 480 }))
+      const schedule = schedulePlan({
+        tasks: conMinutos,
+        dependencies: plan.dependencies,
+        calendar,
+        start: plan.declaredStart,
+      })
+      const layout = ganttLayout({
+        tasks: conMinutos,
+        dependencies: plan.dependencies,
+        schedule,
+        classified: classifySuperCritical(analyzeCriticalPath(schedule), conMinutos).tasks,
+        calendar,
+      })
+
+      const descuadres = layout.rows.filter(
+        (r) => fechaDe(r.comienzoInstante) !== r.start || fechaDe(r.finInstante) !== r.finish,
+      )
+
+      expect(layout.rows).toHaveLength(1368)
+      expect(descuadres.map((r) => `${r.name}: ${comoHora(r.finInstante)} contra ${r.finish}`)).toEqual([])
+    })
+
+    it('y las horas son las de la jornada: se empieza a las nueve y se cierra a las seis', () => {
+      const conMinutos = conJerarquia().map((t) => ({ ...t, duracionMin: t.duration * 480 }))
+      const schedule = schedulePlan({
+        tasks: conMinutos,
+        dependencies: plan.dependencies,
+        calendar,
+        start: plan.declaredStart,
+      })
+      const layout = ganttLayout({
+        tasks: conMinutos,
+        dependencies: plan.dependencies,
+        schedule,
+        classified: classifySuperCritical(analyzeCriticalPath(schedule), conMinutos).tasks,
+        calendar,
+      })
+
+      // Todas las líneas del plan duran jornadas enteras, así que todas abren a las nueve; las que
+      // duran algo cierran a las seis, y los hitos cierran cuando abren porque no consumen nada.
+      const abren = new Set(layout.rows.map((r) => comoHora(r.comienzoInstante).slice(11)))
+      const cierran = new Set(layout.rows.filter((r) => !r.isMilestone).map((r) => comoHora(r.finInstante).slice(11)))
+
+      expect([...abren]).toEqual(['09:00'])
+      expect([...cierran]).toEqual(['18:00'])
+    })
 
     it('dibuja las 1 368 líneas y los 1 665 vínculos del archivo', () => {
       const layout = trazado({ links: 'TODOS' })

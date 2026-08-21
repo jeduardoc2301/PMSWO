@@ -46,6 +46,19 @@ describe('El reloj laborable', () => {
       expect(comoHora(reloj.cerrar(alas(LUNES, 13, 30)))).toBe('2026-06-01 13:00')
     })
 
+    it('cuatro horas desde las nueve terminan a la una, no a las dos', () => {
+      // El límite **entre turnos**, que es el mismo problema que el límite del día y se me pasó:
+      // 240 minutos trabajados se pueden decir «el cierre de la mañana» o «la apertura de la tarde»,
+      // y para un fin es lo primero. Lo encontró el panel de detalle en pantalla diciendo que una
+      // tarea de cuatro horas iba «de 09:00 a 14:00».
+      expect(comoHora(reloj.sumar(alas(LUNES, 9), 240))).toBe('2026-06-01 13:00')
+    })
+
+    it('y ese fin, leído como comienzo, sí es la apertura de la tarde', () => {
+      // Las dos lecturas son legítimas y por eso hay dos funciones: `sumar` cierra, `abrir` abre.
+      expect(comoHora(reloj.abrir(reloj.sumar(alas(LUNES, 9), 240)))).toBe('2026-06-01 14:00')
+    })
+
     it('cinco horas desde las nueve terminan a las tres, saltándose la comida', () => {
       expect(comoHora(reloj.sumar(alas(LUNES, 9), 300))).toBe('2026-06-01 15:00')
     })

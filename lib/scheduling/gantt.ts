@@ -35,7 +35,7 @@
 import { esClaseDeHito } from '@/lib/scheduling/kinds'
 
 import { type WorkCalendar } from './calendar'
-import { type Jornada, jornadaPorOmisionDe } from './reloj'
+import { type Instante, type Jornada, crearReloj, instanteDe, jornadaPorOmisionDe } from './reloj'
 import { type ClassifiedTask } from './critical-path'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
@@ -89,6 +89,21 @@ export interface GanttRow {
   readonly x: number
   /** Días hábiles que ocupa la línea en el cronograma. Entero. Un hito ocupa cero. */
   readonly width: number
+  /**
+   * Cuándo empieza y cuándo termina, con hora (§2).
+   *
+   * Es la misma información que `start` y `finish` dicha con la precisión que la fecha civil no
+   * tiene. Una línea de cuatro horas empieza y termina el mismo día, y hasta ahora eso era todo lo
+   * que se podía decir de ella; ahora se puede decir que va de nueve a una.
+   *
+   * Sale del reloj laborable, no de una resta: el fin es el comienzo más los minutos que dura, con
+   * los fines de semana, los festivos y la hora de la comida descontados por quien sabe descontarlos.
+   * Para las 1 368 líneas del plan de referencia el día que devuelve coincide con `start` y `finish`,
+   * y hay una prueba que lo recorre entero — es lo que acredita que el reloj y el motor de días
+   * cuentan lo mismo.
+   */
+  readonly comienzoInstante: Instante
+  readonly finInstante: Instante
   /**
    * Lo que mide la barra al dibujarla, en días hábiles, con decimales.
    *
@@ -409,6 +424,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
   // cuando los dos están, el que sabe cuándo se trabaja sabe también cuánto.
   const jornada = input.jornada ?? jornadaPorOmisionDe(input.minutosPorJornada ?? 480)
   const minutosPorJornada = jornada.minutos
+  const reloj = crearReloj(calendar, jornada)
   const linkMode: LinkVisibility = input.links ?? 'SELECCION'
   const selectedId = input.selectedId ?? null
   const collapsed = new Set(input.collapsed ?? [])
@@ -609,6 +625,29 @@ export function ganttLayout(input: GanttInput): GanttLayout {
         ? task.duracionMin / minutosPorJornada
         : width
 
+    /**
+     * El comienzo y el fin con hora.
+     *
+     * Los minutos que se suman son los de la línea cuando los tiene, y el ancho en jornadas cuando
+     * no: así una línea sin migrar sigue terminando donde el motor dice que termina, y una migrada
+     * termina donde de verdad termina.
+     */
+    const inicioCivil = tramo?.start ?? scheduled?.start ?? schedule.start
+    const comienzoInstante = reloj.abrir(instanteDe(inicioCivil))
+    const finInstante =
+      // El tramo manda sobre la clase. Un hito **con hijas** —los cuatro habilitadores del plan de
+      // referencia son eso: «HAB-01 · Ambiente QA mínimo operativo», con su rama debajo— tiene
+      // duración propia cero y un tramo acumulado de semanas. Tratarlo como hito lo dejaba
+      // terminando el día que empieza, y eso son nueve días de menos en el mayor de los cuatro.
+      tramo === undefined && (scheduled?.isMilestone ?? false)
+        ? comienzoInstante
+        : reloj.sumar(
+            comienzoInstante,
+            task.duracionMin !== undefined && !children.has(task.id) && !tramo
+              ? task.duracionMin
+              : width * minutosPorJornada,
+          )
+
     const esResumen = task.kind === 'RESUMEN' || children.has(task.id)
     const progress = clamp(esResumen ? (acumulado?.get(task.id)?.progress ?? task.progress ?? 0) : (task.progress ?? 0))
     const float = classifiedTask?.totalFloat ?? 0
@@ -678,6 +717,8 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       x: startOrdinal,
       width,
       anchoExacto,
+      comienzoInstante,
+      finInstante,
       totalFloat: float,
       freeFloat: classifiedTask?.freeFloat ?? 0,
       // El esfuerzo solo se comprueba en líneas que trabajan y que tienen los tres datos. Un hito

@@ -11,6 +11,7 @@
  */
 
 import { MINUTOS_POR_JORNADA, comoTexto } from '@/lib/scheduling/unidades'
+import { comoHora } from '@/lib/scheduling/reloj'
 import { type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 import { restriccion } from '@/lib/scheduling/restricciones'
 import { CeldaEditable } from '@/components/plan/celda-editable'
@@ -229,9 +230,14 @@ function fechas(row: GanttRow): string {
   // quien lee creyendo que la línea llena el día que ocupa.
   const exacto =
     row.duracionMin !== undefined && row.duracionMin !== row.width * MINUTOS_POR_JORNADA
-      ? ` · dura ${comoTexto(row.duracionMin)}`
+      ? ` · dura ${comoTexto(row.duracionMin)}, de ${hora(row.comienzoInstante)} a ${hora(row.finInstante)}`
       : ''
   return `Del ${row.start} al ${row.finish} · ${dias}${exacto}`
+}
+
+/** La hora de un instante, sin la fecha: la fecha ya está dicha al lado. */
+function hora(instante: number): string {
+  return comoHora(instante).slice(11)
 }
 
 /**
