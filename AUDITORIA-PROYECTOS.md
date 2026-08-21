@@ -4167,3 +4167,36 @@ Esquema:
 | deshacer tras deshacer | `↶ apagado` `↷ ACTIVO` |
 
 El plan de referencia queda verificado y sin ninguna línea con la marca de prueba.
+
+## §4.4 · El arrastre del Gantt, medido de punta a punta: funciona
+
+Barrido activo del Gantt. **No hay defecto.** Arrastrando «Presentar el plan de trabajo de Mobilize
+al banco» ciento veinte píxeles a la derecha, con la red y la consola instrumentadas:
+
+| paso | qué se observó |
+|---|---|
+| `pointerdown` | la barra se pone a media opacidad y captura el puntero |
+| `pointermove` | se desplaza con `translateX(126px)`, sin pasar por el estado |
+| `pointerup` | sale un `POST …/reschedule` que contesta **200** |
+| la respuesta | `previsualizacion.cambios` con la arrastrada del 2026-06-12 al 2026-06-25 |
+| en pantalla | «Mover «…» al 2026-06-25 **cambia 3 líneas** — la arrastrada y 2 que quedaban en falso» |
+| los botones | `Aplicar` · `Cancelar` |
+
+No se pulsó `Aplicar`: la demostración está completa sin escribir, y escribir habría movido el plan
+de referencia.
+
+### Tres sondas equivocadas en una noche
+
+Esta medición dijo primero «el arrastre no abre nada», y era mentira mía: busqué en la página la
+palabra **«Reprogramar»**, que es la etiqueta del **deshacer**, cuando el diálogo dice «Mover «…»
+al …». Es la tercera vez esta noche:
+
+1. `data-celda-editable` cuando el atributo es `data-editable` → «la Lista no tiene celdas editables»;
+2. la pestaña «Panel de control» buscada como «Resumen» → «el Panel no tiene barra de filtro»;
+3. ésta, que estuvo a punto de entrar aquí como defecto del Gantt.
+
+Y dos veces más el montaje de la medición: `constraintType` suelto en vez de `constraint: {type,
+date}`, y dos tareas al 50 % que dan el 100 % exacto y por tanto **no** sobrecarga.
+
+La regla queda escrita en memoria: **leer el componente y copiar la cadena exacta antes de escribir
+la sonda**, y cuando una sonda no encuentre algo, comprobar el selector antes que el código.
