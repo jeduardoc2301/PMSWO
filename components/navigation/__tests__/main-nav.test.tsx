@@ -226,6 +226,28 @@ describe('MainNav', () => {
    * componente no llega hasta ellos sin convertirlos en cliente. Así que lo que se comprueba es lo
    * que de verdad decide: el atributo.
    */
+  /**
+   * El menú ya no lleva al plan.
+   *
+   * Se quitó porque esa vista ya está dentro del proyecto, en la pestaña Timeline, y una segunda
+   * puerta al mismo sitio sólo obliga a elegir entre dos caminos idénticos. La ruta `/es/plan` sigue
+   * existiendo y se puede abrir escribiéndola; lo que desaparece es el atajo del menú.
+   *
+   * Queda fijado aquí para que no vuelva sin que nadie lo note: la lista se compara entera, así que
+   * esta prueba se pone roja tanto si se añade algo como si se cae algo.
+   */
+  it('las entradas del menú son exactamente éstas, y ninguna va al plan', () => {
+    const { container } = render(<MainNav {...defaultProps} />)
+
+    const principal = container.querySelector('nav > div')
+    const destinos = [...principal!.querySelectorAll('a')].map((a) => a.getAttribute('href'))
+
+    // Un gestor de proyecto ve estas dos: el panel pide `DASHBOARD_EXECUTIVE` y la configuración
+    // `ORG_MANAGE`, que no tiene. Antes de esto, entre las dos aparecía `/es/plan`.
+    expect(destinos).toEqual(['/es/projects', '/es/templates'])
+    expect(destinos).not.toContain('/es/plan')
+  })
+
   describe('plegar y desplegar la barra', () => {
     const estampado = () => document.documentElement.getAttribute('data-barra')
 

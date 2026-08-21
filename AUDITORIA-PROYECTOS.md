@@ -6126,3 +6126,20 @@ cambio.
 - **`/es/plan` no tiene layout**: aparece en el menú pero se abre sin barra lateral. Es previo a esto.
 - **La barra pinta sus bordes con `#1f1f23` en duro** en vez de `var(--borde)` (`main-nav.tsx:143`,
   146 y 214), así que en modo claro se le ven tres líneas oscuras. También previo.
+
+## §10 · Fuera la entrada «Plan» del menú
+
+Pedido a mano: esa vista ya está dentro del proyecto, en la pestaña Timeline, y una segunda puerta al
+mismo sitio sólo obliga a elegir entre dos caminos idénticos.
+
+Se va la entrada, su icono y el `import` que quedaba huérfano, más las cuatro claves de traducción
+que existían sólo para su etiqueta —dos por idioma, porque `nav.json` y el `es.json` heredado tienen
+cada uno la suya y gana el segundo—.
+
+**La ruta `/es/plan` sigue existiendo** y se abre escribiéndola; el guion de humo la sigue probando
+por URL directa. Lo que desaparece es el atajo del menú, no la página. Si algún día tiene que
+desaparecer entera, es otra decisión y son otros archivos.
+
+La prueba nueva compara la lista de entradas **entera**, así que se pone roja tanto si alguien añade
+algo como si se cae algo, y no sólo si vuelve el plan. Validada devolviendo la entrada y viéndola
+fallar. En pantalla el menú queda en cinco entradas y ninguna apunta a `/plan`. Suite 3 686.

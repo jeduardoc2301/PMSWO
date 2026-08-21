@@ -19,7 +19,6 @@ import {
   Star,
   AlertTriangle,
   Calendar,
-  CalendarRange,
   ShieldAlert,
   Command,
   PanelLeftClose,
@@ -40,9 +39,6 @@ interface MainNavProps {
 const NAV_ICONS: Record<string, React.ReactNode> = {
   dashboard:   <LayoutDashboard size={16} />,
   projects:    <FolderKanban size={16} />,
-  // Rango de fechas y no un calendario suelto: el plan es una línea de tiempo, no un día.
-  // `Calendar` ya lo ocupa la vista guardada «Esta semana» y repetirlo confundiría las dos.
-  plan:        <CalendarRange size={16} />,
   templates:   <LayoutTemplate size={16} />,
   consultants: <Users2 size={16} />,
   settings:    <Settings2 size={16} />,
@@ -89,16 +85,6 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
       href: `/${locale}/projects`,
       label: t('nav.projects'),
       icon: NAV_ICONS.projects,
-      permission: Permission.PROJECT_VIEW,
-    },
-    // Va pegado a Proyectos y con su mismo permiso a propósito: el plan es otra lectura de los
-    // mismos proyectos, no un módulo aparte. Pedirle un permiso propio abriría la puerta a que
-    // alguien vea la lista y la entrada al plan lo rebote — el mismo desajuste que ya obligó a
-    // sacar el tablero del menú de todos.
-    {
-      href: `/${locale}/plan`,
-      label: t('nav.plan'),
-      icon: NAV_ICONS.plan,
       permission: Permission.PROJECT_VIEW,
     },
   ]
