@@ -3994,3 +3994,56 @@ pone roja.
 
 La acompaña una segunda que comprueba que la reprogramación **empuja las 4 000 líneas**: sin ella, un
 motor que no empujara nada pasaría la de la razón con la proporción perfecta.
+
+## §8 · La carga de trabajo, recorrida entera: los seis criterios se cumplen
+
+Segunda sección seguida que sale limpia. **No hay defecto**, y como en el §3 lo que sigue es contra
+qué se comprobó, porque un «está bien» sin eso no vale nada.
+
+### Los seis criterios del §8.5
+
+1. **Rojo en los tres modos.** `fondoDeCelda` decide la sobrecarga **antes** de mirar el modo, así
+   que el velo crítico se aplica igual en Horas, Tareas y Porcentajes. Demostrado en pantalla más
+   abajo.
+2. **Cambiar de modo recalcula sin recargar.** El componente recibe la matriz ya calculada; cambiar
+   de modo sólo cambia el texto de la celda.
+3. **Vacaciones ponen la capacidad a 0 y cualquier carga es sobrecarga.** `sobrecargado = carga >
+   capacidad`, y con capacidad cero cualquier carga positiva lo cumple. En modo Porcentajes la celda
+   dice `✕` en vez de «∞ %»: sin capacidad no hay porcentaje que calcular.
+4. **El desglose cuadra con el total de la celda.** Hay una prueba que recorre **todos los días** de
+   la matriz comprobando que la suma de las filas del desglose es exactamente `cargaMin`, y otra que
+   lo repite con el recurso sobrecargado.
+5. **Las tareas sin asignar aparecen en su fila.** `matriz.sinAsignar`, dibujada al final.
+6. **50 recursos × 3 meses en menos de un segundo.** Medido abajo.
+
+### Lo medido
+
+Con **50 recursos × 91 días = 4 550 celdas**, tres tareas solapadas por persona al 50 % cada una,
+mejor de cinco fuera de la suite:
+
+| | medido | objetivo |
+|---|---|---|
+| `workloadMatrix()` | **1,3 ms** | < 500 ms (§8.3) |
+
+Y comprobando que la medición ejercita el camino de verdad y no uno vacío: **50 filas sobrecargadas**,
+pico de 720 min contra 480 de capacidad, 3 tareas activas.
+
+### Demostrado en pantalla
+
+Sobre el proyecto de referencia, recorriendo los tres modos sin salir de la vista:
+
+| modo | celdas | sobrecargadas | con fondo rojo | con cifra | la misma celda dice |
+|---|---|---|---|---|---|
+| Horas | 651 | **101** | 101 | 101 | 48 |
+| Tareas | 651 | **101** | 101 | 101 | 6 |
+| Porcentajes | 651 | **101** | 101 | 101 | 120 |
+
+Las 101 en los tres, y la celda del 30 de junio se anuncia igual en los tres —«48 h de 40 h,
+sobrecargada»— mientras la cifra que enseña cambia. Es el criterio 1 y el 2 a la vez: el número
+cambia sin que la vista vuelva a pedir nada.
+
+### Una corrección de mi propia medición
+
+El primer montaje daba **cero filas sobrecargadas** y estuve a punto de anotarlo como hallazgo. Eran
+dos tareas al 50 % solapadas: exactamente el 100 %, y la sobrecarga es `>`, no `≥`. El montaje era
+mío. Solapando las tres del todo salen las 50 filas en rojo que tenían que salir.
