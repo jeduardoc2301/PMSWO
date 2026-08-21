@@ -12,6 +12,8 @@ import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 
 import { confirmar } from '@/services/reschedule.service'
 import { type IsoDate } from '@/lib/scheduling/date'
+import { minutosDesdeLasFechas } from '@/lib/scheduling/duracion-guardada'
+import { loadProjectCalendar } from '@/services/project-calendar.service'
 
 /** La fecha civil de una fecha guardada. En UTC, que es como se guardan. */
 function isoDeFecha(fecha: Date): IsoDate {
@@ -231,6 +233,41 @@ async function updateWorkItemHandler(
     // arrastrarla allí pone el avance al 100 %. Antes esto sólo escribía `status: DONE` y dejaba
     // `kanbanColumnId` donde estaba: la línea decía «terminada» y la tarjeta seguía en «Backlog»,
     // que es exactamente la contradicción que el acoplamiento existe para evitar.
+    /**
+     * Al cambiar las fechas hay que recalcular los minutos que dura la línea (§2).
+     *
+     * Desde que los minutos mandan sobre los días, los dos datos tienen que decir lo mismo. Sin
+     * esto, arrastrar el borde de la barra para estirar una tarea de un día a tres escribía las
+     * fechas nuevas y dejaba `durationMinutes` en 480: el motor le hacía caso al minuto y la barra
+     * volvía a encogerse sola, sin que nadie pudiera explicar por qué.
+     *
+     * Quien manda los minutos explícitamente no pasa por aquí: está diciendo «esta línea dura cuatro
+     * horas», y las fechas ya las respeta la validación de la celda.
+     */
+    let minutosPorLasFechas: number | null = null
+    if (
+      updateData.durationMinutes === undefined &&
+      (updateData.startDate !== undefined || updateData.estimatedEndDate !== undefined)
+    ) {
+      const calendario = await loadProjectCalendar(
+        workItem.projectId,
+        organizationId,
+        isoDeFecha(updateData.startDate ? new Date(updateData.startDate) : workItem.startDate),
+        isoDeFecha(
+          updateData.estimatedEndDate ? new Date(updateData.estimatedEndDate) : workItem.estimatedEndDate,
+        ),
+      )
+      minutosPorLasFechas = minutosDesdeLasFechas(
+        calendario,
+        workItem.kind,
+        isoDeFecha(updateData.startDate ? new Date(updateData.startDate) : workItem.startDate),
+        isoDeFecha(
+          updateData.estimatedEndDate ? new Date(updateData.estimatedEndDate) : workItem.estimatedEndDate,
+        ),
+        workItem.project.minutosPorJornada,
+      )
+    }
+
     let movimientoPorAvance: { kanbanColumnId: string; status: WorkItemStatus } | null = null
     /**
      * El avance que llega, venga en la unidad que venga.
@@ -354,6 +391,8 @@ async function updateWorkItemHandler(
         ...(updateData.status && { status: updateData.status }),
         ...(updateData.priority && { priority: updateData.priority }),
         ...(updateData.startDate && { startDate: new Date(updateData.startDate) }),
+        // Y con las fechas nuevas, los minutos que les corresponden.
+        ...(minutosPorLasFechas !== null && { durationMinutes: minutosPorLasFechas }),
         // Contra undefined y no por verdadero: `null` significa «quítale la hora» y las 00:00 son
         // un minuto válido; por verdadero, los dos se perderían en silencio.
         ...(updateData.startMinute !== undefined && { startMinute: updateData.startMinute }),

@@ -43,6 +43,11 @@ vi.mock('@/lib/prisma', () => ({
     projectCollaborator: { findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
     kanbanColumn: { findMany: vi.fn() },
+    // Desde que un cambio de fechas recalcula los minutos, la ruta pregunta por el calendario del
+    // proyecto. Sin fila, el calendario es el de siempre —lunes a viernes, sin festivos—, que es lo
+    // que estas pruebas dan por hecho.
+    projectCalendar: { findFirst: vi.fn(async () => null) },
+    projectHoliday: { findMany: vi.fn(async () => []) },
   },
 }))
 
@@ -176,5 +181,51 @@ describe('§3 · una línea no puede empezar después de terminar', () => {
     const res = await PATCH(pedir({ startDate: '2027-03-15', estimatedEndDate: '2027-03-15' }), params as never)
 
     expect(res.status).toBe(200)
+  })
+})
+
+/**
+ * Los minutos que se quedan atrás cuando cambian las fechas (§2).
+ *
+ * Desde que el motor programa en minutos, `durationMinutes` manda sobre los días. El arrastre del
+ * borde de la barra escribe **sólo la fecha de fin**, así que sin recalcular los minutos la línea
+ * quedaba con tres días y 480 minutos — y el motor le hacía caso al minuto: la barra volvía a
+ * encogerse sola, sin que nadie pudiera explicar por qué.
+ */
+describe('§2 · al cambiar las fechas, los minutos van detrás', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({
+      ...LINEA,
+      kind: 'ACTIVIDAD',
+      startDate: new Date('2026-06-22T00:00:00Z'),
+      estimatedEndDate: new Date('2026-06-22T00:00:00Z'),
+      durationMinutes: 480,
+      project: { id: 'project-123', name: 'Plan', minutosPorJornada: 480 },
+    } as never)
+    vi.mocked(prisma.workItem.update).mockResolvedValue(LINEA as never)
+    sesion([UserRole.PROJECT_MANAGER], 'OWNER')
+  })
+
+  it('estirar el fin tres días escribe también los 1 440 minutos', async () => {
+    await PATCH(pedir({ estimatedEndDate: '2026-06-24' }), params as never)
+
+    const escrito = vi.mocked(prisma.workItem.update).mock.calls[0]?.[0] as { data: Record<string, unknown> }
+    expect(escrito.data.durationMinutes).toBe(1440)
+  })
+
+  it('pero quien manda los minutos a propósito no se los pisa', async () => {
+    // «Esta línea dura cuatro horas» es una afirmación sobre la línea, no un efecto de las fechas.
+    await PATCH(pedir({ estimatedEndDate: '2026-06-24', durationMinutes: 240 }), params as never)
+
+    const escrito = vi.mocked(prisma.workItem.update).mock.calls[0]?.[0] as { data: Record<string, unknown> }
+    expect(escrito.data.durationMinutes).toBe(240)
+  })
+
+  it('y un cambio que no toca fechas no toca los minutos', async () => {
+    await PATCH(pedir({ title: 'Otro nombre' }), params as never)
+
+    const escrito = vi.mocked(prisma.workItem.update).mock.calls[0]?.[0] as { data: Record<string, unknown> }
+    expect(escrito.data.durationMinutes).toBeUndefined()
   })
 })

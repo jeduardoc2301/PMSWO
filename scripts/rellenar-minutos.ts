@@ -14,9 +14,7 @@
 import { PrismaClient } from '@prisma/client'
 
 import { createWorkCalendar } from '../lib/scheduling/calendar'
-import { toDayNumber } from '../lib/scheduling/date'
-import { esClaseDeHito } from '../lib/scheduling/kinds'
-import { aMinutos } from '../lib/scheduling/unidades'
+import { minutosDesdeLasFechas } from '../lib/scheduling/duracion-guardada'
 
 const prisma = new PrismaClient()
 const calendar = createWorkCalendar()
@@ -35,14 +33,18 @@ async function main(): Promise<void> {
 
     let escritas = 0
     for (const linea of lineas) {
-      let minutos = 0
-      if (!esClaseDeHito(linea.kind) && linea.startDate && linea.estimatedEndDate) {
-        const desde = calendar.ordinalOf(calendar.next(toDayNumber(linea.startDate.toISOString().slice(0, 10))))
-        const hasta = calendar.ordinalOf(calendar.previous(toDayNumber(linea.estimatedEndDate.toISOString().slice(0, 10))))
-        // Ambos extremos cuentan, como `NETWORKDAYS`: del lunes al viernes son cinco días.
-        const dias = Math.max(1, hasta - desde + 1)
-        minutos = aMinutos(dias, proyecto.minutosPorJornada)
-      }
+      // La misma traducción que usa la ruta al guardar un cambio de fechas, compartida y no
+      // repetida: escrita dos veces se separarían el día que una cambie.
+      const minutos =
+        linea.startDate && linea.estimatedEndDate
+          ? minutosDesdeLasFechas(
+              calendar,
+              linea.kind,
+              linea.startDate.toISOString().slice(0, 10) as never,
+              linea.estimatedEndDate.toISOString().slice(0, 10) as never,
+              proyecto.minutosPorJornada,
+            )
+          : 0
       if (!soloMirar) {
         await prisma.workItem.update({ where: { id: linea.id }, data: { durationMinutes: minutos } })
       }
