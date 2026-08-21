@@ -5744,3 +5744,32 @@ Y el efecto sobre lo guardado, dicho: un filtro que alguien hubiera creado con u
 encontrar lo mismo. En esta base no hay ninguno.
 
 Suite: 3 654 en verde.
+
+## §10.2 · El filtro compara códigos, la pantalla enseña etiquetas
+
+La misma lupa que destapó el avance en fracciones encuentra lo mismo en los campos de enumeración:
+
+| lo que se escribe | resultado |
+|---|---|
+| estado = `TODO` | encuentra la línea |
+| estado = «Por hacer» | **ninguna** |
+| responde = `PROVEEDOR` | encuentra la línea |
+| responde = «Nuestro» | **ninguna** |
+| clase = «Actividad» | encuentra la línea — las mayúsculas sí dan igual |
+
+Quien escriba «Por hacer», que es lo que ve en la pantalla, no encuentra nada y el filtro no dice
+por qué.
+
+### La diferencia con el avance, que decide qué hacer
+
+El avance en fracciones **era una reparación**: la unidad correcta no estaba en discusión, porque
+todas las vistas dicen porcentaje. Esto no lo es. Las etiquetas viven repartidas en cuatro módulos
+—el panel del Tablero, la marca de los informes, la rejilla del Gantt y la Lista— y cada uno tiene
+el suyo. Que el filtro hable el idioma de la pantalla exige **unificar ese vocabulario**, que es un
+trabajo de traducción y no un arreglo de una línea.
+
+Así que se deja fijado en una prueba, como la brecha de columnas: el día que alguien unifique el
+vocabulario, la prueba se pone roja y hay que venir a cambiarla por la que diga que las dos formas
+encuentran lo mismo.
+
+Suite: 3 657 en verde.
