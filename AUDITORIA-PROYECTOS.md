@@ -4458,3 +4458,33 @@ para los resúmenes ni para los hitos. Quien cuente por la etiqueta se equivoca 
 
 El §9.2 queda comprobado contra cálculo independiente, con las seis cifras cuadrando una vez
 corregida la mía. No hay defecto.
+
+## §9.1 · El progreso planificado, contado a mano
+
+La fórmula del widget 5 es la que el spec escribe con su aviso: «el `clamp` importa: antes de que el
+proyecto empiece el numerador es negativo, y después de su fecha de fin supera al denominador».
+
+Se contó **a mano, del almanaque**, sin tocar el motor: sólo lunes a viernes entre las fechas del
+proyecto.
+
+| | |
+|---|---|
+| transcurrido | **59** días hábiles (2026-06-01 → 2026-08-20, ambos incluidos) |
+| total | **131** días hábiles (2026-06-01 → 2026-11-30) |
+| planificado | 59/131 = **0.45038167938931295** |
+| lo que devuelve el servidor | **0.45038167938931295** |
+
+Exacto hasta el último decimal.
+
+### Y en pantalla
+
+El widget dice **«AVANCE TEMPORAL ▼ 45,0 % de retraso sobre lo planificado»**. Cuadra: el avance real
+del plan de referencia es cero y el planificado es 45,04 %, así que la desviación es justo eso.
+
+Con esto quedan verificadas las dos mitades del §9 que el criterio pide —«fórmulas verificadas contra
+cálculo manual» y «progreso planificado sobre calendario laborable»— y las dos coinciden con el
+cálculo independiente. No hay defecto.
+
+Un detalle que la cuenta a mano deja claro de paso: los 131 días salieron contando **sólo fines de
+semana**, sin festivos, y coincidieron. O sea que este proyecto no tiene festivos propios
+configurados — que es cierto, y explica por qué el almanaque y el motor dan lo mismo.
