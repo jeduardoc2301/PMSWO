@@ -223,6 +223,11 @@ model WorkItem {
   // Avance de 0 a 1. En un resumen se calcula, no se captura.
   progressPct Float   @default(0) @map("progress_pct")
 
+  // El mismo avance en puntos base 0–10 000 (§2.1): un tercio son 3 333, un entero exacto donde
+  // 0.3333333333333333 es una aproximación que no sobrevive a una suma. Manda sobre `progressPct`,
+  // que se mantiene al día en la misma escritura para que nada de lo que ya existe se entere.
+  progressBp  Int     @default(0) @map("progress_bp")
+
   // ── PLANEACIÓN · Trazabilidad por línea (C9) ───────────────────────────────
   // De dónde salió esta línea. Cuando un plan integra varias fuentes es lo único que permite
   // reconciliar después.

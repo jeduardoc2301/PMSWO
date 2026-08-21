@@ -24,6 +24,7 @@
  */
 
 import { MINUTOS_POR_JORNADA, leerDuracion } from '@/lib/scheduling/unidades'
+import { aPuntosBase, leerPorcentaje } from '@/lib/plan/porcentaje'
 import { crearJornada } from '@/lib/scheduling/reloj'
 import { TURNOS_POR_OMISION } from '@/lib/scheduling/calendario-editable'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -634,11 +635,19 @@ export function PlanWorkspace({
       return
     }
 
-    const antes = campo === 'name' ? { title: linea.name } : { progressPct: linea.progress ?? 0 }
+    // El deshacer guarda y devuelve los **puntos base**: con el porcentaje en coma flotante,
+    // deshacer un tercio devolvía 0.3333333333333333 y no el 3 333 que había.
+    const antes =
+      campo === 'name' ? { title: linea.name } : { progressBp: aPuntosBase(linea.progress ?? 0) }
     const despues =
       campo === 'name'
         ? { title: valor }
-        : { progressPct: Number(valor.replace(',', '.')) / 100 }
+        : (() => {
+            const leido = leerPorcentaje(valor)
+            // La celda ya lo validó con este mismo lector; esto es la segunda guardia, para quien
+            // llame por otro camino.
+            return { progressBp: 'puntos' in leido ? leido.puntos : aPuntosBase(linea.progress ?? 0) }
+          })()
 
     try {
       const r = await fetch(`/api/v1/work-items/${id}`, {

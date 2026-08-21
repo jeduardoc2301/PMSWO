@@ -21,6 +21,7 @@ import {
   columnasVisibles,
 } from '@/lib/plan/gantt-columns'
 import { CeldaEditable, validarAvance, validarNombre } from '@/components/plan/celda-editable'
+import { aPuntosBase, comoPorcentaje, conSimbolo } from '@/lib/plan/porcentaje'
 import { accionDeTeclado } from '@/lib/plan/atajos'
 import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 import { MINUTOS_POR_JORNADA, comoTexto, leerDuracion } from '@/lib/scheduling/unidades'
@@ -214,7 +215,11 @@ function contenidoDe(
     case 'party':
       return row.party === 'CLIENTE' ? 'Cliente' : 'Nuestro'
     case 'progress':
-      return `${Math.round(row.progress * 100)} %`
+      // La cifra que hay, no la redondeada: si alguien capturó un tercio, la celda dice «33,33 %».
+      // Redondear aquí a un entero no era sólo un detalle de presentación — la celda se **abría**
+      // con el número redondeado, así que el segundo que la tocara convertía el tercio en un 33 %
+      // redondo sin decidirlo.
+      return conSimbolo(aPuntosBase(row.progress))
     case 'start':
       return row.start
     case 'finish':
@@ -468,7 +473,7 @@ export function GanttChart({
                       ) : columna.id === 'progress' && onEditarCelda ? (
                         <CeldaEditable
                           texto={contenidoDe(row, columna.id, primera + k, minutosPorJornada)}
-                          valor={String(Math.round(row.progress * 100))}
+                          valor={comoPorcentaje(aPuntosBase(row.progress))}
                           etiqueta={`Avance de «${row.name}»`}
                           validar={validarAvance}
                           alineadoALaDerecha

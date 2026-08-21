@@ -577,3 +577,45 @@ describe('Una línea que ya bajó de la jornada se puede seguir editando', () =>
     expect(campo.title).toMatch(/Eso ocupa 3 días y la línea tiene 1/)
   })
 })
+
+describe('El avance capturado con decimales', () => {
+  const UN_TERCIO: PlanTask[] = [
+    { id: 'sola', name: 'Migrar el esquema', duration: 3, progress: 0.3333 },
+  ]
+  const SOLO_AVANCE = COLUMNAS.filter((c) => c.id === 'name' || c.id === 'progress')
+
+  it('la celda dice el tercio, no un 33 redondo', () => {
+    // Redondear aquí no era un detalle de presentación: la celda se **abría** con el número
+    // redondeado, así que el segundo que la tocara convertía el tercio en un 33 % sin decidirlo.
+    render(<GanttChart layout={trazar(UN_TERCIO)} dayWidth={DIA} columnas={SOLO_AVANCE} />)
+
+    expect(screen.getByText('33,33 %')).toBeInTheDocument()
+  })
+
+  it('y se abre con lo mismo que enseña', () => {
+    const guardar = vi.fn()
+    render(
+      <GanttChart
+        layout={trazar(UN_TERCIO)}
+        dayWidth={DIA}
+        columnas={SOLO_AVANCE}
+        onEditarCelda={guardar as never}
+      />,
+    )
+    fireEvent.doubleClick(screen.getByText('33,33 %'))
+
+    expect((screen.getByLabelText('Avance de «Migrar el esquema»') as HTMLInputElement).value).toBe('33,33')
+  })
+
+  it('un avance entero sigue diciéndose entero, sin ceros de relleno', () => {
+    render(
+      <GanttChart
+        layout={trazar([{ id: 'sola', name: 'Media', duration: 2, progress: 0.5 }])}
+        dayWidth={DIA}
+        columnas={SOLO_AVANCE}
+      />,
+    )
+
+    expect(screen.getByText('50 %')).toBeInTheDocument()
+  })
+})

@@ -18,6 +18,7 @@
  *   convertiría cada intento de mirar una línea en un intento de editarla.
  */
 
+import { leerPorcentaje } from '@/lib/plan/porcentaje'
 import React, { useEffect, useRef, useState } from 'react'
 
 export interface CeldaEditableProps {
@@ -161,12 +162,11 @@ export function CeldaEditable({
 
 /** El avance se escribe en enteros de 0 a 100, que es como se dice. */
 export function validarAvance(valor: string): string | null {
-  if (valor === '') return 'Escribe un número del 0 al 100.'
-  // Se acepta la coma decimal: en español se escribe así y rechazarlo sería pedantería.
-  const n = Number(valor.replace(',', '.'))
-  if (!Number.isFinite(n)) return 'Eso no es un número.'
-  if (n < 0 || n > 100) return 'El avance va del 0 al 100.'
-  return null
+  // Las mismas reglas que aplica el lector de puntos base, y en un solo sitio: si la celda admitiera
+  // algo que el lector rechaza, el avance se escribiría a medias — número aceptado en pantalla y
+  // cero en la base.
+  const leido = leerPorcentaje(valor)
+  return 'motivo' in leido ? leido.motivo : null
 }
 
 /** El nombre no puede quedar vacío: una línea sin nombre no se puede nombrar en ninguna vista. */

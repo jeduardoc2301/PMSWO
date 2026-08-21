@@ -50,6 +50,13 @@ const updateWorkItemSchema = z.object({
   // Avance real de 0 a 1, como lo captura quien revisa el plan. Es el insumo del estado al corte y
   // del atraso en días; el resumen no se captura, se acumula ponderado desde las hojas.
   progressPct: z.number().min(0).max(1).optional(),
+  /**
+   * El mismo avance en puntos base 0–10 000 (§2.1).
+   *
+   * Es el dato fino: un tercio son 3 333 exactos. Quien mande éste manda; quien mande el
+   * porcentaje sigue funcionando igual, y los dos se escriben juntos para que no puedan separarse.
+   */
+  progressBp: z.number().int().min(0).max(10_000).optional(),
   // Mover la línea en la jerarquía. null la sube a raíz; ausente la deja donde está. Las reglas de
   // forma del árbol (padre del mismo proyecto, sin ciclos) las aplica `verificarPadre`.
   parentId: z.string().nullable().optional(),
@@ -217,14 +224,24 @@ async function updateWorkItemHandler(
     // `kanbanColumnId` donde estaba: la línea decía «terminada» y la tarjeta seguía en «Backlog»,
     // que es exactamente la contradicción que el acoplamiento existe para evitar.
     let movimientoPorAvance: { kanbanColumnId: string; status: WorkItemStatus } | null = null
-    if (updateData.progressPct !== undefined && updateData.progressPct !== workItem.progressPct) {
+    /**
+     * El avance que llega, venga en la unidad que venga.
+     *
+     * Sin esto, capturar el 100 % en puntos base movía el número y **no** movía la tarjeta: el
+     * acoplamiento con el Tablero miraba sólo el campo viejo, así que la línea habría dicho
+     * «terminada» con la tarjeta en «Backlog» — la contradicción que ese acoplamiento existe para
+     * evitar, reintroducida por la puerta de atrás de una unidad nueva.
+     */
+    const avanceQueLlega =
+      updateData.progressBp !== undefined ? updateData.progressBp / 10_000 : updateData.progressPct
+    if (avanceQueLlega !== undefined && avanceQueLlega !== workItem.progressPct) {
       const columnas = await prisma.kanbanColumn.findMany({
         where: { projectId: workItem.projectId },
         orderBy: { order: 'asc' },
         select: { id: true, name: true, isInitial: true, isDone: true, columnType: true },
       })
       const actual = columnas.find((c) => c.id === workItem.kanbanColumnId)
-      const destino = columnaAlCambiarProgreso(updateData.progressPct, actual, columnas)
+      const destino = columnaAlCambiarProgreso(avanceQueLlega, actual, columnas)
       // `null` significa «la columna que tiene ya sirve»: no se escribe para dejar todo igual.
       if (destino) {
         movimientoPorAvance = {
@@ -345,7 +362,18 @@ async function updateWorkItemHandler(
         ...(updateData.constraintDate !== undefined && {
           constraintDate: updateData.constraintDate ? new Date(updateData.constraintDate) : null,
         }),
-        ...(updateData.progressPct !== undefined && { progressPct: updateData.progressPct }),
+        // Los dos campos se escriben a la vez, siempre, sea cual sea el que llegó: son el mismo
+        // número en dos unidades y separarlos es cómo se acaba con dos avances distintos para una
+        // misma línea.
+        ...(updateData.progressBp !== undefined && {
+          progressBp: updateData.progressBp,
+          progressPct: updateData.progressBp / 10_000,
+        }),
+        ...(updateData.progressBp === undefined &&
+          updateData.progressPct !== undefined && {
+            progressPct: updateData.progressPct,
+            progressBp: Math.round(updateData.progressPct * 10_000),
+          }),
         // El movimiento va después del avance para que su estado mande: si los dos escribieran
         // `status`, el último ganaría por accidente en vez de por decisión.
         ...(movimientoPorAvance ?? {}),

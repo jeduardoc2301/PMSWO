@@ -24,6 +24,7 @@
  * ancla aquí — es una línea, y está señalada.
  */
 
+import { comoFraccion } from '@/lib/plan/porcentaje'
 import prisma from '@/lib/prisma'
 import {
   type DefinicionDeCalendario,
@@ -133,6 +134,7 @@ export async function loadProjectPlan(
         dueDate: true,
         parentId: true,
         progressPct: true,
+        progressBp: true,
         status: true,
         constraintType: true,
         constraintDate: true,
@@ -209,7 +211,9 @@ export async function loadProjectPlan(
         : {}),
       ...(item.dueDate ? { dueDate: isoDe(item.dueDate) } : {}),
       ...(item.parentId ? { parentId: item.parentId } : {}),
-      progress: item.progressPct,
+      // Los puntos base son el dato; el porcentaje en coma flotante es su copia al día. Se lee de
+      // los enteros para que un tercio capturado siga siendo un tercio después de la vuelta.
+      progress: comoFraccion(item.progressBp),
       status: item.status,
       ...restriccionDe(item.constraintType, item.constraintDate, start),
       // La elección original, aparte de lo que el motor consume: es lo único que distingue una
