@@ -4610,3 +4610,24 @@ paso más— y no como criterio cumplido ni como fallo.
 
 Van dos noches diciendo esto mismo de cosas distintas, y conviene que quede claro por qué: **la
 diferencia entre «no lo he visto» y «no funciona» es la que hace que este informe sirva para algo**.
+
+## §13 · El EDT del Gantt, cerrado
+
+Última medición pendiente. Encendiendo la columna «EDT» desde el panel de Campos —que era lo que
+faltaba, no un arreglo—:
+
+| | |
+|---|---|
+| antes | **0** celdas de EDT (la columna estaba apagada en la preferencia) |
+| después | **12** celdas: `1 · 1.1 · 1.1.1 · 1.1.2 · 1.2 · 1.2.1 · 1.2.1.1 · 1.2.1.1.1 · 1.2.1.1.1.1 …` |
+
+Numeración jerárquica por `parentId`, como pide el §3.6 —«se materializa recorriendo el árbol: `1`,
+`1.1`, `1.1.1`…»— y hasta seis niveles en las doce primeras filas.
+
+Con esto quedan cerradas **todas** las mediciones que se habían anotado como pendientes.
+
+### Un efecto que dejo dicho
+
+Encender esa casilla **guarda la preferencia**: la columna del EDT se queda encendida en el Gantt de
+este usuario. Es reversible con un clic en el mismo panel de Campos, y se avisa en vez de dejarlo
+como un cambio silencioso — la medición tocó una preferencia, no datos del plan.
