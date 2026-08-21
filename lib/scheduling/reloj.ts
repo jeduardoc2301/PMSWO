@@ -315,3 +315,17 @@ export function crearReloj(calendario: WorkCalendar, jornada: Jornada = JORNADA_
 
   return Object.freeze({ calendario, jornada, esLaborable, abrir, cerrar, sumar, restar, entre, acumulado })
 }
+
+/**
+ * La jornada que se dibuja mientras el proyecto no guarde la suya.
+ *
+ * El modelo guarda cuántos minutos dura una jornada, pero todavía no a qué hora empieza ni por
+ * dónde se parte. Con los 480 de siempre se dibuja la partida —de nueve a una y de dos a seis—, y
+ * con cualquier otra cantidad, un bloque corrido que arranca a las nueve. Es una suposición y por
+ * eso está en una función con nombre: el día que el proyecto tenga sus turnos, se cambia aquí y
+ * nadie más se entera.
+ */
+export function jornadaPorOmisionDe(minutosPorJornada: number): Jornada {
+  if (minutosPorJornada === JORNADA_PARTIDA.minutos) return JORNADA_PARTIDA
+  return crearJornada([{ desde: 9 * 60, hasta: Math.min(9 * 60 + minutosPorJornada, MINUTOS_POR_DIA) }])
+}

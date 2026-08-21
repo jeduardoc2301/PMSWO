@@ -526,3 +526,54 @@ describe('Escribir la duración exacta', () => {
     expect(screen.queryByLabelText(/Duración exacta/)).toBeNull()
   })
 })
+
+describe('Una línea que ya bajó de la jornada se puede seguir editando', () => {
+  /**
+   * El defecto que encontró la medición en pantalla, y que ninguna prueba de antes tocaba.
+   *
+   * Desde que el ancho de la barra sale de los minutos, una tarea de cuatro horas mide media
+   * columna. La celda comparaba los días que se escriben contra ese ancho, así que «4 h» —que es un
+   * día del cronograma— se comparaba con 0,5 y se rechazaba. La línea quedaba congelada: no admitía
+   * ni volver a su propio valor.
+   */
+  const MEDIA_JORNADA: PlanTask[] = [
+    { id: 'media', name: 'Aprobar el plan', duration: 1, duracionMin: 240 },
+  ]
+  const SOLO_LA_EXACTA = COLUMNAS.filter((c) => c.id === 'name' || c.id === 'duracionMin')
+
+  function abrirCelda(guardar: ReturnType<typeof vi.fn>) {
+    render(
+      <GanttChart
+        layout={trazar(MEDIA_JORNADA)}
+        dayWidth={DIA}
+        columnas={SOLO_LA_EXACTA}
+        onEditarCelda={guardar as never}
+      />,
+    )
+    fireEvent.doubleClick(screen.getByText('4 h'))
+    return screen.getByLabelText('Duración exacta de «Aprobar el plan»') as HTMLInputElement
+  }
+
+  it('la barra mide media columna, que es de donde venía el problema', () => {
+    expect(trazar(MEDIA_JORNADA).rows[0].width).toBe(0.5)
+  })
+
+  it('y admite volver a la jornada entera', () => {
+    const guardar = vi.fn()
+    const campo = abrirCelda(guardar)
+    fireEvent.change(campo, { target: { value: '1 d' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+
+    expect(guardar).toHaveBeenCalledWith('media', 'duracionMin', '1 d')
+  })
+
+  it('sin dejar de parar lo que sí cambiaría los días', () => {
+    const guardar = vi.fn()
+    const campo = abrirCelda(guardar)
+    fireEvent.change(campo, { target: { value: '3 d' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+
+    expect(guardar).not.toHaveBeenCalled()
+    expect(campo.title).toMatch(/Eso ocupa 3 días y la línea tiene 1/)
+  })
+})

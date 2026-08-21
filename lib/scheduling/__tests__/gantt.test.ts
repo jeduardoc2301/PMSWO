@@ -1101,3 +1101,70 @@ describe('§4.8 · la foto de un resumen es la de su rama, no la que traía guar
     expect(R.baseWidth).toBeUndefined()
   })
 })
+
+/**
+ * La sexta escala del §4.3.
+ *
+ * Estuvo fuera mientras ninguna tarea tuvo nada por debajo del día. Con la duración en minutos (§2)
+ * el eje ya tiene qué enseñar, y lo que enseña es tiempo laborable: la hora de la comida no ocupa
+ * columna, igual que no la ocupa el fin de semana.
+ */
+describe('La escala de hora', () => {
+  const calendario = createWorkCalendar()
+
+  it('parte cada jornada en sus horas de trabajo, y sólo en ésas', () => {
+    const marcas = axisTicks(calendario, '2026-06-01', '2026-06-01', 'HORA')
+
+    expect(marcas.map((m) => m.label)).toEqual(['09', '10', '11', '12', '14', '15', '16', '17'])
+    // Las 13:00 no salen: es la comida, y un eje de tiempo laborable no le reserva sitio a lo que
+    // no se trabaja.
+    expect(marcas.map((m) => m.label)).not.toContain('13')
+  })
+
+  it('cada hora mide un octavo de columna y van pegadas una a otra', () => {
+    const marcas = axisTicks(calendario, '2026-06-01', '2026-06-01', 'HORA')
+
+    expect(marcas.every((m) => m.width === 1 / 8)).toBe(true)
+    expect(marcas[0].x).toBe(0)
+    expect(marcas[4].x).toBe(0.5)
+    expect(marcas.at(-1)!.x + marcas.at(-1)!.width).toBe(1)
+  })
+
+  it('el día siguiente empieza en la columna siguiente, y el fin de semana no cuenta', () => {
+    // Viernes y lunes: dos jornadas seguidas en el eje aunque haya dos días de calendario en medio.
+    const marcas = axisTicks(calendario, '2026-06-05', '2026-06-08', 'HORA')
+
+    expect(marcas).toHaveLength(16)
+    expect(marcas[8].x).toBe(1)
+    expect(marcas[8].date).toBe('2026-06-08')
+  })
+
+  it('lleva encima la fila del día, que es de lo que son esas horas', () => {
+    expect(escalaSuperior('HORA')).toBe('DIA')
+  })
+
+  it('y acerca de verdad: ocho columnas por jornada al ancho de una columna de día', () => {
+    expect(anchoDeDiaPara('HORA')).toBe(8 * anchoDeDiaPara('DIA'))
+  })
+})
+
+describe('El ancho de la barra con la duración en minutos', () => {
+  const CUATRO_HORAS: PlanTask[] = [
+    { id: 'media', name: 'Media jornada', duration: 1, duracionMin: 240 },
+    { id: 'entera', name: 'Jornada entera', duration: 1, duracionMin: 480 },
+    { id: 'vieja', name: 'Sin minutos', duration: 1 },
+  ]
+
+  it('una tarea de cuatro horas mide media columna', () => {
+    const layout = trazar(CUATRO_HORAS)
+    expect(layout.rows.find((r) => r.id === 'media')!.width).toBe(0.5)
+  })
+
+  it('y las que duran jornadas enteras miden lo mismo que antes', () => {
+    // Es lo que hace que esto se pueda encender sobre el plan de referencia sin mover ni una barra:
+    // sus 1 368 líneas tienen minutos múltiplos exactos de la jornada.
+    const layout = trazar(CUATRO_HORAS)
+    expect(layout.rows.find((r) => r.id === 'entera')!.width).toBe(1)
+    expect(layout.rows.find((r) => r.id === 'vieja')!.width).toBe(1)
+  })
+})

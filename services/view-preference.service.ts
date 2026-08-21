@@ -39,9 +39,10 @@ const esquemaDelPanel = z.object({
 const esquemaDelGantt = z.object({
   columnas: z.array(z.string()).max(40),
   anchos: z.record(z.string(), z.number()),
-  // Las cinco del §4.3 que este motor puede dibujar. La sexta —hora— no entra: sin horas en el
-  // modelo, un eje por horas no muestra nada nuevo (ver AxisScale en lib/scheduling/gantt.ts).
-  escala: z.enum(['DIA', 'SEMANA', 'MES', 'TRIMESTRE', 'ANIO']),
+  // Las seis del §4.3. La de hora entró cuando la duración empezó a guardarse en minutos (§2):
+  // hasta entonces ninguna tarea tenía nada por debajo del día y el eje habría dibujado ocho
+  // columnas idénticas por jornada.
+  escala: z.enum(['HORA', 'DIA', 'SEMANA', 'MES', 'TRIMESTRE', 'ANIO']),
   nivel: z.number().int().min(0).max(32),
   flechas: z.enum(['NINGUNO', 'SELECCION', 'TODOS']),
   // Los conmutadores del §4.6 que el §10.4 nombra en su ejemplo: `overdue`, `criticalPath` y

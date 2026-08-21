@@ -191,7 +191,7 @@ describe('La escala', () => {
     expect(props.onScaleChange).toHaveBeenCalledWith('SEMANA')
   })
 
-  it('ofrece las cinco escalas que este motor puede dibujar (§4.3)', () => {
+  it('ofrece las seis escalas del §4.3', () => {
     /**
      * Esta prueba decía lo contrario: «no ofrece Día: en 122 días hábiles son 122 columnas».
      *
@@ -201,17 +201,23 @@ describe('La escala', () => {
      */
     montar()
     const escala = grupo('Escala')
-    for (const nombre of ['Día', 'Semana', 'Mes', 'Trimestre', 'Año']) {
+    for (const nombre of ['Hora', 'Día', 'Semana', 'Mes', 'Trimestre', 'Año']) {
       expect(escala.getByRole('button', { name: nombre })).toBeInTheDocument()
     }
   })
 
-  it('y no ofrece «Hora», que es la sexta del spec y no se puede dibujar', () => {
-    // El motor trabaja en ordinales de día hábil, así que ninguna tarea tiene hora. Un eje por horas
-    // dibujaría ocho columnas idénticas por día y todas las barras pegadas al límite del día: un
-    // zoom que no muestra nada nuevo. Es la misma pared que los casos 2 y 23 del §12.
-    montar()
-    expect(grupo('Escala').queryByRole('button', { name: 'Hora' })).not.toBeInTheDocument()
+  it('y «Hora» ya se ofrece, que estuvo fuera hasta que hubo minutos que enseñar', () => {
+    /**
+     * Esta prueba también decía lo contrario: «no se puede dibujar».
+     *
+     * Y era verdad mientras el modelo no guardó nada por debajo del día: el eje habría dibujado
+     * ocho columnas idénticas por jornada y todas las barras pegadas al límite del día. Con la
+     * duración en minutos (§2) una tarea de cuatro horas mide media columna, y entonces el eje sí
+     * enseña algo que no se veía. La pared no era el eje: era el dato que no existía.
+     */
+    const props = montar({ scale: 'MES' })
+    fireEvent.click(grupo('Escala').getByRole('button', { name: 'Hora' }))
+    expect(props.onScaleChange).toHaveBeenCalledWith('HORA')
   })
 
   it('elegir trimestre lo comunica hacia arriba', () => {

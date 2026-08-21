@@ -88,11 +88,15 @@ const FLECHAS: readonly { readonly value: LinkVisibility; readonly label: string
  * atado al zoom, cambiar de escala acerca y aleja de verdad en vez de repartir la misma anchura en
  * trozos distintos.
  *
- * La sexta —hora— no está y no puede estar: el motor trabaja en ordinales de día hábil, así que
- * ninguna tarea tiene hora. Un eje por horas dibujaría ocho columnas idénticas por día y todas las
- * barras pegadas al límite del día. Es la misma pared que los casos 2 y 23 del §12.
+ * La sexta —hora— estuvo fuera mientras fue verdad que ninguna tarea tenía nada por debajo del día:
+ * un eje por horas habría dibujado ocho columnas idénticas por jornada y todas las barras pegadas
+ * al límite del día. Dejó de serlo cuando la duración empezó a guardarse en minutos (§2): una tarea
+ * de cuatro horas mide media columna y el eje enseña dónde cae. El comentario que decía «no puede
+ * estar» era cierto cuando se escribió y falso desde el día siguiente, que es como envejecen los
+ * comentarios que explican una ausencia.
  */
 const ESCALAS: readonly { readonly value: AxisScale; readonly label: string }[] = [
+  { value: 'HORA', label: 'Hora' },
   { value: 'DIA', label: 'Día' },
   { value: 'SEMANA', label: 'Semana' },
   { value: 'MES', label: 'Mes' },

@@ -220,7 +220,10 @@ function contenidoDe(
     case 'finish':
       return row.finish
     case 'duration':
-      return row.isMilestone ? '—' : String(row.width)
+      // Días enteros aunque el ancho sea fraccionario: una tarea de cuatro horas ocupa un día del
+      // cronograma y ahí es donde está. El medio día se lee en «Duración exacta», que para eso
+      // está; decir «0,5» aquí devolvería los días decimales que el §2 vino a quitar.
+      return row.isMilestone ? '—' : String(Math.ceil(row.width))
     case 'duracionMin':
       // Sin minutos calculados no se inventa nada: la raya dice «esta linea todavia va en dias».
       return row.duracionMin === undefined ? '—' : comoTexto(row.duracionMin, minutosPorJornada)
@@ -452,7 +455,13 @@ export function GanttChart({
                           // Se edita con el mismo texto que se enseña: quien ve «4 h» teclea «4 h».
                           valor={row.duracionMin === undefined ? '' : comoTexto(row.duracionMin, minutosPorJornada)}
                           etiqueta={`Duración exacta de «${row.name}»`}
-                          validar={(v) => validarDuracion(v, minutosPorJornada, row.width)}
+                          validar={(v) =>
+                            // Los días que ocupa, no el ancho de la barra. Desde que el ancho sale
+                            // de los minutos es fraccionario, y comparar contra él dejaba la celda
+                            // bloqueada en cuanto la línea bajaba de una jornada: con 0,5 de ancho,
+                            // «4 h» daba 1 día y 1 ≠ 0,5, así que rechazaba hasta su propio valor.
+                            validarDuracion(v, minutosPorJornada, Math.ceil(row.width))
+                          }
                           alineadoALaDerecha
                           onGuardar={(v) => onEditarCelda(row.id, 'duracionMin', v)}
                         />

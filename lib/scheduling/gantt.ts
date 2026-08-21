@@ -35,6 +35,7 @@
 import { esClaseDeHito } from '@/lib/scheduling/kinds'
 
 import { type WorkCalendar } from './calendar'
+import { type Jornada, jornadaPorOmisionDe } from './reloj'
 import { type ClassifiedTask } from './critical-path'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
@@ -284,6 +285,13 @@ export interface GanttInput {
   /** Escala del eje de tiempo. */
   readonly scale?: AxisScale
   /**
+   * Minutos de una jornada laboral en este proyecto (§2). Ocho horas si no llega.
+   *
+   * Hace falta para dos cosas: para que una tarea de cuatro horas mida media columna en vez de una
+   * entera, y para que la escala de hora sepa cuántas columnas caben en un día.
+   */
+  readonly minutosPorJornada?: number
+  /**
    * Hoy, en fecha civil, para marcar lo atrasado (§4.6, conmutador 2).
    *
    * Entra por parámetro y no se lee el reloj aquí: esta función es pura, y una función que consulta
@@ -306,7 +314,7 @@ export interface GanttInput {
  * un zoom que no muestra nada nuevo, sólo más ancho. Es la misma pared que los casos 2 y 23 del
  * §12, y sale de la misma decisión de modelo (§2.1, duración en minutos), que espera decisión.
  */
-export type AxisScale = 'DIA' | 'SEMANA' | 'MES' | 'TRIMESTRE' | 'ANIO'
+export type AxisScale = 'HORA' | 'DIA' | 'SEMANA' | 'MES' | 'TRIMESTRE' | 'ANIO'
 
 export interface AxisTick {
   /** Dónde cae la marca, en días hábiles desde el arranque. */
@@ -382,6 +390,7 @@ function enPalabras(c: { readonly type: string; readonly date: IsoDate }): strin
  */
 export function ganttLayout(input: GanttInput): GanttLayout {
   const { tasks, dependencies, schedule, classified, calendar } = input
+  const minutosPorJornada = input.minutosPorJornada ?? 480
   const linkMode: LinkVisibility = input.links ?? 'SELECCION'
   const selectedId = input.selectedId ?? null
   const collapsed = new Set(input.collapsed ?? [])
@@ -557,9 +566,22 @@ export function ganttLayout(input: GanttInput): GanttLayout {
         : (schedule.earlyStart.get(task.id) ?? originOrdinal)) - originOrdinal
     // El ancho de un resumen es lo que abarca, no la duración que traía guardada: una barra que
     // empieza donde su rama y mide otra cosa es peor que una que no se movió, porque parece exacta.
+    /**
+     * El ancho de la barra, en días hábiles.
+     *
+     * Cuando la línea lleva su duración en minutos (§2) el ancho sale de ahí y puede ser
+     * fraccionario: una tarea de cuatro horas mide media columna, que es justo lo que el eje de
+     * hora existe para enseñar. Sin minutos —o si es resumen o hito— se sigue midiendo en días
+     * enteros, y para las 1 368 líneas del plan de referencia el número no cambia: sus minutos son
+     * múltiplos exactos de la jornada.
+     */
     const width = tramo
       ? calendar.ordinalOf(toDayNumber(tramo.finish)) - calendar.ordinalOf(toDayNumber(tramo.start)) + 1
-      : scheduled?.isMilestone ? 0 : Math.max(task.duration, 0)
+      : scheduled?.isMilestone
+        ? 0
+        : task.duracionMin !== undefined && !children.has(task.id)
+          ? task.duracionMin / minutosPorJornada
+          : Math.max(task.duration, 0)
     const esResumen = task.kind === 'RESUMEN' || children.has(task.id)
     const progress = clamp(esResumen ? (acumulado?.get(task.id)?.progress ?? task.progress ?? 0) : (task.progress ?? 0))
     const float = classifiedTask?.totalFloat ?? 0
@@ -681,7 +703,9 @@ export function ganttLayout(input: GanttInput): GanttLayout {
   return Object.freeze({
     rows: Object.freeze(rows),
     links: Object.freeze(links),
-    ticks: Object.freeze(axisTicks(calendar, schedule.start, schedule.finish, input.scale ?? 'MES')),
+    ticks: Object.freeze(
+      axisTicks(calendar, schedule.start, schedule.finish, input.scale ?? 'MES', jornadaPorOmisionDe(minutosPorJornada)),
+    ),
     // La fila de arriba de la cabecera: la escala inmediatamente más gruesa, o vacía si no la hay.
     // Se calcula aquí y no en el componente porque es el mismo recorrido del calendario y hacerlo
     // dos veces en el trazado costaría otra pasada por 122 días en cada gesto.
@@ -697,7 +721,9 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     ticksSuperiores: Object.freeze(
       (() => {
         const arriba = escalaSuperior(input.scale ?? 'MES')
-        return arriba === null ? [] : axisTicks(calendar, schedule.start, schedule.finish, arriba)
+        return arriba === null
+          ? []
+          : axisTicks(calendar, schedule.start, schedule.finish, arriba, jornadaPorOmisionDe(minutosPorJornada))
       })(),
     ),
     span,
@@ -885,12 +911,14 @@ export function axisTicks(
   start: IsoDate,
   finish: IsoDate,
   scale: AxisScale,
+  jornada: Jornada = jornadaPorOmisionDe(480),
 ): AxisTick[] {
   const desde = toDayNumber(start)
   const hasta = toDayNumber(finish)
   if (hasta < desde) return []
 
   const origen = calendar.ordinalOf(desde)
+  if (scale === 'HORA') return marcasPorHora(calendar, desde, hasta, origen, jornada)
   const marcas: AxisTick[] = []
   let cursor = desde
   let actual: { key: string; day: DayNumber; x: number } | null = null
@@ -917,6 +945,42 @@ export function axisTicks(
   }
   cerrar(calendar.ordinalOf(hasta) - origen + 1)
 
+  return marcas
+}
+
+/**
+ * Las marcas de la escala de hora, una por cada hora que se trabaja.
+ *
+ * Va aparte del recorrido de las otras cinco por dos razones: sus marcas miden **menos** que una
+ * columna de día, así que el `Math.max(1, …)` que protege a las demás las aplastaría todas a una
+ * columna; y la hora de la comida no se dibuja, igual que no se dibuja el fin de semana. Un eje que
+ * sólo enseña tiempo laborable no puede reservarle sitio a lo que no se trabaja.
+ */
+function marcasPorHora(
+  calendar: WorkCalendar,
+  desde: DayNumber,
+  hasta: DayNumber,
+  origen: number,
+  jornada: Jornada,
+): AxisTick[] {
+  const marcas: AxisTick[] = []
+  for (let dia = desde; dia <= hasta; dia += 1) {
+    if (!calendar.isWorkingDay(dia)) continue
+    const base = calendar.ordinalOf(dia) - origen
+    let llevado = 0
+    for (const turno of jornada.turnos) {
+      for (let minuto = turno.desde; minuto < turno.hasta; minuto += 60) {
+        const dura = Math.min(60, turno.hasta - minuto)
+        marcas.push({
+          x: base + llevado / jornada.minutos,
+          width: dura / jornada.minutos,
+          label: String(Math.floor(minuto / 60)).padStart(2, '0'),
+          date: toIsoDate(dia),
+        })
+        llevado += dura
+      }
+    }
+  }
   return marcas
 }
 
@@ -955,6 +1019,9 @@ function labelFor(day: DayNumber, scale: AxisScale): string {
  * excluida de la barra por ilegible: no era la escala, era la cabecera.
  */
 export function escalaSuperior(scale: AxisScale): AxisScale | null {
+  // Encima de las horas, el día: sin él la cabecera dice «09, 10, 11…» ocho veces seguidas y no hay
+  // forma de saber de qué día son. Es el mismo problema que tenía la escala de día sin el mes.
+  if (scale === 'HORA') return 'DIA'
   if (scale === 'DIA' || scale === 'SEMANA') return 'MES'
   if (scale === 'MES' || scale === 'TRIMESTRE') return 'ANIO'
   return null
@@ -972,6 +1039,10 @@ export function escalaSuperior(scale: AxisScale): AxisScale | null {
  */
 export function anchoDeDiaPara(scale: AxisScale): number {
   switch (scale) {
+    // Ocho columnas de 24 px por día, que es el mismo ancho por columna que la escala de día: es lo
+    // que hace que «hora» acerque de verdad en vez de partir la cabecera en trozos más finos.
+    case 'HORA':
+      return 192
     case 'DIA':
       return 24
     case 'SEMANA':

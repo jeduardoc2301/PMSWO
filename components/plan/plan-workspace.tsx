@@ -416,6 +416,7 @@ export function PlanWorkspace({
       schedule: base.schedule,
       classified: base.classified,
       calendar: base.calendar,
+      minutosPorJornada,
       // «Hoy» también aquí, y no solo en el trazado de abajo, porque la cuenta de atrasadas es del
       // **plan entero**: si saliera del trazado plegado, doblar una fase cambiaría el número y el
       // conmutador diría que hay menos tareas vencidas por haber cerrado una carpeta.
@@ -437,6 +438,7 @@ export function PlanWorkspace({
       selectedId,
       filter,
       scale,
+      minutosPorJornada,
       // El trazado no lee el reloj —es puro— así que hoy entra por aquí. Se calcula con aritmética
       // local y no con `toISOString`, que de noche en un huso negativo devuelve el día siguiente.
       hoy: hoyCivil(),
