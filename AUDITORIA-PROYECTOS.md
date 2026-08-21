@@ -4827,3 +4827,31 @@ red—.
 
 Confundí la entrada con el resultado. La comprobación por tipo queda **sin medir**, y no se apunta
 como cumplida.
+
+## §4.4 · Los tipos de vínculo, comprobados contra lo que el motor dibujó
+
+Repetida la medición sobre **el resultado** y no sobre la entrada: se recogen las fechas de las barras
+del Gantt —763 recogidas desplazándose por el plan— y se comprueba, vínculo a vínculo, que la
+sucesora respeta lo que su tipo amarra.
+
+| tipo | respetados |
+|---|---|
+| FS | **176 de 176** |
+| SS | **374 de 374** |
+| FF | **3 de 3** |
+| SF | sin par a la vista |
+
+**553 vínculos reales, ninguno incumplido.** No es una prueba unitaria con dos tareas inventadas: es
+el plan del banco, con sus mil trescientas líneas, comprobado contra lo que el motor colocó en
+pantalla.
+
+El SF sigue sin poder comprobarse, y por la razón del censo anterior: **el plan no tiene ninguno**.
+Queda como el único de los cuatro sin evidencia contra datos reales.
+
+### Décima sonda equivocada
+
+En el primer intento dejé un disparate dentro del selector —restos de una edición a medias— y la
+página devolvió `SyntaxError: Unexpected token '{'`. Se rehízo limpia y salió a la primera.
+
+Van diez en tres noches. Ninguna de las cinco últimas ha llegado a la bitácora como defecto, que es
+la única cifra de ésas que me importa.
