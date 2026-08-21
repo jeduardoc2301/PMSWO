@@ -5104,3 +5104,70 @@ la ruta ya lo devolvía. Filtrar la salida de un compilador por lo que uno cree 
 exactamente cómo se esconde lo que uno no sabe que tocó.
 
 Suite: 3 565 en verde. El plan de referencia verifica entero, ahora también en minutos.
+
+## §2 · Cada línea con su hora, y dos defectos que sólo se ven en 1 368
+
+Cada fila del trazado lleva ahora `comienzoInstante` y `finInstante`: la misma información que
+`start` y `finish` con la precisión que la fecha civil no tiene. El fin sale del reloj laborable
+—comienzo más los minutos que dura—, no de una resta. Y el panel de detalle lo dice cuando la línea
+no llena su día: **«1 día hábil · dura 4 h, de 09:00 a 13:00»**.
+
+La prueba que lo sostiene compara dos aritméticas independientes sobre el plan real: para las 1 368
+líneas, el día del instante tiene que ser el mismo que calculó el motor de días. Cazó dos cosas que
+ninguna prueba de tres líneas habría visto.
+
+**Los hitos con hijas.** Los cuatro habilitadores del plan —«HAB-01 · Ambiente QA mínimo operativo»
+y tres más— tienen duración propia cero y un tramo acumulado de semanas. El atajo de hito se
+adelantaba al tramo y los dejaba terminando el día que empiezan: nueve días de menos en el mayor.
+
+**El límite entre turnos**, y éste no lo encontró ninguna prueba: lo encontró la pantalla. El panel
+decía que una tarea de cuatro horas iba «de 09:00 a **14:00**». Doscientos cuarenta minutos
+trabajados se pueden decir «el cierre de la mañana» o «la apertura de la tarde» —son el mismo
+instante de trabajo acumulado— y para un fin es lo primero. Yo había resuelto esa asimetría en el
+límite del **día** y no en el de cada **turno**. Las 1 368 líneas duran jornadas enteras y nunca caen
+ahí, así que la batería entera podía seguir verde con el error dentro.
+
+## §3.3 · El motor en minutos, al lado del de días
+
+El motor que calcula las fechas cuenta en ordinales de día hábil. El nuevo cuenta minutos dentro de
+esos días, que es lo que hace falta para que una tarea empiece a las dos de la tarde.
+
+Va **al lado** y no en su lugar. Cambiar de unidad la pieza de la que cuelgan la ruta crítica, las
+holguras, el roll-up y las seis vistas no es una refactorización: hacerlo de golpe y comprobarlo
+después es cómo se rompe un plan sin que nadie se entere hasta la reunión de seguimiento.
+
+La demostración es la comparación sobre el plan real —1 368 líneas, 1 665 vínculos, 394 con desfase,
+cada línea anclada a su fecha declarada—: los dos programadores colocan **todas** las líneas en el
+mismo día, cierran el plan el mismo día y dan **las mismas holguras**, total y libre, línea a línea.
+
+### Lo que costó llegar ahí
+
+Siete correcciones, todas encontradas por esa comparación y ninguna por razonar:
+
+| lo que estaba mal | cuántas líneas |
+|---|---|
+| el `+1` del `FS`, que en minutos no va —el fin ya es el instante en que se para— | todas las sucesoras |
+| `restar` cero devolvía la apertura del día siguiente: un hito con `FF+0` caía un día tarde | 47 hitos |
+| un hito marca un punto del día, no el final de su trabajo: un `SS` desde él arranca **ese** día | 40 |
+| un fin dicho en forma de comienzo se lee un día tarde | **1 023** |
+| sumar o restar **cero** normaliza a un borde, y encadenado corre la fecha sin mover un minuto | 988 |
+| el comienzo tardío de un hito es la apertura de su día, no el retroceso desde su fin | 47 |
+| la holgura de un hito se mide desde el **cierre** de su día, no desde su apertura | 8 |
+
+Las dos que más enseñan son las de en medio. Un comienzo y un cierre pueden ser **el mismo instante
+de trabajo acumulado en dos días distintos del calendario** —«el viernes a las nueve» y «el jueves a
+las seis»— y cuál de los dos es el bueno depende de si lo que se está diciendo es un comienzo o un
+fin. Y sumar cero no es no hacer nada: en un reloj que normaliza a bordes, sumar cero **abre** y
+restar cero **cierra**.
+
+Cada una se validó rompiéndola y viendo la comparación de las 1 368 ponerse roja.
+
+### Lo que este motor todavía no hace
+
+No lo usa ninguna pantalla —es el andamio del cambio de unidad, no el cambio— y le falta lo que el
+de días sí tiene en el pase atrás: el compromiso propio de la línea (`dueDate`),
+`NO_EMPIEZA_DESPUES_DE`, la política de las terminales y el `deadline` del plan. El plan de
+referencia no usa ninguna de las cuatro, que es lo que permite comparar hoy; el día que aspire a
+sustituir al otro, las cuatro tienen que estar.
+
+Suite: 3 599 en verde.
