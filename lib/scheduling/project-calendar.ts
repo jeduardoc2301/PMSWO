@@ -19,6 +19,14 @@ export interface DefinicionDeCalendario {
   readonly holidayCountry: string | null
   /** Festivos propios del proyecto, además de los del país. */
   readonly extraHolidays: readonly IsoDate[]
+  /**
+   * Los tramos que se trabajan dentro de un día hábil (§3.1), en minutos desde la medianoche.
+   *
+   * Viaja con el resto de la definición por la misma razón que los días de la semana: el servidor
+   * programa con ella y el navegador dibuja con ella, y si cada lado montara la suya el eje de horas
+   * y el motor hablarían de jornadas distintas.
+   */
+  readonly turnos: readonly { readonly desde: number; readonly hasta: number }[]
   /** Rango sobre el que se resolvieron los festivos del país. */
   readonly from: IsoDate
   readonly to: IsoDate
@@ -59,6 +67,10 @@ export const CALENDARIO_POR_OMISION: DefinicionDeCalendario = {
   workingWeekdays: SEMANA_LABORABLE,
   holidayCountry: null,
   extraHolidays: [],
+  turnos: [
+    { desde: 9 * 60, hasta: 13 * 60 },
+    { desde: 14 * 60, hasta: 18 * 60 },
+  ],
   from: '1970-01-01' as IsoDate,
   to: '1970-01-01' as IsoDate,
 }

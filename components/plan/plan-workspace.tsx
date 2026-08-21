@@ -24,6 +24,8 @@
  */
 
 import { MINUTOS_POR_JORNADA, leerDuracion } from '@/lib/scheduling/unidades'
+import { crearJornada } from '@/lib/scheduling/reloj'
+import { TURNOS_POR_OMISION } from '@/lib/scheduling/calendario-editable'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import { ExecutiveBriefPanel } from '@/components/plan/executive-brief-panel'
@@ -252,6 +254,19 @@ export function PlanWorkspace({
   const [fechasDeLaFoto, setFechasDeLaFoto] = useState<ReadonlyMap<string, { start: string; finish: string }>>(new Map())
 
   // ── Lo que se calcula una sola vez ────────────────────────────────────────
+  /**
+   * La jornada del proyecto, para el eje de horas y para leer los minutos de cada línea.
+   *
+   * Sale del calendario que llega del servidor, no de una constante local: es el mismo dato con el
+   * que el servidor programa. Si el navegador se inventara la suya, el eje dibujaría unas horas y
+   * el motor contaría otras — el mismo fallo que tenía la semana laborable antes de que el
+   * calendario del proyecto viajara con el plan.
+   */
+  const jornada = useMemo(
+    () => crearJornada(calendario?.turnos ?? TURNOS_POR_OMISION),
+    [calendario],
+  )
+
   const base = useMemo(() => {
     // Antes era `createWorkCalendar()` a secas: el Gantt programaba el plan contra una semana
     // genérica de lunes a viernes e ignoraba los festivos del proyecto. Es el mismo fallo que tenía
@@ -416,7 +431,7 @@ export function PlanWorkspace({
       schedule: base.schedule,
       classified: base.classified,
       calendar: base.calendar,
-      minutosPorJornada,
+      jornada,
       // «Hoy» también aquí, y no solo en el trazado de abajo, porque la cuenta de atrasadas es del
       // **plan entero**: si saliera del trazado plegado, doblar una fase cambiaría el número y el
       // conmutador diría que hay menos tareas vencidas por haber cerrado una carpeta.
@@ -438,7 +453,7 @@ export function PlanWorkspace({
       selectedId,
       filter,
       scale,
-      minutosPorJornada,
+      jornada,
       // El trazado no lee el reloj —es puro— así que hoy entra por aquí. Se calcula con aritmética
       // local y no con `toISOString`, que de noche en un huso negativo devuelve el día siguiente.
       hoy: hoyCivil(),
@@ -1189,7 +1204,9 @@ export function PlanWorkspace({
               dayWidth={anchoDeDiaPara(scale)}
               layout={layoutFiltrado}
               columnas={columnasVisibles(preferencia)}
-              minutosPorJornada={minutosPorJornada}
+              // De la jornada y no del número suelto: los turnos son el dato, su suma es la
+              // consecuencia. Con dos fuentes, la celda diría «1 d» donde el eje dibuja siete horas.
+              minutosPorJornada={jornada.minutos}
               divisor={posicionDelDivisor(preferencia)}
               onDivisorCambiado={(posicion) =>
                 // Un 0 es el doble clic del tirador: «vuelve a lo que ocupen las columnas».

@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   SEMANA_POR_OMISION,
+  TURNOS_POR_OMISION,
   comoSeLeeLaSemana,
   cuantoCambiaLaSemana,
   normalizarSemana,
   porQueNoEsFestivoValido,
   porQueNoEsSemanaValida,
+  minutosDeLosTurnos,
+  porQueNoSonTurnosValidos,
 } from '../calendario-editable'
+import { crearJornada } from '../reloj'
 
 /**
  * Las reglas del calendario editable (§3.1).
@@ -109,5 +113,54 @@ describe('Cuánto cambia el plan', () => {
   it('reordenar no cambia nada', () => {
     expect(cuantoCambiaLaSemana([1, 2, 3], [3, 2, 1])).toBe(0)
     expect(normalizarSemana([3, 1, 2, 1])).toEqual([1, 2, 3])
+  })
+})
+
+describe('Los turnos del día', () => {
+  it('acepta la jornada partida de siempre y dice cuánto suma', () => {
+    expect(porQueNoSonTurnosValidos(TURNOS_POR_OMISION)).toBeNull()
+    expect(minutosDeLosTurnos(TURNOS_POR_OMISION)).toBe(480)
+  })
+
+  it('acepta un bloque corrido', () => {
+    expect(porQueNoSonTurnosValidos([{ desde: 480, hasta: 900 }])).toBeNull()
+    expect(minutosDeLosTurnos([{ desde: 480, hasta: 900 }])).toBe(420)
+  })
+
+  it('rechaza el turno nocturno, y dice por qué', () => {
+    // No es un capricho: un minuto de la madrugada no tiene día hábil al que pertenecer, y de esa
+    // respuesta cuelgan el roll-up de los resúmenes y la carga por día.
+    const motivo = porQueNoSonTurnosValidos([{ desde: 22 * 60, hasta: 30 * 60 }])
+    expect(motivo).toMatch(/se sale del día/)
+    expect(motivo).toMatch(/madrugada/)
+  })
+
+  it('rechaza un día sin tramos, uno al revés y dos que se pisan', () => {
+    expect(porQueNoSonTurnosValidos([])).toMatch(/no permite programar/)
+    expect(porQueNoSonTurnosValidos([{ desde: 600, hasta: 600 }])).toMatch(/termina antes de empezar/)
+    expect(
+      porQueNoSonTurnosValidos([{ desde: 540, hasta: 780 }, { desde: 700, hasta: 1080 }]),
+    ).toMatch(/pisa al anterior/)
+  })
+
+  it('y lo que ni siquiera tiene forma de turno', () => {
+    expect(porQueNoSonTurnosValidos('de nueve a seis')).toMatch(/lista de tramos/)
+    expect(porQueNoSonTurnosValidos([{ desde: '9:00', hasta: '18:00' }])).toMatch(/minutos enteros/)
+  })
+
+  it('las mismas reglas que aplica el motor al construir la jornada', () => {
+    // Las dos guardias tienen que coincidir: si la ruta deja pasar algo que `crearJornada` rechaza,
+    // el plan revienta al dibujarse en vez de al guardarse, y el mensaje lo lee un log, no nadie.
+    for (const turnos of [
+      [{ desde: 22 * 60, hasta: 30 * 60 }],
+      [{ desde: 600, hasta: 600 }],
+      [{ desde: 540, hasta: 780 }, { desde: 700, hasta: 1080 }],
+      [],
+    ]) {
+      expect(porQueNoSonTurnosValidos(turnos)).not.toBeNull()
+      expect(() => crearJornada(turnos)).toThrow(RangeError)
+    }
+    expect(porQueNoSonTurnosValidos(TURNOS_POR_OMISION)).toBeNull()
+    expect(crearJornada([...TURNOS_POR_OMISION]).minutos).toBe(480)
   })
 })

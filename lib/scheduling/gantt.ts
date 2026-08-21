@@ -299,6 +299,14 @@ export interface GanttInput {
    */
   readonly minutosPorJornada?: number
   /**
+   * La jornada del proyecto: sus tramos de trabajo (§3.1).
+   *
+   * Cuando llega, manda: el eje de horas dibuja **sus** horas y `minutosPorJornada` sale de su suma,
+   * que es como se evita que el proyecto diga que la jornada dura 420 minutos mientras el eje
+   * dibuja ocho columnas de sesenta.
+   */
+  readonly jornada?: Jornada
+  /**
    * Hoy, en fecha civil, para marcar lo atrasado (§4.6, conmutador 2).
    *
    * Entra por parámetro y no se lee el reloj aquí: esta función es pura, y una función que consulta
@@ -397,7 +405,10 @@ function enPalabras(c: { readonly type: string; readonly date: IsoDate }): strin
  */
 export function ganttLayout(input: GanttInput): GanttLayout {
   const { tasks, dependencies, schedule, classified, calendar } = input
-  const minutosPorJornada = input.minutosPorJornada ?? 480
+  // La jornada manda sobre el número suelto: son el mismo dato dicho con más o menos detalle, y
+  // cuando los dos están, el que sabe cuándo se trabaja sabe también cuánto.
+  const jornada = input.jornada ?? jornadaPorOmisionDe(input.minutosPorJornada ?? 480)
+  const minutosPorJornada = jornada.minutos
   const linkMode: LinkVisibility = input.links ?? 'SELECCION'
   const selectedId = input.selectedId ?? null
   const collapsed = new Set(input.collapsed ?? [])
@@ -721,7 +732,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     rows: Object.freeze(rows),
     links: Object.freeze(links),
     ticks: Object.freeze(
-      axisTicks(calendar, schedule.start, schedule.finish, input.scale ?? 'MES', jornadaPorOmisionDe(minutosPorJornada)),
+      axisTicks(calendar, schedule.start, schedule.finish, input.scale ?? 'MES', jornada),
     ),
     // La fila de arriba de la cabecera: la escala inmediatamente más gruesa, o vacía si no la hay.
     // Se calcula aquí y no en el componente porque es el mismo recorrido del calendario y hacerlo
@@ -740,7 +751,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
         const arriba = escalaSuperior(input.scale ?? 'MES')
         return arriba === null
           ? []
-          : axisTicks(calendar, schedule.start, schedule.finish, arriba, jornadaPorOmisionDe(minutosPorJornada))
+          : axisTicks(calendar, schedule.start, schedule.finish, arriba, jornada)
       })(),
     ),
     span,

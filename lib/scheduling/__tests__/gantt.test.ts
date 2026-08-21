@@ -15,6 +15,7 @@ import {
   lagLabel,
   linkLabel,
 } from '../gantt'
+import { crearJornada } from '../reloj'
 import { schedulePlan } from '../schedule'
 import type { Dependency, PlanTask } from '../types'
 
@@ -1171,5 +1172,44 @@ describe('El ancho de la barra con la duración en minutos', () => {
     const layout = trazar(CUATRO_HORAS)
     expect(layout.rows.find((r) => r.id === 'entera')!.anchoExacto).toBe(1)
     expect(layout.rows.find((r) => r.id === 'vieja')!.anchoExacto).toBe(1)
+  })
+})
+
+describe('El eje de horas dibuja la jornada del proyecto', () => {
+  const calendario = createWorkCalendar()
+
+  it('un bloque corrido de ocho a cuatro no tiene hueco a mediodía', () => {
+    const deOchoACuatro = crearJornada([{ desde: 8 * 60, hasta: 16 * 60 }])
+    const marcas = axisTicks(calendario, '2026-06-01', '2026-06-01', 'HORA', deOchoACuatro)
+
+    expect(marcas.map((m) => m.label)).toEqual(['08', '09', '10', '11', '12', '13', '14', '15'])
+  })
+
+  it('y una jornada de siete horas dibuja siete columnas, no ocho', () => {
+    // El ancho de cada una sale de la jornada, no de una constante: con 420 minutos cada hora es un
+    // séptimo de columna y las siete siguen llenando el día exacto.
+    const deSiete = crearJornada([{ desde: 9 * 60, hasta: 16 * 60 }])
+    const marcas = axisTicks(calendario, '2026-06-01', '2026-06-01', 'HORA', deSiete)
+
+    expect(marcas).toHaveLength(7)
+    expect(marcas[0].width).toBe(1 / 7)
+    expect(marcas.at(-1)!.x + marcas.at(-1)!.width).toBe(1)
+  })
+
+  it('la jornada del trazado manda sobre el número de minutos suelto', () => {
+    const deOchoACuatro = crearJornada([{ desde: 8 * 60, hasta: 16 * 60 }])
+    const layout = ganttLayout({
+      tasks: [{ id: 'a', name: 'Una tarea', duration: 1 }],
+      dependencies: [],
+      schedule: schedulePlan({ tasks: [{ id: 'a', name: 'Una tarea', duration: 1 }], dependencies: [], calendar: calendario, start: '2026-06-01' }),
+      classified: [],
+      calendar: calendario,
+      scale: 'HORA',
+      jornada: deOchoACuatro,
+      // Contradictorio a propósito: si ganara este número, la cabecera diría nueve columnas.
+      minutosPorJornada: 540,
+    })
+
+    expect(layout.ticks.map((t) => t.label)).toEqual(['08', '09', '10', '11', '12', '13', '14', '15'])
   })
 })

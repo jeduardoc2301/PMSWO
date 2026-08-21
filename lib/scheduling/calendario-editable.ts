@@ -86,3 +86,62 @@ export function porQueNoEsFestivoValido(fecha: unknown): string | null {
 export function cuantoCambiaLaSemana(antes: readonly number[], despues: readonly number[]): number {
   return normalizarSemana(despues).length - normalizarSemana(antes).length
 }
+
+/**
+ * Los tramos de un día hábil, tal como los guarda `ProjectCalendar.turnos` (§3.1).
+ *
+ * De nueve a una y de dos a seis: ocho horas partidas por la comida. Es lo que se dibuja mientras
+ * nadie configure otra cosa, y coincide con los 480 minutos que trae `Project.minutosPorJornada`.
+ */
+export const TURNOS_POR_OMISION: readonly { readonly desde: number; readonly hasta: number }[] =
+  Object.freeze([
+    Object.freeze({ desde: 9 * 60, hasta: 13 * 60 }),
+    Object.freeze({ desde: 14 * 60, hasta: 18 * 60 }),
+  ])
+
+/**
+ * ¿Se pueden guardar estos turnos?
+ *
+ * Devuelve el motivo, o `null` si sí. Las mismas reglas que aplica `crearJornada` al construir la
+ * jornada del motor, dichas aquí en una frase que se le puede enseñar a alguien: la ruta no puede
+ * contestar con una excepción, y el motor no puede aceptar lo que la ruta deje pasar.
+ *
+ * El turno nocturno —de las diez de la noche a las seis de la mañana— se rechaza a propósito: deja
+ * sin respuesta a qué día hábil pertenece un minuto de la madrugada, y de esa respuesta cuelgan el
+ * roll-up de los resúmenes y la carga por día.
+ */
+export function porQueNoSonTurnosValidos(turnos: unknown): string | null {
+  if (!Array.isArray(turnos)) return 'Los turnos se guardan como una lista de tramos.'
+  if (turnos.length === 0) return 'Un día sin tramos de trabajo no permite programar nada que dure.'
+
+  const limpios: { desde: number; hasta: number }[] = []
+  for (const t of turnos) {
+    if (typeof t !== 'object' || t === null) return 'Cada tramo va como {desde, hasta}.'
+    const { desde, hasta } = t as { desde?: unknown; hasta?: unknown }
+    if (!Number.isInteger(desde) || !Number.isInteger(hasta)) {
+      return 'Los tramos van en minutos enteros desde la medianoche: las nueve son 540.'
+    }
+    limpios.push({ desde: desde as number, hasta: hasta as number })
+  }
+
+  limpios.sort((a, b) => a.desde - b.desde)
+  let anterior = -1
+  for (const t of limpios) {
+    if (t.hasta <= t.desde) return `El tramo ${t.desde}–${t.hasta} termina antes de empezar.`
+    if (t.desde < 0 || t.hasta > 1440) {
+      return `El tramo ${t.desde}–${t.hasta} se sale del día. Un turno que cruza la medianoche deja sin respuesta a qué día hábil pertenece la madrugada.`
+    }
+    if (t.desde < anterior) return `El tramo que empieza en ${t.desde} pisa al anterior, que acaba en ${anterior}.`
+    anterior = t.hasta
+  }
+  return null
+}
+
+/** Minutos que suman unos turnos: la jornada que definen. */
+export function minutosDeLosTurnos(
+  turnos: readonly { readonly desde: number; readonly hasta: number }[],
+): number {
+  let total = 0
+  for (const t of turnos) total += t.hasta - t.desde
+  return total
+}

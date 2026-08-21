@@ -23,9 +23,12 @@ import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import prisma from '@/lib/prisma'
 import {
   SEMANA_POR_OMISION,
+  TURNOS_POR_OMISION,
+  minutosDeLosTurnos,
   normalizarSemana,
   porQueNoEsFestivoValido,
   porQueNoEsSemanaValida,
+  porQueNoSonTurnosValidos,
 } from '@/lib/scheduling/calendario-editable'
 import { Permission } from '@/types'
 
@@ -39,6 +42,14 @@ const cuerpo = z.object({
   pais: z.string().length(2).nullable().optional(),
   /** Fechas no laborables propias, en formato AAAA-MM-DD. */
   festivos: z.array(z.object({ fecha: z.string(), nombre: z.string().max(80).optional() })).optional(),
+  /**
+   * Los tramos que se trabajan dentro del día (§3.1), en minutos desde la medianoche.
+   *
+   * Se validan aparte y no con un esquema fino de zod porque las reglas —que no se pisen, que no
+   * crucen la medianoche— son las mismas que aplica el motor, y están escritas una sola vez en
+   * `calendario-editable` para que las dos guardias no se separen.
+   */
+  turnos: z.array(z.object({ desde: z.number(), hasta: z.number() })).optional(),
 })
 
 async function getHandler(
@@ -55,6 +66,7 @@ async function getHandler(
     select: {
       workingWeekdays: true,
       holidayCountry: true,
+      turnos: true,
       holidays: { select: { date: true, name: true }, orderBy: { date: 'asc' } },
     },
   })
@@ -67,6 +79,10 @@ async function getHandler(
         ? (cal.workingWeekdays as number[])
         : [...SEMANA_POR_OMISION],
       pais: cal?.holidayCountry ?? null,
+      // Los turnos guardados, o los de siempre. Van con `minutosPorJornada` al lado porque uno se
+      // deriva de los otros y verlos juntos es lo que deja comprobar que no se han separado.
+      turnos: Array.isArray(cal?.turnos) ? cal.turnos : [...TURNOS_POR_OMISION],
+      turnosGuardados: Array.isArray(cal?.turnos),
       festivos: (cal?.holidays ?? []).map((h) => ({
         fecha: h.date.toISOString().slice(0, 10),
         nombre: h.name,
@@ -101,6 +117,10 @@ async function putHandler(
     const motivo = porQueNoEsSemanaValida(datos.data.semana)
     if (motivo) return NextResponse.json({ error: 'Validation Error', message: motivo }, { status: 400 })
   }
+  if (datos.data.turnos) {
+    const motivo = porQueNoSonTurnosValidos(datos.data.turnos)
+    if (motivo) return NextResponse.json({ error: 'Validation Error', message: motivo }, { status: 400 })
+  }
   for (const f of datos.data.festivos ?? []) {
     const motivo = porQueNoEsFestivoValido(f.fecha)
     if (motivo) {
@@ -129,13 +149,27 @@ async function putHandler(
         organizationId: proyecto.organizationId,
         workingWeekdays: semana ?? [...SEMANA_POR_OMISION],
         holidayCountry: datos.data.pais ?? null,
+        ...(datos.data.turnos ? { turnos: datos.data.turnos } : {}),
       },
       update: {
         ...(semana ? { workingWeekdays: semana } : {}),
         ...(datos.data.pais !== undefined ? { holidayCountry: datos.data.pais } : {}),
+        ...(datos.data.turnos ? { turnos: datos.data.turnos } : {}),
       },
       select: { id: true },
     })
+
+    // La jornada del proyecto se recalcula desde los turnos, en la misma transacción.
+    //
+    // Es lo que evita las dos verdades: los turnos dicen **cuándo** se trabaja y su suma dice
+    // **cuánto**, así que `minutosPorJornada` no es un dato aparte que alguien pueda dejar
+    // contradiciendo al otro — es una proyección con un único escritor, éste.
+    if (datos.data.turnos) {
+      await tx.project.update({
+        where: { id },
+        data: { minutosPorJornada: minutosDeLosTurnos(datos.data.turnos) },
+      })
+    }
 
     // Los festivos se reemplazan enteros y no se van añadiendo: quien manda la lista manda **la**
     // lista, y con un añadido incremental no habría forma de quitar uno sin una ruta más.

@@ -620,6 +620,14 @@ model ProjectCalendar {
   // semana y los días propios del proyecto.
   holidayCountry String? @map("holiday_country") @db.VarChar(2)
 
+  // Los tramos que se trabajan dentro de un día hábil (§3.1), en minutos desde la medianoche:
+  // [{"desde":540,"hasta":780},{"desde":840,"hasta":1080}] es de nueve a una y de dos a seis.
+  //
+  // Nulo, y no un valor por omisión escrito, para poder distinguir «nadie los ha configurado» de
+  // «alguien los configuró y coinciden con los de siempre». Lo primero puede cambiar el día que
+  // cambie el valor por omisión; lo segundo no debe.
+  turnos Json? @map("turnos")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

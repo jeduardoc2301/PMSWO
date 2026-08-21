@@ -22,6 +22,7 @@
  * Colombia porque el importador se usara una vez con un plan colombiano.
  */
 
+import { TURNOS_POR_OMISION } from '@/lib/scheduling/calendario-editable'
 import prisma from '@/lib/prisma'
 import { type WorkCalendar } from '@/lib/scheduling/calendar'
 import { type IsoDate } from '@/lib/scheduling/date'
@@ -65,6 +66,7 @@ export async function loadCalendarDefinition(
     select: {
       workingWeekdays: true,
       holidayCountry: true,
+      turnos: true,
       holidays: { select: { date: true } },
     },
   })
@@ -74,6 +76,7 @@ export async function loadCalendarDefinition(
       workingWeekdays: SEMANA_LABORABLE,
       holidayCountry: null,
       extraHolidays: [],
+      turnos: [...TURNOS_POR_OMISION],
       from: desde,
       to: hasta,
     }
@@ -83,6 +86,9 @@ export async function loadCalendarDefinition(
     workingWeekdays: diasLaborables(fila.workingWeekdays),
     holidayCountry: fila.holidayCountry,
     extraHolidays: fila.holidays.map((h) => isoDe(h.date)),
+    // Sin turnos guardados van los de siempre. Es lo mismo que se hace con la semana, y por lo
+    // mismo: el proyecto **tiene** jornada aunque nadie la haya escrito.
+    turnos: Array.isArray(fila.turnos) ? (fila.turnos as { desde: number; hasta: number }[]) : [...TURNOS_POR_OMISION],
     from: desde,
     to: hasta,
   }
