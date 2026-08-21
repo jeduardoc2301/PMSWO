@@ -900,6 +900,13 @@ model BaselineItem {
   /// un cambio de jornada— y entonces recalcularla desde las fechas daría un número que nunca fue
   /// verdad. La foto guarda lo que se prometió, no lo que hoy se deduciría.
   durationDays   Int  @map("duration_days")
+  /// Duración en minutos laborables al tomar la foto (§2).
+  ///
+  /// Va además de los días por la misma razón que ellos van además de las fechas: una tarea de
+  /// cuatro horas retratada como «un día» promete algo que nadie prometió, y desde la foto no hay
+  /// forma de recuperar la hora. Nula en las fotos tomadas antes de que esto existiera, que es
+  /// distinto de cero: significa «esta foto no lo miró».
+  durationMinutes Int? @map("duration_minutes")
   estimatedHours Int? @map("estimated_hours")
   /// Avance en puntos base: 10000 es el cien por cien.
   progressBp     Int  @map("progress_bp")

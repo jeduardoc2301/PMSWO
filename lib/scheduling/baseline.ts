@@ -44,6 +44,14 @@ export interface LineaDeHoy {
   readonly start: IsoDate
   readonly finish: IsoDate
   readonly progressBp: number
+  /**
+   * Minutos laborables que dura, si la línea los tiene (§2).
+   *
+   * La foto los guarda además de los días por la misma razón que guarda los días además de las
+   * fechas: una tarea de cuatro horas retratada como «un día» promete algo que nadie prometió, y
+   * desde la foto no hay forma de recuperar la hora.
+   */
+  readonly duracionMin?: number | null
 }
 
 export type EstadoContraLaBase = 'igual' | 'movida' | 'nueva' | 'eliminada'

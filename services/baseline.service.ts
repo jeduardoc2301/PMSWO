@@ -80,6 +80,8 @@ async function planProgramado(
       start: (programada?.start ?? plan.start) as IsoDate,
       finish: (programada?.finish ?? programada?.start ?? plan.start) as IsoDate,
       progressBp: Math.round((task.progress ?? 0) * PUNTOS_BASE),
+      // Los minutos que dura, para que la foto no redondee a jornadas lo que no lo es.
+      duracionMin: task.duracionMin ?? null,
     }
   })
 
@@ -113,6 +115,7 @@ export async function tomarLineaBase(
           startDate: aFecha(linea.start),
           endDate: aFecha(linea.finish),
           durationDays: calendar.countBetween(toDayNumber(linea.start), toDayNumber(linea.finish)),
+          durationMinutes: linea.duracionMin,
           progressBp: linea.progressBp,
         })),
       })
