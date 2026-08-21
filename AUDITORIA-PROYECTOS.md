@@ -5511,3 +5511,40 @@ El primer arrastre propuso saltar al **6 de agosto** en vez de al 17 de junio, y
 mi guion calculaba el ancho de un día midiendo una marca de la cabecera, que a escala de mes es un
 mes entero. El ancho de día bueno sale de la propia barra —lo que mide dividido por lo que dura—, y
 así el arrastre de tres días son tres días.
+
+## §2.1 · El Tablero decía 100 % y el plan decía 0 %
+
+El barrido de escritura encontró el segundo defecto de la noche, y de la misma familia que el
+primero: **quién escribe el campo viejo sin escribir el nuevo**.
+
+Desde que el plan lee el avance en puntos base, tres escritores se habían quedado atrás porque no
+pasan por la ruta que ya los escribía juntos:
+
+- el **acoplamiento del Tablero**, que mueve una tarjeta a «Terminado» y pone el cien por cien;
+- la **importación** del plan, que crea las líneas con su avance;
+- la **restauración** de una línea borrada.
+
+Medido en pantalla sobre una línea real, moviendo su tarjeta a la columna terminal:
+
+| momento | el Tablero dice | el plan dice |
+|---|---|---|
+| antes del arreglo | 1 | **0** |
+| después | 1 | 1 |
+| y de vuelta a Backlog | 0 | 0 |
+
+Dos vistas, la misma línea, dos números distintos: es exactamente la contradicción que el
+acoplamiento estado↔avance existe para evitar, por una puerta que la migración de unidad abrió sin
+querer.
+
+### La regla, porque van dos veces esta noche
+
+En una migración aditiva hay que buscar con `grep` a **todos los que escriben** el campo viejo, no
+sólo a los que lo leen. Los que no pasan por la ruta principal son los que se quedan atrás, y son
+siempre más de los que uno cree:
+
+- el arrastre que estira una barra escribía sólo la fecha de fin y dejaba los minutos viejos;
+- el acoplamiento del Tablero escribía sólo el porcentaje y dejaba los puntos base en cero.
+
+Y las dos veces el defecto se vio **moviendo algo con el ratón**, no leyendo el código.
+
+Suite: 3 643 en verde.
