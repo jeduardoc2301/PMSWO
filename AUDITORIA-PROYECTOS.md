@@ -4082,3 +4082,36 @@ cuenta. El techo real es 50 × 130.
 Se deja así a propósito —una cuenta compartida entre instancias haría que desplegar una columna
 plegara otra— pero ahora está escrito con las dos cifras. Es el cuarto comentario de esta sesión que
 decía algo cierto y dejaba fuera lo que hacía falta para entenderlo.
+
+## §6 · En el formato Esquema no se puede renombrar, y es el formato por omisión
+
+El barrido activo —editar, mover, deshacer— encontró esto en el primer intento. La celda del nombre
+se abre con doble clic o con `F2` en los formatos **Lista** y **Agrupada**, y en **Esquema** no se
+abre: no hay celda editable ninguna.
+
+Esquema es **el formato por omisión** en los dos sitios donde se decide: `useState<Modo>('ESQUEMA')`
+en la vista y `{ formato: 'ESQUEMA' }` en la preferencia por omisión del servicio, con su comentario
+—«es el que enseña la forma del plan»—. O sea que es justo el formato en el que aterriza quien entra
+por primera vez.
+
+La razón es que los dos formatos planos los dibuja `WorkItemsList`, que usa `CeldaEditable`, y el
+esquema lo dibuja `WorkItemsOutline`, que **no la usa en ninguna parte**. Es exactamente lo que el
+§6.4 manda auditar antes de nada: «¿la lista actual es el mismo componente de grid que el Gantt o hay
+dos implementaciones distintas? **Si hay dos, unifícalas**: es la causa habitual de que las columnas
+se comporten distinto en cada vista».
+
+### Demostrado en pantalla
+
+Recorriendo los formatos sin salir de la vista:
+
+| formato | filas dibujadas | celdas editables |
+|---|---|---|
+| **Esquema** (por omisión) | 127 | **0** |
+| Lista | 21 | **19** |
+
+### Estado: medido y sin arreglar
+
+Se deja escrito y sin tocar a propósito. El arreglo no es poner otro `CeldaEditable` en el esquema
+—eso sería la tercera implementación de la misma celda, que es de lo que avisa el §6.4— sino que el
+esquema use la misma, con su mismo `renombrar`, sus mismas reglas de Enter y Escape y su mismo
+apunte en la pila de deshacer. Eso es trabajo de una tanda entera, no de la cola de ésta.
