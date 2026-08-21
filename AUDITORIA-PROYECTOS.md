@@ -5224,3 +5224,59 @@ en tres vistas y no era un defecto, era **mi selector** —buscaba `tarjeta-` do
 `edt-tarjeta-`—. Es la misma regla de siempre: leer el componente antes de escribir la sonda.
 
 Suite: 3 607 en verde.
+
+## §2 · El motor que programa el plan pasa a minutos
+
+`schedulePlan` era un bucle de ordinales de día hábil. Ahora llama al motor en minutos y **deriva
+los días de ahí**: el ordinal de una línea es el día en que cae su instante. La ruta crítica, las
+holguras, el trazado y las seis vistas siguen leyendo ordinales y no se enteran.
+
+El cambio se hizo con red —el motor llevaba tres tandas escrito al lado y comparado contra el de
+días sobre las 1 368 líneas— y aun así la batería encontró cuatro cosas más al ponerlo a mandar.
+Las cuatro son la misma: **decir un instante en la forma que no era**, y ninguna se veía en el plan
+de referencia.
+
+| lo que estaba mal | qué pasaba |
+|---|---|
+| `SF` pedía el instante exacto del comienzo de A | B terminaba la víspera; el §12 caso 6 dice que terminar el mismo día es un relevo |
+| un hito no ocupaba su día | un `FS` desde un hito arrancaba el mismo día, y un `FF` contra un hito terminaba la víspera |
+| `SS`/`SF` no decían su resultado como apertura | un desfase de una jornada daba el cierre del **mismo** día y la sucesora no se movía |
+| `FF` no decía el suyo como cierre | con desfase negativo se quedaba un día tarde |
+
+Y el trazado dejó de reinventar la hora: la toma del programa en minutos en vez de derivarla de la
+fecha. Derivándola abría **siempre** a las nueve, así que dos tareas que el motor coloca una detrás
+de otra el mismo día se enseñaban las dos a las 09:00 — la fecha correcta y la hora inventada, que
+es el peor de los dos errores porque la fecha respalda la hora.
+
+### Lo que ahora se puede hacer y antes no
+
+Dos líneas de media jornada, encadenadas `FS+0`, declaradas el mismo día:
+
+| línea | lo que dice el panel |
+|---|---|
+| A | Del 2026-06-15 al 2026-06-15 · 1 día hábil · dura 4 h, **de 09:00 a 13:00** |
+| B | Del 2026-06-15 al 2026-06-15 · 1 día hábil · dura 4 h, **de 14:00 a 18:00** |
+
+En días, B se iba al 16 porque el 15 «ya estaba ocupado». Las dos líneas se crearon para la medición
+y se borraron después: el plan vuelve a 1 368 líneas y 1 665 vínculos, comprobado.
+
+### Por qué las 1 368 no se movieron ni un día
+
+Porque **cada línea llega anclada a su fecha del archivo** con un `NO_ANTES_DE`. Está en el servicio,
+documentado y a propósito: es lo que hace que el plan reproduzca las fechas negociadas en vez de
+comprimirlo todo al arranque más temprano. Un vínculo sólo puede empujar una línea más tarde, nunca
+juntarla con otra, así que el plan importado no puede enseñar dos tareas en un día por mucho que el
+motor sepa colocarlas. Buscando un par en el archivo real —dos hojas de una jornada, encadenadas
+`FS+0` y declaradas el mismo día— salieron **cero de 1 665 vínculos**: el archivo lo construyó un
+programador de días y no contiene ese caso.
+
+Se dice aquí porque la ausencia de movimiento es la prueba de que el cambio no rompió nada, y la
+ausencia de mejora visible en ese plan **no** es la prueba de que el cambio no sirva.
+
+### Lo que queda del §2
+
+El motor ya calcula en minutos; lo que sigue en días es el **almacenamiento**: el desfase de un
+vínculo (`lag_days`), el progreso (`Float` en vez de *basis points*) y las fechas, que son columnas
+`DATE` y no pueden guardar una hora aunque el motor la calcule.
+
+Suite: 3 607 en verde.
