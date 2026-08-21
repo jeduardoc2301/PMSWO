@@ -12,6 +12,7 @@
  * calendario necesita —rango de días, si es hito, y la fecha comprometida— y se le pasa la rejilla.
  */
 
+import { esClaseDeHito } from '@/lib/scheduling/kinds'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { EsqueletoDeMes } from './esqueleto'
 
@@ -258,7 +259,9 @@ export function CalendarTab({
         name: tarea.name,
         start: programada?.start ?? plan.start,
         finish: programada?.finish ?? programada?.start ?? plan.start,
-        isMilestone: programada?.isMilestone ?? tarea.kind === 'HITO',
+        // La clase de hito, no un valor de `kind`: un `PUNTO_DE_CONTROL` también lo es y se
+        // dibujaba como una barra de días en vez de como la marca que es.
+        isMilestone: programada?.isMilestone ?? esClaseDeHito(tarea.kind),
         ...(tarea.dueDate ? { deadline: tarea.dueDate } : {}),
       }
     })

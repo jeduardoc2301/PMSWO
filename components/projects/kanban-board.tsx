@@ -1,5 +1,6 @@
 'use client'
 
+import { esClaseDeHito } from '@/lib/scheduling/kinds'
 import React, { useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus, ChevronDown, ChevronRight, Layers, AlertOctagon, Clock4, Hourglass, ShieldAlert, Calendar, Info, X, Search, Check, Pencil, Trash2 } from 'lucide-react'
@@ -83,7 +84,10 @@ const CALENDARIO = createWorkCalendar()
  */
 function atrasoDeTarjeta(workItem: WorkItemSummary, cutoff: string | undefined): number | null {
   if (!cutoff || !workItem.startDate || !workItem.estimatedEndDate) return null
-  const esHito = workItem.kind === 'HITO'
+  // La clase de hito, no un valor de `kind`: un `PUNTO_DE_CONTROL` también es un hito, y con la
+  // pregunta corta se le calculaba un atraso como si durara días. Es el mismo atajo que ya había
+  // metido 23 jornadas de carga fantasma en el §8.
+  const esHito = esClaseDeHito(workItem.kind)
   const inicio = CALENDARIO.ordinalOf(CALENDARIO.next(toDayNumber(workItem.startDate)))
   const fin = CALENDARIO.ordinalOf(CALENDARIO.previous(toDayNumber(workItem.estimatedEndDate)))
   const duracion = esHito ? 0 : Math.max(1, fin - inicio + 1)

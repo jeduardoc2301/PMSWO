@@ -754,3 +754,45 @@ describe('§5 · la carga paginada por columna no se pierde al mover una tarjeta
     expect(boton()!.textContent).toContain('61 tarjetas más')
   })
 }, 20_000)
+
+/**
+ * §5 · un punto de control también es un hito, y un hito no acumula atraso por durar.
+ *
+ * El atajo `kind === 'HITO'` ha mordido cinco veces en este repositorio; la última, metiendo 23
+ * jornadas de carga fantasma en el §8. Aquí hacía que a un punto de control se le calculara el
+ * atraso como si durara días, cuando su duración es cero por definición.
+ */
+describe('§5 · las dos clases de hito se tratan igual', () => {
+  const columnas = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: ['p-1'] },
+  ] as never
+  const base = {
+    id: 'p-1',
+    title: 'Compuerta',
+    status: WorkItemStatus.BACKLOG,
+    priority: WorkItemPriority.MEDIUM,
+    kanbanColumnId: 'col-1',
+    ownerId: 'user-1',
+    ownerName: 'Admin User',
+    progressPct: 0,
+    startDate: '2026-06-01',
+    estimatedEndDate: '2026-06-05',
+  }
+  const deClase = (kind: string) => ({ ...base, kind })
+
+  it('un punto de control da el mismo atraso que un hito, no el de una actividad', () => {
+    const texto = (kind: string) => {
+      const { unmount } = render(
+        <KanbanBoard projectId="project-1" columns={columnas} workItems={[deClase(kind) as never]} cutoff="2026-06-05" />,
+      )
+      // `query` y no `get`: un hito puede no llevar insignia, y «ninguna» también es una respuesta
+      // que las dos clases tienen que dar igual.
+      const t = screen.queryByTestId('atraso-p-1')?.textContent ?? '(sin insignia)'
+      unmount()
+      return t
+    }
+
+    expect(texto('PUNTO_DE_CONTROL')).toBe(texto('HITO'))
+    expect(texto('PUNTO_DE_CONTROL')).not.toBe(texto('ACTIVIDAD'))
+  })
+})
