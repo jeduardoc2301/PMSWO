@@ -5477,3 +5477,37 @@ hábiles de los que dura, y el invariante que comprueba el verificador —minuto
 dejaría de cumplirse por una razón legítima. El plan de referencia no tiene ausencias capturadas, así
 que hoy no se puede medir; cuando las tenga, hay que decidir si el invariante se relaja o si los
 minutos pasan a salir del tramo real.
+
+## Los gestos que escriben plan, medidos tras el cambio de unidad
+
+Cambiar de unidad el motor obliga a volver a probar los **gestos**, no sólo a mirar si las vistas
+cargan. Uno de los cuatro estaba roto —el que estira una barra, ya arreglado— y los otros tres se
+midieron enteros:
+
+### Mover una barra, con su diálogo
+
+Arrastrada tres días, el diálogo dice **«Mover «Presentar el plan de trabajo de Mobilize al banco» al
+2026-06-17 cambia 3 líneas — la arrastrada y 2 que quedaban en falso»**. Al aplicar:
+
+| lo que comprueba | resultado |
+|---|---|
+| la arrastrada gana su restricción | `DEBE_EMPEZAR_EL 2026-06-17` |
+| las empujadas no ganan ninguna | 1 línea con restricción propia, no 3 |
+| los minutos siguen cuadrando | `minutosSinCuadrar` = 0 |
+| el cierre del plan | 2026-11-30, sin moverse |
+
+Ese cuarto punto es el que importaba esta noche: **mover conserva el tramo**, así que los minutos
+guardados siguen valiendo. Estaba razonado en la tanda anterior y ahora está medido.
+
+### Deshacer
+
+El botón dice lo que va a deshacer —«Deshacer Reprogramar: Presentar el plan de trabajo de Mobilize
+al banco → 2026-06-17»— y al pulsarlo la línea vuelve a su ancla original (`NO_ANTES_DE 2026-06-12`),
+las restricciones propias vuelven a cero y el verificador queda entero en verde.
+
+### Una corrección de método
+
+El primer arrastre propuso saltar al **6 de agosto** en vez de al 17 de junio, y no era un defecto:
+mi guion calculaba el ancho de un día midiendo una marca de la cabecera, que a escala de mes es un
+mes entero. El ancho de día bueno sale de la propia barra —lo que mide dividido por lo que dura—, y
+así el arrastre de tres días son tres días.
