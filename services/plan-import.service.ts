@@ -36,6 +36,7 @@
  */
 
 import { aPuntosBase } from '@/lib/plan/porcentaje'
+import { minutosDesdeLasFechas } from '@/lib/scheduling/duracion-guardada'
 import { randomUUID } from 'crypto'
 import { COLUMNAS_POR_OMISION } from '@/lib/projects/default-columns'
 
@@ -295,6 +296,18 @@ function datosDePlan(
     progressPct: progress,
     // El avance en las dos unidades: el plan lee los puntos base (§2.1).
     progressBp: aPuntosBase(progress),
+    /**
+     * Y la duración en minutos, que es la que manda en el motor (§2).
+     *
+     * Esta función escribe **también al refrescar** el plan desde el archivo, así que sin esta línea
+     * un refresco que moviera las fechas de una línea dejaba sus minutos viejos — y el motor le hace
+     * caso al minuto—. Es el mismo descuelgue que tenía el arrastre del borde de la barra, en la
+     * herramienta que se usa para restaurar el plan de referencia.
+     *
+     * Ocho horas por jornada, como el `estimatedHours` de aquí arriba: el archivo no trae la jornada
+     * del proyecto y las dos cifras tienen que salir del mismo supuesto.
+     */
+    durationMinutes: minutosDesdeLasFechas(schedule.calendar, fila.kind, start as never, finish as never, 480),
     sourceFile: fila.source.file,
     sourceVersion: 'V7',
     sourceSheet: fila.source.sheet,
