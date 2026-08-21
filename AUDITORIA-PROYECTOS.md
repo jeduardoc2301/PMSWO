@@ -4631,3 +4631,35 @@ Con esto quedan cerradas **todas** las mediciones que se habían anotado como pe
 Encender esa casilla **guarda la preferencia**: la columna del EDT se queda encendida en el Gantt de
 este usuario. Es reversible con un clic en el mismo panel de Campos, y se avisa en vez de dejarlo
 como un cambio silencioso — la medición tocó una preferencia, no datos del plan.
+
+## §10.2 · Con un filtro puesto, las seis vistas cuentan lo mismo
+
+Combinación que faltaba: no sólo que la barra esté en las seis —eso ya se midió— sino que **el filtro
+dé la misma cuenta** al cambiar de vista. Puesta una condición y recorridas las seis sin tocar nada
+más:
+
+| vista | dice |
+|---|---|
+| Elementos de Trabajo | 0 de 1368 |
+| Tablero Kanban | 0 de 1368 |
+| Timeline | 0 de 1368 |
+| Calendario | 0 de 1368 |
+| Carga de trabajo | 0 de 1368 |
+| Panel de control | 0 de 1368 |
+
+**Las seis idénticas.** Es lo que el §10.2 pide con «un solo filtro para las 6 vistas», y va más allá
+de que la barra aparezca: la cuenta sale del mismo cálculo, hecho una vez.
+
+### Lo que sale de paso, y que NO llamo defecto todavía
+
+La condición que dejé puesta es la que crea el botón «+ condición» **sin tocar nada más**: campo
+`status`, sin valor. Y eso deja la cuenta en **0 de 1368** — o sea que pulsar «+ condición» esconde el
+plan entero hasta que se elige un valor.
+
+Puede ser correcto —una condición incompleta no casa con nada, y un `in` con lista vacía no casa por
+definición— o puede ser una trampa: quien pulsa para empezar a filtrar ve desaparecer las mil
+trescientas líneas antes de haber pedido nada.
+
+No lo apunto como defecto porque **no lo he mirado con calma** y esta noche ya llevo cinco sondas
+equivocadas. Queda como lo primero de la próxima tanda, con la pregunta escrita: ¿qué debe enseñar la
+pantalla entre que se añade una condición y se le da valor?
