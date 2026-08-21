@@ -10,6 +10,7 @@
  * Hay una prueba que lo prohíbe explícitamente.
  */
 
+import { MINUTOS_POR_JORNADA, comoTexto } from '@/lib/scheduling/unidades'
 import { type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
 import { restriccion } from '@/lib/scheduling/restricciones'
 import { CeldaEditable } from '@/components/plan/celda-editable'
@@ -223,7 +224,14 @@ export function PlanDetailPanel({
 function fechas(row: GanttRow): string {
   if (row.isMilestone) return `${row.start} · no consume días`
   const dias = row.width === 1 ? '1 día hábil' : `${row.width} días hábiles`
-  return `Del ${row.start} al ${row.finish} · ${dias}`
+  // Los días que ocupa y lo que dura no siempre coinciden desde el §2: una tarea de cuatro horas
+  // ocupa un día. Cuando difieren se dicen las dos cosas, porque decir sólo una de las dos deja a
+  // quien lee creyendo que la línea llena el día que ocupa.
+  const exacto =
+    row.duracionMin !== undefined && row.duracionMin !== row.width * MINUTOS_POR_JORNADA
+      ? ` · dura ${comoTexto(row.duracionMin)}`
+      : ''
+  return `Del ${row.start} al ${row.finish} · ${dias}${exacto}`
 }
 
 /**

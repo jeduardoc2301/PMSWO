@@ -555,7 +555,7 @@ describe('Una línea que ya bajó de la jornada se puede seguir editando', () =>
   }
 
   it('la barra mide media columna, que es de donde venía el problema', () => {
-    expect(trazar(MEDIA_JORNADA).rows[0].width).toBe(0.5)
+    expect(trazar(MEDIA_JORNADA).rows[0].anchoExacto).toBe(0.5)
   })
 
   it('y admite volver a la jornada entera', () => {

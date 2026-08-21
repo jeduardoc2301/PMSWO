@@ -139,6 +139,20 @@ describe('El detalle dice cuándo', () => {
     expect(screen.getByText('Del 2026-06-01 al 2026-06-01 · 1 día hábil')).toBeInTheDocument()
   })
 
+  it('y si no llena el día que ocupa, lo dice: los días y lo que dura', () => {
+    // Una tarea de cuatro horas ocupa un día del cronograma. Decir sólo «1 día hábil» deja a quien
+    // lee creyendo que llena la jornada, y decir sólo «4 h» esconde que bloquea el día entero.
+    dibujar({ row: fila({ start: '2026-06-01', finish: '2026-06-01', width: 1, duracionMin: 240 }) })
+
+    expect(screen.getByText('Del 2026-06-01 al 2026-06-01 · 1 día hábil · dura 4 h')).toBeInTheDocument()
+  })
+
+  it('pero no repite lo mismo dos veces cuando la línea dura jornadas enteras', () => {
+    dibujar({ row: fila({ start: '2026-06-01', finish: '2026-06-05', width: 5, duracionMin: 2400 }) })
+
+    expect(screen.getByText('Del 2026-06-01 al 2026-06-05 · 5 días hábiles')).toBeInTheDocument()
+  })
+
   it('un hito dice su fecha y que no consume días, no un rango de un solo día', () => {
     dibujar({
       row: fila({ kind: 'HITO', isMilestone: true, start: '2026-06-10', finish: '2026-06-10', width: 0 }),

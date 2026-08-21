@@ -1155,16 +1155,21 @@ describe('El ancho de la barra con la duración en minutos', () => {
     { id: 'vieja', name: 'Sin minutos', duration: 1 },
   ]
 
-  it('una tarea de cuatro horas mide media columna', () => {
+  it('una tarea de cuatro horas ocupa un día y mide media columna', () => {
     const layout = trazar(CUATRO_HORAS)
-    expect(layout.rows.find((r) => r.id === 'media')!.width).toBe(0.5)
+    const fila = layout.rows.find((r) => r.id === 'media')!
+    // Dos campos porque son dos preguntas. Con uno solo —el primer intento fue ése— el panel de
+    // detalle decía «0,5 días hábiles», el arrastre proponía duraciones de día y medio, y la celda
+    // de duración rechazaba su propio valor.
+    expect(fila.width).toBe(1)
+    expect(fila.anchoExacto).toBe(0.5)
   })
 
   it('y las que duran jornadas enteras miden lo mismo que antes', () => {
     // Es lo que hace que esto se pueda encender sobre el plan de referencia sin mover ni una barra:
     // sus 1 368 líneas tienen minutos múltiplos exactos de la jornada.
     const layout = trazar(CUATRO_HORAS)
-    expect(layout.rows.find((r) => r.id === 'entera')!.width).toBe(1)
-    expect(layout.rows.find((r) => r.id === 'vieja')!.width).toBe(1)
+    expect(layout.rows.find((r) => r.id === 'entera')!.anchoExacto).toBe(1)
+    expect(layout.rows.find((r) => r.id === 'vieja')!.anchoExacto).toBe(1)
   })
 })

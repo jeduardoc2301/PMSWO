@@ -223,7 +223,7 @@ function contenidoDe(
       // Días enteros aunque el ancho sea fraccionario: una tarea de cuatro horas ocupa un día del
       // cronograma y ahí es donde está. El medio día se lee en «Duración exacta», que para eso
       // está; decir «0,5» aquí devolvería los días decimales que el §2 vino a quitar.
-      return row.isMilestone ? '—' : String(Math.ceil(row.width))
+      return row.isMilestone ? '—' : String(row.width)
     case 'duracionMin':
       // Sin minutos calculados no se inventa nada: la raya dice «esta linea todavia va en dias».
       return row.duracionMin === undefined ? '—' : comoTexto(row.duracionMin, minutosPorJornada)
@@ -460,7 +460,7 @@ export function GanttChart({
                             // de los minutos es fraccionario, y comparar contra él dejaba la celda
                             // bloqueada en cuanto la línea bajaba de una jornada: con 0,5 de ancho,
                             // «4 h» daba 1 día y 1 ≠ 0,5, así que rechazaba hasta su propio valor.
-                            validarDuracion(v, minutosPorJornada, Math.ceil(row.width))
+                            validarDuracion(v, minutosPorJornada, row.width)
                           }
                           alineadoALaDerecha
                           onGuardar={(v) => onEditarCelda(row.id, 'duracionMin', v)}
@@ -754,7 +754,7 @@ function Bar({
     const barra = tirador.parentElement
     if (!barra) return
     const xInicial = e.clientX
-    const anchoInicial = Math.max(row.width * dayWidth, 2)
+    const anchoInicial = Math.max(row.anchoExacto * dayWidth, 2)
     let dias = 0
     tirador.setPointerCapture(e.pointerId)
 
@@ -856,7 +856,7 @@ function Bar({
           // crítica, y pisarlo cambiaría una información por otra en vez de sumarla.
           resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-[#0e0e11]' : ''
         }`}
-        style={{ left: row.x * dayWidth, top: y, width: Math.max(row.width * dayWidth, 2), height: alto }}
+        style={{ left: row.x * dayWidth, top: y, width: Math.max(row.anchoExacto * dayWidth, 2), height: alto }}
       >
         {row.progressWidth > 0 ? (
           <div
@@ -905,7 +905,7 @@ function Bar({
                 // Un hito mide cero, así que los dos conectores caerían exactamente encima y sólo
                 // uno se podría agarrar. Se abren a las puntas del rombo, que es donde la mano va.
                 left:
-                  (extremo === 'INICIO' ? row.x : row.x + row.width) * dayWidth -
+                  (extremo === 'INICIO' ? row.x : row.x + row.anchoExacto) * dayWidth -
                   4 +
                   (row.isMilestone ? (extremo === 'INICIO' ? -alto / 2 : alto / 2) : 0),
                 top: y + alto / 2 - 4,

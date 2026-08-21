@@ -31,6 +31,14 @@ interface PlanRemoto {
   readonly start: string
   readonly deadline: string
   /**
+   * Minutos de una jornada en este proyecto (§2).
+   *
+   * La ruta lo devuelve desde que el plan lleva los minutos; este tipo no lo declaraba, así que la
+   * llamada de abajo no compilaba. Es el mismo descuido que tenía `calendar` aquí mismo: el dato
+   * viajaba y el tipo no se había enterado.
+   */
+  readonly minutosPorJornada: number
+  /**
    * El calendario del proyecto, tal como lo resolvió el servidor.
    *
    * La ruta ya lo devolvía; este tipo no lo declaraba, así que el Gantt armaba el suyo con

@@ -87,8 +87,15 @@ export interface GanttRow {
    * que haya elegido para un día.
    */
   readonly x: number
-  /** Ancho de la barra en días hábiles. Un hito mide cero. */
+  /** Días hábiles que ocupa la línea en el cronograma. Entero. Un hito ocupa cero. */
   readonly width: number
+  /**
+   * Lo que mide la barra al dibujarla, en días hábiles, con decimales.
+   *
+   * Igual que `width` mientras la línea dure jornadas enteras —que es el caso de las 1 368 del plan
+   * de referencia—. Distinto en cuanto no: cuatro horas ocupan un día y miden media columna.
+   */
+  readonly anchoExacto: number
 
   /**
    * Dónde empezaba y cuánto medía esta línea según la foto, si hay una puesta.
@@ -567,21 +574,30 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     // El ancho de un resumen es lo que abarca, no la duración que traía guardada: una barra que
     // empieza donde su rama y mide otra cosa es peor que una que no se movió, porque parece exacta.
     /**
-     * El ancho de la barra, en días hábiles.
+     * Los días hábiles que **ocupa** la línea en el cronograma. Siempre entero.
      *
-     * Cuando la línea lleva su duración en minutos (§2) el ancho sale de ahí y puede ser
-     * fraccionario: una tarea de cuatro horas mide media columna, que es justo lo que el eje de
-     * hora existe para enseñar. Sin minutos —o si es resumen o hito— se sigue midiendo en días
-     * enteros, y para las 1 368 líneas del plan de referencia el número no cambia: sus minutos son
-     * múltiplos exactos de la jornada.
+     * Es la duración del plan, y la leen media docena de sitios: la columna de duración, el panel
+     * de detalle, el arrastre del borde de la barra —que propone una duración nueva en días— y la
+     * validación de lo que se teclea. Un fraccionario aquí se cuela en todos: la primera versión de
+     * esto hacía `width = minutos ÷ jornada` y dejó al panel diciendo «0,5 días hábiles», al
+     * arrastre proponiendo duraciones de día y medio, y a la celda rechazando su propio valor.
      */
     const width = tramo
       ? calendar.ordinalOf(toDayNumber(tramo.finish)) - calendar.ordinalOf(toDayNumber(tramo.start)) + 1
-      : scheduled?.isMilestone
-        ? 0
-        : task.duracionMin !== undefined && !children.has(task.id)
-          ? task.duracionMin / minutosPorJornada
-          : Math.max(task.duration, 0)
+      : scheduled?.isMilestone ? 0 : Math.max(task.duration, 0)
+
+    /**
+     * Lo que mide la barra al dibujarla, en la misma unidad, y aquí sí con decimales.
+     *
+     * Con la duración en minutos (§2) una tarea de cuatro horas ocupa un día del cronograma y dibuja
+     * media columna. Son dos preguntas distintas —cuánto ocupa y cuánto dura— y por eso son dos
+     * campos: quien pinta usa éste, quien planifica usa el otro.
+     */
+    const anchoExacto =
+      task.duracionMin !== undefined && !children.has(task.id) && !(scheduled?.isMilestone ?? false) && !tramo
+        ? task.duracionMin / minutosPorJornada
+        : width
+
     const esResumen = task.kind === 'RESUMEN' || children.has(task.id)
     const progress = clamp(esResumen ? (acumulado?.get(task.id)?.progress ?? task.progress ?? 0) : (task.progress ?? 0))
     const float = classifiedTask?.totalFloat ?? 0
@@ -650,6 +666,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       isMilestone: scheduled?.isMilestone ?? task.duration === 0,
       x: startOrdinal,
       width,
+      anchoExacto,
       totalFloat: float,
       freeFloat: classifiedTask?.freeFloat ?? 0,
       // El esfuerzo solo se comprueba en líneas que trabajan y que tienen los tres datos. Un hito
@@ -676,7 +693,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       recoverability: classifiedTask?.recoverability ?? 'RECUPERABLE',
       reason: classifiedTask?.reason ?? '',
       progress,
-      progressWidth: width * progress,
+      progressWidth: anchoExacto * progress,
       // La holgura arranca donde termina la barra y se extiende hasta el fin tardío.
       floatX: startOrdinal + width,
       floatWidth: Math.max(float, 0),
