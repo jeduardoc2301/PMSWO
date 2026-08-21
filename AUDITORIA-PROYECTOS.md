@@ -5548,3 +5548,45 @@ siempre más de los que uno cree:
 Y las dos veces el defecto se vio **moviendo algo con el ratón**, no leyendo el código.
 
 Suite: 3 643 en verde.
+
+## La regla de los escritores, aplicada a los otros dos campos
+
+### `durationMinutes` · quedaba uno
+
+`datosDePlan` —la función que arma cada línea al importar— escribe fechas y **también corre al
+refrescar** el plan desde el archivo. Sin los minutos, un refresco que moviera las fechas de una
+línea dejaba sus minutos viejos, y el motor le hace caso al minuto: el mismo descuelgue del arrastre
+del borde, esta vez en la herramienta con la que se restaura el plan de referencia.
+
+Demostrado rompiendo el dato a propósito, que es lo único que prueba de verdad una reparación:
+
+    se pone 999 en los minutos de una línea   → el verificador dice 1 descuadre
+    se refresca el plan desde el archivo      → el verificador dice 0
+
+Los otros tres escritores de fechas quedan comprobados y no había que tocarlos: los que **crean** una
+línea la dejan con los minutos nulos —y un nulo cae limpio en la duración en días— y el
+`updateWorkItem` del servicio no lo llama ninguna ruta.
+
+### `lagMinutes` · ninguno, pero apareció otra cosa
+
+Los dos escritores de desfases son la alta de vínculo —que ya admite minutos— y la importación, que
+crea los vínculos sin minutos: nulo, que cae limpio en los días. No hay descuelgue.
+
+Pero midiéndolo apareció algo que no estaba buscando. El refresco **borra todos los vínculos y los
+rehace desde el archivo**:
+
+| lo que se hizo | resultado |
+|---|---|
+| se captura un vínculo a mano, con dos horas de desfase | 1 666 vínculos |
+| se refresca el plan desde el archivo | 1 665 · **el de a mano desapareció** |
+
+Y ahí está la asimetría: **las líneas creadas a mano sobreviven al refresco —el propio informe dice
+«creados a mano intactos»— y los vínculos capturados a mano, no.** Las dos posturas son defendibles
+—el archivo como fuente de verdad para la red de dependencias, o preservar lo capturado como se hace
+con las líneas— pero tener una para cada cosa no lo es, y quien captura un vínculo no tiene forma de
+saber que lo perderá.
+
+Queda dicho y no tocado: cuál de las dos vale es una decisión del dueño del producto, no una
+reparación.
+
+Suite: 3 643 en verde.
