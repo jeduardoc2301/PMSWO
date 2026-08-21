@@ -33,9 +33,10 @@
  */
 
 import { esClaseDeHito } from '@/lib/scheduling/kinds'
+import { comoTexto } from '@/lib/scheduling/unidades'
 
 import { type WorkCalendar } from './calendar'
-import { type Instante, type Jornada, crearReloj, instanteDe, jornadaPorOmisionDe } from './reloj'
+import { type Instante, type Jornada, crearReloj, fechaDe, instanteDe, jornadaPorOmisionDe } from './reloj'
 import { type ClassifiedTask } from './critical-path'
 import { type DayNumber, type IsoDate, toDayNumber, toIsoDate } from './date'
 import { type Schedule } from './schedule'
@@ -104,6 +105,15 @@ export interface GanttRow {
    */
   readonly comienzoInstante: Instante
   readonly finInstante: Instante
+  /**
+   * Si la línea empieza al abrir la jornada y termina al cerrarla.
+   *
+   * Casi todas lo hacen, y por eso las vistas pueden seguir hablando de días sin mentir. Cuando no
+   * —una tarea de cuatro horas, o una que arranca a media mañana porque su vínculo trae dos horas
+   * de espera— hay que decir las horas, o la fecha sola se lee como una contradicción: dos días de
+   * calendario y una jornada de trabajo.
+   */
+  readonly alineadaConLaJornada: boolean
   /**
    * Lo que mide la barra al dibujarla, en días hábiles, con decimales.
    *
@@ -231,6 +241,8 @@ export interface GanttLink {
   readonly type: LinkType
   /** Desfase con signo, en días hábiles. Se conserva para poder rotularlo. */
   readonly lag: number
+  /** El desfase en minutos laborables (§2.2), cuando el vínculo lo lleva. */
+  readonly lagMin?: number
 
   readonly fromAnchor: Anchor
   readonly toAnchor: Anchor
@@ -722,6 +734,9 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       anchoExacto,
       comienzoInstante,
       finInstante,
+      alineadaConLaJornada:
+        comienzoInstante === reloj.abrir(instanteDe(fechaDe(comienzoInstante))) &&
+        finInstante === reloj.sumar(reloj.abrir(instanteDe(fechaDe(finInstante))), minutosPorJornada),
       totalFloat: float,
       freeFloat: classifiedTask?.freeFloat ?? 0,
       // El esfuerzo solo se comprueba en líneas que trabajan y que tienen los tres datos. Un hito
@@ -877,6 +892,7 @@ function layoutLinks(context: {
       toRowId,
       type: dependency.type,
       lag: dependency.lag,
+      ...(dependency.lagMin !== undefined ? { lagMin: dependency.lagMin } : {}),
       fromAnchor: anchors.from,
       toAnchor: anchors.to,
       fromX: anchorX(desde, anchors.from),
@@ -1159,14 +1175,24 @@ export function collapseToLevel(rows: readonly { id: string; level: number; hasC
 }
 
 /** Rótulo del desfase, o cadena vacía si no hay. Positivo es espera; negativo, solapamiento. */
-export function lagLabel(lag: number): string {
+export function lagLabel(lag: number, lagMin?: number, minutosPorJornada = 480): string {
+  // Con minutos manda la unidad que no miente: «+2 h» donde en días había que elegir entre «cero»
+  // y «uno», que eran las dos mentiras disponibles. `comoTexto` ya sabe elegirla.
+  if (lagMin !== undefined) {
+    if (lagMin === 0) return ''
+    const magnitud = comoTexto(Math.abs(lagMin), minutosPorJornada)
+    return lagMin > 0 ? `+${magnitud}` : `-${magnitud}`
+  }
   if (lag === 0) return ''
   const dias = Math.abs(lag) === 1 ? 'día' : 'días'
   return lag > 0 ? `+${lag} ${dias}` : `${lag} ${dias}`
 }
 
 /** Sirve para rotular la flecha: `FS`, `SS +3 días`, `FF -2 días`. */
-export function linkLabel(link: Pick<GanttLink, 'type' | 'lag'>): string {
-  const desfase = lagLabel(link.lag)
+export function linkLabel(
+  link: Pick<GanttLink, 'type' | 'lag'> & { readonly lagMin?: number },
+  minutosPorJornada = 480,
+): string {
+  const desfase = lagLabel(link.lag, link.lagMin, minutosPorJornada)
   return desfase === '' ? link.type : `${link.type} ${desfase}`
 }

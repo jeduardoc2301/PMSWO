@@ -103,3 +103,26 @@ describe('§4.7 · la miga de pan del panel', () => {
     expect(rutaDe(ciclo, 'a')).toEqual(['B'])
   })
 })
+
+describe('El desfase en minutos llega al panel', () => {
+  const nombres = new Map([
+    ['a', 'Vaciar'],
+    ['b', 'Desencofrar'],
+  ])
+
+  it('viaja en las dos direcciones, hacia la predecesora y hacia la sucesora', () => {
+    // Se prueba aquí y no sólo en el panel porque el panel recibe la lista ya hecha: si el dato se
+    // pierde en este reparto, el panel enseña «FS» a secas y nadie se entera de las dos horas.
+    const vinculos = [{ predecessorId: 'a', successorId: 'b', type: 'FS' as const, lag: 0, lagMin: 120 }]
+
+    expect(vinculosDe(vinculos, nombres, 'b').predecessors[0].lagMin).toBe(120)
+    expect(vinculosDe(vinculos, nombres, 'a').successors[0].lagMin).toBe(120)
+  })
+
+  it('y un vínculo sin minutos no se inventa ninguno', () => {
+    const vinculos = [{ predecessorId: 'a', successorId: 'b', type: 'FS' as const, lag: 3 }]
+
+    expect(vinculosDe(vinculos, nombres, 'b').predecessors[0].lagMin).toBeUndefined()
+    expect(vinculosDe(vinculos, nombres, 'b').predecessors[0].lag).toBe(3)
+  })
+})

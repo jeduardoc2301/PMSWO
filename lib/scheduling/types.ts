@@ -40,6 +40,15 @@ export interface Dependency {
    * se guarda tal cual; no se normaliza ni se recorta.
    */
   readonly lag: number
+  /**
+   * El mismo desfase en minutos laborables (§2.2), cuando alguien lo escribió así.
+   *
+   * Manda sobre `lag` cuando está: es el dato fino y el otro es su redondeo a jornadas. Existe
+   * porque «dos horas de fraguado» no es «cero días» ni «un día», y hasta ahora había que elegir
+   * entre las dos mentiras. Va **al lado** y no en su lugar por lo mismo que los minutos de una
+   * duración: una columna que nadie lee todavía no rompe nada.
+   */
+  readonly lagMin?: number
 }
 
 /** Una predecesora tal como viene escrita en una celda, antes de saber a qué sucesora pertenece. */

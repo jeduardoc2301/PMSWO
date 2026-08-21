@@ -31,6 +31,14 @@ export interface AddDependencyInput {
   readonly type: LinkType
   /** Desfase en días hábiles, con signo. Positivo espera; negativo solapa. */
   readonly lag: number
+  /**
+   * El mismo desfase en minutos laborables (§2.2), si quien lo captura sabe la hora.
+   *
+   * Manda sobre `lag` en el motor. Se guarda aparte y no en su lugar porque el dato en días es el
+   * que entiende todo lo que ya existe —la importación del archivo, la exportación, el resto de las
+   * vistas— y perderlo sería cambiar de unidad a lo bruto.
+   */
+  readonly lagMin?: number
 }
 
 export async function addDependency(input: AddDependencyInput): Promise<{ id: string }> {
@@ -78,7 +86,7 @@ export async function addDependency(input: AddDependencyInput): Promise<{ id: st
     }),
     prisma.taskDependency.findMany({
       where: { projectId: input.projectId },
-      select: { predecessorId: true, successorId: true, linkType: true, lagDays: true },
+      select: { predecessorId: true, successorId: true, linkType: true, lagDays: true, lagMinutes: true },
     }),
   ])
 
@@ -94,6 +102,7 @@ export async function addDependency(input: AddDependencyInput): Promise<{ id: st
       successorId: v.successorId,
       type: v.linkType as LinkType,
       lag: v.lagDays,
+      ...(v.lagMinutes !== null ? { lagMin: v.lagMinutes } : {}),
     })),
     { predecessorId: input.predecessorId, successorId: input.successorId, type: input.type, lag: input.lag },
   ]
@@ -121,6 +130,7 @@ export async function addDependency(input: AddDependencyInput): Promise<{ id: st
       successorId: input.successorId,
       linkType: input.type,
       lagDays: input.lag,
+      ...(input.lagMin !== undefined ? { lagMinutes: input.lagMin } : {}),
     },
   })
 

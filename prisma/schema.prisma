@@ -584,6 +584,11 @@ model TaskDependency {
   // declarado a propósito y NO se recorta a cero.
   lagDays Int @default(0) @map("lag_days")
 
+  // El mismo desfase en minutos laborables (§2.2), cuando alguien lo escribió con esa precisión.
+  // Nulo significa «lo que diga lagDays»: así una espera de dos horas deja de tener que elegir
+  // entre «cero días» y «un día», que eran las dos únicas respuestas posibles.
+  lagMinutes Int? @map("lag_minutes")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

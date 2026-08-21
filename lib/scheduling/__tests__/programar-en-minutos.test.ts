@@ -354,3 +354,56 @@ describe('Las ausencias, contra el motor de días', () => {
     expect(filas[0].minutos).toBe(filas[0].dias)
   })
 })
+
+describe('El desfase en minutos (§2.2)', () => {
+  it('dos horas de espera son dos horas, no cero días ni uno', () => {
+    // Es el caso que el modelo en días no podía guardar: «espera a que fragüe dos horas» tenía que
+    // elegir entre no esperar nada o esperar una jornada entera.
+    const tasks: PlanTask[] = [
+      { id: 'a', name: 'Vaciar', duration: 1, duracionMin: 480 },
+      { id: 'b', name: 'Desencofrar', duration: 1, duracionMin: 480 },
+    ]
+    const entrada = {
+      tasks,
+      dependencies: [{ predecessorId: 'a', successorId: 'b', type: 'FS' as const, lag: 0, lagMin: 120 }],
+      reloj,
+      comienzo: LUNES,
+    }
+    const p = programarEnMinutos(entrada)
+
+    expect(comoHora(p.porId.get('a')!.fin)).toBe('2026-06-01 18:00')
+    // Dos horas después del cierre del lunes es el martes a las once: el desfase se cuenta en
+    // tiempo laborable, así que la noche no corre.
+    expect(comoHora(p.porId.get('b')!.comienzo)).toBe('2026-06-02 11:00')
+  })
+
+  it('y los minutos mandan sobre los días cuando el vínculo lleva los dos', () => {
+    const tasks: PlanTask[] = [
+      { id: 'a', name: 'Primera', duration: 1, duracionMin: 480 },
+      { id: 'b', name: 'Segunda', duration: 1, duracionMin: 480 },
+    ]
+    const conAmbos = {
+      tasks,
+      dependencies: [{ predecessorId: 'a', successorId: 'b', type: 'FS' as const, lag: 5, lagMin: 120 }],
+      reloj,
+      comienzo: LUNES,
+    }
+    // Si ganaran los días, B abriría el 8 de junio. Gana el dato fino.
+    expect(comoHora(programarEnMinutos(conAmbos).porId.get('b')!.comienzo)).toBe('2026-06-02 11:00')
+  })
+
+  it('un desfase negativo en minutos adelanta el solape esas horas', () => {
+    const tasks: PlanTask[] = [
+      { id: 'a', name: 'Primera', duration: 2, duracionMin: 960 },
+      { id: 'b', name: 'Segunda', duration: 1, duracionMin: 480 },
+    ]
+    const entrada = {
+      tasks,
+      dependencies: [{ predecessorId: 'a', successorId: 'b', type: 'FS' as const, lag: 0, lagMin: -120 }],
+      reloj,
+      comienzo: LUNES,
+    }
+    // A cierra el martes a las seis; dos horas antes es el martes a las cuatro.
+    expect(comoHora(programarEnMinutos(entrada).porId.get('b')!.comienzo)).toBe('2026-06-02 16:00')
+  })
+})

@@ -22,6 +22,8 @@ export interface PlanLink {
   readonly name: string
   readonly type: LinkType
   readonly lag: number
+  /** El desfase en minutos laborables (§2.2), cuando el vínculo lo lleva. */
+  readonly lagMin?: number
 }
 
 export interface PlanDetailPanelProps {
@@ -224,15 +226,23 @@ export function PlanDetailPanel({
  */
 function fechas(row: GanttRow): string {
   if (row.isMilestone) return `${row.start} · no consume días`
+
   const dias = row.width === 1 ? '1 día hábil' : `${row.width} días hábiles`
-  // Los días que ocupa y lo que dura no siempre coinciden desde el §2: una tarea de cuatro horas
-  // ocupa un día. Cuando difieren se dicen las dos cosas, porque decir sólo una de las dos deja a
-  // quien lee creyendo que la línea llena el día que ocupa.
-  const exacto =
-    row.duracionMin !== undefined && row.duracionMin !== row.width * MINUTOS_POR_JORNADA
-      ? ` · dura ${comoTexto(row.duracionMin)}, de ${hora(row.comienzoInstante)} a ${hora(row.finInstante)}`
-      : ''
-  return `Del ${row.start} al ${row.finish} · ${dias}${exacto}`
+
+  /**
+   * Cuando la línea no encaja con la jornada, las horas van **dentro** de las fechas.
+   *
+   * Es el caso de una tarea de cuatro horas y el de una que empieza a media mañana porque su
+   * vínculo trae dos horas de espera: esa segunda ocupa dos días de calendario y trabaja uno, así
+   * que «Del 16 al 17 · 1 día hábil» se lee como una contradicción. Con las horas puestas —«Del 16
+   * a las 11:00 al 17 a las 11:00»— deja de serlo, y de paso se ve por qué.
+   */
+  if (!row.alineadaConLaJornada) {
+    const cuanto = row.duracionMin === undefined ? dias : `dura ${comoTexto(row.duracionMin)}`
+    return `Del ${row.start} ${hora(row.comienzoInstante)} al ${row.finish} ${hora(row.finInstante)} · ${cuanto}`
+  }
+
+  return `Del ${row.start} al ${row.finish} · ${dias}`
 }
 
 /** La hora de un instante, sin la fecha: la fecha ya está dicha al lado. */

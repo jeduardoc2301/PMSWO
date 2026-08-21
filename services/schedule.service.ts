@@ -144,7 +144,7 @@ export async function loadProjectPlan(
     }),
     prisma.taskDependency.findMany({
       where: { projectId },
-      select: { predecessorId: true, successorId: true, linkType: true, lagDays: true },
+      select: { predecessorId: true, successorId: true, linkType: true, lagDays: true, lagMinutes: true },
     }),
     // Quién lleva cada línea y cuándo no está. Se piden juntas y en una sola consulta porque lo que
     // hace falta es el cruce: las ausencias de alguien no asignado a nada no cambian ningún plan.
@@ -230,6 +230,8 @@ export async function loadProjectPlan(
     successorId: link.successorId,
     type: link.linkType as LinkType,
     lag: link.lagDays,
+    // Los minutos del desfase, cuando los hay. El motor los prefiere; las vistas los rotulan.
+    ...(link.lagMinutes !== null ? { lagMin: link.lagMinutes } : {}),
   }))
 
   return {

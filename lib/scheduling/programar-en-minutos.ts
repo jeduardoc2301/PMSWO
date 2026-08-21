@@ -212,10 +212,9 @@ function comienzoQuePide(
   // vínculos colgando de nada, así que esto es un cinturón, no una regla.
   if (!predecesora) return Number.NEGATIVE_INFINITY
 
-  // El desfase viaja en días mientras el modelo lo guarde así (§2.2 lo quiere en minutos con
-  // signo). Se convierte aquí, en un solo sitio, para que el día que la columna cambie de unidad
-  // haya que tocar una línea.
-  const desfase = vinculo.lag * jornada
+  // Los minutos mandan cuando están; los días son su redondeo. Un vínculo con dos horas de espera
+  // dice 120 y no «cero días», que es lo que decía antes de que la columna existiera.
+  const desfase = vinculo.lagMin ?? vinculo.lag * jornada
 
   /**
    * La predecesora, vista por quien se ata a ella.

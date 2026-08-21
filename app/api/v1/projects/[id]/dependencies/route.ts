@@ -21,6 +21,13 @@ const cuerpoDeAlta = z.object({
   successorId: z.string().min(1),
   type: z.enum(['FS', 'SS', 'FF', 'SF']),
   lag: z.number().int(),
+  /**
+   * El desfase en minutos laborables (§2.2). Opcional: sin él manda `lag`, en días.
+   *
+   * El tope son diez jornadas de ocho horas en cada sentido. Un desfase mayor escrito a mano es
+   * casi siempre un dedazo, y uno de verdad se dice mejor moviendo la línea.
+   */
+  lagMin: z.number().int().min(-4800).max(4800).optional(),
 })
 
 async function postHandler(

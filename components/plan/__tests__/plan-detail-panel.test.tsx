@@ -40,6 +40,8 @@ function fila(overrides: Partial<GanttRow> = {}): GanttRow {
     // casos que hablan de horas los pisan con los suyos.
     comienzoInstante: instanteDe('2026-06-01', 9 * 60),
     finInstante: instanteDe('2026-06-05', 18 * 60),
+    // Encaja con la jornada: abre a las nueve y cierra a las seis, como casi todas.
+    alineadaConLaJornada: true,
     totalFloat: 3,
     freeFloat: 3,
     isCritical: false,
@@ -157,13 +159,14 @@ describe('El detalle dice cuándo', () => {
         duracionMin: 240,
         comienzoInstante: instanteDe('2026-06-01', 9 * 60),
         finInstante: instanteDe('2026-06-01', 13 * 60),
+        alineadaConLaJornada: false,
       }),
     })
 
     // Y con la hora, que es lo que la fecha civil no puede decir: cuatro horas que empiezan cuando
     // abre la jornada terminan a la una, no «ese día en algún momento».
     expect(
-      screen.getByText('Del 2026-06-01 al 2026-06-01 · 1 día hábil · dura 4 h, de 09:00 a 13:00'),
+      screen.getByText('Del 2026-06-01 09:00 al 2026-06-01 13:00 · dura 4 h'),
     ).toBeInTheDocument()
   })
 
@@ -535,5 +538,34 @@ describe('§4.7 · la mitad editable del panel', () => {
     dibujar({ onAvance, row: fila({ hasChildren: true, isSummary: true }) })
     expect(screen.queryByLabelText(/^Avance de/)).toBeNull()
     expect(screen.getByText(/se acumula de sus líneas/)).toBeInTheDocument()
+  })
+})
+
+describe('Una línea que no encaja con la jornada dice sus horas', () => {
+  it('la que arranca a media mañana por un desfase de dos horas', () => {
+    // Ocupa dos días de calendario y trabaja uno: «Del 16 al 17 · 1 día hábil» se lee como una
+    // contradicción. Con las horas dentro deja de serlo, y de paso se ve por qué.
+    dibujar({
+      row: fila({
+        start: '2026-06-16',
+        finish: '2026-06-17',
+        width: 1,
+        duracionMin: 480,
+        comienzoInstante: instanteDe('2026-06-16', 11 * 60),
+        finInstante: instanteDe('2026-06-17', 11 * 60),
+        alineadaConLaJornada: false,
+      }),
+    })
+
+    expect(screen.getByText('Del 2026-06-16 11:00 al 2026-06-17 11:00 · dura 1 d')).toBeInTheDocument()
+  })
+
+  it('y el vínculo que la empuja dice su desfase en horas', () => {
+    dibujar({
+      row: fila(),
+      predecessors: [{ id: 'x', name: 'Vaciar', type: 'FS', lag: 0, lagMin: 120 }],
+    })
+
+    expect(screen.getByText('FS +2 h')).toBeInTheDocument()
   })
 })

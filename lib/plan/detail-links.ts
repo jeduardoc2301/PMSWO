@@ -47,6 +47,7 @@ export function vinculosDe(
         name: nombres.get(v.predecessorId) ?? v.predecessorId,
         type: v.type,
         lag: v.lag,
+        ...(v.lagMin !== undefined ? { lagMin: v.lagMin } : {}),
       })
     }
     if (v.predecessorId === id) {
@@ -55,6 +56,7 @@ export function vinculosDe(
         name: nombres.get(v.successorId) ?? v.successorId,
         type: v.type,
         lag: v.lag,
+        ...(v.lagMin !== undefined ? { lagMin: v.lagMin } : {}),
       })
     }
   }

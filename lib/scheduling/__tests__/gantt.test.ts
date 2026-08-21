@@ -1213,3 +1213,26 @@ describe('El eje de horas dibuja la jornada del proyecto', () => {
     expect(layout.ticks.map((t) => t.label)).toEqual(['08', '09', '10', '11', '12', '13', '14', '15'])
   })
 })
+
+describe('El rótulo del desfase', () => {
+  it('en días cuando el vínculo va en días', () => {
+    expect(linkLabel({ type: 'FS', lag: 3 })).toBe('FS +3 días')
+    expect(linkLabel({ type: 'FF', lag: -1 })).toBe('FF -1 día')
+    expect(linkLabel({ type: 'SS', lag: 0 })).toBe('SS')
+  })
+
+  it('y en la unidad que no miente cuando lleva minutos', () => {
+    // «+2 h» es lo que no se podía decir: en días había que elegir entre «+0» y «+1», y las dos
+    // son falsas para una espera de dos horas.
+    expect(linkLabel({ type: 'FS', lag: 0, lagMin: 120 })).toBe('FS +2 h')
+    expect(linkLabel({ type: 'FS', lag: 1, lagMin: 480 })).toBe('FS +1 d')
+    expect(linkLabel({ type: 'FS', lag: 0, lagMin: -90 })).toBe('FS -90 min')
+    expect(linkLabel({ type: 'SS', lag: 3, lagMin: 0 })).toBe('SS')
+  })
+
+  it('y la jornada del proyecto decide qué es un día', () => {
+    // 420 minutos son una jornada donde dura siete horas, y siete horas donde dura ocho.
+    expect(linkLabel({ type: 'FS', lag: 0, lagMin: 420 }, 420)).toBe('FS +1 d')
+    expect(linkLabel({ type: 'FS', lag: 0, lagMin: 420 }, 480)).toBe('FS +7 h')
+  })
+})
