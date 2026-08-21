@@ -4855,3 +4855,25 @@ página devolvió `SyntaxError: Unexpected token '{'`. Se rehízo limpia y sali�
 
 Van diez en tres noches. Ninguna de las cinco últimas ha llegado a la bitácora como defecto, que es
 la única cifra de ésas que me importa.
+
+## §3.2 · El desfase, comprobado en las barras
+
+Misma técnica que con los tipos: las fechas salen de las barras que el motor dibujó, y el hueco entre
+predecesora y sucesora se cuenta en días hábiles del almanaque —el plan no tiene festivos propios,
+comprobado en la tanda 48—.
+
+De los vínculos con desfase visibles en las barras recogidas:
+
+| | |
+|---|---|
+| con desfase a la vista | **108** |
+| hueco **exactamente** igual al desfase | **107** |
+| hueco mayor que el desfase | 1 |
+| **hueco menor** —o sea, desfase incumplido— | **0** |
+
+**Cero incumplidos**, que es la cifra que importa. Un hueco *mayor* no es un fallo: la sucesora puede
+estar empujada por otra predecesora o clavada por su ancla, y el desfase sólo pone un mínimo. Un
+hueco *menor* sí lo sería, y no hay ninguno.
+
+Con esto el «`lag` positivo = retraso» del §3.2 queda demostrado sobre el plan real y no sobre un
+ejemplo: 108 casos, ni uno que se salte su espera.
