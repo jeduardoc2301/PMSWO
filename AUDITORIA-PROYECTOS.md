@@ -5665,3 +5665,32 @@ encontrarlo fue **volver a medir la misma pregunta en la otra pantalla**, que es
 al hablar de seis vistas sobre un mismo plan.
 
 Suite: 3 648 en verde.
+
+## §6.2 · Qué enseña cada vista de la duración, y una brecha medida
+
+Puesta una línea del plan real a **cuatro horas**, esto es lo que dice cada vista de ella:
+
+| vista | lo que enseña |
+|---|---|
+| Timeline | «1 día hábil · dura 4 h, de 09:00 a 13:00», y la barra mide media columna |
+| Lista | sus fechas, `2026-06-12 → 2026-06-12`, y nada de la duración |
+| Tablero | el avance y el atraso; la duración no aparece |
+| Calendario | la línea en su día |
+
+Ninguna miente. Pero **sólo el Gantt sabe decir «4 h»**, y eso choca con el §6.2, que pide para la
+Lista «mismas columnas configurables que el Gantt». El §6.4 avisa además de la causa: «¿la lista
+actual es el mismo componente de grid que el Gantt o hay dos implementaciones distintas? Si hay dos,
+unifícalas».
+
+Hay dos. Medido: **el Gantt ofrece 14 columnas y la Lista 9**, y entre las que la Lista no puede
+enseñar está la duración —ni en días ni en horas—.
+
+### Por qué se deja medido y no arreglado
+
+Unificar los dos grids toca las dos vistas, sus dos preferencias de usuario y las pruebas de ambas:
+no es de las cosas que se empiezan a las tres de la mañana. Lo que sí se puede dejar es la brecha
+**escrita en una prueba** en vez de en una frase: la prueba se pone roja el día que alguien la
+cierre, y entonces hay que venir a cambiarla por la que diga que son iguales. Un número suelto en
+una bitácora envejece sin avisar; una prueba no.
+
+Suite: 3 651 en verde.
