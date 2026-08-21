@@ -4324,3 +4324,38 @@ que se entiende de uno que sólo frustra.
 La medición no es destructiva por construcción: el caso que se prueba es justamente el que el
 servidor tiene que rechazar, así que demostrarlo deja el plan igual que estaba. Verificado: 1 368
 líneas y 1 665 vínculos.
+
+## §10.1 · Un permiso que se ofrecía y luego se negaba
+
+Los diez permisos del §10.1 están, con el nombre que les da el spec, y la barra de pestañas los
+respeta: `PERMISO_POR_VISTA` da la Lista con `view_list` y el Calendario con `view_calendar`.
+
+Pero **las dos vistas cargan de `/schedule`**, y esa ruta exigía **`view_gantt` a secas**. O sea que
+un perfil con `view_list` y sin Gantt veía la pestaña de Lista —la barra se la ofrece— y al entrar
+recibía un **403**. Lo mismo el Calendario.
+
+Y no es un caso rebuscado: es **el ejemplo con el que el §10.1 explica para qué sirven estos
+permisos**, con todas las letras — «hay perfiles (un cliente externo, un colaborador) a los que se
+les quiere dar **Lista y Tablero pero no el Gantt**».
+
+Un permiso ofrecido y después negado es peor que uno que no se ofrece: el primero parece una avería y
+el segundo es una decisión.
+
+### El arreglo
+
+`exigirPermiso` admite ahora **una lista, y basta uno**: `/schedule` acepta `view_gantt`,
+`view_list` o `view_calendar`, que son las tres vistas que cargan el plan de ahí. Se prueba en orden
+y se corta en el primero que valga, así que el caso normal sigue costando una sola comprobación.
+
+### Lo que demostré en pantalla, y lo que no
+
+**Sí:** que el arreglo no rompe nada. Las seis vistas vuelven a montar, con cero avisos y sin ninguna
+cifra rota.
+
+**No:** el caso negativo —un usuario con `view_list` y sin `view_gantt`— **no lo demostré en
+pantalla**, porque hace falta un segundo usuario con ese rol y crearlo en la base para una medición
+es más invasivo que lo que la medición vale. Está cubierto por prueba, validada rompiendo el arreglo:
+al volver a exigir sólo el primer permiso, las dos que importan se ponen rojas.
+
+Lo digo aquí en vez de dejarlo implícito porque la regla de esta sesión es que un cierre sólo cuenta
+demostrado en pantalla. Éste está cerrado a medias, y ésa es la mitad que falta.

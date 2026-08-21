@@ -32,7 +32,20 @@ async function getScheduleHandler(
      * Salió barriendo la lista de comprobación del §13 con agentes: las escrituras estaban guardadas
      * desde hacía rato y **ninguna lectura** lo estaba.
      */
-    const negado = await exigirPermiso(authContext.userId, id, 'view_gantt', 'No tienes acceso al plan de este proyecto.')
+    /**
+     * Cualquiera de las tres vistas que cargan el plan, no solo el Gantt.
+     *
+     * Esta ruta es la fuente del Gantt, de la Lista y del Calendario. Exigiendo `view_gantt` a
+     * secas, un perfil con `view_list` y sin Gantt veia la pestana de Lista —la barra la ofrece con
+     * `view_list`— y al entrar recibia un 403. El §10.1 pone ese perfil como ejemplo con todas las
+     * letras: «se les quiere dar Lista y Tablero pero no el Gantt».
+     */
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      ['view_gantt', 'view_list', 'view_calendar'],
+      'No tienes acceso al plan de este proyecto.',
+    )
     if (negado) return negado
 
     // Acotado por organización dentro de la consulta: un proyecto ajeno simplemente no existe.

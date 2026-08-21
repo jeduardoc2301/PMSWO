@@ -30,12 +30,32 @@ import { authorize } from '@/services/project-authorize.service'
 export async function exigirPermiso(
   userId: string,
   projectId: string,
-  permiso: PermisoDeProyecto,
+  permiso: PermisoDeProyecto | readonly PermisoDeProyecto[],
   motivo?: string,
 ): Promise<NextResponse | null> {
   try {
-    await authorize(userId, projectId, permiso)
-    return null
+    /**
+     * Con varios permisos basta **uno**, no todos.
+     *
+     * Hace falta porque hay rutas que sirven a mas de una vista: `/schedule` carga el plan para el
+     * Gantt, la Lista y el Calendario, y el §10.1 pone como ejemplo justo el perfil al que «se le
+     * quiere dar Lista y Tablero pero no el Gantt». Exigiendo solo `view_gantt`, ese perfil veia la
+     * pestana de Lista —la barra la ofrece con `view_list`— y al entrar recibia un 403.
+     *
+     * Un permiso ofrecido y despues negado es peor que uno que no se ofrece: el primero parece una
+     * averia y el segundo es una decision.
+     */
+    const cualquiera = Array.isArray(permiso) ? permiso : [permiso]
+    let ultimo: unknown = null
+    for (const p of cualquiera) {
+      try {
+        await authorize(userId, projectId, p as PermisoDeProyecto)
+        return null
+      } catch (e) {
+        ultimo = e
+      }
+    }
+    throw ultimo
   } catch (error) {
     const nombre = error instanceof Error ? error.name : ''
     if (nombre === 'AuthorizationError') {
