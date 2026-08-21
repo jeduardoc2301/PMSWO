@@ -193,6 +193,34 @@ describe('C05 · La duración coincide con los días hábiles del rango', () => 
     const report = conDefecto('4', { start: '2026-06-04', finish: '2026-06-05' })
     expect(hallazgos(report, 'C05')[0].message).toMatch(/dura cero pero empieza/)
   })
+
+  /**
+   * La excusa de este control es **agrupar**, no haberse declarado resumen.
+   *
+   * Una línea que agrupa a otras no elige sus fechas: las hereda del tramo de sus hijas, así que
+   * puede durar cero y abarcar semanas sin que eso sea un defecto. Quien decide si eso pasa es la
+   * estructura del plan, no el campo `kind` —que puede decir «compuerta», «hito» o cualquier otra
+   * cosa sobre una línea que sí agrupa—.
+   */
+  it('no se le exige a quien agrupa, aunque no se haya declarado resumen', () => {
+    const rows = planCorrecto().map((row) =>
+      row.id === '1'
+        ? { ...row, kind: 'ENTREGA_CLIENTE' as const, duration: 0 }
+        : row,
+    )
+    const report = auditPlan({ rows, calendar })
+    expect(hallazgos(report, 'C05')).toEqual([])
+  })
+
+  it('sí se le exige a quien se declaró resumen pero no agrupa a nadie', () => {
+    const rows = planCorrecto().map((row) =>
+      row.id === '4'
+        ? { ...row, kind: 'COMPUERTA' as const, start: '2026-06-04' as const, finish: '2026-06-05' as const }
+        : row,
+    )
+    const report = auditPlan({ rows, calendar })
+    expect(hallazgos(report, 'C05')[0].message).toMatch(/dura cero pero empieza/)
+  })
 })
 
 describe('C06 · Los hitos duran cero', () => {
@@ -204,6 +232,24 @@ describe('C06 · Los hitos duran cero', () => {
   it('una actividad de cero días no es asunto de este control', () => {
     const report = conDefecto('2', { kind: 'ACTIVIDAD', duration: 0, finish: '2026-06-01' })
     expect(hallazgos(report, 'C06')).toEqual([])
+  })
+
+  /**
+   * Un punto de control es un hito con otro nombre, y este control tiene que verlo.
+   *
+   * Mirando sólo `kind === 'HITO'` el control vigilaba 86 de las 109 líneas que le tocan en el plan
+   * de referencia: los 23 puntos de control quedaban fuera. Hoy todos duran cero, así que la grieta
+   * no se ve en ningún número —por eso la prueba la siembra a mano—.
+   */
+  it('un punto de control que dura tampoco pasa', () => {
+    const report = conDefecto('4', { kind: 'PUNTO_DE_CONTROL', duration: 2, finish: '2026-06-08' })
+    expect(hallazgos(report, 'C06')[0].message).toMatch(/es un punto de control y dura 2 día\(s\)/)
+  })
+
+  it('las dos clases de hito se miden con la misma vara', () => {
+    const comoHito = conDefecto('4', { duration: 2, finish: '2026-06-08' })
+    const comoPunto = conDefecto('4', { kind: 'PUNTO_DE_CONTROL', duration: 2, finish: '2026-06-08' })
+    expect(hallazgos(comoPunto, 'C06').length).toBe(hallazgos(comoHito, 'C06').length)
   })
 })
 

@@ -18,6 +18,7 @@
 
 import { type WorkCalendar } from './calendar'
 import { type IsoDate, toDayNumber } from './date'
+import { esClaseDeHito } from './kinds'
 import type { PredecessorRef, TaskKind } from './types'
 
 export type FindingSeverity = 'ERROR' | 'AVISO'
@@ -83,7 +84,13 @@ export interface AuditInput {
   readonly maxExitCriteriaRepeats?: number
 }
 
-/** Clases de línea que legítimamente agrupan a otras. */
+/**
+ * Clases de línea que legítimamente agrupan a otras.
+ *
+ * Sólo lo usa C01, y ahí es correcto por definición: ese control existe **para** contrastar lo
+ * declarado con lo real, así que la declaración es su objeto. En cualquier otro sitio la pregunta
+ * «¿esto es un resumen?» se responde mirando si tiene hijas, nunca el campo.
+ */
 const SUMMARY_KINDS: ReadonlySet<TaskKind> = new Set<TaskKind>(['RESUMEN', 'COMPUERTA'])
 
 interface ControlDefinition {
@@ -192,11 +199,12 @@ export function auditPlan(input: AuditInput): AuditReport {
       report('C03', row.id, `«${row.name}» no tiene ${row.start === null ? 'inicio' : 'fin'}.`)
     }
 
-    if (row.kind === 'HITO' && row.duration !== 0) {
+    if (esClaseDeHito(row.kind) && row.duration !== 0) {
       report(
         'C06',
         row.id,
-        `«${row.name}» es un hito y dura ${row.duration} día(s). Un hito marca un momento: dura cero.`,
+        `«${row.name}» es un ${legible(row.kind)} y dura ${row.duration} día(s). Marca un momento ` +
+          'en el calendario, no un tramo: dura cero.',
       )
     }
 
@@ -221,7 +229,7 @@ export function auditPlan(input: AuditInput): AuditReport {
             `${row.finish} hay ${habiles}.`,
         )
       }
-    } else if (inicio !== fin && !SUMMARY_KINDS.has(row.kind)) {
+    } else if (inicio !== fin && children.get(row.id)!.length === 0) {
       count('C05', 1)
       report(
         'C05',

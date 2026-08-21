@@ -5954,3 +5954,59 @@ enseña nada»: que un hito no lleve insignia de atraso también es una respuest
 tienen que darla igual.
 
 Suite: 3 666 en verde.
+
+## §0.1 · Los dos atajos, ahora dentro del propio auditor
+
+El barrido del atajo de «resumen» —el que lleva cuatro mordiscos— volvió casi limpio, y el casi
+importa. En los cinco sitios que deciden si una línea agrupa a otras, la pregunta ya está bien
+hecha: `conHijas.has(id) || kind === 'RESUMEN'`. La diferencia con el atajo de los hitos no es
+suerte. Cada vez que éste mordió se arregló **con el patrón estructural**, así que el arreglo se
+propagó solo; el de los hitos se arreglaba a mano y sin vocabulario compartido, y por eso reapareció
+seis veces hasta que existió `esClaseDeHito`.
+
+Pero el barrido encontró otra cosa, y es sobre mi método antes que sobre el código: **`kind ===
+'HITO'` seguía vivo en `lib/scheduling/audit.ts`**, que el barrido de anoche no tocó porque lo
+limité a `components/` y `services/`. Un barrido acotado a las carpetas donde uno espera el defecto
+no es un barrido.
+
+Los diecisiete controles del auditor clasifican bien salvo en dos, y en los dos la pregunta de fondo
+es estructural mientras la pregunta escrita es declarativa:
+
+| control | preguntaba | tenía que preguntar |
+|---|---|---|
+| C06 · Los hitos duran cero | `kind === 'HITO'` | si es **clase de hito** (86 + 23 = 109) |
+| C05 · Duración cero ⇒ un solo día | si se declaró resumen | si **agrupa** a otras |
+
+C01 se queda como está, y a propósito: ese control existe **para** contrastar lo declarado con lo
+real, así que ahí la declaración es su objeto, no un atajo.
+
+### Medido antes de tocar: las dos grietas están latentes
+
+```
+CLASES: ACTIVIDAD 956 · ENTREGA_CLIENTE 130 · RESUMEN 121 · HITO 86
+        APROBACION_CLIENTE 48 · PUNTO_DE_CONTROL 23 · COMPUERTA 4
+con hijas: 125 · con hijas y clase fuera de {RESUMEN,COMPUERTA}: 0
+PUNTO_DE_CONTROL: 23 · con duración != 0: 0
+duración 0 y start != finish: 4 · con hijas: 4 · clases: COMPUERTA
+```
+
+Hoy ningún número sale mal. Las 125 con hijas son exactamente 121 resúmenes más 4 compuertas, los 23
+puntos de control duran todos cero, y las 4 líneas de duración cero que abarcan varios días agrupan.
+El conjunto `{RESUMEN, COMPUERTA}` acierta **por enumeración**: alguien fue añadiendo clases hasta
+que la cuenta cuadró con este plan. Cuadra con éste.
+
+Así que esto no arregla una cifra: arregla la **cobertura** de dos controles. C06 vigilaba 86 de las
+109 líneas que le tocan, y su punto ciego eran justo los puntos de control —la clase que el servicio
+del plan sí les da duración por fechas, anotado aquí desde anoche y todavía sin cerrar—. El día que
+esa duración llegue al archivo, el control que debía cazarla estaba mirando a otro lado.
+
+### El alcance, dicho entero
+
+`auditPlan` **no lo llama nadie en producción**: filtrando las pruebas queda una sola aparición, su
+propia definición. Es un instrumento de la suite, y su uso real es vigilar el plan de referencia en
+`plan-referencia.test.ts`. Por eso este arreglo **no cierra ningún criterio de aceptación** y no se
+demuestra en pantalla: no hay pantalla que lo enseñe. Queda dicho para que nadie lo cuente como tal.
+
+Cuatro pruebas nuevas, validadas rompiendo **cada arreglo por separado** —dos rojas con C06 revertido,
+las otras dos con C05—, para que ninguna se apoye en el arreglo de la otra. Suite 3 670. Tipos: 712
+con el cambio y 712 sin él, 0 en `audit.ts`.
