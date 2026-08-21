@@ -42,7 +42,7 @@
 
 import { type DependencyGraph, buildDependencyGraph } from './dependencies'
 import { type IsoDate } from './date'
-import { MINUTOS_POR_DIA, type Instante, type Reloj, fechaDe, instanteDe } from './reloj'
+import { MINUTOS_POR_DIA, type Instante, type Reloj, diaDe, fechaDe, instanteDe } from './reloj'
 import { type Dependency, type PlanTask } from './types'
 
 export interface EntradaEnMinutos {
@@ -52,6 +52,17 @@ export interface EntradaEnMinutos {
   readonly reloj: Reloj
   /** Primer día del plan. */
   readonly comienzo: IsoDate
+  /**
+   * Días hábiles en que quien lleva cada línea no está, por su ordinal.
+   *
+   * Una tarea que debería empezar el 10 y cuya gente está fuera hasta el 12 empieza el 13, no el 10
+   * trabajando sola; y una de cinco jornadas que se cruza con tres días de ausencia termina tres
+   * días más tarde, porque cuenta jornadas **trabajadas** y no transcurridas.
+   *
+   * Un hito no se mueve por una ausencia: las ausencias dicen cuándo se puede trabajar, y un hito no
+   * es trabajo sino una marca. Su fecha sale de sus predecesoras y de su compromiso.
+   */
+  readonly noDisponible?: ReadonlyMap<string, ReadonlySet<number>>
 }
 
 export interface LineaEnMinutos {
@@ -91,6 +102,7 @@ export function programarEnMinutos(entrada: EntradaEnMinutos): ProgramaEnMinutos
   for (const id of graph.order) {
     const task = graph.taskById.get(id)!
     const duracion = duracionEnMinutos(task, jornada)
+    const fuera = entrada.noDisponible?.get(id)
 
     let comienzo = arranque
     for (const vinculo of graph.incoming.get(id)!) {
@@ -130,9 +142,19 @@ export function programarEnMinutos(entrada: EntradaEnMinutos): ProgramaEnMinutos
      */
     const enUnCierre = reloj.cerrar(comienzo) === comienzo
     comienzo = duracion === 0 && enUnCierre ? comienzo : reloj.abrir(comienzo)
+
+    // Y si quien la lleva no está el día en que le tocaba empezar, empieza cuando vuelve: una tarea
+    // que arranca sin nadie es una fecha que el plan promete y la persona ya sabe que no.
+    if (duracion > 0 && fuera !== undefined && fuera.size > 0) {
+      comienzo = primerInstanteDisponible(comienzo, fuera, reloj)
+    }
     // El fin de un hito es su comienzo, sin volver a normalizar: el comienzo ya se normalizó arriba
     // con la regla del hito, y `sumar(t, 0)` abriría otra vez lo que se acaba de decidir cerrar.
-    porId.set(id, { comienzo, fin: duracion === 0 ? comienzo : reloj.sumar(comienzo, duracion), duracion })
+    porId.set(id, {
+      comienzo,
+      fin: duracion === 0 ? comienzo : finConAusencias(comienzo, duracion, fuera, reloj),
+      duracion,
+    })
   }
 
   let fin = arranque
@@ -455,4 +477,66 @@ function topeComprometidoEnMinutos(
     if (tope === undefined || instante < tope) tope = instante
   }
   return tope
+}
+
+/**
+ * Tope de días que se avanzan buscando disponibilidad antes de rendirse.
+ *
+ * El mismo que usa el motor de días y por la misma razón: una ausencia abierta —o un año entero
+ * capturado por error— colgaría el pase adelante entero sin dejar rastro de por qué. Con el tope, la
+ * línea sale programada como si no hubiera ausencias a partir de ahí: una fecha discutible es mejor
+ * que una pantalla que no carga.
+ */
+const TOPE_DE_BUSQUEDA = 2600
+
+/** El primer instante, desde éste inclusive, en un día en que su gente está. */
+function primerInstanteDisponible(
+  desde: Instante,
+  fuera: ReadonlySet<number>,
+  reloj: Reloj,
+): Instante {
+  let instante = desde
+  for (let vueltas = 0; vueltas < TOPE_DE_BUSQUEDA; vueltas += 1) {
+    if (!fuera.has(reloj.calendario.ordinalOf(diaDe(instante)))) return instante
+    // Al día siguiente, a la hora de abrir: si la persona vuelve mañana, se empieza mañana temprano
+    // y no a la hora a la que se habría empezado hoy.
+    instante = reloj.abrir((diaDe(instante) + 1) * MINUTOS_POR_DIA)
+  }
+  return desde
+}
+
+/**
+ * El fin de una línea contando sólo los días en que su gente está.
+ *
+ * Sin ausencias es una suma y no cuesta nada. Con ellas hay que repartir los minutos día a día
+ * —igual que hace el motor de días—, porque cuáles se saltan depende de en qué día caiga cada uno.
+ */
+function finConAusencias(
+  comienzo: Instante,
+  duracion: number,
+  fuera: ReadonlySet<number> | undefined,
+  reloj: Reloj,
+): Instante {
+  if (fuera === undefined || fuera.size === 0) return reloj.sumar(comienzo, duracion)
+
+  const jornada = reloj.jornada.minutos
+  let restantes = duracion
+  let instante = comienzo
+  let ultimoFin = comienzo
+
+  for (let vueltas = 0; vueltas < TOPE_DE_BUSQUEDA && restantes > 0; vueltas += 1) {
+    const dia = diaDe(instante)
+    if (!fuera.has(reloj.calendario.ordinalOf(dia))) {
+      // Lo que queda de jornada desde donde se está, que el primer día puede ser menos de una
+      // entera si la línea empieza a media mañana.
+      const cabeHoy = reloj.entre(instante, reloj.sumar(reloj.abrir(dia * MINUTOS_POR_DIA), jornada))
+      if (restantes <= cabeHoy) return reloj.sumar(instante, restantes)
+      restantes -= cabeHoy
+      ultimoFin = reloj.sumar(instante, cabeHoy)
+    }
+    instante = reloj.abrir((dia + 1) * MINUTOS_POR_DIA)
+  }
+
+  // Se agotó la búsqueda: se contesta lo que habría salido sin ausencias a partir de aquí.
+  return restantes > 0 ? reloj.sumar(ultimoFin, restantes) : ultimoFin
 }

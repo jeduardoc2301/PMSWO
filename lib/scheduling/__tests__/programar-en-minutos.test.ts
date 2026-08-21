@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { createWorkCalendar } from '../calendar'
 import { analyzeCriticalPath } from '../cpm'
+import { toDayNumber } from '../date'
 import { schedulePlan } from '../schedule'
-import { comoHora, crearJornada, crearReloj } from '../reloj'
+import { comoHora, crearJornada, crearReloj, fechaDe } from '../reloj'
 import { holgurasEnMinutos, programarEnMinutos } from '../programar-en-minutos'
 import type { Dependency, PlanTask } from '../types'
 
@@ -291,5 +292,64 @@ describe('Los cuatro techos, contra el motor de días', () => {
       { id: 'a', dias: 0, minutos: 0 },
       { id: 'b', dias: 0, minutos: 0 },
     ])
+  })
+})
+
+/**
+ * Las ausencias, contra el motor de días.
+ *
+ * Otra vez la comparación en vez de números a mano: la regla es que una línea cuenta jornadas
+ * **trabajadas** y no transcurridas, y equivocarse aquí no se ve —la fecha sale, sólo que es la de
+ * una persona que ese día no estaba—.
+ */
+describe('Las ausencias, contra el motor de días', () => {
+  const calendar = createWorkCalendar()
+  /** Los ordinales de esos días hábiles, que es como los pide el motor. */
+  const ordinales = (...fechas: string[]) =>
+    new Set(fechas.map((f) => calendar.ordinalOf(toDayNumber(f))))
+
+  function comparar(tasks: PlanTask[], noDisponible: ReadonlyMap<string, ReadonlySet<number>>) {
+    const enDias = schedulePlan({ tasks, dependencies: [], calendar, start: LUNES, noDisponible })
+    const enMinutos = programarEnMinutos({ tasks, dependencies: [], reloj, comienzo: LUNES, noDisponible })
+    return tasks.map((t) => ({
+      id: t.id,
+      dias: `${enDias.byId.get(t.id)!.start} → ${enDias.byId.get(t.id)!.finish}`,
+      minutos: `${fechaDe(enMinutos.porId.get(t.id)!.comienzo)} → ${fechaDe(enMinutos.porId.get(t.id)!.fin)}`,
+    }))
+  }
+
+  it('una línea de cinco jornadas con tres días de ausencia en medio termina tres días más tarde', () => {
+    const filas = comparar(
+      [{ id: 'a', name: 'Cinco jornadas', duration: 5, duracionMin: 2400 }],
+      new Map([['a', ordinales('2026-06-03', '2026-06-04', '2026-06-05')]]),
+    )
+    expect(filas[0].minutos).toBe(filas[0].dias)
+    expect(filas[0].minutos).toBe('2026-06-01 → 2026-06-10')
+  })
+
+  it('y si su gente no está el día en que le tocaba empezar, empieza cuando vuelve', () => {
+    const filas = comparar(
+      [{ id: 'a', name: 'Dos jornadas', duration: 2, duracionMin: 960 }],
+      new Map([['a', ordinales('2026-06-01', '2026-06-02')]]),
+    )
+    expect(filas[0].minutos).toBe(filas[0].dias)
+    expect(filas[0].minutos).toBe('2026-06-03 → 2026-06-04')
+  })
+
+  it('un hito no se mueve por una ausencia: no es trabajo, es una marca', () => {
+    const filas = comparar(
+      [{ id: 'h', name: 'Listo', duration: 0, kind: 'HITO', duracionMin: 0 }],
+      new Map([['h', ordinales('2026-06-01', '2026-06-02')]]),
+    )
+    expect(filas[0].minutos).toBe(filas[0].dias)
+    expect(filas[0].minutos).toBe('2026-06-01 → 2026-06-01')
+  })
+
+  it('sin ausencias capturadas, las dos cuentas coinciden como siempre', () => {
+    const filas = comparar(
+      [{ id: 'a', name: 'Tres jornadas', duration: 3, duracionMin: 1440 }],
+      new Map(),
+    )
+    expect(filas[0].minutos).toBe(filas[0].dias)
   })
 })
