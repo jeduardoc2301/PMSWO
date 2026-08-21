@@ -21,6 +21,7 @@
  * el DOM.
  */
 
+import { aPuntosBase, comoFraccion } from '@/lib/plan/porcentaje'
 import React, { useMemo, useRef, useState } from 'react'
 
 import { CeldaEditable, validarNombre } from '@/components/plan/celda-editable'
@@ -679,9 +680,18 @@ function CapturaDeAvance({
   progress: number
   onProgressChange: (id: string, progress: number) => void
 }) {
-  // A décimas de punto porcentual: 0.4 × 100 en coma flotante no da 40 exacto, y el campo no puede
-  // abrir diciendo 40.000000000000006.
-  const inicial = Math.round(progress * 1000) / 10
+  /**
+   * A centésimas de punto porcentual, que es la unidad en que se guarda (§2.1).
+   *
+   * Antes redondeaba a **décimas** y el campo era `step={1}`: un tercio capturado —33,33 %— abría
+   * diciendo «33.3», y quien pulsara Enter ahí lo guardaba como 33,3 y se comía el resto. Es el
+   * mismo defecto que tenía la celda del Gantt, medido en pantalla: la base decía 0,3333 y la Lista
+   * abría con 33.3.
+   *
+   * Se pasa por los puntos base para no arrastrar la coma flotante: 0.4 × 100 no da 40 exacto y el
+   * campo no puede abrir diciendo 40.000000000000006.
+   */
+  const inicial = aPuntosBase(progress) / 100
   // Lo último avisado, para que Enter seguido del blur no avise dos veces el mismo valor.
   const confirmado = useRef(inicial)
 
@@ -691,11 +701,14 @@ function CapturaDeAvance({
       campo.value = String(confirmado.current)
       return
     }
-    const acotado = Math.min(100, Math.max(0, Number(campo.value)))
+    // A centésimas, que es lo que se guarda: escribir 33,333 no captura una precisión que el
+    // modelo no tiene, y redondear aquí evita que el campo prometa una que no va a conservar.
+    const puntos = Math.min(10_000, Math.max(0, Math.round(Number(campo.value) * 100)))
+    const acotado = puntos / 100
     campo.value = String(acotado)
     if (acotado === confirmado.current) return
     confirmado.current = acotado
-    onProgressChange(id, acotado / 100)
+    onProgressChange(id, comoFraccion(puntos))
   }
 
   return (
@@ -704,7 +717,8 @@ function CapturaDeAvance({
         type="number"
         min={0}
         max={100}
-        step={1}
+        // A centésimas: con paso de uno, el navegador marca 33,33 como inválido.
+        step={0.01}
         defaultValue={inicial}
         aria-label={`Avance de ${name}`}
         onBlur={(evento) => confirmar(evento.currentTarget)}

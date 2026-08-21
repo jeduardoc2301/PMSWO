@@ -399,3 +399,38 @@ describe('§6.2, §6.4 · en el Esquema también se renombra, y con la misma cel
     expect(screen.getByRole('button', { name: 'Inicio del plan' })).toBeInTheDocument()
   })
 })
+
+/**
+ * §2.1 · el campo no se come el tercio.
+ *
+ * Medido en pantalla antes de escribir esto: con 3 333 puntos base guardados —un tercio— la base
+ * decía `0.3333` y el campo de la Lista abría diciendo **33.3**. Quien pulsara Enter ahí guardaba
+ * 33,3 % y el resto se perdía sin que nada lo dijera. Es el mismo defecto que tenía la celda del
+ * Gantt, en la otra vista.
+ */
+describe('§2.1 · el avance capturado con centésimas sobrevive a la Lista', () => {
+  it('un tercio abre diciendo 33,33 y no 33,3', () => {
+    dibujar({ tasks: PLAN.map((t) => (t.id === 'presenta' ? { ...t, progress: 0.3333 } : t)) })
+
+    const campo = screen.getByLabelText('Avance de Presentar el plan de trabajo') as HTMLInputElement
+    expect(campo.value).toBe('33.33')
+  })
+
+  it('y confirmar lo que abre no cambia nada: no hay escritura silenciosa', () => {
+    const { props } = dibujar({ tasks: PLAN.map((t) => (t.id === 'presenta' ? { ...t, progress: 0.3333 } : t)) })
+
+    fireEvent.blur(screen.getByLabelText('Avance de Presentar el plan de trabajo'))
+
+    expect(props.onProgressChange).not.toHaveBeenCalled()
+  })
+
+  it('capturar centésimas avisa con la fracción exacta', () => {
+    const { props } = dibujar()
+
+    const campo = screen.getByLabelText('Avance de Presentar el plan de trabajo')
+    fireEvent.change(campo, { target: { value: '66.67' } })
+    fireEvent.blur(campo)
+
+    expect(props.onProgressChange).toHaveBeenCalledWith('presenta', 0.6667)
+  })
+})
