@@ -562,3 +562,40 @@ describe('§10.2 · filtrar por un campo que guarda una lista', () => {
     expect(pasan.map((l) => l.id)).toEqual(['a'])
   })
 })
+
+/**
+ * §10.2 · el avance en el filtro se pregunta en porcentaje.
+ *
+ * Medido antes de arreglarlo: «Avance mayor que 50» devolvía **cero** líneas —porque comparaba
+ * contra la fracción, y ninguna fracción es mayor que 50— y quien lo escribía no tenía forma de
+ * saber por qué. Todas las vistas dicen «40 %»; el filtro era el único que hablaba en fracciones.
+ */
+describe('§10.2 · el avance se filtra en porcentaje', () => {
+  const lineas = [
+    { id: 'a', title: 'Media', progressPct: 0.5 },
+    { id: 'b', title: 'Entera', progressPct: 1 },
+    { id: 'c', title: 'Cero', progressPct: 0 },
+  ] as never[]
+  const con = (operator: string, value: number) =>
+    filtrar(lineas, { op: 'AND', conditions: [{ field: 'progress', operator, value }] } as never, {
+      hoy: '2026-08-21',
+    } as never).map((l: { title: string }) => l.title)
+
+  it('«mayor que 50» encuentra lo que va por encima de la mitad', () => {
+    expect(con('gt', 50)).toEqual(['Entera'])
+  })
+
+  it('«menor que 100» deja fuera lo terminado, que es lo que se quiere preguntar', () => {
+    expect(con('lt', 100)).toEqual(['Media', 'Cero'])
+  })
+
+  it('y las centésimas se pueden preguntar, porque se pueden capturar', () => {
+    const conTercio = [{ id: 'd', title: 'Un tercio', progressPct: 0.3333 }] as never[]
+    const salida = filtrar(
+      conTercio,
+      { op: 'AND', conditions: [{ field: 'progress', operator: 'gt', value: 33.3 }] } as never,
+      { hoy: '2026-08-21' } as never,
+    )
+    expect(salida).toHaveLength(1)
+  })
+})

@@ -143,7 +143,22 @@ export const CAMPOS_BASE: Readonly<Record<string, CampoDeclarado>> = {
   startDate: { tipo: 'fecha', etiqueta: 'Fecha de inicio', leer: (l) => l.startDate },
   endDate: { tipo: 'fecha', etiqueta: 'Fecha final', leer: (l) => l.estimatedEndDate },
   createdAt: { tipo: 'fecha', etiqueta: 'Fecha de creación', leer: (l) => l.createdAt?.slice(0, 10) ?? null },
-  progress: { tipo: 'numero', etiqueta: 'Avance', leer: (l) => l.progressPct },
+  /**
+   * El avance **en porcentaje**, que es la unidad en la que lo dice todo lo demás.
+   *
+   * Se guarda como fracción y antes el filtro comparaba contra ella: «Avance mayor que 50» no
+   * encontraba ni una línea de las 1 368 —porque ninguna fracción es mayor que 50— y quien lo
+   * escribía no tenía forma de saber por qué. Medido: con `> 50` salían cero líneas y con `> 0,4`
+   * salían las que van por la mitad.
+   *
+   * Nadie escribe «0,4» al preguntar por el avance: la rejilla dice «40 %», la tarjeta dice «40 %» y
+   * el panel también. El filtro tenía que hablar el mismo idioma.
+   */
+  progress: {
+    tipo: 'numero',
+    etiqueta: 'Avance (%)',
+    leer: (l) => (l.progressPct == null ? null : l.progressPct * 100),
+  },
   isOverdue: {
     tipo: 'booleano',
     etiqueta: 'Atrasada',
