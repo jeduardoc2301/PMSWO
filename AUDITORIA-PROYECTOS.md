@@ -5590,3 +5590,30 @@ Queda dicho y no tocado: cuál de las dos vale es una decisión del dueño del p
 reparación.
 
 Suite: 3 643 en verde.
+
+## §2 · Una línea nace con sus minutos, la cree quien la cree
+
+Siguiendo por los escritores quedaban los que **crean** líneas. No era un defecto —el motor cae
+limpio en la duración en días cuando faltan los minutos— pero dejaba el plan a medias, y eso tiene
+dos costes que se pagan tarde:
+
+- la comprobación que vigila que los minutos cuadren con las fechas no puede distinguir «todavía no
+  se ha calculado» de «alguien lo dejó mal»;
+- el día que el motor deje de tener esa red, las líneas creadas hoy se quedarían en cero y nadie
+  relacionaría el síntoma con el alta de hace meses.
+
+Los tres caminos que crean una línea la escriben ahora con sus minutos: el alta a mano, la aplicación
+de una plantilla y la conversión de un riesgo en trabajo. Los tres con la misma traducción que ya
+comparten el respaldo, el refresco y la ruta que guarda un cambio de fechas.
+
+**Medido en pantalla**, dando de alta una línea de tres días desde la aplicación:
+
+    antes    duration=3 duracionMin=undefined  → el verificador la daba por descuadrada
+    despues  duration=3 duracionMin=1440       → cuadra
+
+Y una señal que conviene no pasar por alto: **cuatro suites necesitaron simular el calendario del
+proyecto**, que antes no hacía falta. Calcular días hábiles obliga a saber qué días lo son, así que
+el alta pasó a depender de algo que antes no miraba. Cuando una prueba de otro sitio empieza a pedir
+un dato nuevo, es que la dependencia es real y no un detalle de implementación.
+
+Suite: 3 643 en verde.
