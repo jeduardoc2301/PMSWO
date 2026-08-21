@@ -407,3 +407,44 @@ describe('El desfase en minutos (§2.2)', () => {
     expect(comoHora(programarEnMinutos(entrada).porId.get('b')!.comienzo)).toBe('2026-06-02 16:00')
   })
 })
+
+describe('Una línea que declara su hora (§2.1)', () => {
+  it('empieza a las dos de la tarde si eso es lo que dice', () => {
+    // Es el ejemplo que pone el spec al pedir que las fechas lleven hora: «una tarea puede empezar
+    // a las 14:00». Antes la restricción amarraba el día y la línea abría con la jornada.
+    const tasks: PlanTask[] = [
+      {
+        id: 'a',
+        name: 'Ventana de corte',
+        duration: 1,
+        duracionMin: 240,
+        constraint: { type: 'NO_ANTES_DE', date: LUNES, minuto: 14 * 60 },
+      },
+    ]
+    const p = programarEnMinutos({ tasks, dependencies: [], reloj, comienzo: LUNES })
+
+    expect(comoHora(p.porId.get('a')!.comienzo)).toBe('2026-06-01 14:00')
+    expect(comoHora(p.porId.get('a')!.fin)).toBe('2026-06-01 18:00')
+  })
+
+  it('y una hora en la que no se trabaja se normaliza a cuando se abre', () => {
+    // Las siete de la mañana no son una hora laborable: amarrar ahí es amarrar a la apertura, no
+    // adelantar la jornada. Sin normalizar, la línea diría que empieza a una hora en la que nadie
+    // está trabajando.
+    const tasks: PlanTask[] = [
+      { id: 'a', name: 'Temprano', duration: 1, duracionMin: 480, constraint: { type: 'NO_ANTES_DE', date: LUNES, minuto: 7 * 60 } },
+    ]
+    const p = programarEnMinutos({ tasks, dependencies: [], reloj, comienzo: LUNES })
+
+    expect(comoHora(p.porId.get('a')!.comienzo)).toBe('2026-06-01 09:00')
+  })
+
+  it('sin hora declarada sigue amarrando el día, como las 1 368 del plan importado', () => {
+    const tasks: PlanTask[] = [
+      { id: 'a', name: 'De siempre', duration: 1, duracionMin: 480, constraint: { type: 'NO_ANTES_DE', date: LUNES } },
+    ]
+    const p = programarEnMinutos({ tasks, dependencies: [], reloj, comienzo: LUNES })
+
+    expect(comoHora(p.porId.get('a')!.comienzo)).toBe('2026-06-01 09:00')
+  })
+})

@@ -72,6 +72,7 @@ model Project {
   client           String
   startDate        DateTime @map("start_date") @db.Date
   estimatedEndDate DateTime @map("estimated_end_date") @db.Date
+
   status           String   @default("PLANNING")
   archived         Boolean  @default(false)
   plannedHours     Int?     @map("planned_hours")
@@ -178,6 +179,14 @@ model WorkItem {
   priority         String
   startDate        DateTime  @map("start_date") @db.Date
   estimatedEndDate DateTime  @map("estimated_end_date") @db.Date
+
+  // A qué hora empieza, en minutos desde la medianoche (§2.1). Nulo significa «cuando abra la
+  // jornada», que es lo que han hecho siempre las 1 368 líneas del plan importado.
+  //
+  // Va al lado de la fecha y no dentro porque la columna es `DATE` y cambiarla a `DATETIME` obliga
+  // a revisar cada sitio que la lee, la compara o la escribe. El dato que falta es la hora, y es la
+  // hora lo que se añade.
+  startMinute Int? @map("start_minute")
   completedAt      DateTime? @map("completed_at")
   estimatedHours   Int?      @map("estimated_hours")
   /// Duración en minutos LABORABLES (§2). `null` mientras la línea siga contándose en días.

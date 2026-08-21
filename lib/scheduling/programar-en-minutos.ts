@@ -136,7 +136,9 @@ export function programarEnMinutos(entrada: EntradaEnMinutos): ProgramaEnMinutos
     // La restricción se aplica al final, sobre lo que pidieron las predecesoras, igual que en el
     // motor de días.
     if (task.constraint) {
-      const fijada = reloj.abrir(instanteDe(task.constraint.date))
+      // Con hora, amarra la hora; sin ella, el día. `abrir` normaliza las dos: una restricción a
+      // las 07:00 amarra en realidad a la apertura de la jornada, porque antes no se trabaja.
+      const fijada = reloj.abrir(instanteDe(task.constraint.date, task.constraint.minuto ?? 0))
       if (task.constraint.type === 'DEBE_EMPEZAR_EL') {
         // La única que pisa hacia atrás: quien la pone dice «este día y no otro». Lo que no puede
         // pisar es el arranque del plan, o el plan empezaría antes que él mismo.

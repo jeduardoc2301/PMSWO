@@ -35,6 +35,14 @@ const updateWorkItemSchema = z.object({
   status: z.nativeEnum(WorkItemStatus).optional(),
   priority: z.nativeEnum(WorkItemPriority).optional(),
   startDate: z.string().optional(),
+  /**
+   * A qué hora empieza la línea, en minutos desde la medianoche (§2.1). `null` la devuelve a
+   * «cuando abra la jornada».
+   *
+   * De 0 a 1 439 porque es un minuto **del día**: 1 440 sería la medianoche del siguiente, y eso se
+   * dice cambiando la fecha.
+   */
+  startMinute: z.number().int().min(0).max(1439).nullable().optional(),
   estimatedEndDate: z.string().optional(),
   ownerId: z.string().uuid().optional(),
   phase: z.string().nullable().optional(),
@@ -346,6 +354,9 @@ async function updateWorkItemHandler(
         ...(updateData.status && { status: updateData.status }),
         ...(updateData.priority && { priority: updateData.priority }),
         ...(updateData.startDate && { startDate: new Date(updateData.startDate) }),
+        // Contra undefined y no por verdadero: `null` significa «quítale la hora» y las 00:00 son
+        // un minuto válido; por verdadero, los dos se perderían en silencio.
+        ...(updateData.startMinute !== undefined && { startMinute: updateData.startMinute }),
         ...(updateData.estimatedEndDate && { estimatedEndDate: new Date(updateData.estimatedEndDate) }),
         ...(updateData.ownerId && { ownerId: updateData.ownerId }),
         ...(updateData.phase !== undefined && { phase: updateData.phase }),

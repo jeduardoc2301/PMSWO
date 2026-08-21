@@ -94,6 +94,18 @@ export type ConstraintType =
 export interface Constraint {
   readonly type: ConstraintType
   readonly date: IsoDate
+  /**
+   * Minuto del día en que amarra, contado desde la medianoche (§2.1).
+   *
+   * Sin él la restricción amarra el **día**, que es lo que ha hecho siempre y lo que hace el plan
+   * importado. Con él amarra la hora: «esta línea no empieza antes de las dos de la tarde», que es
+   * el ejemplo que el spec pone al pedir que las fechas lleven hora.
+   *
+   * Va aparte de `date` y no dentro porque `IsoDate` es una fecha civil en todo el sistema —la
+   * comparan, la escriben y la enseñan decenas de sitios— y meterle una hora dentro habría que
+   * comprobarlo en todos ellos.
+   */
+  readonly minuto?: number
 }
 
 /**

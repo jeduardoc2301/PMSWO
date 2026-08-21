@@ -138,6 +138,7 @@ export async function loadProjectPlan(
         status: true,
         constraintType: true,
         constraintDate: true,
+        startMinute: true,
         estimatedHours: true,
         durationMinutes: true,
         startDate: true,
@@ -215,7 +216,7 @@ export async function loadProjectPlan(
       // los enteros para que un tercio capturado siga siendo un tercio después de la vuelta.
       progress: comoFraccion(item.progressBp),
       status: item.status,
-      ...restriccionDe(item.constraintType, item.constraintDate, start),
+      ...restriccionDe(item.constraintType, item.constraintDate, start, item.startMinute),
       // La elección original, aparte de lo que el motor consume: es lo único que distingue una
       // restricción puesta por alguien del ancla que este servicio le pone a todas las líneas.
       ...(item.constraintType
@@ -290,8 +291,19 @@ export function restriccionDe(
   tipo: string | null | undefined,
   fecha: Date | null | undefined,
   anclaje: string,
+  /**
+   * A qué hora amarra el ancla, si la línea declara una (§2.1).
+   *
+   * El ancla es la fecha guardada de la línea, así que su hora es la hora guardada de la línea. Sin
+   * ella amarra el día, que es lo que hacen las 1 368 del plan importado.
+   */
+  minutoDelAnclaje?: number | null,
 ): { constraint: Constraint; compromiso?: Constraint; alap?: boolean } {
-  const ancla: Constraint = { type: 'NO_ANTES_DE', date: anclaje }
+  const ancla: Constraint = {
+    type: 'NO_ANTES_DE',
+    date: anclaje,
+    ...(minutoDelAnclaje != null ? { minuto: minutoDelAnclaje } : {}),
+  }
 
   // `ALAP` es la única de las ocho que NO lleva fecha, así que tiene que salir antes de la guarda
   // de abajo — que descarta por fecha nula y se la habría tragado en silencio, dejando la línea

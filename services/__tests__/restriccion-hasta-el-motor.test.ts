@@ -59,3 +59,18 @@ describe('De la columna de la base a lo que el motor lee', () => {
     expect(s.byId.get('post')!.start).toBe('2026-06-03')
   })
 })
+
+describe('El ancla con hora (§2.1)', () => {
+  it('lleva la hora guardada de la línea, no sólo su día', () => {
+    // Sin esto, una línea que declara que empieza a las dos de la tarde llegaba al motor anclada a
+    // su día y abría con la jornada: la hora se guardaba y no la miraba nadie.
+    const r = restriccionDe(null, null, ANCLAJE, 14 * 60)
+
+    expect(r.constraint).toEqual({ type: 'NO_ANTES_DE', date: ANCLAJE, minuto: 840 })
+  })
+
+  it('y sin hora guardada el ancla es la de siempre, sin campo de más', () => {
+    expect(restriccionDe(null, null, ANCLAJE)).toEqual({ constraint: { type: 'NO_ANTES_DE', date: ANCLAJE } })
+    expect(restriccionDe(null, null, ANCLAJE, null)).toEqual({ constraint: { type: 'NO_ANTES_DE', date: ANCLAJE } })
+  })
+})
