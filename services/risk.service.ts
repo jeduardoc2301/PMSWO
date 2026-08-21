@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { minutosDeLaLinea } from '@/services/duracion.service'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { RiskLevel, RiskStatus, BlockerSeverity } from '@/types'
 import { z } from 'zod'
@@ -586,6 +587,18 @@ export class RiskService {
       throw new ValidationError('No TODO Kanban column found in project')
     }
 
+    // Las fechas y sus minutos, antes de abrir la transacción: dentro habría que preguntar por el
+    // calendario del proyecto con la transacción abierta.
+    const desde = new Date()
+    const hasta = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Una semana, como siempre
+    const minutos = await minutosDeLaLinea(
+      risk.projectId,
+      risk.project.organizationId,
+      null,
+      desde,
+      hasta,
+    )
+
     // Create work item and update risk status in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create work item
@@ -598,10 +611,13 @@ export class RiskService {
           description: risk.description,
           status: 'TODO',
           priority,
-          startDate: new Date(),
-          estimatedEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default to 7 days from now
+          startDate: desde,
+          estimatedEndDate: hasta,
           kanbanColumnId: todoColumn.id,
           completedAt: null,
+          // Los minutos que le tocan por sus fechas (§2): una línea que nace sin ellos deja el plan
+          // a medias, y ésta nace de convertir un riesgo en trabajo.
+          durationMinutes: minutos,
         },
       })
 

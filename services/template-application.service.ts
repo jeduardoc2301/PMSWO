@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { minutosDeLaLinea } from '@/services/duracion.service'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { WorkItemStatus, WorkItemPriority, KanbanColumnType } from '@/types'
 import { templateService } from './template.service'
@@ -150,6 +151,14 @@ export class TemplateApplicationService {
       )
     }
 
+    // Los minutos de cada línea, resueltos antes de la transacción: dentro habría que preguntar por
+    // el calendario del proyecto una vez por línea, y una plantilla trae decenas.
+    const minutosPorLinea = await Promise.all(
+      calculatedActivities.map((calc) =>
+        minutosDeLaLinea(projectId, organizationId, null, calc.startDate, calc.estimatedEndDate),
+      ),
+    )
+
     // Create work items in batch using transaction
     const workItems = await prisma.$transaction(async (tx) => {
       // Create all work items
@@ -170,6 +179,9 @@ export class TemplateApplicationService {
               estimatedHours: calc.estimatedHours,
               templateOrder: index,
               kanbanColumnId: backlogColumn.id,
+              // Los minutos que le tocan por sus fechas (§2), igual que en el alta a mano: una línea
+              // que nace sin ellos deja el plan a medias.
+              durationMinutes: minutosPorLinea[index],
             },
           })
         )

@@ -24,6 +24,10 @@ vi.mock('@/lib/prisma', () => ({
     blocker: {
       create: vi.fn(),
     },
+    // Convertir un riesgo en línea calcula los minutos que dura (§2), y para eso pregunta por el
+    // calendario del proyecto. Sin fila, el de siempre: lunes a viernes, sin festivos.
+    projectCalendar: { findFirst: vi.fn(async () => null) },
+    projectHoliday: { findMany: vi.fn(async () => []) },
     $transaction: vi.fn(),
   },
 }))

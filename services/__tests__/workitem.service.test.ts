@@ -34,6 +34,10 @@ vi.mock('@/lib/prisma', () => ({
     kanbanColumn: {
       findFirst: vi.fn(),
     },
+    // El alta calcula los minutos de la línea nueva (§2), y para eso pregunta por el calendario del
+    // proyecto. Sin fila, el calendario es el de siempre: lunes a viernes, sin festivos.
+    projectCalendar: { findFirst: vi.fn(async () => null) },
+    projectHoliday: { findMany: vi.fn(async () => []) },
     $transaction: vi.fn(),
   },
 }))

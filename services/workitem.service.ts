@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { aPuntosBase } from '@/lib/plan/porcentaje'
+import { minutosDeLaLinea } from '@/services/duracion.service'
 import { estadoDeLaColumna, progresoAlMover } from '@/lib/projects/status-progress'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { validarPadre } from '@/services/hierarchy'
@@ -281,6 +282,16 @@ export class WorkItemService {
         parentId: data.parentId ?? null,
         kanbanColumnId: kanbanColumn.id,
         completedAt: null,
+        // Los minutos que le tocan por sus fechas (§2). Sin ellos la línea nace a medias: el motor
+        // cae limpio en los días, pero el plan queda con unas líneas con minutos y otras sin ellos,
+        // y la comprobación que vigila que cuadren no puede distinguir «no calculado» de «mal».
+        durationMinutes: await minutosDeLaLinea(
+          data.projectId,
+          project.organizationId,
+          null,
+          data.startDate,
+          data.estimatedEndDate,
+        ),
       },
     })
 

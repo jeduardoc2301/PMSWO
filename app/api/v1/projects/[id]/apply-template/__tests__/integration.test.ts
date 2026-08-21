@@ -21,6 +21,10 @@ vi.mock('@/lib/prisma', () => ({
     kanbanColumn: {
       findFirst: vi.fn(),
     },
+    // Aplicar una plantilla calcula los minutos de cada línea (§2), y para eso pregunta por el
+    // calendario del proyecto. Sin fila, el de siempre: lunes a viernes, sin festivos.
+    projectCalendar: { findFirst: vi.fn(async () => null) },
+    projectHoliday: { findMany: vi.fn(async () => []) },
     workItem: {
       create: vi.fn(),
     },
