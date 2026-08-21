@@ -4933,3 +4933,38 @@ prueba, no el código.
 
 Es la regla de esta sesión aplicada a mí mismo: **una prueba que no cae cuando el arreglo se rompe no
 existe**. La escribí, la validé, no cayó, y hubo que rehacerla.
+
+## §2 · Segundo paso: las columnas y el respaldo
+
+Con la conversión ya probada, tocan los datos. Dos columnas **aditivas**, que es lo que permite que
+una migración de este tamaño no sea un salto al vacío:
+
+- `Project.minutosPorJornada`, con 480 por omisión —las ocho horas del §3.5—. Va en el proyecto y no
+  en cada línea porque es la unidad con la que se leen **todas**: cambiarla no mueve ninguna fecha,
+  cambia cómo se escribe lo que ya existe.
+- `WorkItem.durationMinutes`, nulo al principio. Se añade **al lado** de lo que hay en vez de
+  sustituirlo: una columna que nadie lee todavía no rompe nada, mientras que cambiar la vieja de
+  unidad sí.
+
+### El respaldo, y por qué es idempotente
+
+`scripts/rellenar-minutos.ts` traduce las fechas que cada línea ya tiene a duración en días hábiles y
+de ahí a minutos con la jornada del proyecto. Nadie vuelve a teclear mil trescientas duraciones.
+
+Sólo escribe donde `durationMinutes` está **vacío**, así que se puede volver a correr sin pisar lo
+que alguien ajuste a mano. Y lleva `--dry-run`, que se usó antes de escribir nada.
+
+### Dos cifras que se comprueban solas
+
+Sobre el plan de referencia: **1 368 líneas escritas, ninguna sin calcular.**
+
+| lo que salió | contra qué cuadra |
+|---|---|
+| **109** líneas a cero minutos | los **109 hitos** contados en la tanda 47 (86 `HITO` + 23 `PUNTO_DE_CONTROL`) |
+| la mayor, **38 880 min = 81 días** | el resumen raíz medido en la tanda 58: `2026-06-12 → 2026-10-02`, **81 días** |
+
+No las busqué: salieron del respaldo y coinciden con dos mediciones de noches distintas hechas por
+caminos que no se parecen. Un hito dura cero porque no consume calendario, y el cero se escribe
+explícito para que «no lo hemos calculado» y «dura cero» no se confundan.
+
+El plan de referencia verifica entero después: 1 368 líneas y 1 665 vínculos.

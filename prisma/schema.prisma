@@ -88,6 +88,12 @@ model Project {
   // proyecto y no una decisión del motor. Por omisión el ponderado, que es lo que la aplicación ha
   // calculado siempre.
   progressRollup   String   @default("DURACION") @map("progress_rollup") @db.VarChar(20)
+  /// Minutos de jornada del proyecto (§2). Ocho horas son 480, que es la jornada del §3.5.
+  ///
+  /// Va en el proyecto y no en cada línea porque es la unidad con la que se leen TODAS: cambiarla
+  /// no mueve ninguna fecha, cambia cómo se escriben las duraciones que ya existen. Ver
+  /// `lib/scheduling/unidades.ts`, donde vive la conversión y el porqué.
+  minutosPorJornada Int     @default(480) @map("minutos_por_jornada")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -174,6 +180,12 @@ model WorkItem {
   estimatedEndDate DateTime  @map("estimated_end_date") @db.Date
   completedAt      DateTime? @map("completed_at")
   estimatedHours   Int?      @map("estimated_hours")
+  /// Duración en minutos LABORABLES (§2). `null` mientras la línea siga contándose en días.
+  ///
+  /// Se añade al lado de lo que hay en vez de sustituirlo: la migración del §2 es de las que no se
+  /// pueden hacer de un tirón —toca el modelo, el motor y las seis vistas— y una columna nueva que
+  /// nadie lee todavía no rompe nada, mientras que cambiar la vieja de unidad sí.
+  durationMinutes  Int?      @map("duration_minutes")
   templateOrder    Int?      @map("template_order")
 
   // ── PLANEACIÓN · Responsabilidad del cliente (C6) ──────────────────────────
