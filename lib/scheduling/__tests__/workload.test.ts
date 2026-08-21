@@ -524,3 +524,38 @@ describe('§3.5 · un hito no aporta carga', () => {
     expect(tasks).toHaveLength(1)
   })
 })
+
+/**
+ * §8 · qué cuenta la carga de una línea que no llena su día.
+ *
+ * Desde que una línea puede durar cuatro horas (§2), la carga se queda mirando la unidad vieja: pesa
+ * **una jornada por cada día que abarca**, sin preguntar cuántos minutos dura de verdad. Una tarea
+ * de media jornada al 100 % de dedicación carga ocho horas donde consume cuatro.
+ *
+ * El §3.5 lo dice con una identidad: `Work = Duration × Units`. Con la duración en minutos, el
+ * trabajo de esa línea son 240 × 100 %, no 480.
+ *
+ * ## Por qué esto se mide y no se arregla aquí mismo
+ *
+ * El arreglo es repartir `duracionMin × units` entre los días que abarca en vez de poner una jornada
+ * en cada uno. Es pequeño en código y **cambia una cifra que la gente mira todos los días** —la carga
+ * y la sobrecarga de cada persona—, así que quiere su medición en pantalla y su vuelta atrás, no un
+ * commit de madrugada. Esta prueba fija lo que hoy pasa y se pondrá roja cuando se arregle.
+ */
+describe('§8 · la carga de una línea sub-diaria, medida', () => {
+  it('hoy pesa la jornada entera aunque dure media', () => {
+    const matriz = workloadMatrix({
+      resources: [{ id: 'r', name: 'Quien sea', dailyMinutes: 480, absences: [] }] as never,
+      tasks: [
+        { id: 't', name: 'Media jornada', start: '2026-06-01', finish: '2026-06-01', isMilestone: false },
+      ] as never,
+      assignments: [{ taskId: 't', resourceId: 'r', unitsBp: 10000 }] as never,
+      from: '2026-06-01',
+      to: '2026-06-01',
+      calendar: createWorkCalendar(),
+    })
+
+    // 480 minutos: una jornada entera. La línea dura 240 y nadie se lo pregunta.
+    expect(matriz.rows[0].celdas[0].cargaMin).toBe(480)
+  })
+})
