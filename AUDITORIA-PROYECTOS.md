@@ -4200,3 +4200,33 @@ date}`, y dos tareas al 50 % que dan el 100 % exacto y por tanto **no** sobrecar
 
 La regla queda escrita en memoria: **leer el componente y copiar la cadena exacta antes de escribir
 la sonda**, y cuando una sonda no encuentre algo, comprobar el selector antes que el código.
+
+## §7.2 · Pintar un rango en el Calendario, medido: funciona
+
+Barrido activo del Calendario. **No hay defecto.** Pintando tres días seguidos en la rejilla del mes
+—`mousedown` en el primero, `mouseenter` en los dos siguientes, `mouseup`—:
+
+| | |
+|---|---|
+| días pintados | 2026-06-01 → 2026-06-02 → 2026-06-03 |
+| se abre | el diálogo de alta |
+| con las fechas | **«1 de jun de 2026»** y **«3 de jun de 2026»**, ya puestas |
+| avisos en consola | ninguno |
+
+No se pulsó guardar: la demostración está completa sin escribir, y escribir habría añadido una línea
+al plan de referencia.
+
+### La regla de anoche, funcionando
+
+Esta medición también falló dos veces antes de dar la cifra buena, y **las dos veces el fallo era
+mío y lo comprobé antes de acusar al código**:
+
+1. busqué las fechas en `input[type="date"]` y el alta usa un `DatePicker` propio, que las escribe en
+   un `span` de clase `dp-input-text`. Leí el componente en vez de escribir «el alta no recibe las
+   fechas»;
+2. al corregir la sonda metí **acentos graves dentro de la plantilla** que se manda a la página, y
+   cerraron la cadena: `ReferenceError: input is not defined`. Es el hermano del problema que ya
+   estaba anotado —los escapes se degradan— con otra cara.
+
+Anoche tres sondas equivocadas se convirtieron en tres hallazgos falsos. Hoy dos se quedaron en dos
+sondas equivocadas.
