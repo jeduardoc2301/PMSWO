@@ -4300,3 +4300,27 @@ antes sería dibujar una resolución que los datos no tienen.
 
 Lo mismo con **tiempo real** (§10.5) y el **modo claro**: son las dos decisiones que quedan, y ya
 están dichas en su sitio.
+
+## §3.2 · El ciclo se rechaza nombrando la cadena, y no se escribe nada
+
+El §3.2 pone dos reglas duras juntas: «detección de ciclos obligatoria **antes de persistir**.
+Rechaza **nombrando la cadena completa**, y **no persistas nada**». Y el §10.7 pide que el motivo sea
+concreto, «nunca un “Error” genérico». Las tres se demuestran de una vez.
+
+Sobre el plan de referencia, tomando un vínculo real y pidiendo el contrario —el ciclo más corto que
+existe—:
+
+| | |
+|---|---|
+| vínculos antes | **1 665** |
+| respuesta | **400** |
+| el mensaje | «Ese vínculo crearía un ciclo y el plan dejaría de poder programarse. El plan tiene un ciclo de dependencias: *Reintegrar cada servidor migrado al dominio de Active Directory del banco → Actualizar en las aplicaciones la conexión hacia las bases de datos ya migradas → …*» |
+| vínculos después | **1 665** — no se escribió nada |
+
+El mensaje nombra **las líneas por su título**, no por identificador, y dice qué hacer: «hay que
+quitar uno de esos vínculos». Es lo contrario de un «Error» genérico, y es lo que separa un rechazo
+que se entiende de uno que sólo frustra.
+
+La medición no es destructiva por construcción: el caso que se prueba es justamente el que el
+servidor tiene que rechazar, así que demostrarlo deja el plan igual que estaba. Verificado: 1 368
+líneas y 1 665 vínculos.
