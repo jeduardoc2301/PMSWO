@@ -4877,3 +4877,23 @@ hueco *menor* sí lo sería, y no hay ninguno.
 
 Con esto el «`lag` positivo = retraso» del §3.2 queda demostrado sobre el plan real y no sobre un
 ejemplo: 108 casos, ni uno que se salte su espera.
+
+## §9.3 · Las atrasadas: la misma cifra por tres caminos distintos
+
+El §9.3 pide que la cuenta de atrasadas del Gantt coincida **exactamente** con la del Panel — y el
+comentario del conmutador ya lo decía: «un número que no se puede leer en pantalla no se puede
+comprobar en pantalla», que es para lo que la cifra va escrita en el rótulo.
+
+| de dónde sale | cuenta |
+|---|---|
+| el Gantt, calculado en el navegador con el motor | **116** — «Resaltar (116)» |
+| el Panel, calculado en el servidor sobre el plan entero | **116** |
+| mi propio recuento sobre la base, en la tanda 47 | **116** |
+
+**Tres caminos independientes, la misma cifra.** No es una coincidencia barata: el Gantt la deriva de
+lo que el motor programó en el cliente, el Panel de una consulta del servidor, y la mía de un guion
+que lee `work_items` directamente. Que las tres den 116 es lo que hace creíble el número.
+
+Es además el caso que el spec teme: la definición de «terminada» está en `estaTerminada`, una sola
+función, y por eso las dos pantallas no pueden separarse. Con «avance por debajo del 100 %» a secas
+coincidirían **por casualidad** hasta el día que existiera una línea cerrada al 50 %.
