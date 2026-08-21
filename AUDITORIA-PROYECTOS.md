@@ -5791,3 +5791,30 @@ Importaba porque el valor nuevo tenía que pasar por la validación del servicio
 escala se elegiría, se vería bien hasta recargar, y volvería a la de antes sin decir nada. Es el
 mismo tipo de fallo mudo que el filtro de esta noche, y por eso se comprueba recargando y no
 mirando la pantalla justo después de pulsar.
+
+## §9 · El Panel, tras el cambio de unidad
+
+Las cifras agregadas del Panel, contra las que ya estaban medidas en tandas anteriores:
+
+| cifra | ahora | antes |
+|---|---|---|
+| líneas de trabajo | 1 243 | 1 243 |
+| atrasadas | **116** | 116, medido por tres caminos en la tanda 63 |
+| resúmenes fuera del reparto | 125 | 125 |
+| sin responsable del cliente | 0 | 0 |
+| retraso sobre lo planificado | 45,8 % | 45,7 % en la lectura de las 02:05 |
+
+Ninguna se movió con el cambio de unidad del motor, que es lo que había que comprobar: las 1 368
+líneas duran jornadas enteras y el motor en minutos las coloca donde las colocaba el de días.
+
+### La décima que no sé explicar
+
+El retraso pasó de 45,7 % a 45,8 % entre dos lecturas de la misma noche. Lo que **sí** está medido:
+el corte es el mismo en las dos —«Al 21 ago 2026», que es hoy y flota con el calendario— así que no
+lo explica un cambio de día.
+
+Lo que no está medido es la causa. La hipótesis razonable es que la primera lectura se tomó con
+alguna de las capturas de avance de la noche todavía puesta —un avance capturado sube el avance real
+y baja la diferencia, y 45,7 < 45,8 encaja con eso—, pero **no lo comprobé**, y una hipótesis que
+encaja no es una medición. Queda anotado como hilo abierto y no como defecto: todas las lecturas en
+estado estable coinciden, y ninguna de las otras cifras se movió.
