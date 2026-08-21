@@ -2,7 +2,12 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { useRouter } from 'next/navigation'
 import { ProjectDetailClient } from '../project-detail-client'
 import { WorkItemStatus, ProjectStatus } from '@/types'
-import { vi } from 'vitest'
+// `describe`, `it`, `expect` y `beforeEach` se importan en vez de usarse como globales.
+//
+// Estaban tomándose del ámbito global, que en tiempo de ejecución funciona —vitest los pone— pero
+// para TypeScript no existen: este archivo solo arrastraba **48 errores** de «Cannot find name», y
+// ese ruido es justo lo que esconde un error de verdad cuando aparece.
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock next/navigation
 // La pantalla lee la sesión de la persona que entró. Sin simular next-auth exige un
@@ -28,6 +33,19 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => 'en',
+}))
+
+/*
+  El panel de control, por un doble.
+
+  Desde que se fusionó con el Resumen, esta pantalla monta el panel entero — que pide dos rutas
+  propias y dibuja seis widgets. Esta suite comprueba el **armazón** del detalle: sus datos, sus
+  pestañas y el informe de IA. Montar el panel de verdad la obligaría a mantener un juego de
+  métricas completo que se desincronizaría con el real a la primera, y las caídas saldrían aquí
+  hablando de algo que esta prueba no vigila. El panel tiene sus propias suites.
+*/
+vi.mock('@/components/projects/dashboard-tab', () => ({
+  DashboardTab: () => <div data-testid="panel-de-control" />,
 }))
 
 // Mock fetch
@@ -151,6 +169,22 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
     expect(screen.getAllByText('2').length).toBeGreaterThan(0) // bloqueadores activos
     expect(screen.getByText('critical')).toBeInTheDocument()
     expect(screen.getByText('highPriority')).toBeInTheDocument()
+  })
+
+  /**
+   * El panel de control dejó de ser una pestaña y vive dentro del Resumen.
+   *
+   * Se fusionaron porque las dos contestaban a lo mismo con dos pantallas. Lo que se comprueba aquí
+   * es lo que de verdad importa de esa mudanza: que el panel **está** en el Resumen y que su
+   * pestaña **ya no está** — que es la mitad que se olvida, dejando dos caminos al mismo sitio.
+   */
+  it('el panel de control vive en el Resumen, y ya no tiene pestaña propia', async () => {
+    render(<ProjectDetailClient projectId="project-1" locale="en" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('panel-de-control')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('button', { name: 'Panel de control' })).not.toBeInTheDocument()
   })
 
   it('should display tabs for different views', async () => {

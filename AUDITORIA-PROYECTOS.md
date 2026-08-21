@@ -6143,3 +6143,76 @@ desaparecer entera, es otra decisión y son otros archivos.
 La prueba nueva compara la lista de entradas **entera**, así que se pone roja tanto si alguien añade
 algo como si se cae algo, y no sólo si vuelve el plan. Validada devolviendo la entrada y viéndola
 fallar. En pantalla el menú queda en cinco entradas y ninguna apunta a `/plan`. Suite 3 686.
+
+## §9 · El Panel de control se muda dentro del Resumen
+
+Pedido a mano: las dos pestañas contestaban a lo mismo con dos pantallas, así que se unifican en
+Resumen y la de Panel de control desaparece.
+
+**Aviso que conviene no perder:** el spec define **seis vistas** y el Panel de control es una de
+ellas, con sus seis criterios de aceptación (§9.3). **«Resumen» no está en el spec** — es una
+pantalla anterior que sobrevivió. O sea que se conserva la pestaña que el spec no describe y se
+retira la que el spec exige. Se puede hacer sin incumplirlo porque lo que se muda es la vista
+**entera** —sus widgets, su modal, su exportación y su preferencia por usuario y proyecto—, pero
+quien lea el §9 buscando una pestaña con ese nombre no la va a encontrar.
+
+### Lo que había que no romper
+
+- **La reja de permiso.** `overview` no está en `PERMISO_POR_VISTA`, así que nunca se recorta.
+  Colgar el panel ahí sin condición se lo habría enseñado a un cliente externo sin `view_dashboard`,
+  que es justo a quien la pestaña se lo escondía. La condición imita a la de la barra —mientras los
+  permisos no han llegado se muestra, y al llegar se recorta— para no cambiar de comportamiento.
+- **La preferencia.** Se sigue leyendo y escribiendo con `view='PANEL'`. Nada en el código ata esa
+  cadena al nombre visible de la pestaña, así que nadie pierde los widgets que tenía elegidos.
+
+### Una respuesta mala costaba una pestaña; ahora costaría la pantalla principal
+
+`const { panel, hoy } = await respuesta.json()` se daba por bueno. Si el cuerpo no traía `panel`, la
+vista reventaba al desestructurarlo. Mientras el panel era una pestaña aparte eso tumbaba una
+pestaña; desde que vive dentro del Resumen tumbaría **la pantalla que todo el mundo abre primero**.
+La misma respuesta mala cuesta ahora mucho más, así que se comprueba antes de darla por cargada.
+
+### Dos pruebas verdes por el motivo equivocado
+
+Las dos aparecieron al medir, no al leer:
+
+1. El fixture de `dashboard-tab-filtro` traía un panel **sin `metricas`**. Con la comprobación nueva
+   caía al estado de error, y **ninguna prueba se quejaba** porque el aviso del filtro se dibuja
+   igual cargando, listo o en error. Seguían verdes ejercitando el camino contrario al que creían.
+2. Los casos nuevos del blindaje esperaban con `waitFor` a que **no** hubiera widgets. `waitFor` se
+   cumple en el primer intento, y en ese instante el panel todavía carga: los widgets no existen
+   aún y la condición era cierta sin arreglo ninguno. Se vio al romper el arreglo y ver que **no se
+   ponían rojas**. Reescritas para esperar el mensaje de error, que es una señal **positiva**, la
+   rotura tumba las dos.
+
+La lección se repite: una aserción negativa sobre algo que todavía no ha llegado no prueba nada.
+
+### Medido en pantalla
+
+Los seis widgets salen dentro del Resumen con la caja del Resumen —barra de acento de 3 px y título
+en `text-sm font-semibold`, donde antes iban en versalitas grises y sin barra—. «Configurar widgets»,
+«Exportar» y la fecha de corte del servidor se mudaron con ellos. No queda ningún botón «Panel de
+control» en la pantalla.
+
+De paso: `project-detail-client.test.tsx` tomaba `describe`, `it` y `expect` del ámbito global, que
+en ejecución funciona pero para TypeScript no existe. Importarlos quita **47 errores** de golpe —de
+712 a 665—, que es justo el ruido que esconde un error de verdad cuando aparece.
+
+### Lo que queda, y no es menor
+
+Las dos mitades calculan por su cuenta y **se contradicen en la misma página**:
+
+| pregunta | la parte de Resumen | la parte del Panel |
+|---|---|---|
+| ¿Cuánto hemos avanzado? | **0 %** — `DONE / total` sobre las 1368, resúmenes incluidos | **0,3 %** — ponderado por días hábiles sobre las 1243 hojas |
+| ¿Hay tareas atrasadas? | **147** — venció y no está terminada, ignora el avance | **115** — venció, no terminada **y** no llegó al 100 % |
+
+El spec manda en las dos: el §9.1.1 pide el progreso ponderado sobre hojas, y el §9.3 criterio 3
+exige que «atrasadas» coincida **exactamente** con el conmutador del Gantt, que es la regla del
+servidor. Además, contar resúmenes en un porcentaje de avance es el error que ya ha mordido cuatro
+veces en este repositorio.
+
+Y hay un tercer desajuste más callado: el Resumen fecha con `Date.now()` del navegador y el Panel con
+la fecha civil del servidor, así que dos pestañas abiertas a distinta hora dicen cosas distintas.
+
+Queda anotado y sin tocar: elegir qué cifra sobrevive cambia lo que la gente ve todos los días.

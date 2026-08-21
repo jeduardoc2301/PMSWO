@@ -153,7 +153,7 @@ function WidgetInformacion({ panel }: { readonly panel: PanelDeProyecto }) {
   const sobran = equipo.length - visibles.length
 
   return (
-    <Widget titulo="Información del proyecto">
+    <Widget titulo="Información del proyecto" acento="var(--acento)">
       <div className="flex flex-col gap-4">
         <div>
           <p className="text-lg font-medium text-tinta">{panel.nombre}</p>
@@ -244,6 +244,7 @@ function WidgetTareas({ metricas }: { readonly metricas: PanelDeProyecto['metric
   return (
     <Widget
       titulo="Tareas"
+      acento="#10b981"
       extra={
         <button
           type="button"
@@ -292,7 +293,7 @@ function WidgetCalendario({ metricas }: { readonly metricas: PanelDeProyecto['me
   const adelantado = desviacion >= 0
 
   return (
-    <Widget titulo="Avance temporal">
+    <Widget titulo="Avance temporal" acento="#3b82f6">
       <div className="flex flex-col gap-4">
         <Cifra
           valor={`${adelantado ? '▲' : '▼'} ${porcentaje(Math.abs(desviacion), 1)}`}
@@ -346,14 +347,14 @@ function WidgetHitos({
 
   if (hitos.total === 0) {
     return (
-      <Widget titulo="Hitos">
+      <Widget titulo="Hitos" acento="#f59e0b">
         <SinDatos>Este plan no tiene hitos ni puntos de control declarados.</SinDatos>
       </Widget>
     )
   }
 
   return (
-    <Widget titulo="Hitos">
+    <Widget titulo="Hitos" acento="#f59e0b">
       <div className="flex flex-col gap-4">
         <BarraApilada id="hitos" rebanadas={hitos.porEstado} etiqueta="Hitos por estado" />
 
@@ -427,7 +428,7 @@ function WidgetHitos({
 
 function WidgetTiempo() {
   return (
-    <Widget titulo="Tiempo en tareas">
+    <Widget titulo="Tiempo en tareas" acento="#8b5cf6">
       <SinDatos>
         Este widget compara el tiempo registrado con lo estimado, y hoy no hay dónde registrar
         tiempo: falta el modelo <code className="text-tinta-2">TimeLog</code>. Se deja apagado a
@@ -440,7 +441,7 @@ function WidgetTiempo() {
 
 function WidgetPresupuesto() {
   return (
-    <Widget titulo="Presupuesto">
+    <Widget titulo="Presupuesto" acento="#14b8a6">
       <SinDatos>
         Este widget compara el costo acumulado con el presupuesto, y el plan todavía no lleva
         dinero: faltan <code className="text-tinta-2">budget</code> y{' '}

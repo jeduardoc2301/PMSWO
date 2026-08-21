@@ -284,20 +284,36 @@ export function SinDatos({ children }: { readonly children: React.ReactNode }) {
   )
 }
 
-/** La caja de un widget. Todos iguales: el sistema visual es uno. */
+/**
+ * La caja de un widget. Todos iguales: el sistema visual es uno.
+ *
+ * Desde que el panel vive dentro del Resumen, ese sistema visual es **el del Resumen**: caja de
+ * `rounded-xl p-5` sobre `--superficie`, borde de `--borde`, una **barra de acento de 3 px a la
+ * izquierda** y el título en `text-sm font-semibold text-tinta-2`. Antes el título iba en
+ * versalitas grises y sin barra, y puestas una debajo de otra las dos familias de tarjeta se veían
+ * de dos aplicaciones distintas.
+ *
+ * El acento es opcional y cae en `--borde`, que es el color que ya tenía el borde izquierdo: una
+ * caja sin acento se ve exactamente como antes.
+ */
 export function Widget({
   titulo,
+  acento,
   extra,
   children,
 }: {
   readonly titulo: string
+  readonly acento?: string
   readonly extra?: React.ReactNode
   readonly children: React.ReactNode
 }) {
   return (
-    <section className="min-w-0 rounded-xl border border-borde bg-superficie p-5">
+    <section
+      className="min-w-0 rounded-xl border border-borde bg-superficie p-5"
+      style={{ borderLeft: `3px solid ${acento ?? 'var(--borde)'}` }}
+    >
       <header className="mb-4 flex items-baseline justify-between gap-3">
-        <h3 className="text-xs uppercase tracking-wide text-tinta-3">{titulo}</h3>
+        <h3 className="text-sm font-semibold text-tinta-2">{titulo}</h3>
         {extra}
       </header>
       {children}

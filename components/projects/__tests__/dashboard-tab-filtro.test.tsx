@@ -31,11 +31,22 @@ vi.mock('@/lib/plan/usar-plan', () => ({
 
 const BARRA = <div data-testid="barra-de-filtro">barra del filtro</div>
 
+/*
+  `metricas` está aquí porque el panel ahora comprueba que venga antes de darse por cargado.
+
+  Sin ella estas pruebas seguían en verde —el aviso del filtro se dibuja igual cargando, listo o en
+  error— pero ejercitaban el camino de error creyendo que ejercitaban el bueno. Una prueba verde por
+  el motivo equivocado es peor que una roja.
+
+  Va vacía a propósito: `DashboardView` está doblado aquí arriba, así que lo único que hace falta es
+  que el objeto exista.
+*/
 const PANEL = {
   nombre: 'Banco Unión',
   lineas: 1368,
   terminadas: 0,
   atrasadas: 127,
+  metricas: {},
 }
 
 beforeEach(() => {
@@ -107,5 +118,62 @@ describe('§10.2 · y la barra tampoco parpadea en las otras vistas', () => {
   it('y el Calendario mientras arma el mes', () => {
     render(<CalendarTab projectId="p1" barraDeFiltro={BARRA} />)
     expect(screen.getByTestId('barra-de-filtro')).toBeInTheDocument()
+  })
+})
+
+/**
+ * §9 · una respuesta mala no puede tumbar la pantalla.
+ *
+ * Un 200 no garantiza que venga lo que hace falta. Esto se daba por bueno y se pasaba tal cual al
+ * estado «listo»; si el cuerpo no traía `panel`, la vista reventaba al desestructurarlo.
+ *
+ * Mientras el panel era una pestaña aparte, eso tumbaba una pestaña. Desde que vive dentro del
+ * Resumen tumbaría **la pantalla que todo el mundo abre primero**: la misma respuesta mala cuesta
+ * ahora mucho más, y por eso se comprueba.
+ */
+describe('§9 · un 200 sin datos cae de pie, no revienta', () => {
+  const conCuerpo = (cuerpo: unknown) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (String(url).includes('/dashboard')) return { ok: true, json: async () => cuerpo } as Response
+        return { ok: false, json: async () => ({}) } as Response
+      }),
+    )
+  }
+
+  /*
+    Se espera al **mensaje de error**, no a que «no haya widgets».
+
+    Escrito al revés, estos dos casos pasaban sin arreglo ninguno: `waitFor` se cumple en el primer
+    intento, y en ese instante el panel todavía está cargando, así que los widgets no existen
+    todavía y la condición era cierta por la razón equivocada. Una aserción negativa sobre algo que
+    aún no ha llegado no prueba nada. El mensaje sólo aparece si el panel decidió que el cuerpo no
+    servía, que es justo lo que hay que comprobar.
+  */
+  it('un cuerpo sin panel enseña el error en vez de romperse', async () => {
+    conCuerpo({ hoy: '2026-08-20' })
+    render(<DashboardTab projectId="p1" barraDeFiltro={BARRA} />)
+
+    expect(await screen.findByText(/No se pudo cargar el panel/)).toBeInTheDocument()
+    expect(screen.getByTestId('barra-de-filtro')).toBeInTheDocument()
+    expect(screen.queryByTestId('widgets')).not.toBeInTheDocument()
+  })
+
+  /** Un `panel` vacío pasaría una comprobación que sólo mirara `panel` y reventaría una línea después. */
+  it('un panel sin métricas tampoco pasa por bueno', async () => {
+    conCuerpo({ panel: {}, hoy: '2026-08-20' })
+    render(<DashboardTab projectId="p1" barraDeFiltro={BARRA} />)
+
+    expect(await screen.findByText(/No se pudo cargar el panel/)).toBeInTheDocument()
+    expect(screen.queryByTestId('widgets')).not.toBeInTheDocument()
+  })
+
+  it('y con el cuerpo bueno sí dibuja los widgets', async () => {
+    conCuerpo({ panel: PANEL, hoy: '2026-08-20' })
+    render(<DashboardTab projectId="p1" barraDeFiltro={BARRA} />)
+
+    expect(await screen.findByTestId('widgets')).toBeInTheDocument()
+    expect(screen.queryByText(/No se pudo cargar el panel/)).not.toBeInTheDocument()
   })
 })

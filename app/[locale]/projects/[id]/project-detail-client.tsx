@@ -87,7 +87,6 @@ const TABS: readonly { readonly value: string; readonly label: string }[] = [
   { value: 'gantt',       label: 'Timeline'          },
   { value: 'calendar',    label: 'Calendario'        },
   { value: 'workload',    label: 'Carga de trabajo'  },
-  { value: 'dashboard',   label: 'Panel de control'  },
 ]
 
 // Reusable dark metric card
@@ -1099,6 +1098,31 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                   </div>
                 </div>
 
+                {/*
+                  El panel de control (§9), que hasta ahora era una pestaña aparte.
+
+                  Se fusionó aquí porque las dos contestaban a lo mismo con dos pantallas distintas.
+                  Lo que se mueve es la vista entera —sus widgets, su modal de configuración, su
+                  exportación y su preferencia por usuario y proyecto—, así que los seis criterios
+                  del §9.3 se siguen cumpliendo; lo único que desaparece es la segunda puerta.
+
+                  **La reja de permiso viaja con ella.** `overview` no está en `PERMISO_POR_VISTA`,
+                  así que nunca se recorta: colgar el panel aquí sin condición se lo enseñaría a un
+                  cliente externo sin `view_dashboard`, que es justo a quien la pestaña se lo
+                  escondía. La condición imita a la de la barra —mientras los permisos no han
+                  llegado se muestra, y al llegar se recorta— para no cambiar de comportamiento por
+                  el camino.
+                */}
+                {(permisosDelProyecto === null || permisosDelProyecto.includes('view_dashboard')) && (
+                  <DashboardTab
+                    projectId={projectId}
+                    barraDeFiltro={barraDeFiltro}
+                    hayFiltro={
+                      kanbanBoard !== null && idsFiltrados.size !== kanbanBoard.workItems.length
+                    }
+                  />
+                )}
+
                 {/* Quién está en el proyecto y con qué papel (§10.1). Va en el Resumen y no en una
                     pantalla aparte: es información del proyecto, y esconderla tras un ajuste hace
                     que nadie sepa quién ve qué hasta que hay un problema. */}
@@ -1225,16 +1249,6 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                 barraDeFiltro={barraDeFiltro}
                 idsVisibles={
                   idsFiltrados.size === (kanbanBoard?.workItems.length ?? 0) ? undefined : idsFiltrados
-                }
-              />
-            )}
-
-            {activeTab === 'dashboard' && (
-              <DashboardTab
-                projectId={projectId}
-                barraDeFiltro={barraDeFiltro}
-                hayFiltro={
-                  kanbanBoard !== null && idsFiltrados.size !== kanbanBoard.workItems.length
                 }
               />
             )}

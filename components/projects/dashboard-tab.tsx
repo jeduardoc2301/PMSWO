@@ -104,9 +104,27 @@ export function DashboardTab({
           const cuerpo = await respuestaPanel.json().catch(() => ({}))
           throw new Error(cuerpo.message ?? `HTTP ${respuestaPanel.status}`)
         }
-        const { panel, hoy } = (await respuestaPanel.json()) as { panel: PanelDeProyecto; hoy: string }
+        const cuerpo = (await respuestaPanel.json().catch(() => null)) as {
+          panel?: PanelDeProyecto
+          hoy?: string
+        } | null
+
+        /*
+          Un 200 no garantiza que venga lo que hace falta.
+
+          Esto se daba por bueno y se pasaba tal cual al estado «listo»; si el cuerpo no traía
+          `panel`, la vista reventaba al desestructurarlo. Mientras el panel era una pestaña aparte
+          eso tumbaba una pestaña. Desde que vive dentro del Resumen tumbaría **la pantalla que todo
+          el mundo abre primero**, así que la misma respuesta mala cuesta ahora mucho más.
+
+          Comprobar `metricas` y no sólo `panel` es a propósito: un `panel` vacío pasaría una
+          comprobación que sólo mirara `panel` y volvería a reventar una línea más abajo.
+        */
+        if (!cuerpo || !cuerpo.panel || !cuerpo.panel.metricas || typeof cuerpo.hoy !== 'string') {
+          throw new Error('El panel llegó sin datos que enseñar.')
+        }
         if (!vigente) return
-        setEstado({ fase: 'listo', panel, hoy })
+        setEstado({ fase: 'listo', panel: cuerpo.panel, hoy: cuerpo.hoy })
       } catch (error) {
         if (vigente) {
           setEstado({
