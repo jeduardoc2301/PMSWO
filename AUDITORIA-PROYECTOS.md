@@ -5638,3 +5638,30 @@ Gantt sigue midiéndose en días**, así que una línea sub-diaria se compara co
 precisión de día. El dato ya está guardado; usarlo al dibujar es lo que falta.
 
 Suite: 3 645 en verde.
+
+## §2.1 · La Lista también se comía el tercio
+
+Buscando por dónde sale el plan copiado apareció que el CSV exporta **lo que se ve**, por diseño —así
+que no pierde nada que la vista no haya perdido antes—. Pero al mirar qué ve la Lista salió el
+defecto: su campo de avance redondeaba a **décimas** y era `step={1}`.
+
+    antes    la base dice 0.3333 · el campo de la Lista abre con 33.3
+    despues  la base dice 0.3333 · el campo abre con 33.33
+
+Con un tercio capturado, quien pulsara Enter en ese campo guardaba 33,3 % y el resto se perdía sin
+que nada lo dijera. Es **el mismo defecto que tenía la celda del Gantt**, vivo en la otra vista y
+descubierto por el mismo camino: mirar qué enseña la pantalla, no qué guarda la base.
+
+La corrección no es la misma en las dos: la del Gantt es un cuadro de texto y ésta un `input
+type="number"`, que con paso de uno marca 33,33 como inválido. Aquí el paso baja a centésimas —la
+unidad en la que se guarda— y el valor pasa por los puntos base, que es lo que evita arrastrar la
+coma flotante: `0.4 × 100` no da 40 exacto y el campo no puede abrir diciendo 40.000000000000006.
+
+### Lo que enseña que sean dos
+
+El arreglo de una vista no arregla la otra, ni siquiera cuando el defecto es literalmente el mismo:
+cada vista tiene su propio campo, su propio redondeo y su propio control. La única forma de
+encontrarlo fue **volver a medir la misma pregunta en la otra pantalla**, que es lo que el spec pide
+al hablar de seis vistas sobre un mismo plan.
+
+Suite: 3 648 en verde.
