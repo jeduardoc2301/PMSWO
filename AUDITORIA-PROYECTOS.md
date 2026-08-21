@@ -5715,3 +5715,32 @@ que decide si algo hay que tocar: **un redondeo al leer es una elección; un red
 el que se escribe es una pérdida de datos.** Los dos se ven igual en la pantalla y no son lo mismo.
 
 Y el atraso coincide en las dos vistas que lo enseñan: −3,3 días en el Tablero y en la Lista.
+
+## §10.2 · El filtro preguntaba el avance en fracciones
+
+Recorriendo el §10 tras el cambio de unidad apareció el quinto defecto de la noche, y es de los que
+no se ven porque **no fallan**: simplemente no encuentran nada.
+
+«Avance mayor que 50» devolvía **cero** líneas de las 1 368. El filtro comparaba contra la fracción
+guardada —0 a 1— y ninguna fracción es mayor que 50. Medido antes de tocar nada:
+
+    avance > 50   → ninguna
+    avance > 0,4  → las que van por la mitad
+
+Todas las vistas dicen «40 %»: la rejilla, la tarjeta, el panel. El filtro era el único que hablaba
+en fracciones, y encima en silencio — **un filtro que no encuentra nada se lee como «no hay líneas
+así», no como «estás preguntando en otra unidad»**. Es la peor forma de estar mal: sin síntoma.
+
+Ahora el campo se llama «Avance (%)» y compara en porcentaje, con centésimas, que es lo que se puede
+capturar desde que el avance se guarda en puntos base.
+
+### Lo que no se demostró en pantalla, y por qué
+
+La corrección está demostrada en el **evaluador**, que es quien juzga los filtros guardados, con las
+tres pruebas validadas rompiéndola. En el constructor de la pantalla no: esa vista no ofrece selector
+de campo — observación de una tanda anterior que sigue en pie y que conviene no confundir con esto.
+
+Y el efecto sobre lo guardado, dicho: un filtro que alguien hubiera creado con una fracción deja de
+encontrar lo mismo. En esta base no hay ninguno.
+
+Suite: 3 654 en verde.
