@@ -33,6 +33,7 @@ import {
 } from '@/services/project-calendar.service'
 import { type WorkCalendar, createWorkCalendar } from '@/lib/scheduling/calendar'
 import { toDayNumber, toIsoDate } from '@/lib/scheduling/date'
+import { esClaseDeHito } from '@/lib/scheduling/kinds'
 import type { ModoDeRollup } from '@/lib/scheduling/rollup-modos'
 import type {
   Dependency,
@@ -195,7 +196,12 @@ export async function loadProjectPlan(
     return {
       id: item.id,
       name: item.title,
-      duration: kind === 'HITO' ? 0 : duracionHabil(calendar, item.startDate, item.estimatedEndDate),
+      // Un punto de control es un hito con otro nombre, y aquí se decidía por `kind === 'HITO'`.
+      // En el plan real son 23 líneas con `start == fin`, así que se llevaban un día hábil de
+      // duración mientras sus `durationMinutes` decían cero: la misma línea llegaba al motor
+      // diciendo dos cosas. Y como el rombo del Gantt se decide por los días, se dibujaban como
+      // barra —medido: 86 rombos en pantalla donde el plan tiene 109 líneas de clase hito—.
+      duration: esClaseDeHito(kind) ? 0 : duracionHabil(calendar, item.startDate, item.estimatedEndDate),
       ...(item.estimatedHours !== null ? { estimacionMin: item.estimatedHours * 60 } : {}),
       // La duracion en minutos laborables (§2), cuando ya se calculo. Va AL LADO de `duration`, que
       // sigue en dias: la migracion no cambia la unidad del motor todavia, solo empieza a llevar la

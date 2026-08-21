@@ -6010,3 +6010,46 @@ demuestra en pantalla: no hay pantalla que lo enseñe. Queda dicho para que nadi
 Cuatro pruebas nuevas, validadas rompiendo **cada arreglo por separado** —dos rojas con C06 revertido,
 las otras dos con C05—, para que ninguna se apoye en el arreglo de la otra. Suite 3 670. Tipos: 712
 con el cambio y 712 sin él, 0 en `audit.ts`.
+
+## §6 · Los 23 puntos de control se dibujaban como barra, y el plan decía rombo
+
+Esta línea llevaba desde anoche anotada como «medida y sin tocar», con el argumento de que cambiarla
+movía las barras de 23 líneas y eso quería luz de día. La medición de hoy la deja sin ese argumento:
+en la base, **los 23 puntos de control tienen `start == fin` y `durationMinutes = 0`**. La pantalla
+no estaba discrepando de una decisión de diseño; estaba discrepando de su propia fuente.
+
+Lo que pasaba es que la misma línea llegaba al motor diciendo dos cosas a la vez. El servicio del
+plan calculaba `duration` por fechas —y de una línea que empieza y acaba el mismo día salía **un día
+hábil**— mientras `durationMinutes` decía cero, porque la traducción a minutos sí pregunta por la
+clase de hito. Y como el rombo del Gantt se decide por los días (`isMilestone: task.duration === 0`),
+ganaba el uno.
+
+### Medido en pantalla, antes y después
+
+| | antes | después |
+|---|---|---|
+| «Cuenta de QA con accesos entregados…» | **barra** de 2 × 14 px | **rombo** de 20 × 20 px |
+| rombos distintos en todo el plan | **86** | **109** |
+
+86 son exactamente las líneas `HITO`. 109 son las de clase hito: 86 + 23. La cuenta cierra sin
+resto, que es la única forma de saber que no se arregló de más.
+
+Recorrer el Gantt entero para contarlos hizo falta porque la rejilla está virtualizada: los rombos
+que no están en la ventana no existen en el DOM, así que se cuentan bajando la caja de 450 en 450
+píxeles sobre sus 38 380 y juntando identificadores en un conjunto.
+
+### La prueba, roja primero
+
+Se escribió antes que el arreglo y se la vio fallar con el número exacto —`expected 1 to be +0`—, que
+es mejor validación que romper algo ya arreglado: no hay forma de que la prueba pasara por casualidad.
+
+### Y el barrido que no fue barrido
+
+Esto sale de rehacer sin acotar el barrido del atajo `kind === 'HITO'`. El de anoche se limitó a
+`components/` y `services/`, o sea a las carpetas donde yo esperaba encontrarlo, y por eso se dejó
+`lib/scheduling/audit.ts` fuera. Repetido sobre todo el repositorio, hoy queda **una sola**
+comparación viva en producción, y era ésta. Las demás apariciones son fixtures de pruebas, el mapa de
+etiquetas de la importación y la propia definición de `esClaseDeHito`.
+
+Con esto el atajo queda cerrado: séptima vez que muerde, y la primera en que el barrido que lo busca
+cubre el repositorio entero.

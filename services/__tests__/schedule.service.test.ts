@@ -91,6 +91,24 @@ describe('El plan de un proyecto, leído de la base', () => {
   })
 
   /**
+   * Y un punto de control es un hito con otro nombre.
+   *
+   * En el plan real son 23 líneas, todas con `start == fin` y `durationMinutes = 0`. Preguntando
+   * sólo por `kind === 'HITO'`, a cada una se le daba la duración que salía de sus fechas —un día
+   * hábil— mientras sus minutos decían cero: la misma línea llegaba al motor diciendo dos cosas
+   * distintas, y como el rombo se decide por los días, salían dibujadas como barra.
+   */
+  it('un punto de control también dura cero, y por la misma razón', async () => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([
+      fila({ kind: 'PUNTO_DE_CONTROL', estimatedEndDate: new Date('2026-06-01T00:00:00Z') }),
+    ] as never)
+
+    const plan = await loadProjectPlan('proy-1', 'org-1')
+    expect(plan!.tasks[0].duration).toBe(0)
+    expect(plan!.tasks[0].kind).toBe('PUNTO_DE_CONTROL')
+  })
+
+  /**
    * La clasificación explícita tiene que sobrevivir el viaje. Sin ella, el recálculo del plan de
    * referencia daba 188 líneas súper críticas donde el archivo dice 312 — está medido, no supuesto.
    */
