@@ -599,3 +599,48 @@ describe('§10.2 · el avance se filtra en porcentaje', () => {
     expect(salida).toHaveLength(1)
   })
 })
+
+/**
+ * §10.2 · qué valor hay que escribir en un campo de texto, medido.
+ *
+ * Los campos de enumeración comparan contra el **código guardado** y no contra la etiqueta que
+ * enseñan las vistas. Quien escriba «Por hacer» —que es lo que ve en la pantalla— no encuentra
+ * nada, y el filtro no dice por qué: es la misma clase de fallo mudo que tenía el avance en
+ * fracciones, con la diferencia de que aquí arreglarlo no es una reparación sino una decisión de
+ * vocabulario.
+ *
+ * ## Por qué se deja medido y no cambiado
+ *
+ * Las etiquetas viven repartidas en cuatro módulos —el panel del Tablero, la marca de los informes,
+ * la rejilla del Gantt y la Lista— y cada uno tiene el suyo. Unificarlas es lo que haría que el
+ * filtro pudiera hablar el idioma de la pantalla, y es un trabajo de vocabulario que toca la
+ * traducción: no se empieza de madrugada y no se deja a medias.
+ *
+ * Esta prueba fija lo que hoy pasa. El día que alguien unifique el vocabulario se pondrá roja, y
+ * entonces habrá que venir a cambiarla por la que diga que las dos formas encuentran lo mismo.
+ */
+describe('§10.2 · los campos de texto comparan el código, no la etiqueta', () => {
+  const lineas = [
+    { id: 'a', title: 'Una', status: 'TODO', kind: 'ACTIVIDAD', party: 'PROVEEDOR' },
+    { id: 'b', title: 'Otra', status: 'DONE', kind: 'HITO', party: 'CLIENTE' },
+  ] as never[]
+  const cuantas = (field: string, value: string) =>
+    filtrar(lineas, { op: 'AND', conditions: [{ field, operator: 'eq', value }] } as never, {
+      hoy: '2026-08-21',
+    } as never).length
+
+  it('el código encuentra la línea', () => {
+    expect(cuantas('status', 'TODO')).toBe(1)
+    expect(cuantas('party', 'PROVEEDOR')).toBe(1)
+  })
+
+  it('y la etiqueta que se ve en la pantalla, no', () => {
+    // «Por hacer» es lo que dicen el Tablero y la Lista; «Nuestro», lo que dice el Gantt.
+    expect(cuantas('status', 'Por hacer')).toBe(0)
+    expect(cuantas('party', 'Nuestro')).toBe(0)
+  })
+
+  it('las mayúsculas sí dan igual, que es lo único que hoy perdona', () => {
+    expect(cuantas('kind', 'Actividad')).toBe(1)
+  })
+})
