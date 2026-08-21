@@ -4260,3 +4260,43 @@ Con ésta se cierra el barrido activo: **Lista** (renombrar y deshacer), **Esque
 se arregló en la tanda 38), **Gantt** (arrastrar una barra hasta el diálogo con sus cifras),
 **Calendario** (pintar un rango y abrir el alta con las fechas puestas), **Carga de trabajo** (los
 tres modos) y **Tablero** (mover a Terminado). Un defecto encontrado y arreglado; el resto, en pie.
+
+## §13 · La lista de comprobación, recorrida contra lo demostrado esta noche
+
+Con las seis vistas ya recorridas en pasivo y en activo, tiene sentido decir qué de la lista final
+está cerrado **con evidencia en pantalla de esta sesión** y qué no. Sólo lo demostrado; lo que se
+comprobó leyendo código no cuenta aquí.
+
+### Demostrado en pantalla esta noche
+
+| §13 | evidencia |
+|---|---|
+| Gantt · arrastre de barra | «Mover «…» al 2026-06-25 cambia 3 líneas», tras un `POST /reschedule` 200 |
+| Gantt · toggles y línea base | 28 barras de foto, y **21 hitos** que estrenaron foto, conectores y vencimiento |
+| Gantt · panel de detalle compartido | el mismo `PlanDetailPanel` en las seis |
+| Tablero · drag & drop con reglas de progreso | de Backlog a Done: **0 % → 100 %** al instante |
+| Tablero · carga paginada por columna | 804 tarjetas de 1 243, y la paginación aguanta al mover |
+| Lista · tres formatos | Esquema 127 filas, Lista 21, Agrupada 21 |
+| Lista · edición inline | **127 de 127** celdas editables en Esquema, tras el arreglo |
+| Lista · exportar a CSV | Agrupada con cabeceras y subtotales que suman **1 243** |
+| Calendario · crear arrastrando un rango | el alta abre con «1 de jun» y «3 de jun» puestas |
+| Calendario · vista semanal | y ahora **se recuerda** entre visitas |
+| Carga · matriz con los 3 modos | las mismas **101 celdas** rojas en Horas, Tareas y Porcentajes |
+| Carga · desglose por tarea | la suma cuadra con la celda, todos los días |
+| Transversal · filtro en las 6 vistas | la barra está en las seis, y en las tres fases de cada una |
+| Transversal · preferencias por usuario × proyecto × vista | **seis filas** en `ViewPreference` |
+| Transversal · esqueletos (§10.7) | las cinco vistas que cargan, con `aria-busy` y su anuncio |
+
+### Lo que falta, y de qué depende
+
+**Las seis escalas de zoom del Gantt son cinco.** Están día, semana, mes, trimestre y año; **falta
+hora**. Y no es un olvido: el código lo dice donde se declara la lista —«el motor trabaja en
+ordinales de día hábil, así que ninguna tarea tiene hora; un eje por horas dibujaría ocho columnas
+idénticas por día y todas las barras pegadas al límite del día»—.
+
+O sea que la sexta escala **no es una tarea, es una consecuencia**: sale sola el día que se haga la
+migración de duración a minutos y horas por día del §2, que está autorizada y sin empezar. Ponerla
+antes sería dibujar una resolución que los datos no tienen.
+
+Lo mismo con **tiempo real** (§10.5) y el **modo claro**: son las dos decisiones que quedan, y ya
+están dichas en su sitio.
