@@ -147,3 +147,48 @@ describe('§8 · lo que el corte devuelve, no sólo lo que pregunta', () => {
     expect(carga!.resources.map((r) => r.id)).toEqual(['r1'])
   })
 })
+
+/**
+ * §8 · un punto de control también es un hito, y un hito no carga.
+ *
+ * Medido en el plan de referencia: **23 líneas `PUNTO_DE_CONTROL`, las 23 con asignación**. Con la
+ * clasificación mirando sólo `kind === 'HITO'`, cada una metía una jornada de carga que nadie
+ * trabaja — que es exactamente lo que el campo `isMilestone` existe para evitar, entrando por la
+ * puerta de al lado.
+ *
+ * Es la quinta vez que este mismo atajo muerde en este repositorio.
+ */
+describe('§8 · las dos clases de hito no cargan', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.project.findFirst).mockResolvedValue(PROYECTO as never)
+    vi.mocked(prisma.resource.findMany).mockResolvedValue([] as never)
+    vi.mocked(prisma.projectCalendar.findUnique).mockResolvedValue(null as never)
+    vi.mocked(prisma.projectCalendar.findFirst).mockResolvedValue(null as never)
+  })
+
+  it('un punto de control sale marcado como hito, igual que un hito', async () => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([
+      { id: 'h', title: 'Hito', kind: 'HITO', startDate: new Date('2026-06-01'), estimatedEndDate: new Date('2026-06-01'), durationMinutes: 0, assignments: [] },
+      { id: 'p', title: 'Compuerta', kind: 'PUNTO_DE_CONTROL', startDate: new Date('2026-06-01'), estimatedEndDate: new Date('2026-06-01'), durationMinutes: 0, assignments: [] },
+      { id: 'a', title: 'Actividad', kind: 'ACTIVIDAD', startDate: new Date('2026-06-01'), estimatedEndDate: new Date('2026-06-01'), durationMinutes: 480, assignments: [] },
+    ] as never)
+
+    const corte = await loadProjectWorkload('p1', 'org', '2026-06-01', '2026-06-05')
+    const porId = new Map(corte!.tasks.map((t) => [t.id, t]))
+
+    expect(porId.get('h')!.isMilestone).toBe(true)
+    expect(porId.get('p')!.isMilestone).toBe(true)
+    expect(porId.get('a')!.isMilestone).toBe(false)
+  })
+
+  it('y los minutos de la línea viajan al motor de carga', async () => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([
+      { id: 'a', title: 'Media jornada', kind: 'ACTIVIDAD', startDate: new Date('2026-06-01'), estimatedEndDate: new Date('2026-06-01'), durationMinutes: 240, assignments: [] },
+    ] as never)
+
+    const corte = await loadProjectWorkload('p1', 'org', '2026-06-01', '2026-06-05')
+
+    expect(corte!.tasks[0].duracionMin).toBe(240)
+  })
+})

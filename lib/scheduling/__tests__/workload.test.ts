@@ -526,36 +526,49 @@ describe('§3.5 · un hito no aporta carga', () => {
 })
 
 /**
- * §8 · qué cuenta la carga de una línea que no llena su día.
+ * §8 · la carga de una línea que no llena su día (§2, §3.5).
  *
- * Desde que una línea puede durar cuatro horas (§2), la carga se queda mirando la unidad vieja: pesa
- * **una jornada por cada día que abarca**, sin preguntar cuántos minutos dura de verdad. Una tarea
- * de media jornada al 100 % de dedicación carga ocho horas donde consume cuatro.
- *
- * El §3.5 lo dice con una identidad: `Work = Duration × Units`. Con la duración en minutos, el
- * trabajo de esa línea son 240 × 100 %, no 480.
- *
- * ## Por qué esto se mide y no se arregla aquí mismo
- *
- * El arreglo es repartir `duracionMin × units` entre los días que abarca en vez de poner una jornada
- * en cada uno. Es pequeño en código y **cambia una cifra que la gente mira todos los días** —la carga
- * y la sobrecarga de cada persona—, así que quiere su medición en pantalla y su vuelta atrás, no un
- * commit de madrugada. Esta prueba fija lo que hoy pasa y se pondrá roja cuando se arregle.
+ * `Work = Duration × Units`. Mientras una línea no pudo durar menos de un día, «una jornada por cada
+ * día que abarca» era esa identidad escrita en la unidad que había. Desde que puede durar cuatro
+ * horas, deja de serlo: media jornada al 100 % de dedicación cargaba ocho horas donde consume
+ * cuatro, y de ahí salía una sobrecarga que nadie tenía.
  */
-describe('§8 · la carga de una línea sub-diaria, medida', () => {
-  it('hoy pesa la jornada entera aunque dure media', () => {
-    const matriz = workloadMatrix({
-      resources: [{ id: 'r', name: 'Quien sea', dailyMinutes: 480, absences: [] }] as never,
-      tasks: [
-        { id: 't', name: 'Media jornada', start: '2026-06-01', finish: '2026-06-01', isMilestone: false },
-      ] as never,
-      assignments: [{ taskId: 't', resourceId: 'r', unitsBp: 10000 }] as never,
+describe('§8 · la carga mira los minutos de la línea', () => {
+  const calendar = createWorkCalendar()
+  const cargaDe = (tarea: Record<string, unknown>, dailyMinutes = 480, unitsBp = 10000) =>
+    workloadMatrix({
+      resources: [{ id: 'r', name: 'Quien sea', dailyMinutes, absences: [] }] as never,
+      tasks: [{ id: 't', name: 'La linea', isMilestone: false, ...tarea }] as never,
+      assignments: [{ taskId: 't', resourceId: 'r', unitsBp }] as never,
       from: '2026-06-01',
-      to: '2026-06-01',
-      calendar: createWorkCalendar(),
-    })
+      to: '2026-06-05',
+      calendar,
+    }).rows[0].celdas.map((c: { cargaMin: number }) => c.cargaMin)
 
-    // 480 minutos: una jornada entera. La línea dura 240 y nadie se lo pregunta.
-    expect(matriz.rows[0].celdas[0].cargaMin).toBe(480)
+  it('media jornada pesa media jornada', () => {
+    expect(cargaDe({ start: '2026-06-01', finish: '2026-06-01', duracionMin: 240 })[0]).toBe(240)
+  })
+
+  it('y una jornada entera sigue pesando lo que pesaba', () => {
+    expect(cargaDe({ start: '2026-06-01', finish: '2026-06-01', duracionMin: 480 })[0]).toBe(480)
+  })
+
+  it('una línea de tres días reparte sus minutos entre sus tres días', () => {
+    const fila = cargaDe({ start: '2026-06-01', finish: '2026-06-03', duracionMin: 1440 })
+    expect(fila.slice(0, 3)).toEqual([480, 480, 480])
+  })
+
+  it('la jornada de quien la trabaja es el techo, que es lo que preserva lo de antes', () => {
+    // Con siete horas de jornada, una línea de un día del proyecto —480 minutos— no puede cargarle
+    // más de sus 420: el trabajo no cabe en su día y eso es lo que se enseñaba antes.
+    expect(cargaDe({ start: '2026-06-01', finish: '2026-06-01', duracionMin: 480 }, 420)[0]).toBe(420)
+  })
+
+  it('y la dedicación sigue multiplicando: media jornada al 50 % son dos horas', () => {
+    expect(cargaDe({ start: '2026-06-01', finish: '2026-06-01', duracionMin: 240 }, 480, 5000)[0]).toBe(120)
+  })
+
+  it('una línea sin minutos se cuenta como siempre: una jornada por día', () => {
+    expect(cargaDe({ start: '2026-06-01', finish: '2026-06-01' })[0]).toBe(480)
   })
 })

@@ -61,6 +61,14 @@ export interface TareaDeCarga {
    * responder de un punto de control no es trabajo que ocupe una jornada.
    */
   readonly isMilestone?: boolean
+  /**
+   * Minutos laborables que dura la línea (§2), si los tiene.
+   *
+   * Sin ellos la carga cuenta **una jornada por cada día que abarca**, que es lo que hacía siempre y
+   * lo correcto mientras una línea no pudo durar menos de un día. Con ellos, una tarea de cuatro
+   * horas pesa cuatro horas: `Work = Duration × Units` (§3.5).
+   */
+  readonly duracionMin?: number
 }
 
 export interface AsignacionDeCarga {
@@ -201,6 +209,27 @@ export function workloadMatrix(entrada: EntradaDeCarga): MatrizDeCarga {
     const inicio = Math.max(desde, toDayNumber(tarea.start))
     const fin = Math.min(hasta, toDayNumber(tarea.finish))
 
+    /**
+     * Cuántos minutos de esta persona ocupa la tarea **cada día**.
+     *
+     * La jornada del recurso es el techo, y por eso una línea de jornadas enteras sigue cargando
+     * exactamente lo que cargaba: sus minutos repartidos entre sus días dan una jornada del
+     * proyecto, que es igual o mayor que la de quien la trabaja.
+     *
+     * Debajo de ese techo manda la línea: una tarea de cuatro horas ocupa cuatro horas y no la
+     * jornada entera. Sin esto, media jornada al 100 % de dedicación cargaba ocho horas donde
+     * consume cuatro — y de ahí salía una sobrecarga que nadie tenía.
+     *
+     * El reparto usa los días hábiles de la tarea **entera**, no los que caen dentro de la ventana:
+     * una tarea que asoma por el borde no debe concentrar en dos días lo que dura en diez.
+     */
+    const porDiaDeLaTarea = (() => {
+      if (tarea.duracionMin === undefined) return recurso.dailyMinutes
+      const habiles = diasHabilesEntre(calendar, toDayNumber(tarea.start), toDayNumber(tarea.finish))
+      if (habiles === 0) return 0
+      return Math.min(recurso.dailyMinutes, Math.round(tarea.duracionMin / habiles))
+    })()
+
     for (let dia = inicio; dia <= fin; dia += 1) {
       const i = dia - desde
       // El día que el recurso no trabaja no acumula carga: el trabajo no desaparece, se hace otro
@@ -208,8 +237,7 @@ export function workloadMatrix(entrada: EntradaDeCarga): MatrizDeCarga {
       // se detecta en la comparación de abajo, no inflando la carga de un día que no existe.
       if (!calendar.isWorkingDay(dia as DayNumber)) continue
 
-      const jornada = recurso.dailyMinutes
-      filaCarga[i] += Math.round((asignacion.unitsBp * jornada) / UNIDADES_COMPLETAS)
+      filaCarga[i] += Math.round((asignacion.unitsBp * porDiaDeLaTarea) / UNIDADES_COMPLETAS)
       filaCuenta[i] += 1
       // Que la capacidad de ese día sea cero por ausencia no resta carga: acumular igual es
       // precisamente lo que hace que salga en rojo, que es lo que el §8.5 pide ver.
@@ -422,4 +450,13 @@ export function desglosePorTarea(
   }
 
   return filas.sort((a, b) => (b.total === a.total ? a.name.localeCompare(b.name) : b.total - a.total))
+}
+
+/** Días hábiles entre dos días, contando ambos extremos. */
+function diasHabilesEntre(calendar: WorkCalendar, desde: DayNumber, hasta: DayNumber): number {
+  let cuenta = 0
+  for (let dia = desde; dia <= hasta; dia += 1) {
+    if (calendar.isWorkingDay(dia as DayNumber)) cuenta += 1
+  }
+  return cuenta
 }

@@ -11,6 +11,7 @@
  * cambiar de horas a porcentajes o a conteo no vuelve a pedir nada (§8.5).
  */
 
+import { esClaseDeHito } from '@/lib/scheduling/kinds'
 import prisma from '@/lib/prisma'
 import { type IsoDate } from '@/lib/scheduling/date'
 import { type DefinicionDeCalendario } from '@/lib/scheduling/project-calendar'
@@ -75,6 +76,7 @@ export async function loadProjectWorkload(
         kind: true,
         startDate: true,
         estimatedEndDate: true,
+        durationMinutes: true,
         // Las asignaciones viajan con la línea: una ida en vez de dos, y ya emparejadas.
         assignments: { select: { resourceId: true, unitsBp: true } },
       },
@@ -97,9 +99,17 @@ export async function loadProjectWorkload(
     name: item.title,
     start: isoDe(item.startDate),
     finish: isoDe(item.estimatedEndDate),
-    // Un hito no aporta carga. Ver `TareaDeCarga.isMilestone`: no se puede deducir de las fechas,
-    // porque 1 064 de las 1 243 hojas del plan de referencia duran un solo día.
-    isMilestone: item.kind === 'HITO',
+    /**
+     * Un hito no aporta carga. Ver `TareaDeCarga.isMilestone`: no se puede deducir de las fechas,
+     * porque 1 064 de las 1 243 hojas del plan de referencia duran un solo día.
+     *
+     * Y se pregunta por la **clase de hito**, no por `kind === 'HITO'`: un `PUNTO_DE_CONTROL`
+     * también es un hito. Son 23 en el plan de referencia, **las 23 con asignación**, y cada una
+     * metía una jornada de carga que nadie trabaja — justo lo que este campo existe para evitar.
+     */
+    isMilestone: esClaseDeHito(item.kind),
+    // Los minutos que dura, para que una línea de media jornada pese media jornada (§3.5).
+    ...(item.durationMinutes !== null ? { duracionMin: item.durationMinutes } : {}),
   }))
 
   const assignments: AsignacionDeCarga[] = items.flatMap((item) =>
