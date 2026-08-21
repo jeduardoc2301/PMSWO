@@ -4663,3 +4663,29 @@ trescientas líneas antes de haber pedido nada.
 No lo apunto como defecto porque **no lo he mirado con calma** y esta noche ya llevo cinco sondas
 equivocadas. Queda como lo primero de la próxima tanda, con la pregunta escrita: ¿qué debe enseñar la
 pantalla entre que se añade una condición y se le da valor?
+
+## §10.2 · «+ condición» esconde el plan: es deliberado, y está escrito
+
+Pregunta que dejé abierta anoche: al pulsar «+ condición» la cuenta cae a **0 de 1368** hasta elegir
+un valor. ¿Trampa o decisión?
+
+**Decisión, y con el porqué escrito en el propio evaluador**, tres líneas encima del código que lo
+hace:
+
+> No debería llegar aquí sin validar; si llega, **no coincide con nada en vez de coincidir con
+> todo**. Un filtro roto que no esconde nada es peor que uno que no enseña nada: **el segundo se ve**.
+
+Una condición a medias —campo elegido, valor todavía no— cae en ese caso. Y la elección es la
+defendible: si una condición incompleta dejara pasar las 1 368, quien la escribe **no notaría** que
+le falta algo, y se llevaría una lista que parece filtrada y no lo está. Con el 0 delante, el hueco
+se ve en el acto.
+
+No hay defecto. Lo que había era una pregunta mía sin responder, y la respuesta estaba escrita al
+lado del código.
+
+### Por qué lo dejé abierto en vez de arreglarlo
+
+Porque a las once de la noche, con cinco sondas equivocadas encima, «esto se ve raro» no es
+suficiente para tocar una decisión de producto que alguien tomó con un motivo. Esta sesión ha
+enseñado dos veces lo contrario —comentarios que envejecieron mintiendo— pero también que **la mitad
+de las veces el comentario tiene razón y el que va con prisa soy yo**.
