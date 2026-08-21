@@ -5837,3 +5837,34 @@ de la noche todavía puesta: la explicación era correcta y ahora está medida.
 Lo que se lleva de aquí no es la décima, que no era un defecto. Es que **una hipótesis que encaja se
 parece mucho a una medición y no lo es**, y que comprobarla costó tres lecturas de pantalla — menos
 de lo que cuesta arrastrar una explicación inventada durante semanas.
+
+## §8 · La carga no mira los minutos de la línea
+
+Desde que una línea puede durar cuatro horas, la carga se quedó mirando la unidad vieja: pesa **una
+jornada por cada día que abarca**, sin preguntar cuántos minutos dura. Una tarea de media jornada al
+100 % de dedicación carga ocho horas donde consume cuatro.
+
+El §3.5 lo dice con una identidad —`Work = Duration × Units`— y con la duración en minutos el
+trabajo de esa línea son 240 × 100 %, no 480.
+
+El arreglo está identificado y es pequeño: repartir `duracionMin × units` entre los días que abarca
+en vez de poner una jornada en cada uno. Para una línea de jornadas enteras da exactamente lo mismo
+que hoy, que es lo que lo hace seguro.
+
+### Por qué se deja medido y no arreglado
+
+Porque cambia **una cifra que la gente mira todos los días** —la carga y la sobrecarga de cada
+persona— y eso quiere su medición en pantalla y su vuelta atrás, no un commit de madrugada con el
+contexto en las últimas. Es la misma disciplina que con las otras dos brechas de la noche: se fija en
+una prueba que se pondrá roja al arreglarla.
+
+Van tres cosas medidas y no tocadas, y las tres por la misma razón —tocarlas es una decisión o un
+trabajo largo, no una reparación—:
+
+| brecha | por qué no se toca de madrugada |
+|---|---|
+| las columnas de la Lista, 9 contra 14 | unificar los dos grids toca dos vistas y dos preferencias |
+| el filtro compara códigos, no etiquetas | exige unificar un vocabulario repartido en cuatro módulos |
+| la carga no mira los minutos | cambia una cifra que se mira a diario |
+
+Suite: 3 658 en verde.
