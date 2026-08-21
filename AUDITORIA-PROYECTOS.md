@@ -4742,3 +4742,30 @@ movido».
 
 Séptima sonda equivocada. **El recorrido crear-listar-comparar-borrar queda demostrado; el número de
 líneas movidas contra una foto, no** — y no lo apunto como medido hasta volver con el campo correcto.
+
+## §4.6 · La cifra que faltaba: cero movidas contra una foto recién tomada
+
+Vuelta con el campo correcto —`l.hoy.start`, no `l.start`—:
+
+| | |
+|---|---|
+| líneas comparadas | 1 368 |
+| con foto | 1 368 |
+| **movidas contra ella** | **0** |
+| una cualquiera | base `2026-06-12 → 2026-10-02`, 81 días · hoy **idéntico** |
+
+Cero, que es lo único que puede salir de una foto tomada hace un segundo. La comparación del §4.6
+está bien; lo que estaba mal era mi sonda, y ahora la cifra sí está medida.
+
+El ciclo se repitió entero —crear, comparar, borrar— y volvió a quedar **limpio**: una foto, la misma
+que había. Plan de referencia verificado.
+
+### Octava sonda equivocada, y era una que ya me sabía
+
+Al corregir el campo metí en el comentario del guion los nombres entre **acentos graves**, dentro de
+una plantilla delimitada por acentos graves. La cerraron: `SyntaxError: missing ) after argument
+list`.
+
+Es **exactamente** el mismo error de la tanda 40, con el mismo síntoma. Está anotado en la bitácora y
+lo repetí igual. Que una lección esté escrita no basta si lo que hay que cambiar es un reflejo: el
+reflejo es escribir código legible en un comentario, y aquí ese hábito rompe la cadena.
