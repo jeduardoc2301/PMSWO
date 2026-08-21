@@ -6216,3 +6216,60 @@ Y hay un tercer desajuste más callado: el Resumen fecha con `Date.now()` del na
 la fecha civil del servidor, así que dos pestañas abiertas a distinta hora dicen cosas distintas.
 
 Queda anotado y sin tocar: elegir qué cifra sobrevive cambia lo que la gente ve todos los días.
+
+## §9 · Una sola cuenta para el avance y para las atrasadas
+
+Al fusionar el Panel con el Resumen, las dos mitades quedaron contradiciéndose **en la misma página**.
+No era un empate entre dos opiniones: el spec manda en las dos.
+
+| pregunta | decía arriba | decía abajo | manda |
+|---|---|---|---|
+| ¿Cuánto hemos avanzado? | 0 % · 1/1368 | 0,3 % · sobre 1243 hojas | §9.1.1 · ponderado por días hábiles sobre hojas |
+| ¿Hay tareas atrasadas? | 147 | 115 | §9.3 crit. 3 · igual que el conmutador del Gantt |
+
+Contar resúmenes en un porcentaje de avance es además **el error que ya ha mordido cuatro veces**
+aquí: 125 líneas del plan tienen hijas y no tienen trabajo propio.
+
+### La petición se comparte, no se duplica
+
+Las dos partes de la pantalla necesitan los mismos números y se montan a la vez, así que pedirlos por
+separado eran dos viajes idénticos —y, peor, dos oportunidades de discrepar—. `lib/projects/cargar-panel.ts`
+guarda la promesa **mientras está en vuelo** y la comparte; en cuanto termina, la suelta. No es una
+caché: no hay nada que quede viejo. Sólo evita que dos que preguntan a la vez pregunten dos veces.
+La validación del cuerpo se mudó ahí con ella, así que hay un solo sitio que decide si la respuesta
+sirve.
+
+### Un tercer sitio que no estaba en la lista
+
+Lo encontró una prueba, no una lectura: al fijar que la tarjeta enseña la cifra del servidor, saltó
+que el **90 %** seguía apareciendo. Era la tira de indicadores de encima de las pestañas —la que se ve
+desde **todas** las vistas—, que también sacaba su propia cuenta. Eran tres, no dos.
+
+Y ahí apareció otro desajuste, ya de presentación: redondeando al entero, un plan que va por el 0,3 %
+enseñaba **0 %** arriba y 0,3 % abajo. El mismo número dicho de dos formas se lee como dos números, y
+un cero encima de «3 de 1243 completados» no es impreciso, es contradictorio. Va con un decimal.
+
+### Un error de precedencia, de paso
+
+`tacticalMetrics?.overdueTasks ?? 0 <= 3` se agrupa como `overdueTasks ?? (0 <= 3)`, o sea
+`overdueTasks ?? true`. Esa insignia nunca dijo lo que su autor creía. Reescrita con paréntesis.
+
+### Medido en pantalla, los tres sitios
+
+```
+TIRA DE ARRIBA : TASA DE COMPLETITUD | 0.3% | 3 de 1243 completados
+TARJETA AVANCE : ¿Cuánto hemos avanzado? | 0.3% | 3/1243 tareas
+WIDGET PANEL   : Progreso global | 0.3 % | Ponderado por días hábiles sobre las 1243 líneas hoja
+TACTICA ATRAS. : ¿Hay tareas atrasadas? | 115
+PANEL ATRASADAS: 1243 líneas de trabajo | 115 atrasadas
+```
+
+La prueba nueva separa a propósito los dos números —90 % en la cuenta vieja, 12,3 % en la del
+servidor— porque con los dos iguales pasaría mirase donde mirase, y comprueba que **los dos sitios
+digan lo mismo**. Validada revirtiendo la tarjeta a la cuenta vieja. Suite 3 691, tipos 664.
+
+### Lo que sigue sin arreglar
+
+- `completedThisWeek` cuenta **todas** las líneas terminadas del proyecto, no las de la semana.
+- El Resumen sigue fechando con `Date.now()` del navegador donde el panel usa la fecha civil del
+  servidor. Ya no afecta a estas dos cifras, pero sí a «días restantes».

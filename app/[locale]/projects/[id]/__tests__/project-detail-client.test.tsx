@@ -121,8 +121,27 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
     ],
   }
 
+  /*
+    El panel del §9, que ahora alimenta dos tarjetas del Resumen.
+
+    Se añadió cuando el avance y las atrasadas dejaron de calcularse en el navegador: las dos salen
+    ya de aquí, que es la cuenta que manda el spec. `progresoGlobal` va a 0,5 porque es lo que la
+    prueba de la barra busca —el 50 % de ancho—, y antes salía de `completionRate`.
+  */
+  const mockPanel = {
+    panel: {
+      metricas: {
+        proyecto: { progresoGlobal: 0.5 },
+        tareas: { hojas: 10, atrasadas: 2 },
+      },
+    },
+    hoy: '2026-08-21',
+  }
+
   function responderA(url: string) {
-    const cuerpo = url.includes('/metrics')
+    const cuerpo = url.includes('/dashboard')
+      ? mockPanel
+      : url.includes('/metrics')
       ? { metrics: mockMetrics }
       : url.includes('/kanban')
         ? { kanbanBoard: mockKanbanBoard }
@@ -159,12 +178,15 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
   it('should display project metrics', async () => {
     render(<ProjectDetailClient projectId="project-1" />)
 
+    // Un decimal, y no el entero: redondeando, un plan que va por el 0,3 % enseñaba «0 %» en la
+    // tira de arriba y 0,3 % en la tarjeta de abajo — el mismo número dicho de dos formas, que a la
+    // vista se lee como dos números distintos.
     await waitFor(() => {
-      expect(screen.getAllByText('50%').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('50.0%').length).toBeGreaterThan(0)
     })
 
-    // Las tarjetas de indicadores se rehicieron: el subtítulo va en español y ya no se muestra el
-    // total de riesgos sino los de prioridad alta, que es lo accionable.
+    // El denominador son las **hojas** del plan, no todas las líneas: los resúmenes no tienen
+    // trabajo propio y contarlos era lo que hacía discrepar esta cifra con la del panel.
     expect(screen.getByText('5 de 10 completados')).toBeInTheDocument()
     expect(screen.getAllByText('2').length).toBeGreaterThan(0) // bloqueadores activos
     expect(screen.getByText('critical')).toBeInTheDocument()
@@ -179,7 +201,7 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
    * pestaña **ya no está** — que es la mitad que se olvida, dejando dos caminos al mismo sitio.
    */
   it('el panel de control vive en el Resumen, y ya no tiene pestaña propia', async () => {
-    render(<ProjectDetailClient projectId="project-1" locale="en" />)
+    render(<ProjectDetailClient projectId="project-1" />)
 
     await waitFor(() => {
       expect(screen.getByTestId('panel-de-control')).toBeInTheDocument()
@@ -353,6 +375,44 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
     expect(document.body.textContent).toContain('December 31, 2024')
   })
 
+  /**
+   * El avance sale de una sola cuenta, y es la del servidor.
+   *
+   * Las dos mitades de esta pantalla lo calculaban por su cuenta y **se contradecían a la vista**:
+   * arriba `terminadas / total` sobre todas las líneas —resúmenes incluidos— y abajo el ponderado
+   * por días hábiles sobre las hojas. En el plan real eso era 0 % contra 0,3 %, uno encima del otro.
+   *
+   * Aquí se separan a propósito los dos números —90 % en la cuenta vieja, 12,3 % en la del
+   * servidor— porque con los dos iguales la prueba pasaría mirase donde mirase.
+   */
+  it('el avance lo dice el servidor, no la cuenta vieja del navegador', async () => {
+    ;(global.fetch as any).mockImplementation((url: string) => {
+      if (url.includes('/dashboard')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            panel: { metricas: { proyecto: { progresoGlobal: 0.123 }, tareas: { hojas: 200, atrasadas: 7 } } },
+            hoy: '2026-08-21',
+          }),
+        })
+      }
+      if (url.includes('/metrics')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ metrics: { ...mockMetrics, completionRate: 90 } }) })
+      }
+      return responderA(url)
+    })
+
+    render(<ProjectDetailClient projectId="project-1" />)
+
+    // Se buscan **todas**: la tira de indicadores de arriba y la tarjeta de pregunta dicen ahora
+    // la misma cadena, y que la digan es exactamente lo que hay que fijar. Antes una decía el
+    // ponderado del servidor y la otra `terminadas / total`, una encima de la otra.
+    const dichos = await screen.findAllByText('12.3%')
+    expect(dichos.length).toBeGreaterThanOrEqual(2)
+    expect(screen.queryByText('90%')).not.toBeInTheDocument()
+    expect(screen.queryByText('90.0%')).not.toBeInTheDocument()
+  })
+
   it('should display progress bar with correct percentage', async () => {
     render(<ProjectDetailClient projectId="project-1" />)
 
@@ -362,6 +422,9 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
 
     // La barra de avance dejó de usar clases de utilidad: es un `div` con ancho y color en línea, y
     // el color depende del porcentaje —verde cuando va bien, ámbar cuando va justo, rojo cuando no—.
+    //
+    // El 50 % ya no sale de `completionRate` sino de `progresoGlobal`, que es la cuenta del servidor:
+    // ponderada por días hábiles y sólo sobre las hojas.
     const barra = [...document.querySelectorAll('div')].find(
       (d) => d.style.width === '50%' && d.style.background !== '',
     )

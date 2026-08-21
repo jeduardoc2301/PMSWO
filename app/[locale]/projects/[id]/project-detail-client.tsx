@@ -45,6 +45,8 @@ const ProjectBurndownChart = dynamic(
 // planeación: ruta súper crítica, holgura y vínculos de verdad.
 import { CalendarTab } from '@/components/projects/calendar-tab'
 import { DashboardTab } from '@/components/projects/dashboard-tab'
+import { cargarPanel } from '@/lib/projects/cargar-panel'
+import type { MetricasDelPanel } from '@/lib/projects/dashboard-metrics'
 import { WorkloadTab } from '@/components/projects/workload-tab'
 import { PlanTab } from '@/components/projects/plan-tab'
 import { ProjectStatus, WorkItemStatus, Permission, UserRole, type KanbanBoard as KanbanBoardType } from '@/types'
@@ -136,6 +138,29 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const [project, setProject] = useState<Project | null>(null)
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null)
   const [tacticalMetrics, setTacticalMetrics] = useState<TacticalMetrics | null>(null)
+
+  /*
+    Las cifras del panel (§9), que ahora también alimentan las tarjetas de pregunta de arriba.
+
+    Antes cada mitad de esta pantalla sacaba su propio número y **se contradecían a la vista**: el
+    avance salía 0 % arriba y 0,3 % abajo, y las atrasadas 147 arriba y 115 abajo. No era un empate
+    entre dos opiniones: el spec manda en las dos —el §9.1.1 pide el avance ponderado por días
+    hábiles sobre las hojas, y el §9.3 criterio 3 exige que «atrasada» sea exactamente la misma
+    regla que el conmutador del Timeline—, y las dos cuentas buenas las hace el servidor.
+
+    `cargarPanel` comparte la petición con los widgets, así que esto no añade un segundo viaje.
+  */
+  const [metricasDelPanel, setMetricasDelPanel] = useState<MetricasDelPanel | null>(null)
+
+  useEffect(() => {
+    let vigente = true
+    // Que esto falle no puede tumbar el Resumen: las tarjetas se quedan sin número, y el panel de
+    // abajo ya enseña su propio error con el motivo.
+    cargarPanel(projectId)
+      .then((r) => { if (vigente) setMetricasDelPanel(r.panel.metricas) })
+      .catch(() => {})
+    return () => { vigente = false }
+  }, [projectId])
   const [kanbanBoard, setKanbanBoard] = useState<KanbanBoardType | null>(null)
   /** Sube cada vez que hay que volver a pedir el plan: deshacer, rehacer, un lote (§10.6). */
   const [planRecargado, setPlanRecargado] = useState(0)
@@ -738,7 +763,28 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   )
 
   const statusStyle = STATUS_STYLE[project.status] ?? STATUS_STYLE.ACTIVE
-  const completionPct = metrics ? Math.round(metrics.completionRate) : 0
+  /*
+    La tasa de completitud de la tira de arriba, de la misma fuente que todo lo demás.
+
+    Ésta se ve desde **todas** las pestañas, así que era la que más lejos llevaba el desacuerdo:
+    decía `terminadas / total` sobre las 1368 líneas —resúmenes incluidos— mientras el panel decía
+    el ponderado sobre las 1243 hojas. Se cae de pie a la cuenta vieja mientras el panel no ha
+    llegado, para no enseñar un cero que no significa nada.
+  */
+  const completionPct = metricasDelPanel
+    ? metricasDelPanel.proyecto.progresoGlobal * 100
+    : metrics
+      ? metrics.completionRate
+      : 0
+
+  /*
+    Un decimal, y no redondeado al entero.
+
+    Redondeando, un plan que va por el 0,3 % enseñaba **0 %** aquí arriba y 0,3 % en la tarjeta de
+    abajo: el mismo número dicho de dos formas, que a la vista se lee como dos números. Y un cero
+    encima de «3 de 1243 completados» es peor que impreciso, es contradictorio.
+  */
+  const completionTexto = `${completionPct.toFixed(1)}%`
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--fondo)' }}>
@@ -849,9 +895,13 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         {/* KPI strip */}
         {metrics && (
           <div className="grid grid-cols-4 gap-4">
-            <DarkCard title={t('completionRate')} value={`${completionPct}%`}
+            <DarkCard title={t('completionRate')} value={completionTexto}
               valueColor={completionPct >= 70 ? '#10b981' : completionPct >= 40 ? '#f59e0b' : '#ef4444'}
-              subtitle={`${metrics.completedWorkItems} de ${metrics.totalWorkItems} completados`} />
+              subtitle={
+                metricasDelPanel
+                  ? `${Math.round(metricasDelPanel.proyecto.progresoGlobal * metricasDelPanel.tareas.hojas)} de ${metricasDelPanel.tareas.hojas} completados`
+                  : `${metrics.completedWorkItems} de ${metrics.totalWorkItems} completados`
+              } />
             <DarkCard title={t('activeBlockers')} value={metrics.activeBlockers}
               valueColor={metrics.activeBlockers === 0 ? '#10b981' : '#f97316'}
               subtitle={metrics.activeBlockers > 0 ? t('critical') : t('none')} />
@@ -924,18 +974,27 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
                   {/* ¿Cuánto hemos avanzado? */}
                   <QuestionCard title={t('executiveDashboard.questions.progress')} accentColor="#10b981">
-                    {metrics && (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-2xl font-bold text-white">{metrics.completionRate.toFixed(0)}%</span>
-                          <span className="text-xs text-tinta-3">{metrics.completedWorkItems}/{metrics.totalWorkItems} {t('executiveDashboard.labels.tasks')}</span>
+                    {metricasDelPanel && (() => {
+                      // La misma cuenta que enseña el widget de información, no una segunda: sale
+                      // ponderada por días hábiles y sólo sobre las hojas, que son las que tienen
+                      // trabajo propio. Contar los resúmenes hacía que esta tarjeta dijera 0 %
+                      // mientras el panel de abajo decía 0,3 %.
+                      const porciento = metricasDelPanel.proyecto.progresoGlobal * 100
+                      const hojas = metricasDelPanel.tareas.hojas
+                      const terminadas = Math.round(metricasDelPanel.proyecto.progresoGlobal * hojas)
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-2xl font-bold text-white">{porciento.toFixed(1)}%</span>
+                            <span className="text-xs text-tinta-3">{terminadas}/{hojas} {t('executiveDashboard.labels.tasks')}</span>
+                          </div>
+                          <div className="pms-progress">
+                            <div style={{ width: `${porciento}%`, background: '#10b981' }} />
+                          </div>
+                          <p className="text-sm text-tinta-2">{hojas - terminadas} {t('executiveDashboard.labels.pendingTasks')}</p>
                         </div>
-                        <div className="pms-progress">
-                          <div style={{ width: `${metrics.completionRate}%`, background: '#10b981' }} />
-                        </div>
-                        <p className="text-sm text-tinta-2">{metrics.totalWorkItems - metrics.completedWorkItems} {t('executiveDashboard.labels.pendingTasks')}</p>
-                      </div>
-                    )}
+                      )
+                    })()}
                   </QuestionCard>
 
                   {/* ¿Qué nos está bloqueando? */}
@@ -1014,8 +1073,12 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     {[
                       {
                         title: t('tacticalDashboard.questions.overdueTasks'), color: '#f97316',
-                        value: tacticalMetrics?.overdueTasks ?? 0,
-                        badge: tacticalMetrics?.overdueTasks === 0 ? t('tacticalDashboard.status.noneOverdue') : tacticalMetrics?.overdueTasks ?? 0 <= 3 ? t('tacticalDashboard.status.someOverdue') : t('tacticalDashboard.status.manyOverdue'),
+                        // La regla del servidor, no la del navegador: el §9.3 criterio 3 exige
+                        // que «atrasada» coincida exactamente con el conmutador del Timeline —
+                        // vencida, sin terminar **y** sin llegar al 100 %—. La cuenta de aquí
+                        // ignoraba el avance y decía 147 donde el panel decía 115.
+                        value: metricasDelPanel?.tareas.atrasadas ?? 0,
+                        badge: (metricasDelPanel?.tareas.atrasadas ?? 0) === 0 ? t('tacticalDashboard.status.noneOverdue') : (metricasDelPanel?.tareas.atrasadas ?? 0) <= 3 ? t('tacticalDashboard.status.someOverdue') : t('tacticalDashboard.status.manyOverdue'),
                         ok: (tacticalMetrics?.overdueTasks ?? 0) === 0,
                         sub: tacticalMetrics?.overdueTasks === 0 ? t('tacticalDashboard.messages.noOverdueTasks') : `${tacticalMetrics?.overdueTasks} tarea(s) atrasada(s)`,
                       },

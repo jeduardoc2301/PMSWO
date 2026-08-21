@@ -20,6 +20,7 @@ import { DashboardWidgetsDialog } from '@/components/projects/dashboard-widgets-
 import type { PanelDeProyecto } from '@/services/project-dashboard.service'
 import { PANEL_POR_OMISION, type WidgetDelPanel } from '@/lib/projects/dashboard-widgets'
 import { nombreDelArchivo, panelComoCsv } from '@/lib/projects/dashboard-csv'
+import { cargarPanel } from '@/lib/projects/cargar-panel'
 
 type Estado =
   | { readonly fase: 'cargando' }
@@ -84,7 +85,6 @@ export function DashboardTab({
     // el panel entero, porque el servidor de desarrollo atiende de uno en uno y la deja esperando
     // detrás. Los números que se enseñan no dependen de qué widgets estén encendidos, así que
     // esperarla era regalar el retraso de la otra.
-    const promesaPanel = fetch(`/api/v1/projects/${projectId}/dashboard`)
     const promesaPreferencia = fetch(`/api/v1/projects/${projectId}/preferences?view=PANEL`)
 
     // Que la preferencia falle no puede tumbar el panel: se cae de pie a la de por omisión.
@@ -98,33 +98,12 @@ export function DashboardTab({
 
     const cargar = async () => {
       try {
-        const respuestaPanel = await promesaPanel
-
-        if (!respuestaPanel.ok) {
-          const cuerpo = await respuestaPanel.json().catch(() => ({}))
-          throw new Error(cuerpo.message ?? `HTTP ${respuestaPanel.status}`)
-        }
-        const cuerpo = (await respuestaPanel.json().catch(() => null)) as {
-          panel?: PanelDeProyecto
-          hoy?: string
-        } | null
-
-        /*
-          Un 200 no garantiza que venga lo que hace falta.
-
-          Esto se daba por bueno y se pasaba tal cual al estado «listo»; si el cuerpo no traía
-          `panel`, la vista reventaba al desestructurarlo. Mientras el panel era una pestaña aparte
-          eso tumbaba una pestaña. Desde que vive dentro del Resumen tumbaría **la pantalla que todo
-          el mundo abre primero**, así que la misma respuesta mala cuesta ahora mucho más.
-
-          Comprobar `metricas` y no sólo `panel` es a propósito: un `panel` vacío pasaría una
-          comprobación que sólo mirara `panel` y volvería a reventar una línea más abajo.
-        */
-        if (!cuerpo || !cuerpo.panel || !cuerpo.panel.metricas || typeof cuerpo.hoy !== 'string') {
-          throw new Error('El panel llegó sin datos que enseñar.')
-        }
+        // Pedir y validar es de `cargarPanel`, que lo comparte con las tarjetas de pregunta del
+        // Resumen: las dos partes se montan a la vez y necesitan **los mismos números**, así que
+        // pedirlos por separado era arriesgarse a enseñar dos respuestas a la misma pregunta.
+        const { panel, hoy } = await cargarPanel(projectId)
         if (!vigente) return
-        setEstado({ fase: 'listo', panel: cuerpo.panel, hoy: cuerpo.hoy })
+        setEstado({ fase: 'listo', panel, hoy })
       } catch (error) {
         if (vigente) {
           setEstado({
