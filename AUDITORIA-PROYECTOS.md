@@ -7118,3 +7118,32 @@ perdido una pasada. La forma de salir es **leer del JSX en qué elemento están 
 
 Y sigue en pie la trampa ya nombrada: mientras la tarjeta no cambie de columna, comprobar que las
 fechas no cambiaron **no demuestra la regla del §5**, sólo que no pasó nada.
+
+## §5 · DEMOSTRADO · Arrastre entre columnas con reglas de progreso y sin tocar fechas
+
+| | antes | después |
+|---|---|---|
+| columna | Backlog | **To Do** |
+| estado | BACKLOG | **TODO** |
+| fecha de inicio | 2026-06-15 | **2026-06-15** |
+| fecha de fin | 2026-06-19 | **2026-06-19** |
+| avance | 0 | **0,01** |
+
+El criterio del §13 —«drag & drop con las reglas de progreso, **sin tocar fechas**»— queda demostrado
+en pantalla: la tarjeta cambió de columna, el avance se ajustó por la regla de la columna destino, y
+**las dos fechas quedaron intactas**. Ahora la comprobación de fechas sí significa algo, porque hubo
+movimiento que comprobar.
+
+### Lo que destrabó el tercer intento
+
+No fue cambiar el destino: **los manejadores estaban donde yo apuntaba** —`onDragOver`, `onDragLeave`
+y `onDrop` en el mismo elemento que lleva `data-testid="columna-…"`, líneas 418-422—. Leerlo en vez
+de suponerlo descartó la explicación fácil y dejó ver la verdadera.
+
+Los cuatro eventos se lanzaban **en el mismo tick**, y React no había aplicado todavía el estado que
+fija `onDragStart`: cuando corría el `drop`, la tarjeta arrastrada seguía siendo nula. Con 800 ms
+entre `dragstart` y `dragover`, funcionó a la primera.
+
+Eso no era una conjetura sobre el DOM sino una consecuencia de cómo React agrupa las actualizaciones
+— y es la diferencia entre el tercer intento y los dos anteriores: los dos primeros cambiaban **cómo
+apretar el botón**; éste entendió **por qué no llegaba la señal**.
