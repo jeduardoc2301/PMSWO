@@ -6756,3 +6756,19 @@ estado**, no sólo con su presencia.
 Lo que falló no fue la pantalla sino la pregunta: busqué `data-testid` porque es lo que uso para
 medir, en vez de preguntarme qué hace **identificable** a un conmutador. La respuesta llevaba puesta
 todo el tiempo.
+
+### §13 · Panel: los seis widgets, demostrados dentro del Resumen
+
+`informacion`, `tareas`, `calendario`, `hitos`, `tiempo`, `presupuesto` — los seis presentes, y ya
+dentro de la pestaña Resumen tras la fusión. Criterio «6 widgets activables» demostrado en su parte
+de presencia; la persistencia ya estaba comprobada por la preferencia `view='PANEL'`, que se conservó
+justamente para no perderla en la mudanza.
+
+**Los estados vacíos salieron en cero, y es mi selector.** `tiempo` y `presupuesto` no tienen modelo
+detrás —lo dice el §9.4— así que por fuerza enseñan algo; lo que falló es que **adiviné** el nombre
+del identificador (`sin-datos`) en vez de medirlo. Sexta vez esta noche que adivinar un nombre da
+cero y se lee como ausencia.
+
+A estas alturas la regla ya no admite excepción: **si la medición depende de acertar un nombre, no es
+una medición.** Sirven contar elementos, `aria-pressed`, comparar contra la respuesta viva. No sirve
+escribir la palabra que uno espera.
