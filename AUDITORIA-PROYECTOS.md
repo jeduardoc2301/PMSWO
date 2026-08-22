@@ -7411,3 +7411,19 @@ pero por una vía nueva: aquí no fallaba dónde miraba, sino que **el propio ac
 medición destruía lo que iba a medir**.
 
 Queda planteado así para la próxima: un solo guion que navegue una vez, arrastre, aplique, y deshaga.
+
+### El movimiento, corroborado con otro delta; el botón de deshacer, ausente en ese momento
+
+Encadenado en una sola sesión: arrastre de **24 px** ÷ 8 px por día = **3 días hábiles**, y las fechas
+pasan de 2026-06-26/07-02 a **2026-07-01/07-07**. Tres días hábiles exactos, con el fin de semana
+saltado. **El criterio del §4 queda corroborado con un delta distinto** al de la primera vez, que es
+mejor evidencia que repetir el mismo.
+
+**El botón «Deshacer» no estaba en el DOM** en ese instante, aunque hace dos turnos sí lo encontré.
+Medido y sin interpretar: algo cambia entre un estado y otro, y averiguar qué es la próxima medición.
+
+Y una consecuencia del método que conviene anotar: **el intento anterior se cayó por un error mío
+—leer `b.disabled` sin comprobar que `b` existiera— pero ya había aplicado su movimiento**. Por eso
+la fecha de partida era 06-26 y no 06-23. Un guion que se rompe a mitad **no deshace lo que ya hizo**:
+en el banco de pruebas da igual, en el plan real habría sido una escritura no querida. Es exactamente
+la razón por la que estas pruebas viven en `Claude-Test` y no en el plan del usuario.
