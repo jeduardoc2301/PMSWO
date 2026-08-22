@@ -6493,3 +6493,19 @@ carga. La hipótesis encajaba demasiado bien con otro fallo de esa misma noche, 
 el momento de desconfiar de una explicación: la que explica todo sin medirse no explica nada.
 
 Queda abierto y con el siguiente paso claro: correrla junto a sus vecinas, no sola ni con las 196.
+
+### Acotada por eliminación: no es la prueba ni sus vecinas
+
+| cómo se corre | pasadas | resultado |
+|---|---|---|
+| el archivo solo | 6 | verdes |
+| `components/projects` entero (391 pruebas) | 4 | verdes |
+| la suite completa (196 archivos) | 2 de ~8 | **roja** |
+
+No es una carrera propia de la aserción ni interferencia de las vecinas: sólo aparece con todo
+corriendo a la vez, lo que apunta a **contención bajo carga paralela** —el `fetch` pendiente tarda
+más de lo que la prueba espera cuando compiten 196 suites— y no a un defecto de esa prueba.
+
+Eso cambia el arreglo: no es reescribir la aserción, es que ese `fetch` no debería quedar pendiente
+al desmontar. Queda anotado y sin tocar; arreglarlo a ciegas sobre una prueba que no falla sola sería
+cambiar código por una corazonada.
