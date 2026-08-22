@@ -7427,3 +7427,30 @@ Y una consecuencia del método que conviene anotar: **el intento anterior se cay
 la fecha de partida era 06-26 y no 06-23. Un guion que se rompe a mitad **no deshace lo que ya hizo**:
 en el banco de pruebas da igual, en el plan real habría sido una escritura no querida. Es exactamente
 la razón por la que estas pruebas viven en `Claude-Test` y no en el plan del usuario.
+
+## §13 · DEMOSTRADO · Deshacer, y por qué no lo encontraba
+
+| paso | fechas |
+|---|---|
+| inicial | 2026-07-01 → 07-07 |
+| tras arrastrar 24 px y aplicar | 2026-07-06 → 07-10 |
+| tras pulsar deshacer | **2026-07-01 → 07-07** |
+
+Vuelve **exactamente** al punto de partida. Y el botón anuncia qué va a deshacer:
+
+> «Deshacer **Reprogramar: B · tarea suelta para arrastrar → 2026-07-06**»
+
+### Y ahí estaba el motivo
+
+El `aria-label` es **dinámico**: `sePuedeDeshacer ? 'Deshacer ' + etiqueta : 'Deshacer'`. Mi selector
+buscaba la cadena **exacta** «Deshacer», así que sólo encontraba el botón **cuando estaba
+deshabilitado** — cuando no había nada que deshacer. En cuanto había algo, la etiqueta crecía con el
+nombre de la acción y mi búsqueda dejaba de verlo.
+
+Novena vez de la misma familia, con un giro que merece nombre propio: **una etiqueta que cambia con
+el estado hace que una coincidencia exacta sólo vea un estado** — y, por mala suerte, el inútil. La
+regla se amplía: no sólo «no busques por nombre», sino **si buscas por texto, busca por prefijo, no
+por igualdad**.
+
+Que la etiqueta sea dinámica no es un defecto sino un acierto de accesibilidad: quien la oye sabe qué
+va a deshacer antes de pulsar. Lo que estaba mal era mi forma de leerla.
