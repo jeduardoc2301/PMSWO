@@ -225,3 +225,37 @@ describe('El mapa de estados de la ficha del proyecto se lee en los dos temas', 
     }
   }
 })
+
+/**
+ * Las tarjetas del Tablero con urgencia, contra la tinta que llevan encima.
+ *
+ * Esto no es un matiz: la capa de abajo iba con `#18181b` a pelo y en claro dejaba la tarjeta casi
+ * negra mientras el título usaba `--tinta`, que en claro **es ese mismo color**. Título invisible,
+ * 1,00:1 — y sólo en las tarjetas con urgencia, o sea las vencidas y las bloqueadas.
+ *
+ * Se comprueba la capa sólida, no el degradado de encima: es la que decide si se lee o no.
+ */
+const TARJETAS = ['kc-overdue', 'kc-soon', 'kc-stale', 'kc-blocked'] as const
+
+/** La última capa del atajo `background`: la sólida, detrás de los degradados. */
+function capaSolida(clase: string): string {
+  const i = CSS.indexOf(String.fromCharCode(10) + '.' + clase)
+  if (i < 0) throw new Error(`no encuentro la regla de .${clase}`)
+  const j = CSS.indexOf('background:', i)
+  const valor = CSS.slice(j + 'background:'.length, CSS.indexOf(';', j))
+  const k = valor.lastIndexOf('), ')
+  const cola = k < 0 ? valor : valor.slice(k + 3)
+  return cola.split('!important')[0].trim()
+}
+
+describe('Las tarjetas con urgencia del Tablero se leen en los dos temas', () => {
+  for (const tema of TEMAS) {
+    const b = bloque(tema.selector)
+    for (const clase of TARJETAS) {
+      it(`${tema.nombre} · .${clase}`, () => {
+        const fondo = resuelto(capaSolida(clase), b)
+        expect(contraste(color(token(b, '--tinta')), fondo)).toBeGreaterThanOrEqual(AA)
+      })
+    }
+  }
+})

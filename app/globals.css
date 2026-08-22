@@ -722,28 +722,33 @@ body {
 }
 .dp-foot-primary:hover { filter: brightness(1.15); border-color: rgba(167,139,250,0.50); }
 
-/* ===== KANBAN URGENCY ===== */
+/* ===== KANBAN URGENCY =====
+   La capa de abajo iba con `#18181b` a pelo. En claro eso pintaba la tarjeta casi negra mientras el
+   título seguía usando `--tinta`, que en claro es #18181b: **el mismo color los dos**, o sea texto
+   invisible. Y sólo lo llevaban las tarjetas CON urgencia, así que las que desaparecían eran las
+   vencidas y las bloqueadas — las únicas que hay que ver.
+   `--superficie` vale exactamente #18181b en oscuro, así que el tema oscuro no cambia ni un píxel. */
 @keyframes kcOverdueGlow {
   0%, 100% { box-shadow: 0 0 0 1px rgba(244,63,94,0.20), 0 6px 22px -10px rgba(244,63,94,0.30); }
   50%       { box-shadow: 0 0 0 1px rgba(244,63,94,0.40), 0 10px 28px -8px  rgba(244,63,94,0.55); }
 }
 
 .kc-overdue {
-  background: linear-gradient(180deg, rgba(244,63,94,0.10), transparent 50%), #18181b !important;
+  background: linear-gradient(180deg, rgba(244,63,94,0.10), transparent 50%), var(--superficie) !important;
   border-color: rgba(244,63,94,0.55) !important;
   animation: kcOverdueGlow 2.6s ease-in-out infinite;
 }
 .kc-soon {
-  background: linear-gradient(180deg, rgba(245,158,11,0.08), transparent 45%), #18181b !important;
+  background: linear-gradient(180deg, rgba(245,158,11,0.08), transparent 45%), var(--superficie) !important;
   border-color: rgba(245,158,11,0.50) !important;
   box-shadow: 0 0 0 1px rgba(245,158,11,0.18), 0 6px 18px -10px rgba(245,158,11,0.28);
 }
 .kc-stale {
-  background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(99,102,241,0.04) 10px 20px), #18181b !important;
+  background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(99,102,241,0.04) 10px 20px), var(--superficie) !important;
   border-color: rgba(99,102,241,0.35) !important;
 }
 .kc-blocked {
-  background: linear-gradient(180deg, rgba(244,63,94,0.13), transparent 50%), #18181b !important;
+  background: linear-gradient(180deg, rgba(244,63,94,0.13), transparent 50%), var(--superficie) !important;
   border-color: rgba(244,63,94,0.55) !important;
   box-shadow: 0 0 0 1px rgba(244,63,94,0.20), 0 8px 22px -10px rgba(244,63,94,0.35);
 }
