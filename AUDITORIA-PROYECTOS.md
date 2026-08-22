@@ -6952,3 +6952,17 @@ al abrirse aparecen elementos identificados. Ninguna de las dos cosas se comprob
 De propina, la lista sí confirma la fusión de anoche: conviven en la misma pantalla `medidor-marca`,
 `medidor-relleno` y `rebanada-tareas-*` del Panel con `reparto-de-papeles` del Resumen. La mudanza
 está entera.
+
+### Corrección: el selector del filtro sí funcionaba
+
+El rótulo real es **«Filtro ▾»**, con galón. El selector de la tanda anterior —`indexOf('Filtro') ===
+0`— **sí lo encontraba**, así que de las dos causas que quedaron escritas («o el selector no dio con
+el botón, o el desplegable no usa identificadores») **la primera queda descartada**: el botón se
+pulsó, y lo que no lleva identificadores es el contenido del desplegable.
+
+Medirlo pide leer el **texto tras abrirlo**, no contar identificadores. Es la lección al revés de la
+que ha dominado la noche: aquí el texto es el único asidero, porque no hay estructura identificada
+que contar. Ninguna técnica sirve siempre; lo que no sirve nunca es **suponer cuál sirve**.
+
+Anotar dos causas posibles en vez de elegir una permitió eliminarla en un turno. Escribir sólo la que
+me parecía más probable habría dejado la otra sin comprobar.
