@@ -86,6 +86,33 @@
   --grave-tinta:    #f87171;
   --sobre-color:    #09090b;  /* lo que se escribe ENCIMA de un bien/aviso/grave lleno */
 
+  /*
+    Las píldoras de urgencia del Tablero (`.urgency-chip`).
+
+    Estaban escritas con los pasos claros de Tailwind —rose-300, amber-300, indigo-300— porque
+    nacieron cuando la aplicación sólo era oscura. Con el tema claro puesto quedaban entre 1,49:1 y
+    2,24:1 contra el fondo, cuando AA pide 4,5:1: etiquetas de estado ilegibles.
+
+    Los tintes de fondo y los bordes siguen siendo alfa sobre el color base, que funcionan igual en
+    los dos temas; lo único que cambia por tema es la **tinta**, que es lo que se lee.
+  */
+  --chip-fondo:         #0e0e12;
+  --chip-borde:         #232327;
+  --chip-tinta:         #a1a1aa;
+  --chip-hover-borde:   #3a3a45;
+  --chip-hover-tinta:   #ffffff;
+  --chip-cuenta-fondo:  rgba(255,255,255,0.08);
+  --chip-cuenta-tinta:  #ffffff;
+  --chip-rosa:          #fda4af;
+  --chip-rosa-cuenta:   #fecdd3;
+  --chip-rosa-activo:   rgba(244,63,94,0.18);
+  --chip-ambar:         #fcd34d;
+  --chip-ambar-cuenta:  #fde68a;
+  --chip-ambar-activo:  rgba(245,158,11,0.18);
+  --chip-indigo:        #a5b4fc;
+  --chip-indigo-cuenta: #c7d2fe;
+  --chip-indigo-activo: rgba(99,102,241,0.18);
+
   /* ── Los colores de DATO (§9.3 C6) ───────────────────────────────────────────────────────
 
      Estos no decoran: **dicen algo**. Cambiarlos cambia lo que la pantalla afirma, y por eso viven
@@ -198,6 +225,24 @@
   --grave-tinta:    #b91c1c;
   --sobre-color:    #ffffff;
 
+  /* Las píldoras del Tablero en claro: pasos oscuros, y el activo con relleno lleno. */
+  --chip-fondo:         #ffffff;
+  --chip-borde:         #e4e4e7;
+  --chip-tinta:         #52525b;
+  --chip-hover-borde:   #a1a1aa;
+  --chip-hover-tinta:   #18181b;
+  --chip-cuenta-fondo:  rgba(0,0,0,0.06);
+  --chip-cuenta-tinta:  #18181b;
+  --chip-rosa:          #be123c;
+  --chip-rosa-cuenta:   #9f1239;
+  --chip-rosa-activo:   #be123c;
+  --chip-ambar:         #92400e;
+  --chip-ambar-cuenta:  #78350f;
+  --chip-ambar-activo:  #b45309;
+  --chip-indigo:        #4338ca;
+  --chip-indigo-cuenta: #3730a3;
+  --chip-indigo-activo: #4338ca;
+
   /*
     La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
     blanco — invisible. Ésta da 2.19 / 3.57 / 6.17 / 10.77, monotónica, y con el mismo tono.
@@ -278,6 +323,24 @@
     --grave:          #b91c1c;
     --grave-tinta:    #b91c1c;
     --sobre-color:    #ffffff;
+
+    /* Las píldoras del Tablero en claro: pasos oscuros, y el activo con relleno lleno. */
+    --chip-fondo:         #ffffff;
+    --chip-borde:         #e4e4e7;
+    --chip-tinta:         #52525b;
+    --chip-hover-borde:   #a1a1aa;
+    --chip-hover-tinta:   #18181b;
+    --chip-cuenta-fondo:  rgba(0,0,0,0.06);
+    --chip-cuenta-tinta:  #18181b;
+    --chip-rosa:          #be123c;
+    --chip-rosa-cuenta:   #9f1239;
+    --chip-rosa-activo:   #be123c;
+    --chip-ambar:         #92400e;
+    --chip-ambar-cuenta:  #78350f;
+    --chip-ambar-activo:  #b45309;
+    --chip-indigo:        #4338ca;
+    --chip-indigo-cuenta: #3730a3;
+    --chip-indigo-activo: #4338ca;
 
     /*
       La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
@@ -650,37 +713,41 @@ body {
   padding: 5px 10px 5px 9px;
   border-radius: 999px;
   font-size: 11px; font-weight: 600;
-  background: #0e0e12; border: 1px solid #232327;
-  color: #a1a1aa; cursor: pointer;
+  background: var(--chip-fondo); border: 1px solid var(--chip-borde);
+  color: var(--chip-tinta); cursor: pointer;
   transition: all .15s;
 }
-.urgency-chip:hover { border-color: #3a3a45; color: #fff; }
+.urgency-chip:hover { border-color: var(--chip-hover-borde); color: var(--chip-hover-tinta); }
 .urgency-chip .chip-count {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; padding: 0 6px; height: 18px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.08); color: #fff;
+  background: var(--chip-cuenta-fondo); color: var(--chip-cuenta-tinta);
   font-size: 10px; font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .urgency-chip.chip-empty { opacity: 0.5; cursor: default; pointer-events: none; }
 .urgency-chip.is-active { transform: translateY(-1px); }
+/* La cuenta del chip activo va en blanco en los dos temas, y no hace falta un token: en oscuro cae
+   sobre un tinte oscuro y en claro sobre el relleno saturado. Sin esto, en claro quedaba tinta
+   granate sobre granate. */
+.urgency-chip.is-active .chip-count { background: rgba(255,255,255,0.25); color: #fff; }
 
-.urgency-chip.chip-overdue { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.30); color: #fda4af; }
-.urgency-chip.chip-overdue .chip-count { background: rgba(244,63,94,0.25); color: #fecdd3; }
-.urgency-chip.chip-overdue.is-active { background: rgba(244,63,94,0.18); border-color: rgba(244,63,94,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(244,63,94,0.45); }
+.urgency-chip.chip-overdue { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.30); color: var(--chip-rosa); }
+.urgency-chip.chip-overdue .chip-count { background: rgba(244,63,94,0.25); color: var(--chip-rosa-cuenta); }
+.urgency-chip.chip-overdue.is-active { background: var(--chip-rosa-activo); border-color: rgba(244,63,94,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(244,63,94,0.45); }
 
-.urgency-chip.chip-soon { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.30); color: #fcd34d; }
-.urgency-chip.chip-soon .chip-count { background: rgba(245,158,11,0.25); color: #fde68a; }
-.urgency-chip.chip-soon.is-active { background: rgba(245,158,11,0.18); border-color: rgba(245,158,11,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(245,158,11,0.45); }
+.urgency-chip.chip-soon { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.30); color: var(--chip-ambar); }
+.urgency-chip.chip-soon .chip-count { background: rgba(245,158,11,0.25); color: var(--chip-ambar-cuenta); }
+.urgency-chip.chip-soon.is-active { background: var(--chip-ambar-activo); border-color: rgba(245,158,11,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(245,158,11,0.45); }
 
-.urgency-chip.chip-stale { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.30); color: #a5b4fc; }
-.urgency-chip.chip-stale .chip-count { background: rgba(99,102,241,0.25); color: #c7d2fe; }
-.urgency-chip.chip-stale.is-active { background: rgba(99,102,241,0.18); border-color: rgba(99,102,241,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(99,102,241,0.45); }
+.urgency-chip.chip-stale { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.30); color: var(--chip-indigo); }
+.urgency-chip.chip-stale .chip-count { background: rgba(99,102,241,0.25); color: var(--chip-indigo-cuenta); }
+.urgency-chip.chip-stale.is-active { background: var(--chip-indigo-activo); border-color: rgba(99,102,241,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(99,102,241,0.45); }
 
-.urgency-chip.chip-blocked { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.30); color: #fda4af; }
-.urgency-chip.chip-blocked .chip-count { background: rgba(244,63,94,0.25); color: #fecdd3; }
-.urgency-chip.chip-blocked.is-active { background: rgba(244,63,94,0.18); border-color: rgba(244,63,94,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(244,63,94,0.45); }
+.urgency-chip.chip-blocked { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.30); color: var(--chip-rosa); }
+.urgency-chip.chip-blocked .chip-count { background: rgba(244,63,94,0.25); color: var(--chip-rosa-cuenta); }
+.urgency-chip.chip-blocked.is-active { background: var(--chip-rosa-activo); border-color: rgba(244,63,94,0.55); color: #fff; box-shadow: 0 6px 18px -6px rgba(244,63,94,0.45); }
 
 /* Info modal */
 .info-anatomy {
