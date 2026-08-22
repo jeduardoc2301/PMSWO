@@ -7208,3 +7208,22 @@ que la agarra y no pasa nada.
 Se comprueba leyendo si `onMoverLinea` llega, y en qué condiciones se omite: lo natural sería que
 dependa del permiso `edit_schedule`. Si es eso, el atributo debería decir «no» cuando falta el
 permiso.
+
+### Tercera hipótesis refutada: el atributo NO miente
+
+`const movible = onMoverLinea !== undefined && !row.isSummary` (línea 706). **`movible` ya exige que
+`onMoverLinea` exista**, así que `data-movible="sí"` no puede aparecer sin la función. El guardián
+`if (!movible || !onMoverLinea)` es redundante, no una trampa. Mi candidato «mucho mejor» era tan
+falso como los dos anteriores.
+
+Tres hipótesis, tres refutaciones, todas por leer el dato en vez de razonar sobre él. No es tiempo
+perdido: cada una eliminó una explicación, y la que queda es **aritmética y comprobable**.
+
+`delta = Math.round((ev.clientX - xInicial) / dayWidth)`, y sólo se escribe `if (delta !== 0)`. **Si
+el ancho de un día supera los 40 px que moví, delta redondea a cero** y no se llama a nada: ni error,
+ni petición, ni rastro — el mismo silencio de los tres enfoques, explicado sin necesidad de que nada
+esté roto.
+
+Se comprueba midiendo `dayWidth` en la pantalla —la distancia entre dos marcas del eje— y arrastrando
+tres veces esa distancia. Es la primera explicación que **no acusa al código de nada**, y por eso
+mismo es la más probable: llevo tres intentos moviendo una cantidad que elegí sin medir.
