@@ -7182,3 +7182,29 @@ Eso ya no se mira en el DOM. Se mira en la **red**: escuchando si durante el ges
 y qué contesta. Es justo lo que la cabecera de `cdp2.mjs` recomienda para los gestos —«mirar lo que
 Chrome intercepta»— y la segunda vez esta noche que la respuesta estaba escrita en algo que ya había
 leído.
+
+### La condición exacta, y un candidato mucho mejor
+
+Leído el manejador entero:
+
+```
+if (!movible || !onMoverLinea) return          // el guardián de entrada
+...
+if (delta !== 0 && ev.type === 'pointerup') onMoverLinea(row.id, delta)
+```
+
+**`data-movible` se pinta desde `movible`, pero entrar exige además `onMoverLinea`.** Si esa función
+no llega al componente, la barra anuncia «sí, soy movible» y el gesto sale por la puerta de atrás sin
+enganchar un solo oyente — que es exactamente lo observado en los tres enfoques.
+
+Es mejor candidato que las dos hipótesis caídas porque **explica el silencio**: no hay error, no hay
+petición, no hay nada. Un evento que no engancha oyentes no deja rastro en ninguna parte, y por eso
+mirar el DOM y mirar la red darían lo mismo.
+
+Y si se confirma, **el hallazgo no es que el arrastre falle: es que el atributo miente**. Una barra
+que declara `data-movible="sí"` y no se puede mover engaña a quien la mide y —peor— a quien la usa,
+que la agarra y no pasa nada.
+
+Se comprueba leyendo si `onMoverLinea` llega, y en qué condiciones se omite: lo natural sería que
+dependa del permiso `edit_schedule`. Si es eso, el atributo debería decir «no» cuando falta el
+permiso.
