@@ -6923,3 +6923,18 @@ regla queda escrita en la bitácora tantas veces como hizo falta aprenderla.
 **Balance del §13 tras la noche:** las seis vistas con criterios demostrados en pantalla, cuatro
 sitios probados de que el atajo de «resumen» no está donde importa, y las cuatro compuertas quedando
 como reactivo reutilizable. Sin defectos nuevos abiertos.
+
+### §13 transversal · El filtro compartido, seis de seis
+
+La barra del filtro aparece en **las seis vistas** —Resumen, Tablero, Elementos de Trabajo, Timeline,
+Calendario y Carga—, incluida la Resumen tras la fusión del Panel. El criterio «filtro unificado
+compartido entre las 6 vistas» queda demostrado en pantalla.
+
+La parte «guardable» **no se cuenta**: la sonda buscó la palabra y salió falsa en las seis, pero el
+guardado estará detrás del desplegable del propio filtro, sin abrir. Novena vez que una búsqueda por
+palabra no dice nada — y esta vez no se escribe ni a favor ni en contra, que es lo que la noche ha
+enseñado a hacer con ellas.
+
+**Del §13 transversal quedan**: los permisos negativos —un usuario con `view_list` y sin `view_gantt`
+recibiendo un 403— que sólo está cubierto por prueba y necesita un segundo rol en la base; y el
+tiempo real, que es decisión del usuario y no tarea.
