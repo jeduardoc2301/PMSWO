@@ -6426,3 +6426,17 @@ Comparadas con `TareaDeCarga` y `RecursoDeCarga`, **no falta ninguna en ninguno 
 
 Quedan recorridas tres de las cuatro juntas: Tablero, `/schedule` y `/workload`. Falta `/calendar`,
 cuya forma no es una lista de líneas —semana, turnos, festivos— y necesita otro criterio.
+
+### §7 · El Calendario no tiene junta propia de líneas
+
+Sus líneas salen del `plan` —o sea de `/schedule`, ya verificada sin huecos—, no de una carga suya.
+Lo que sirve `/calendar` es la configuración de jornada: `semana pais turnos turnosGuardados
+festivos guardado`.
+
+Esa parte queda **pendiente, no limpia**: el primer intento la comparó contra
+`lib/scheduling/project-calendar.ts`, que sólo nombra uno de los seis campos — lo que significa que
+ése no es su consumidor, no que la ruta mande de más. Contrato equivocado, comparación sin valor.
+Anotarlo como pendiente cuesta una línea; darlo por bueno habría escondido lo que falte ahí dentro.
+
+**Estado del barrido de juntas:** Tablero, `/schedule` y `/workload` recorridas y sin huecos. La
+configuración de jornada, sin recorrer.
