@@ -7266,3 +7266,31 @@ en la interfaz, no en la tabla.
 
 Siguiente: leer el DOM inmediatamente después del `pointerup`, buscando diálogo, aviso o barra de
 deshacer.
+
+## §4 · DEMOSTRADO · El arrastre de barra funciona y propone la reprogramación
+
+Justo tras soltar aparece `propuesta-reprogramacion`:
+
+> «Mover «B · tarea suelta para arrastrar» al **2026-06-23** cambia…»
+
+El texto de la pantalla crece de 2749 a 2896 caracteres en el mismo instante. Y la fecha es
+**aritméticamente correcta**: del lunes 15 de junio, seis días hábiles adelante, sale el martes 23 —
+el fin de semana no cuenta.
+
+O sea que el gesto del §4 funciona entero: arrastra, calcula en días hábiles, y **propone** en vez de
+escribir. Que proponga es diseño, no defecto: el propio manejador lo explica —«dejarla movida sería
+prometer una escritura que aún no ocurrió»—.
+
+### Lo que costó, y por qué
+
+Cinco turnos y **cinco hipótesis refutadas**: la captura del puntero, el tipo de evento, el atributo
+`data-movible`, la aritmética del `delta`, y que los eventos no llegaran. Todas falsas. El gesto
+funcionaba desde el primer intento.
+
+Lo que fallaba era **dónde miraba el efecto**: cada sonda terminaba consultando las fechas guardadas,
+y una propuesta pendiente de confirmar no toca la base por definición. Buscaba la consecuencia en el
+único sitio donde no podía estar.
+
+La lección no es «mirar la pantalla» —eso ya estaba en la regla del encargo— sino algo más fino:
+**cuando un gesto no deja rastro donde lo busco, la pregunta no es por qué falló el gesto sino si
+estoy buscando el rastro correcto.** Cinco explicaciones ingeniosas para un fenómeno que no existía.
