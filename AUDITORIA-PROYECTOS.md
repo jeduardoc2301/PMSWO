@@ -7611,3 +7611,13 @@ original caen **exactamente dos**, una por cada dirección del defecto.
 
 Por qué era invisible: **una tecla que no hace nada —o que hace de más— no deja rastro**. Sin error,
 sin petición fallida, sin aviso. Sólo se ve moviendo la línea y mirando dónde acabó.
+
+### Addendum: el menú de fila lo tenía bien
+
+El mismo archivo distingue correctamente los dos casos en el menú contextual —`sangrarA === null ?
+null : …` y `anularA === null ? null : … anularA.padre`— mientras el atajo de teclado y el lote los
+confundían.
+
+Eso explica por qué el defecto sobrevivió tanto: **quien pasara por el archivo veía el patrón bueno**.
+Tres usos de las mismas dos funciones, uno correcto y dos rotos, a menos de mil líneas de distancia.
+Un ejemplo correcto cerca no protege de nada — al contrario, tranquiliza.
