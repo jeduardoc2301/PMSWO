@@ -6802,3 +6802,16 @@ Para separarlos hace falta una línea que tenga hijas **sin** ser `RESUMEN`: en 
 son las cuatro compuertas. Si alguna de ellas resultara movible, el código estaría mirando el campo.
 Es no destructivo —basta con encontrarlas en la ventana y leer su atributo— y queda como la medición
 que de verdad cierra esto.
+
+### Separados por fin: el Gantt mira la estructura, no la etiqueta
+
+Las cuatro compuertas —HAB-01 a HAB-04— tienen hijas **sin** ser `kind === 'RESUMEN'`, y las cuatro
+salen `data-movible="no"`. Si el arrastre se decidiera por el campo, serían movibles. No lo son.
+
+Queda demostrado en pantalla que **para decidir qué se puede arrastrar, el Gantt pregunta por tener
+hijas**. Es la regla buena — la misma que ha mordido cuatro veces en otros sitios de este repositorio
+— aplicada correctamente aquí.
+
+Y el método que lo separó merece quedarse: la muestra grande (7 líneas) **no podía** distinguir los
+dos criterios porque en ella coincidían; las cuatro líneas donde divergen lo resolvieron en una
+lectura. Para separar dos reglas no sirve más datos, sirven **los datos donde discrepan**.
