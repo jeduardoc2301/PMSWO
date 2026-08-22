@@ -6407,3 +6407,14 @@ tocan hasta comprobarlos uno a uno: pueden ser entradas opcionales legítimas, y
 del mismo concepto con distinto nombre (`constraint`/`restriccionGuardada`,
 `recoverability`/`elapsedTime`). Queda nombrado para la próxima pasada; afirmarlo ahora sería
 exactamente lo que este método existe para evitar.
+
+### Los cuatro candidatos, descartados
+
+Ninguno de los cuatro —`alap`, `compromiso`, `elapsedTime`, `restriccionGuardada`— existe en el
+modelo de datos. No son campos que la carga deba traer y no trae: son conceptos **del motor**.
+`constraint` sí viaja y `restriccionGuardada` es su variante interna; `elapsedTime` se deriva de
+`recoverability`, que también viaja; `compromiso` es del proyecto, no de la línea; y `alap` es un
+modo del cálculo, no un dato guardado.
+
+La junta de `/schedule` queda entonces **sin huecos**, y la sospecha descartada por medición y no por
+olvido — que es lo que distingue «comprobado» de «no lo miré».
