@@ -6842,3 +6842,16 @@ veces en este repositorio no está en ninguno de los tres sitios donde más se n
 Y lo más reutilizable de todo esto no es el resultado sino el reactivo: **las cuatro compuertas**
 separan los dos criterios en una lectura, sin releer código y sin depender de acertar un nombre. Es
 la respuesta al problema que ha dominado la noche entera.
+
+### Cuarto sitio, con datos ya medidos: la Carga trae 1243, no 1247
+
+La carga de `/workload` trae **1243 tareas**, medido dos tandas atrás sin reparar en lo que decía. La
+aritmética lo resuelve sola: excluyendo por el campo serían 1368 − 121 = **1247**; excluyendo por
+tener hijas son 1368 − 125 = **1243**. Es lo segundo.
+
+Cuarto sitio que decide por estructura —Gantt, Tablero, Panel y Carga—, y éste **sin sondear nada
+nuevo**: la evidencia estaba en una medición de hace dos tandas, esperando a que alguien restara.
+
+Merece anotarse: no toda medición se agota cuando se toma. Guardar las cifras crudas —1243, 125,
+1665— permite que una pregunta posterior las use sin volver a la pantalla. Tres de las cuatro
+confirmaciones de este barrido costaron una sonda; ésta costó una resta.
