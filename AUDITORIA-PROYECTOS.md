@@ -6966,3 +6966,22 @@ que contar. Ninguna técnica sirve siempre; lo que no sirve nunca es **suponer c
 
 Anotar dos causas posibles en vez de elegir una permitió eliminarla en un turno. Escribir sólo la que
 me parecía más probable habría dejado la otra sin comprobar.
+
+### §10.2 · El filtro abre y enseña sus condiciones; lo «guardable» queda en duda
+
+Abierto por fin —el texto crece de 11 856 a 11 904— el desplegable enseña: **«Cumplir todas /
+alguna · + condición · + grupo · Cerrar»**. Es el filtro unificado con condiciones y **grupos
+anidados**, tal como pide el §10.2.
+
+Entre esos controles **no hay ninguno de guardar**, y el §13 pide el filtro «guardable». En el menú
+lateral sí hay «Vistas guardadas» —Mis críticos, En riesgo, Esta semana, Con bloqueadores— pero esas
+cuatro están **escritas en duro** en `main-nav.tsx`: son enlaces con su `href` fijo, no filtros que
+alguien haya guardado.
+
+**Candidato, no hallazgo.** Puede haber otro camino para guardar que no he mirado —un menú
+contextual, un atajo, la propia barra fuera del desplegable—. Lo que está medido es que en el
+desplegable no aparece, y que las vistas del menú no vienen de guardar nada.
+
+Cómo cerrarlo: buscar en el modelo si existe una tabla de filtros guardados. Si no existe, el
+criterio no está implementado y esto sí es un hueco real; si existe, hay que encontrar por dónde se
+alimenta.
