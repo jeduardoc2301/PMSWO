@@ -303,7 +303,7 @@ function Boton({
       onClick={onClick}
       className={`rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:ring-offset-[#18181b] ${
         activo
-          ? 'border-acento bg-acento text-tinta'
+          ? 'border-acento-relleno bg-acento-relleno text-sobre-acento'
           : 'border-borde bg-superficie text-tinta-2 hover:border-acento hover:text-tinta'
       }`}
     >

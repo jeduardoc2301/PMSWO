@@ -312,3 +312,61 @@ describe('Los distintivos del Tablero se leen en los dos temas', () => {
     }
   }
 })
+
+/**
+ * La tinta de lo que va ENCIMA de un relleno de acento.
+ *
+ * El botón elegido de los conmutadores segmentados —«Todo», «Esquema», «Todas»— usaba `--tinta`, que
+ * es la tinta de la página. En oscuro es casi blanca y salía bien sobre el índigo **por casualidad**;
+ * en claro es casi negra y el botón que dice dónde estás quedaba a 2,82:1.
+ *
+ * Un token equivocado no se ve leyendo el componente: `text-tinta` parece de lo más razonable. Sólo
+ * se ve midiendo, o comprobando aquí que la pareja concreta —tinta sobre relleno— se lee.
+ *
+ * Se mide contra `--acento-relleno` y no contra `--acento` porque el botón usaba **ese otro** mal: el
+ * acento de TEXTO como fondo. En oscuro vale #6366f1 y el blanco encima da 4,47 — por debajo de AA
+ * por poco. `--acento-relleno` existe desde antes y se llama así por algo.
+ */
+describe('La tinta sobre el relleno de acento se lee en los dos temas', () => {
+  for (const tema of TEMAS) {
+    it(`tema ${tema.nombre}`, () => {
+      const b = bloque(tema.selector)
+      const relleno = color(token(b, '--acento-relleno'))
+      expect(contraste(color(token(b, '--sobre-acento')), relleno)).toBeGreaterThanOrEqual(AA)
+    })
+
+    it(`tema ${tema.nombre} · y la de la página NO servía, que es el defecto`, () => {
+      const b = bloque(tema.selector)
+      const relleno = color(token(b, '--acento-relleno'))
+      const conLaDeLaPagina = contraste(color(token(b, '--tinta')), relleno)
+      const conLaBuena = contraste(color(token(b, '--sobre-acento')), relleno)
+      expect(conLaBuena).toBeGreaterThanOrEqual(conLaDeLaPagina)
+    })
+  }
+})
+
+/**
+ * Que nadie vuelva a escribir la tinta de la página encima de un relleno de acento.
+ *
+ * El defecto no fue un color malo: fueron **dos tokens buenos mal emparejados**. Eso no lo caza una
+ * prueba de valores, porque los valores están bien cada uno por su lado. Se caza mirando la pareja.
+ */
+const CONMUTADORES = [
+  ['components', 'plan', 'plan-controls.tsx'],
+  ['components', 'projects', 'work-items-view.tsx'],
+] as const
+
+describe('Los conmutadores segmentados no visten su relleno con la tinta de la página', () => {
+  for (const ruta of CONMUTADORES) {
+    it(ruta[ruta.length - 1], () => {
+      const texto = readFileSync(join(process.cwd(), ...ruta), 'utf8')
+      const lineas = texto.split(String.fromCharCode(10))
+      const sospechosas = lineas.filter((l) => l.indexOf('bg-acento') >= 0 && l.indexOf('text-tinta') >= 0)
+      expect(sospechosas).toEqual([])
+
+      const rellenos = lineas.filter((l) => l.indexOf('bg-acento-relleno') >= 0)
+      expect(rellenos.length).toBeGreaterThanOrEqual(1)
+      for (const l of rellenos) expect(l).toContain('text-sobre-acento')
+    })
+  }
+})

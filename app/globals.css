@@ -84,6 +84,18 @@
     que `--acento` / `--acento-tinta`, y por el mismo motivo.
   */
   --grave-tinta:    #f87171;
+  /*
+    La tinta de lo que se escribe ENCIMA de un relleno de acento.
+
+    No vale `--tinta`, que es la de la página: en oscuro es casi blanca y sale bien sobre el índigo
+    por casualidad, pero en claro es casi negra y el botón elegido quedaba a 2,82:1.
+
+    Y no vale `--sobre-color`, que se invierte por tema porque acompaña a rellenos que cambian de
+    claridad —bien, aviso, grave—. El acento es índigo en los dos temas, así que su tinta no se
+    invierte: es blanca siempre. Vale igual en los tres bloques, y aun así se declara en los tres,
+    porque lo que documenta es la intención: si el acento cambiara a un tono claro, se cambia aquí.
+  */
+  --sobre-acento:   #ffffff;
   --sobre-color:    #09090b;  /* lo que se escribe ENCIMA de un bien/aviso/grave lleno */
 
   /*
@@ -254,6 +266,7 @@
   --aviso:          #b45309;
   --grave:          #b91c1c;
   --grave-tinta:    #b91c1c;
+  --sobre-acento:   #ffffff;
   --sobre-color:    #ffffff;
 
   /* Las píldoras del Tablero en claro: pasos oscuros, y el activo con relleno lleno. */
@@ -367,6 +380,7 @@
     --aviso:          #b45309;
     --grave:          #b91c1c;
     --grave-tinta:    #b91c1c;
+    --sobre-acento:   #ffffff;
     --sobre-color:    #ffffff;
 
     /* Las píldoras del Tablero en claro: pasos oscuros, y el activo con relleno lleno. */
@@ -472,6 +486,7 @@
   --color-tinta-2:        var(--tinta-2);
   --color-tinta-3:        var(--tinta-3);
   --color-acento:         var(--acento);
+  --color-sobre-acento:   var(--sobre-acento);
   --color-acento-tinta:   var(--acento-tinta);
   --color-acento-suave:   var(--acento-suave);
   --color-bien:           var(--bien);
