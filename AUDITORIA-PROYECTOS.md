@@ -7027,3 +7027,22 @@ antes de la puerta.
 El detalle que lo confirma es **las cero pruebas**: en este repositorio nada llega a producción sin
 suite, así que un servicio de 150 líneas sin una sola prueba señala trabajo interrumpido, no trabajo
 mal hecho. Falta poco y falta lo visible: ruta, botón, lista, y decidir si se ofrece `isShared`.
+
+## Banco de pruebas «Claude-Test», a petición del usuario
+
+Proyecto `cab71661-6a81-4b1b-8190-557292dd4340`, creado para medir los gestos sin tocar el plan real.
+**No se borra**: el usuario quiere verlo. Contiene cinco líneas —un resumen con dos hijas, un hito y
+una tarea suelta— y dos vínculos FS.
+
+**Lo que destrabó crearlas fue cambiar de camino, no insistir.** Cuatro intentos contra Prisma daban
+«falta el argumento `organization`» sobre un campo que sí estaba puesto y verificado. La ruta de la
+aplicación contestó a la primera: «Owner ID is required». Cuando el error no cuadra con lo medido,
+suele ser que se está preguntando por la puerta equivocada — y la puerta de la aplicación además
+explica lo que le falta, que es para lo que está.
+
+Medido ya en su Tablero: `columna` × 5, `mover` × 10 y **`edt` × 8** —la miga del EDT en la tarjeta,
+criterio del §13 demostrado en pantalla—.
+
+Quedan los gestos destructivos, que ahora se pueden hacer sin riesgo: arrastre entre columnas sin
+tocar fechas, arrastre y resize de barra, arrastre de progreso, indent/outdent, crear vínculo
+arrastrando, deshacer/rehacer y líneas base.
