@@ -7009,3 +7009,21 @@ guardados y la decisión de si `isShared` se ofrece —el modelo lo contempla, e
 sin más—. Eso es una funcionalidad, no un arreglo de madrugada, y toca la barra que comparten las
 seis vistas. Queda con las dos mediciones hechas y el alcance escrito, que es lo que hace falta para
 decidirlo con luz.
+
+### El alcance exacto del hueco: construido de abajo arriba, abandonado antes del techo
+
+| capa | estado |
+|---|---|
+| `model SavedFilter` | **hecho** — `name`, `expression`, `isShared`, índices |
+| `services/saved-filter.service.ts` | **hecho** — `listarFiltros`, `guardarFiltro`, `borrarFiltro`, 150 líneas |
+| pruebas del servicio | **ninguna** — cero, en un repositorio con 3 692 |
+| ruta bajo `app/api/` | **ninguna** |
+| control en la interfaz | **ninguno** |
+
+Las tres funciones son el CRUD completo, así que no es un diseño a medias: es una capacidad
+**terminada por abajo y sin techo**. Alguien construyó el cimiento y el motor, y se detuvo justo
+antes de la puerta.
+
+El detalle que lo confirma es **las cero pruebas**: en este repositorio nada llega a producción sin
+suite, así que un servicio de 150 líneas sin una sola prueba señala trabajo interrumpido, no trabajo
+mal hecho. Falta poco y falta lo visible: ruta, botón, lista, y decidir si se ofrece `isShared`.
