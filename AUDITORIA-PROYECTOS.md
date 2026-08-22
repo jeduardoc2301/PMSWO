@@ -6855,3 +6855,21 @@ nuevo**: la evidencia estaba en una medición de hace dos tandas, esperando a qu
 Merece anotarse: no toda medición se agota cuando se toma. Guardar las cifras crudas —1243, 125,
 1665— permite que una pregunta posterior las use sin volver a la pantalla. Tres de las cuatro
 confirmaciones de este barrido costaron una sonda; ésta costó una resta.
+
+### La Lista, sin medir — y un falso positivo que casi cuela
+
+Buscando las cifras delatoras en la Lista, **«121» aparece**… dentro de un nombre: «ETAPA MIGRATE:
+mover los **121** servidores a AWS». Y el «1243» que sale es de la tira de indicadores de arriba, no
+de la Lista. Ninguno de los dos es la cuenta que se buscaba.
+
+Si la comprobación hubiera sido «¿aparece 121 en la pantalla?», la conclusión habría sido que la
+Lista decide por el campo — **un hallazgo falso, y de los graves**, porque habría mandado a arreglar
+algo que no está roto. Lo que lo evitó fue mirar el texto **alrededor** de la coincidencia, no la
+coincidencia.
+
+Séptima vez esta noche que una búsqueda por cadena está a punto de fabricar un resultado. Con
+números es peor que con palabras: un número corto aparece por casualidad en cualquier parte, y no
+levanta la sospecha que levanta una palabra fuera de lugar.
+
+La Lista queda **sin medir**: su fila de totales vive en el formato agrupado, así que hay que cambiar
+de formato primero. Anotado como pendiente, que es lo que es.
