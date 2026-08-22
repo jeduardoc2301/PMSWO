@@ -7737,3 +7737,61 @@ degradado que mi rastreo de ancestros no ve. Un barrido que no distingue eso inv
 La lección de la noche: **descarté `text-red-400` por «es la convención de la casa» sin comprobar si
 la casa había cambiado**. La convención era inofensiva mientras sólo hubo tema oscuro. El conmutador
 la volvió un defecto, y yo tenía la medición del conmutador a un clic.
+
+---
+
+## Tanda 98 · Las píldoras del Tablero, y un instrumento que mentía
+
+### El arreglo
+
+`.urgency-chip` fallaba en tres sitios a la vez en modo claro, no en uno: la píldora base era negra
+(`#0e0e12`), el contador iba en pasos `-200` y el estado elegido era blanco sobre un tinte pálido.
+
+Hecho **por tokens y sin duplicar reglas**, que es como el archivo ya resuelve el tema —los bloques
+de tema duplican tokens, nunca reglas—. Los tintes de fondo son alfa sobre el color base y sirven
+igual en los dos temas; lo único que cambia es la tinta, que es lo que se lee.
+
+Un cambio en oscuro, a propósito: la cuenta de la píldora elegida pasa a blanca. Sin eso, en claro
+quedaba granate sobre granate.
+
+### La prueba cazó un color mío
+
+Lee el CSS de verdad —tokens **y** reglas— en vez de llevar los colores copiados a mano, y comprueba
+**los dos temas**: arreglar el claro pisando el oscuro saldría verde si sólo mirara uno. Validada
+rompiéndola: devolviendo el rosa al paso de antes caen dos.
+
+Y en la primera pasada tumbó un ámbar que yo había elegido a ojo: **4,43 contra los 4,5 que pide
+AA**. Siete centésimas. Lo habría entregado y nadie lo habría visto nunca, porque el color no rompe
+nada: no hay error, no hay petición fallida, la píldora sigue ahí y sigue pulsable.
+
+### Corrección: las cifras de anoche estaban mal calculadas
+
+El barrido de contraste de la tanda 97 tomaba la primera capa de fondo translúcida y **la trataba
+como opaca**. Un tinte al 8 % sobre blanco se leía como el color base saturado — un color que no
+está en ninguna pantalla.
+
+Se notó al revés de lo esperado: tras el arreglo, la sonda daba **1,71** para `#be123c`, un granate
+oscuro sobre fondo casi blanco. Eso es imposible, y era la sonda, no el CSS.
+
+- Las cifras buenas de anoche eran del orden de **1,8** donde dije 1,49–2,24. La conclusión aguanta
+  —tinta clara sobre fondo claro es ilegible con cualquiera de las dos cuentas— pero **las magnitudes
+  que escribí no eran las medidas**.
+- La sonda ya compone el alfa capa a capa. Con ella, las píldoras **desaparecen de la lista de
+  peores**: arreglo confirmado en pantalla, no sólo en la prueba.
+
+La lección: una cifra que sale peor de lo que la física permite no es un hallazgo, es un instrumento
+roto. Aquí lo delató un valor imposible; si el arreglo hubiera sido mediocre en vez de bueno, el
+número habría caído en un rango creíble y me lo habría creído.
+
+### Lo que sigue ilegible en claro, ya con la sonda buena
+
+| texto | color | contraste |
+|---|---|---|
+| «Activo» | emerald-300 | **1,25:1** |
+| un «0» de métrica | emerald-500 | 2,54:1 |
+| «0.3%» | red-500 | 3,76:1 |
+| la miga «Proyectos /» | zinc-500 | 4,40:1 |
+
+Misma enfermedad, otros componentes. Las píldoras eran un conjunto acotado con clases propias; esto
+son colores sueltos repartidos, y conviene decidir si se migran a los tokens semánticos —que existen
+y no los consume nadie— antes de ir uno por uno.
