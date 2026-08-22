@@ -6711,3 +6711,15 @@ trabajo», «125 líneas con hijas»). El nombre estaba delante todo el rato.
 
 La lección, ya sin margen de duda: **buscar por nombre no es medir**. La cuenta de barras por celda
 dio la respuesta en un intento después de que seis búsquedas dieran cero.
+
+### §13 · Carga de trabajo: dos criterios demostrados midiendo estructura
+
+Sin buscar un solo rótulo. 668 identificadores, repartidos así: `celda` × 651 —la **matriz recurso ×
+día**—, `fila` × 7, y **`sobrecarga` × 5**. Más una fila de totales por día (`celda-total-2026-06-01`…).
+
+Con eso quedan demostrados **la matriz recurso × día** y **la detección de sobrecarga**, que está
+marcada en cinco celdas. Contar familias de identificadores dio en un intento lo que la búsqueda por
+palabras tardó seis en no dar en el Calendario.
+
+Anotado: **no hay ningún `<select>`** en la vista, así que los tres modos del §8 —si están— se
+conmutan con botones. Eso decide cómo medirlos, y es dato, no conclusión.
