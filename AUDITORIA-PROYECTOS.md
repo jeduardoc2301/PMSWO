@@ -7332,3 +7332,20 @@ hijas»—, coherente con todo lo medido esta noche sobre resúmenes.
 **Tras arrastrarlo 24 px no aparece propuesta.** No se concluye nada: puede que el redimensionado
 confirme por otra vía, o que 24 px no lleguen a su umbral. Queda medido y sin interpretar, que es lo
 que la noche ha enseñado a hacer con un resultado nulo.
+
+### El redimensionado sí hace algo — bajo otro nombre
+
+Tras arrastrar el tirador 40 px, el texto de la pantalla **crece de 2903 a 3094 caracteres**. Algo
+aparece. Lo que no aparece es `propuesta-reprogramacion`: yo buscaba el panel del **movimiento**, y
+el redimensionado levanta el suyo.
+
+**Octava vez esta noche** que el efecto existía bajo un nombre distinto del que yo preguntaba —
+«Asignados» era Responsable, «EDT» era Esquema, «N tareas más» era N líneas más, y ahora esto. El
+patrón ya no es una anécdota: es **el** patrón de la sesión.
+
+Y la lección se afina una vez más. Ya sabía «no busques por nombre», y aun así lo hice: porque el
+nombre `propuesta-reprogramacion` **lo había medido yo mismo** una hora antes y lo daba por
+universal. Un dato medido sigue siendo un dato **de su caso**; extenderlo a un gesto vecino es
+suponer otra vez, sólo que con mejor coartada.
+
+Lo que había que medir era el crecimiento del texto —que sí lo detectó— y de ahí leer qué apareció.
