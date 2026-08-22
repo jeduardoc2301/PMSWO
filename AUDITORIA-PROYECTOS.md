@@ -6634,3 +6634,17 @@ como sospechas y no como hallazgos es exactamente ésta.
 columnas configurables (14 en catálogo, 6 puestas, con tiradores), dependencias dibujadas, y agrupar
 por estado/prioridad/responsable. Sin resolver: los conmutadores no tienen `data-testid` con el que
 afirmarlos.
+
+### §13 · Lista: dos candidatos, con hipótesis nombrada
+
+Medido: 488 identificadores, «Exportar» presente, y como formatos salen **«Lista» y «Agrupada»**.
+
+- **«EDT» no aparece.** Casi seguro es otra diferencia de nombre: el propio historial del repo tiene
+  un commit «la vista de esquema del Excel en Elementos de Trabajo», así que aquí se llamará
+  **«Esquema»**. Sería la cuarta de la noche. Se confirma leyendo el selector, no buscando la sigla.
+- **Ni «Total» ni «Subtotal» aparecen.** Éste es más plausible como hueco de verdad, pero también
+  puede que la fila sólo se dibuje con una agrupación activa — y la medición se hizo sin agrupar.
+
+Ninguno se escribe como hallazgo. Tres sospechas iguales se han disuelto ya esta noche en nombres
+distintos, y la única forma de que la cuarta no me haga perder el tiempo es medir el selector antes
+de escribir nada.
