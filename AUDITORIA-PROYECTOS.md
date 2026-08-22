@@ -7482,3 +7482,27 @@ casualidad, y confirman que el redondeo del `delta` se comporta como debe en tod
 
 **Ocho criterios de gesto demostrados** en esta tanda: miga del EDT, estados configurables, arrastre
 entre columnas sin tocar fechas, mover barra, redimensionar, crear vínculo, deshacer y rehacer.
+
+## §4 · HALLAZGO · El arrastre de progreso no está implementado
+
+Dos comprobaciones independientes que coinciden:
+
+- **No existe `onCambiarAvance`** en `components/`, `lib/` ni `app/`. Ni una aparición.
+- El elemento `avance-${row.id}` es el **relleno** de la barra y no lleva manejador de puntero,
+  a diferencia de la barra (`alApretar`) y del borde (`alApretarElBorde`), que sí los tienen.
+
+El spec lo pide en el §13, línea 1725: «Arrastre de barra, resize, **arrastre de progreso**,
+indent/outdent, reordenar». De esos cinco gestos, dos están demostrados —arrastre y resize— y éste
+falta.
+
+**El matiz importa:** el avance **sí se puede editar**, en el esquema de Elementos de Trabajo, con su
+editor de centésimas. No es que el dato sea inalcanzable; es que **el gesto sobre la barra no
+existe**. Quien venga del Gantt agarrará el relleno y no pasará nada.
+
+**No se implementa ahora**, y por lo mismo que el filtro guardable: es una funcionalidad —hace falta
+el manejador, la propuesta con su panel, y decidir si el progreso se redondea a la rejilla del día o
+es continuo— y toca el componente más delicado del módulo. Queda medido, con las dos comprobaciones
+hechas y el alcance dicho.
+
+**Segundo hueco real de la sesión**, y los dos de la misma forma: algo que el spec pide, que el resto
+del sistema sí sabe hacer por otra vía, y a lo que le falta la puerta.
