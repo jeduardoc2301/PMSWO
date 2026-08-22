@@ -6903,3 +6903,23 @@ La medición correcta es estructural: en el formato agrupado hay cabeceras de gr
 por grupo** que las líneas que contiene. Eso se cuenta, no se busca. Queda planteada así para la
 próxima, que es la tercera vez que anotar el método correcto antes de irme ahorra la pasada
 siguiente.
+
+### Cerrado: totales, subtotales y numeración EDT, contando familias
+
+Sin buscar una sola palabra. Comparando los dos formatos:
+
+| formato | familias de identificador |
+|---|---|
+| **Agrupada** | `total` × 2, **`subtotal` × 1**, `grupo` × 1, `fila` × 1 |
+| **Esquema** | `edt` × 127, `estado` × 127, `delta` × 127, `super` × 30 |
+
+Quedan demostrados dos criterios más del §13: **«fila de totales y subtotales por grupo»** —los dos
+con identificador propio— y **«numeración EDT»**, con 127 filas numeradas en la ventana virtual.
+
+Mi búsqueda de «total» fallaba porque **el rótulo no es esa palabra**; el identificador sí lo es.
+Octava vez que contar estructura resuelve lo que buscar texto no pudo, y la última de la noche: la
+regla queda escrita en la bitácora tantas veces como hizo falta aprenderla.
+
+**Balance del §13 tras la noche:** las seis vistas con criterios demostrados en pantalla, cuatro
+sitios probados de que el atajo de «resumen» no está donde importa, y las cuatro compuertas quedando
+como reactivo reutilizable. Sin defectos nuevos abiertos.
