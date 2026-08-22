@@ -6772,3 +6772,18 @@ cero y se lee como ausencia.
 A estas alturas la regla ya no admite excepción: **si la medición depende de acertar un nombre, no es
 una medición.** Sirven contar elementos, `aria-pressed`, comparar contra la respuesta viva. No sirve
 escribir la palabra que uno espera.
+
+### §13 · El arrastre: disposición medida, gesto no ejecutado
+
+**No se ejecutó el arrastre a propósito.** Es una medición destructiva —mueve una línea del plan— y
+con el contexto disponible no había garantía de completar el ciclo entero: arrastrar, medir, devolver
+y verificar. Dejarlo a medias habría corrompido el plan de referencia. Empezar algo destructivo que
+no se puede terminar es peor que no empezarlo.
+
+Lo que sí se midió, sin tocar nada: **28 barras en la ventana, 21 marcadas `data-movible="sí"`** y
+con cursor de arrastre; 7 no lo son.
+
+Que esas 7 sean los resúmenes —que heredan fechas de sus hijas, así que arrastrarlos no significaría
+nada— es **plausible y no comprobado**. Comprobarlo es cruzar los identificadores de las no movibles
+con las que tienen hijas, y es no destructivo: buen primer paso para la próxima pasada, antes del
+gesto de verdad.
