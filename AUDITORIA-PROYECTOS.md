@@ -7100,3 +7100,21 @@ librería. Dos horas de la noche se han ido en suponer nombres; ésta se fue en 
 
 Siguiente paso, ya sin suposición: comprobar el arrastre del Tablero escuchando los eventos que
 Chrome intercepta, tal como esa cabecera indica.
+
+### Segundo intento del arrastre: eventos correctos, resultado nulo
+
+Sintetizado ya como arrastre nativo —`dragstart`, `dragover`, `drop`, `dragend` con un `DataTransfer`
+compartido—, sobre el nodo `[draggable="true"]` real y hacia la columna «To Do». **La tarjeta sigue en
+Backlog.**
+
+**Sigue sin poderse concluir nada**, y van dos intentos. Lo más probable es que el `onDrop` no esté
+en el elemento que lleva `data-testid="columna-…"` sino en un contenedor interior —la lista de
+tarjetas— y los eventos se estén lanzando al de fuera.
+
+Lo que **no** se va a hacer es un tercer intento a ciegas cambiando el elemento destino a ojo. El
+patrón de esta noche es claro: cada vez que he supuesto —un nombre, una tecnología, un nodo— he
+perdido una pasada. La forma de salir es **leer del JSX en qué elemento están `onDragOver` y
+`onDrop`**, que es un dato, no una conjetura. Está en `kanban-board.tsx` alrededor de la línea 331.
+
+Y sigue en pie la trampa ya nombrada: mientras la tarjeta no cambie de columna, comprobar que las
+fechas no cambiaron **no demuestra la regla del §5**, sólo que no pasó nada.
