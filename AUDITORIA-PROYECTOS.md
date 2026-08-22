@@ -6470,3 +6470,14 @@ que depende todo lo demás** —verde antes de cada commit—, porque enseña a 
 bien en vez de a mirar. La pista está en los componentes que lanzan `fetch` sin cancelarlo al
 desmontar; el Panel ya usa una guardia `vigente`, pero eso marca el resultado como obsoleto, no
 aborta la petición.
+
+### La intermitente tiene nombre
+
+`components/projects/__tests__/edit-dialog-undo.test.tsx` › «Al guardar, el diálogo devuelve los dos
+lados» › **«guardar sin cambiar nada no produce operación»**.
+
+Capturado corriendo la suite entera dos veces seguidas y filtrando la línea de `FAIL` en vez de sólo
+el recuento —que es lo que las dos veces anteriores se perdió—. Una aserción **negativa** («no
+produce operación») sobre algo asíncrono es la misma forma que ya dio un verde falso esta noche con
+`waitFor`: si la operación llega tarde, la prueba pasa; si llega a tiempo, falla. Que sea la negativa
+la que parpadea encaja con esa lectura, pero **no está comprobado** y no se toca hasta medirlo.
