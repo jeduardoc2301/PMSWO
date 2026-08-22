@@ -7161,3 +7161,24 @@ y no continuaría, que es exactamente lo observado.
 
 Se comprueba leyendo si el manejador captura, y en tal caso lanzando eventos de puntero de verdad en
 vez de derivarlos del ratón. Es un dato, no una conjetura — la misma salida que destrabó el Tablero.
+
+### El arrastre de barra: tres enfoques, dos hipótesis refutadas, y la pista estaba en el código
+
+| enfoque | resultado |
+|---|---|
+| eventos de ratón por CDP | no movió |
+| `PointerEvent` reales con `pointerId 1`, separados en el tiempo | no movió |
+| hipótesis de `setPointerCapture` | **refutada**: `setPointerCapture(1)` no lanza, funciona |
+
+Dos conjeturas mías caídas por medición, que es lo correcto: ni la captura del puntero ni el tipo de
+evento eran el obstáculo.
+
+**Y la pista llevaba dos turnos delante.** El propio manejador lo dice en un comentario: «la barra
+sólo se queda donde la soltaron **si el plan lo confirma**, y el plan lo dice después. Dejarla movida
+sería prometer una escritura que aún no ocurrió». Es decir: el gesto puede estar arrancando y
+**pidiendo** la escritura, y ser la escritura la que no llega.
+
+Eso ya no se mira en el DOM. Se mira en la **red**: escuchando si durante el gesto sale una petición
+y qué contesta. Es justo lo que la cabecera de `cdp2.mjs` recomienda para los gestos —«mirar lo que
+Chrome intercepta»— y la segunda vez esta noche que la respuesta estaba escrita en algo que ya había
+leído.
