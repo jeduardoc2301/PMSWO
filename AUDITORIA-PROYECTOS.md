@@ -6888,3 +6888,18 @@ Es la misma lección que ya cerró los conmutadores del Gantt, y ahora con dos c
 es el asidero por omisión de esta aplicación**. Antes de buscar un rótulo o inventar un
 `data-testid`, hay que preguntarle a los elementos que declaran estado. Sale gratis y no depende del
 idioma.
+
+### La Lista en Agrupada: el cambio funciona; la sonda, no
+
+Demostrado con estado: `Agrupada=true` tras pulsar, y `Esquema=true` al devolverlo. El formato
+agrupado se activa y se revierte sin dejar rastro.
+
+Pero **«total» no aparece** en el texto —ni en minúsculas ni en versalitas, porque la comparación lo
+normalizaba—. Tras siete casos esta noche ya no lo leo como ausencia: `list-totals.ts` existe y su
+cabecera dice «la fila de totales y el formato agrupado». **La sonda vuelve a preguntar por una
+palabra**, que es justamente lo que llevo toda la noche descubriendo que no funciona.
+
+La medición correcta es estructural: en el formato agrupado hay cabeceras de grupo y **una fila más
+por grupo** que las líneas que contiene. Eso se cuenta, no se busca. Queda planteada así para la
+próxima, que es la tercera vez que anotar el método correcto antes de irme ahorra la pasada
+siguiente.
