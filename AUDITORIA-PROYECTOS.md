@@ -7506,3 +7506,17 @@ hechas y el alcance dicho.
 
 **Segundo hueco real de la sesión**, y los dos de la misma forma: algo que el spec pide, que el resto
 del sistema sí sabe hacer por otra vía, y a lo que le falta la puerta.
+
+### Indent/outdent: no es arrastre, es teclado
+
+El comentario del §4.4 lo dice: «Atajos de teclado sobre una fila: **sangrar, anular sangría**, abrir
+el detalle», y «desde dentro `Tab` sangra». Los manejadores están en `gantt-chart.tsx:394` y en
+`celda-editable.tsx` (113 y 143).
+
+**Cuarta tecnología distinta en la misma pantalla**: arrastre nativo en el Tablero, eventos de puntero
+para mover y estirar, conectores con pointerdown/pointerup, y teclado para la jerarquía. Ninguna se
+prueba como las otras, y por eso leer **antes** de lanzar ha dejado de ser una precaución para
+convertirse en el paso uno.
+
+Se demuestra con `KeyboardEvent` sobre la fila enfocada, con las teclas que declare ese manejador —
+leídas, no supuestas. Queda ahí para la próxima pasada, con la ubicación exacta ya localizada.
