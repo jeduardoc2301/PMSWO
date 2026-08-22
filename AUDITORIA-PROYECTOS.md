@@ -7372,3 +7372,25 @@ que es la unidad en la que el §2 decidió que se piensa este plan.
 Listando los `data-testid` **nuevos** tras el gesto —comparando contra los de antes— en vez de
 preguntar por un nombre. La técnica no depende de acertar nada: sea cual sea el panel, aparece en la
 diferencia. Es la respuesta general al patrón que ha dominado la sesión entera.
+
+## §4.4 · DEMOSTRADO · Crear vínculo arrastrando, y el patrón de los tres paneles
+
+Agarrando el conector `FIN` de «B · tarea suelta» y soltando en el `INICIO` del hito aparece
+**`propuesta-de-vinculo`**. Los conectores se identifican con `data-conector="<id>:INICIO|FIN"` y su
+`aria-label` explica el gesto entero: «Fin de «B…» · arrastra a otra barra para vincular».
+
+**Tres gestos, tres paneles, un solo contrato:**
+
+| gesto | panel |
+|---|---|
+| mover la barra | `propuesta-reprogramacion` |
+| estirar por el borde | `propuesta-de-duracion` |
+| unir dos conectores | `propuesta-de-vinculo` |
+
+Los tres anuncian el alcance antes de escribir y ofrecen Aplicar/Cancelar. Que sean tres nombres
+distintos con la misma forma no es dispersión: es que cada gesto explica **su** consecuencia con sus
+propias palabras —días hábiles el de duración, líneas movidas y cierre el de reprogramación— y aun
+así se leen igual. Eso es difícil de conseguir y merece decirse.
+
+De paso queda claro que **ningún gesto del Gantt escribe directamente**. Todos proponen. Es una
+decisión sostenida en tres sitios, no un accidente de uno.
