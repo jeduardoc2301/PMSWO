@@ -7795,3 +7795,49 @@ número habría caído en un rango creíble y me lo habría creído.
 Misma enfermedad, otros componentes. Las píldoras eran un conjunto acotado con clases propias; esto
 son colores sueltos repartidos, y conviene decidir si se migran a los tokens semánticos —que existen
 y no los consume nadie— antes de ir uno por uno.
+
+---
+
+## Tanda 99 · Las pastillas de estado, y arreglar la copia que no se pinta
+
+«Activo» daba **1,25:1** en claro, el peor que quedaba. Arreglé `.pms-status-ACTIVE` en el CSS,
+volví a medir… y seguía dando 1,25.
+
+No era el CSS: la ficha del proyecto lleva **su propia copia** de la paleta, en un mapa en línea, y
+es la que se pinta ahí. Lo dijo el elemento cuando le pregunté quién lo vestía:
+
+```
+style="background: rgba(16,185,129,0.12); color: rgb(110,231,183); border: 1px solid ..."
+```
+
+Y las clases **no** eran código muerto —las usan el Tablero de control y la lista de proyectos—, así
+que había dos paletas vivas. Ya divergidas: la clase pinta «Planeación» en índigo `#a5b4fc` y el mapa
+en violeta `#c4b5fd`, para el mismo estado. Se arreglan las dos y la deriva se deja **a la vista**,
+con token propio y el porqué escrito: unificarlas es decisión de diseño, no arreglo de contraste.
+
+El mapa ya estaba medio migrado —`COMPLETED` y `ARCHIVED` usaban `var(--acento-tinta)` y
+`var(--tinta-2)`—, o sea que alguien empezó el camino y lo dejó a medias. Esto lo termina.
+
+### Lo que enseñó la prueba
+
+Ahora lee **el TSX además del CSS**: una lista de colores copiada dentro de la prueba pasaría para
+siempre aunque el componente cambiara. Validada rompiéndola por los dos lados.
+
+- **La prosa se parece al código.** Buscar `.pms-status-PLANNING` suelto encontraba el comentario que
+  nombra la clase para explicar la deriva; la prueba leía el fondo de otra regla y daba 1,86:1 de un
+  sitio que nadie pinta. Anclada a principio de línea, que es donde vive una regla.
+- **`#047857` daba exactamente 4,50:1.** Cumple, con cero margen: cualquier superficie distinta
+  detrás lo tumba. Un paso más abajo.
+- `project-detail-client.test.tsx` fijaba los literales y se puso roja. Correcto: era una prueba de
+  verdad. Actualizada al token, sigue comprobando que cada estado recibe el suyo.
+
+### Lo que queda ilegible en claro
+
+| texto | color | contraste |
+|---|---|---|
+| un «0» de métrica | emerald-500 | 2,54:1 |
+| «0.3%» | red-500 | 3,76:1 |
+| la miga «Proyectos /» | zinc-500 | 4,40:1 |
+
+Van bajando, y ya no son etiquetas de estado sino cifras y navegación. Quedan **once archivos** con
+la paleta oscura copiada a mano; migrarlos todos es una decisión, no una tarea suelta.
