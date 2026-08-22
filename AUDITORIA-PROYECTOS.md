@@ -6787,3 +6787,18 @@ Que esas 7 sean los resúmenes —que heredan fechas de sus hijas, así que arra
 nada— es **plausible y no comprobado**. Comprobarlo es cruzar los identificadores de las no movibles
 con las que tienen hijas, y es no destructivo: buen primer paso para la próxima pasada, antes del
 gesto de verdad.
+
+### Confirmado: las 7 barras no movibles son resúmenes
+
+Las siete tienen hijas —5, 2, 2, 7, 4, 10 y 9— y las siete son de clase `RESUMEN`. No arrastrarlas es
+correcto: un resumen hereda sus fechas de las hijas, y moverlo no significaría nada.
+
+**El matiz que no conviene saltarse:** como las siete son **a la vez** «con hijas» y `kind ===
+'RESUMEN'`, esta medición **no distingue cuál de los dos criterios usa el código**. Y ésa es
+exactamente la confusión que ha mordido cuatro veces aquí —125 con hijas contra 121 con la clase—.
+Una muestra donde los dos criterios coinciden no puede separarlos, por muchas líneas que tenga.
+
+Para separarlos hace falta una línea que tenga hijas **sin** ser `RESUMEN`: en el plan de referencia
+son las cuatro compuertas. Si alguna de ellas resultara movible, el código estaría mirando el campo.
+Es no destructivo —basta con encontrarlas en la ventana y leer su atributo— y queda como la medición
+que de verdad cierra esto.
