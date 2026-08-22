@@ -7841,3 +7841,69 @@ siempre aunque el componente cambiara. Validada rompiéndola por los dos lados.
 
 Van bajando, y ya no son etiquetas de estado sino cifras y navegación. Quedan **once archivos** con
 la paleta oscura copiada a mano; migrarlos todos es una decisión, no una tarea suelta.
+
+---
+
+## Tanda 100 · El Tablero era inservible en claro, y yo perseguía cifras que cumplían
+
+### Primero: el umbral depende del tamaño
+
+Iba a arreglar el «0.3%» rojo que daba 3,76:1. Al preguntar en pantalla quién lo pintaba salió su
+clase: `text-3xl font-bold`, o sea **30 px**. AA pide **3:1** para texto grande —24 px, o 18,66 en
+negrita—, no 4,5. Ese 3,76 **cumple de sobra**.
+
+Mi barrido usaba 4,5 fijo y señalaba como defectos cosas conformes. Corregido: ahora lee el tamaño y
+el peso de cada elemento y aplica el umbral que toca. Sin eso me habría puesto a repintar cifras que
+estaban bien, que es peor que no mirar.
+
+### Y entonces apareció lo de verdad
+
+Con el umbral bueno, la lista se llenó de líneas a **1,00:1** con tinta `rgb(24,24,27)`. Un uno
+redondo es sospechoso: quiere decir que la tinta y el fondo son el mismo color. Le pedí al elemento
+la cadena entera de fondos:
+
+```
+BUTTON  (título)          transparente
+H4      text-tinta        transparente
+DIV     rounded-xl p-3    rgb(24, 24, 27)   ← la tarjeta
+DIV     (columna)         rgb(255, 255, 255)
+```
+
+Las cuatro reglas `.kc-*` llevaban `#18181b !important` de capa sólida bajo el degradado, y el título
+usa `--tinta`, que en claro vale ese mismo `#18181b`. **Los títulos de las tarjetas eran invisibles
+en modo claro.** Y sólo las tarjetas CON urgencia llevan `kc-*`: las que desaparecían eran las
+vencidas, las bloqueadas y las que vencen pronto — las únicas que hay que ver.
+
+Esto no es un matiz de accesibilidad: es el Tablero inservible en un tema que se entrega.
+
+`--superficie` vale exactamente `#18181b` en oscuro y su comentario ya decía «tarjetas, paneles,
+barras». Reemplazo directo: el tema oscuro no cambia ni un píxel.
+
+### La capa de debajo
+
+Con la tarjeta ya blanca salieron sus distintivos: «MEDIUM» 1,32:1, «HIGH» 1,49, los atrasos 1,62.
+Los rosas y ámbar tenían **exactamente** los valores de `--chip-rosa` y `--chip-ambar`, así que
+reutilizan ese token en vez de duplicarlo. Dos copias del mismo color acaban divergiendo: ya pasó con
+«Planeación», índigo en la clase y violeta en el mapa de la ficha.
+
+La prueba de esto no es una lista de casos escrita a mano: **barre el archivo** buscando cada línea
+que ponga fondo y tinta a la vez, así que un distintivo nuevo entra solo. Y lleva una prueba de que
+el barrido encuentra algo, para que un refactor de la forma de escribirlos no la deje pasando en
+vacío — una prueba que se queda sin casos pasa para siempre y no avisa.
+
+### Lo que queda
+
+| texto | color | mide | exige |
+|---|---|---|---|
+| un «0» de métrica, 30 px | emerald-500 | 2,54:1 | 3:1 |
+| la miga «Proyectos /», 14 px | zinc-500 | 4,40:1 | 4,5:1 |
+
+Los dos «PMSWO» y «AU» que salen a 1,00 son **falsos positivos conocidos**: su fondo es un degradado
+y el rastreo de ancestros sólo sabe de colores planos. Anotado para no volver a perseguirlos.
+
+### La lección
+
+El defecto grande no salió leyendo código: salió de **una cifra imposible**. Un 1,00 redondo no es un
+contraste malo, es dos cosas del mismo color, y eso siempre tiene una causa concreta que se puede
+preguntar. La vez anterior una cifra imposible delató mi instrumento; esta vez delató el peor defecto
+de la noche. Conviene mirarlas siempre, sin decidir de antemano cuál de las dos cosas es.
