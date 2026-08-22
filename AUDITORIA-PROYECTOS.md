@@ -6418,3 +6418,11 @@ modo del cálculo, no un dato guardado.
 
 La junta de `/schedule` queda entonces **sin huecos**, y la sospecha descartada por medición y no por
 olvido — que es lo que distingue «comprobado» de «no lo miré».
+
+### §8 · La junta de `/workload`, sin huecos
+
+Unión de claves sobre todas las filas: 1243 tareas —las hojas—, 1243 asignaciones y 5 recursos.
+Comparadas con `TareaDeCarga` y `RecursoDeCarga`, **no falta ninguna en ninguno de los dos**.
+
+Quedan recorridas tres de las cuatro juntas: Tablero, `/schedule` y `/workload`. Falta `/calendar`,
+cuya forma no es una lista de líneas —semana, turnos, festivos— y necesita otro criterio.
