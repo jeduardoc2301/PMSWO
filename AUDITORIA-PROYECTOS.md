@@ -6548,3 +6548,14 @@ perseguir un fantasma.
 
 Con eso, el criterio del §13 «columnas configurables, reordenables, redimensionables y persistidas»
 queda con evidencia en pantalla en sus dos primeras mitades: 14 disponibles, 6 puestas, 7 tiradores.
+
+### §13 · Gantt: las seis escalas, demostradas
+
+**Hora, Día, Semana, Mes, Trimestre y Año**, las seis presentes en pantalla. Criterio «6 escalas de
+zoom» cumplido, y con la de Hora que se añadió esta misma semana con la migración a minutos.
+
+Los conmutadores quedan **inconcluyentes**, no ausentes: se buscaron por texto y `innerText` **aplica
+`text-transform`**, así que un rótulo pintado en versalitas no coincide con ninguna de las dos formas
+que se probaron. Es la misma trampa que ya costó un falso hallazgo con «Fechas»/«FECHAS». Salieron
+Reserva, Línea base y «crítica»; la ausencia de los demás **no prueba nada** y se re-mide por
+`data-testid`, no por texto.
