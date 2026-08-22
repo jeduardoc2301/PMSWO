@@ -6684,3 +6684,16 @@ que el spec marca como mejora sobre GanttPRO.
 El «N tareas más» **no queda demostrado**: se buscó la palabra «más» suelta, y «más» aparece dentro
 de medio idioma. Es una medición débil y se anota como tal, no como criterio cumplido — la diferencia
 entre las dos cosas es justo lo que esta noche ha evitado cuatro hallazgos falsos.
+
+### §13 · «N tareas más» del Calendario: el candidato más sólido de la noche
+
+Probados seis nombres plausibles en `calendar-tab.tsx` —`restantes`, `ocultas`, `+{`, `mas-tareas`,
+`desbordan`, un tope por día— y **ninguno aparece**. Seis búsquedas fallidas pesan más que una, pero
+sigue siendo búsqueda **por nombre**, y eso ya se ha equivocado cuatro veces esta noche.
+
+**La prueba que decide no es esa:** hay que mirar un día del plan con muchas tareas y contar cuántas
+se dibujan. Si salen todas, el criterio no está implementado y el defecto es real —una celda de día
+con quince barras es ilegible—. Si se cortan, existe con otro nombre.
+
+Queda como el candidato más firme y con su medición ya definida, que es la forma de que la próxima
+pasada lo cierre en un paso en vez de volver a tantear.
