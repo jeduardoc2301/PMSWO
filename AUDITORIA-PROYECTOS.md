@@ -6985,3 +6985,27 @@ desplegable no aparece, y que las vistas del menú no vienen de guardar nada.
 Cómo cerrarlo: buscar en el modelo si existe una tabla de filtros guardados. Si no existe, el
 criterio no está implementado y esto sí es un hueco real; si existe, hay que encontrar por dónde se
 alimenta.
+
+## §10.2 · HALLAZGO · El filtro guardable está a medio construir
+
+Dos mediciones independientes que coinciden, que es lo que lo distingue de los diez candidatos que
+se cayeron esta noche:
+
+- **En pantalla:** el desplegable del filtro enseña «Cumplir todas/alguna · + condición · + grupo ·
+  Cerrar». Ningún control de guardar.
+- **En el modelo:** `model SavedFilter` existe con exactamente lo que el spec pide —`name`,
+  `expression` (Json), `isShared`, índices por proyecto y por autor—. Y existe
+  `services/saved-filter.service.ts`.
+
+**Pero nadie más lo usa.** Ni una ruta bajo `app/api/`, ni un componente. La capacidad está
+construida en el modelo y en el servicio y **no tiene puerta de entrada**: por eso en el desplegable
+no hay botón de guardar, porque no habría a qué llamar.
+
+Las «Vistas guardadas» del menú lateral no lo suplen: son cuatro enlaces con `href` fijo escritos en
+`main-nav.tsx`, no filtros de nadie.
+
+**No se arregla ahora, y con motivo.** Falta una ruta, un control en el desplegable, la lista de
+guardados y la decisión de si `isShared` se ofrece —el modelo lo contempla, el spec dice «guardable»
+sin más—. Eso es una funcionalidad, no un arreglo de madrugada, y toca la barra que comparten las
+seis vistas. Queda con las dos mediciones hechas y el alcance escrito, que es lo que hace falta para
+decidirlo con luz.
