@@ -7454,3 +7454,31 @@ por igualdad**.
 
 Que la etiqueta sea dinámica no es un defecto sino un acierto de accesibilidad: quien la oye sabe qué
 va a deshacer antes de pulsar. Lo que estaba mal era mi forma de leerla.
+
+## §13 · DEMOSTRADO · Rehacer, y el ciclo entero cerrado
+
+| paso | fechas |
+|---|---|
+| inicial | 2026-07-01 → 07-07 |
+| aplicado (16 px = 2 días hábiles) | 2026-07-03 → 07-09 |
+| deshecho | 2026-07-01 → 07-07 |
+| **rehecho** | **2026-07-03 → 07-09** |
+
+El botón de rehacer también nombra su acción: «Rehacer Reprogramar: B · tarea suelta para
+arrastrar → …». El criterio «deshacer/rehacer» queda demostrado **en los dos sentidos**, y las fechas
+vuelven exactas en ambos.
+
+### Tres deltas, una recta
+
+| arrastre | días hábiles |
+|---|---|
+| 48 px | 6 |
+| 24 px | 3 |
+| 16 px | 2 |
+
+Perfectamente lineal a **8 px por día hábil**, que es `anchoDeDiaPara('MES')`. Tres puntos de una
+recta valen mucho más que repetir el mismo tres veces: descartan que el primero acertara por
+casualidad, y confirman que el redondeo del `delta` se comporta como debe en todo el rango probado.
+
+**Ocho criterios de gesto demostrados** en esta tanda: miga del EDT, estados configurables, arrastre
+entre columnas sin tocar fechas, mover barra, redimensionar, crear vínculo, deshacer y rehacer.
