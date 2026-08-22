@@ -7227,3 +7227,21 @@ esté roto.
 Se comprueba midiendo `dayWidth` en la pantalla —la distancia entre dos marcas del eje— y arrastrando
 tres veces esa distancia. Es la primera explicación que **no acusa al código de nada**, y por eso
 mismo es la más probable: llevo tres intentos moviendo una cantidad que elegí sin medir.
+
+### Cuarta refutación, y lo que el patrón significa
+
+A escala de mes `anchoDeDiaPara('MES') = 8`, así que los 40 px arrastrados daban **delta 5**, no
+cero. La explicación aritmética cae como las tres anteriores.
+
+**Cuatro hipótesis, cuatro refutaciones.** Ese patrón ya es información: cuando todas las
+explicaciones de uno fallan, lo que suele estar mal no es ninguna de ellas sino **una premisa que no
+se ha puesto a prueba**. Aquí la premisa no examinada es la más básica —que mis eventos sintéticos
+lleguen siquiera al manejador de React—, y llevo cuatro turnos razonando sobre lo que pasa *después*
+de que llegue.
+
+Se comprueba sin conjeturar: **enganchar un oyente propio de `pointerdown` a la barra** y ver si
+entra. Si entra, el problema está después; si no entra, todo lo razonado en cuatro turnos era sobre
+un evento que nunca ocurrió.
+
+Y conviene decirlo claro: **este criterio sigue sin demostrarse**, van cuatro turnos, y eso también
+es un resultado. Un recorrido que sólo apuntara lo demostrado y callara dónde se atascó valdría menos.
