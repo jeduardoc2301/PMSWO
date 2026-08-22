@@ -331,11 +331,18 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
    * español. El lenguaje de color se conserva: verde lo activo, morado lo que está en planeación,
    * ámbar lo detenido.
    */
+  /*
+    Los colores salen por token y no en crudo desde que el modo claro existe: los pasos claros de
+    Tailwind quedaban ilegibles sobre fondo claro. Que la prueba siga nombrando el color —ahora el
+    token— es lo que la mantiene útil: comprueba que cada estado recibe el suyo y no el del vecino.
+    Que cada token tenga contraste suficiente en los dos temas lo comprueba
+    `app/__tests__/contraste-de-los-chips.test.ts`, leyendo este mismo archivo.
+  */
   it('should display correct status colors', async () => {
     const estados = [
-      { status: ProjectStatus.ACTIVE, etiqueta: 'Activo', color: '#6ee7b7' },
-      { status: ProjectStatus.PLANNING, etiqueta: 'Planeación', color: '#c4b5fd' },
-      { status: ProjectStatus.ON_HOLD, etiqueta: 'En pausa', color: '#fcd34d' },
+      { status: ProjectStatus.ACTIVE, etiqueta: 'Activo', color: 'var(--pastilla-activo)' },
+      { status: ProjectStatus.PLANNING, etiqueta: 'Planeación', color: 'var(--pastilla-plan-violeta)' },
+      { status: ProjectStatus.ON_HOLD, etiqueta: 'En pausa', color: 'var(--pastilla-espera)' },
       { status: ProjectStatus.COMPLETED, etiqueta: 'Completado', color: 'var(--acento-tinta)' },
       { status: ProjectStatus.ARCHIVED, etiqueta: 'Archivado', color: 'var(--tinta-2)' },
     ]

@@ -113,6 +113,31 @@
   --chip-indigo-cuenta: #c7d2fe;
   --chip-indigo-activo: rgba(99,102,241,0.18);
 
+  /*
+    Las pastillas de estado de proyecto (`.pms-status-pill`). Mismo problema que las píldoras del
+    Tablero y la misma cura.
+
+    No se reaprovecha la familia `--estado-*`: ésa es **severidad** —bien, aviso, serio, crítico— y
+    esto es **identidad**. «Activo» no es «bueno»: un proyecto archivado no está peor que uno en
+    marcha, sólo está en otro sitio. Mezclarlas haría que un cambio de paleta de riesgos repintara
+    los estados, que no tienen nada que ver.
+  */
+  --pastilla-activo:    #6ee7b7;
+  --pastilla-plan:      #a5b4fc;
+  --pastilla-espera:    #fcd34d;
+  --pastilla-hecho:     #a7f3d0;
+  /*
+    El violeta de «Planeación» de la ficha del proyecto.
+
+    Existe aparte porque hay **dos paletas de estado que ya divergieron**: la clase
+    `.pms-status-PLANNING` pinta índigo y el mapa en línea de `project-detail-client` pinta violeta,
+    los dos para el mismo estado. Unificarlas es una decisión de diseño; esto de aquí sólo arregla
+    que se lean, y deja la deriva a la vista en vez de taparla con un cambio de color silencioso.
+  */
+  --pastilla-plan-violeta: #c4b5fd;
+
+  --pastilla-archivado: #a1a1aa;
+
   /* ── Los colores de DATO (§9.3 C6) ───────────────────────────────────────────────────────
 
      Estos no decoran: **dicen algo**. Cambiarlos cambia lo que la pantalla afirma, y por eso viven
@@ -243,6 +268,14 @@
   --chip-indigo-cuenta: #3730a3;
   --chip-indigo-activo: #4338ca;
 
+  /* Las pastillas de estado en claro: los mismos tonos, un par de pasos más abajo. */
+  --pastilla-activo:    #065f46;
+  --pastilla-plan:      #4338ca;
+  --pastilla-espera:    #92400e;
+  --pastilla-hecho:     #065f46;
+  --pastilla-plan-violeta: #6d28d9;
+  --pastilla-archivado: #3f3f46;
+
   /*
     La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
     blanco — invisible. Ésta da 2.19 / 3.57 / 6.17 / 10.77, monotónica, y con el mismo tono.
@@ -341,6 +374,14 @@
     --chip-indigo:        #4338ca;
     --chip-indigo-cuenta: #3730a3;
     --chip-indigo-activo: #4338ca;
+
+    /* Las pastillas de estado en claro: los mismos tonos, un par de pasos más abajo. */
+    --pastilla-activo:    #065f46;
+    --pastilla-plan:      #4338ca;
+    --pastilla-espera:    #92400e;
+    --pastilla-hecho:     #065f46;
+    --pastilla-plan-violeta: #6d28d9;
+    --pastilla-archivado: #3f3f46;
 
     /*
       La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
@@ -471,11 +512,11 @@ body {
 }
 .pms-status-pill:hover { opacity: 0.85; }
 
-.pms-status-ACTIVE    { background: rgba(16,185,129,0.12); color: #6ee7b7; border-color: rgba(16,185,129,0.3); }
-.pms-status-PLANNING  { background: rgba(99,102,241,0.12); color: #a5b4fc; border-color: rgba(99,102,241,0.3); }
-.pms-status-ON_HOLD   { background: rgba(245,158,11,0.12); color: #fcd34d; border-color: rgba(245,158,11,0.3); }
-.pms-status-COMPLETED { background: rgba(16,185,129,0.08); color: #a7f3d0; border-color: rgba(16,185,129,0.2); }
-.pms-status-ARCHIVED  { background: rgba(82,82,91,0.2);    color: #a1a1aa;  border-color: rgba(82,82,91,0.4); }
+.pms-status-ACTIVE    { background: rgba(16,185,129,0.12); color: var(--pastilla-activo); border-color: rgba(16,185,129,0.3); }
+.pms-status-PLANNING  { background: rgba(99,102,241,0.12); color: var(--pastilla-plan); border-color: rgba(99,102,241,0.3); }
+.pms-status-ON_HOLD   { background: rgba(245,158,11,0.12); color: var(--pastilla-espera); border-color: rgba(245,158,11,0.3); }
+.pms-status-COMPLETED { background: rgba(16,185,129,0.08); color: var(--pastilla-hecho); border-color: rgba(16,185,129,0.2); }
+.pms-status-ARCHIVED  { background: rgba(82,82,91,0.2);    color: var(--pastilla-archivado);  border-color: rgba(82,82,91,0.4); }
 
 /* Priority bar */
 .pms-priority-bar {

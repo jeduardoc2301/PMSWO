@@ -86,18 +86,37 @@ function contraste(tinta: Color, fondo: Color): number {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
 }
 
-/** El relleno que la regla de cada variante pinta: `background: rgba(...)` del propio CSS. */
-function tinteDe(clase: string): Color {
-  const linea = `.urgency-chip.chip-${clase} { background: `
-  const i = CSS.indexOf(linea)
-  if (i < 0) throw new Error(`no encuentro la regla de .chip-${clase}`)
-  const desde = i + linea.length
+/**
+ * El relleno que pinta una regla: el `background:` del propio CSS, no un valor copiado aquí.
+ *
+ * Busca el `background:` que sigue al selector en vez de exigir un formato exacto: las reglas del
+ * archivo alinean las llaves con varios espacios, y una prueba que dependa de cuántos son se rompe
+ * el día que alguien pase un formateador.
+ */
+function fondoDeLaRegla(selector: string): Color {
+  // A principio de línea, que es donde vive una regla. Buscarlo suelto encontraba la **prosa**: un
+  // comentario de `globals.css` nombra `.pms-status-PLANNING` para explicar una deriva, y la prueba
+  // se iba a leer el fondo de otra regla cualquiera. Dio 1,86:1 de un sitio que nadie pinta.
+  const i = CSS.indexOf(String.fromCharCode(10) + selector)
+  if (i < 0) throw new Error(`no encuentro la regla de ${selector}`)
+  const j = CSS.indexOf('background:', i)
+  if (j < 0) throw new Error(`${selector} no pinta ningún fondo`)
+  const desde = j + 'background:'.length
   return color(CSS.slice(desde, CSS.indexOf(';', desde)))
 }
 
 const TEMAS = [
   { nombre: 'oscuro', selector: ':root {' },
   { nombre: 'claro', selector: ":root[data-theme='claro'] {" },
+] as const
+
+/** Las pastillas de estado de proyecto. Identidad, no severidad: por eso llevan tokens propios. */
+const PASTILLAS = [
+  { clase: 'ACTIVE', token: 'activo' },
+  { clase: 'PLANNING', token: 'plan' },
+  { clase: 'ON_HOLD', token: 'espera' },
+  { clase: 'COMPLETED', token: 'hecho' },
+  { clase: 'ARCHIVED', token: 'archivado' },
 ] as const
 
 const VARIANTES = [
@@ -127,7 +146,7 @@ describe('Las píldoras de urgencia del Tablero se leen en los dos temas', () =>
       })
 
       for (const v of VARIANTES) {
-        const fondo = sobre(tinteDe(v.clase), pagina)
+        const fondo = sobre(fondoDeLaRegla(`.urgency-chip.chip-${v.clase}`), pagina)
 
         it(`«${v.clase}», la etiqueta`, () => {
           expect(contraste(color(token(b, `--chip-${v.tono}`)), fondo)).toBeGreaterThanOrEqual(AA)
@@ -145,6 +164,64 @@ describe('Las píldoras de urgencia del Tablero se leen en los dos temas', () =>
           expect(contraste([255, 255, 255, 1], activo)).toBeGreaterThanOrEqual(AA)
         })
       }
+
+      for (const pastilla of PASTILLAS) {
+        it(`la pastilla «${pastilla.clase}»`, () => {
+          const fondo = sobre(fondoDeLaRegla(`.pms-status-${pastilla.clase}`), pagina)
+          const tinta = color(token(b, `--pastilla-${pastilla.token}`))
+          expect(contraste(tinta, fondo)).toBeGreaterThanOrEqual(AA)
+        })
+      }
     })
+  }
+})
+
+/**
+ * El mapa en línea de la ficha del proyecto.
+ *
+ * No basta con mirar `globals.css`: la ficha lleva **su propia copia** de la paleta de estados, y es
+ * la que se pinta en esa pantalla. Arreglar la clase y no el mapa fue exactamente lo que pasó — la
+ * medición seguía dando 1,25:1 con el CSS ya corregido, porque el distintivo va con estilo en línea.
+ *
+ * Se lee el TSX de verdad por la misma razón que el CSS: una lista de colores copiada aquí pasaría
+ * para siempre aunque el componente cambiara.
+ */
+const FICHA = readFileSync(
+  join(process.cwd(), 'app', '[locale]', 'projects', '[id]', 'project-detail-client.tsx'),
+  'utf8',
+)
+
+function entradaDelMapa(clave: string): { fondo: string; tinta: string } {
+  const i = FICHA.indexOf(`  ${clave}:`)
+  if (i < 0) throw new Error(`no encuentro ${clave} en el mapa de la ficha`)
+  const linea = FICHA.slice(i, FICHA.indexOf(String.fromCharCode(10), i))
+  const trozo = (campo: string) => {
+    const j = linea.indexOf(`${campo}: '`)
+    if (j < 0) throw new Error(`${clave} no tiene ${campo}`)
+    const desde = j + campo.length + 3
+    return linea.slice(desde, linea.indexOf("'", desde))
+  }
+  return { fondo: trozo('bg'), tinta: trozo('color') }
+}
+
+/** Un color que puede venir como `var(--token)`: se resuelve contra el bloque del tema. */
+function resuelto(crudo: string, bloqueDelTema: string): Color {
+  const t = crudo.trim()
+  if (!t.startsWith('var(')) return color(t)
+  const nombre = t.slice(4, t.indexOf(')')).trim()
+  return color(token(bloqueDelTema, nombre))
+}
+
+describe('El mapa de estados de la ficha del proyecto se lee en los dos temas', () => {
+  for (const tema of TEMAS) {
+    const b = bloque(tema.selector)
+    const pagina = color(token(b, '--background'))
+    for (const clave of ['ACTIVE', 'PLANNING', 'ON_HOLD', 'COMPLETED', 'ARCHIVED']) {
+      it(`${tema.nombre} · «${clave}»`, () => {
+        const e = entradaDelMapa(clave)
+        const fondo = sobre(color(e.fondo), pagina)
+        expect(contraste(resuelto(e.tinta, b), fondo)).toBeGreaterThanOrEqual(AA)
+      })
+    }
   }
 })

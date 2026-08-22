@@ -72,9 +72,9 @@ interface TacticalMetrics {
 interface ProjectDetailClientProps { projectId: string }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; border: string; label: string }> = {
-  ACTIVE:    { bg: 'rgba(16,185,129,0.12)',  color: '#6ee7b7', border: 'rgba(16,185,129,0.3)',  label: 'Activo'     },
-  PLANNING:  { bg: 'rgba(139,92,246,0.12)',  color: '#c4b5fd', border: 'rgba(139,92,246,0.3)',  label: 'Planeación' },
-  ON_HOLD:   { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)',  label: 'En pausa'   },
+  ACTIVE:    { bg: 'rgba(16,185,129,0.12)',  color: 'var(--pastilla-activo)', border: 'rgba(16,185,129,0.3)',  label: 'Activo'     },
+  PLANNING:  { bg: 'rgba(139,92,246,0.12)',  color: 'var(--pastilla-plan-violeta)', border: 'rgba(139,92,246,0.3)',  label: 'Planeación' },
+  ON_HOLD:   { bg: 'rgba(245,158,11,0.12)',  color: 'var(--pastilla-espera)', border: 'rgba(245,158,11,0.3)',  label: 'En pausa'   },
   COMPLETED: { bg: 'rgba(99,102,241,0.12)',  color: 'var(--acento-tinta)', border: 'rgba(99,102,241,0.3)',  label: 'Completado' },
   ARCHIVED:  { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)', label: 'Archivado'  },
 }
