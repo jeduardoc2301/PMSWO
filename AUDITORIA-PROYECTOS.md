@@ -6345,3 +6345,30 @@ devuelve cero. La línea sembrada se borró; la base queda como estaba, en 1371 
 con la terminada del usuario intacta.
 
 Suite 3 692, tipos 664.
+
+## §10.2 · El tercero del mismo hueco: «Responsable del cliente» no podía señalar nada
+
+Buscando más casos de lo de anoche —un campo que un componente lee y la carga no manda— salió el
+tercero, y en el mismo sitio. El filtro unificado ofrece «Responsable del cliente» y lee
+`l.clientOwner`; el resumen del Tablero mandaba `responsibleName` y **no** `clientOwner`.
+
+Medido antes de tocar: **178 líneas del plan tienen ese campo relleno**. O sea que el criterio salía
+en el selector, se podía escribir un nombre, y no encontraba nunca nada — sobre 178 líneas que sí lo
+tienen. Es exactamente lo que ya le había pasado a `createdAt`, y su propio comentario lo decía:
+«el criterio existía en el selector y no señalaba nada».
+
+Tres veces el mismo hueco en el mismo resumen —`createdAt`, `completedAt`, `clientOwner`—, y las tres
+con las pruebas de los dos lados en verde: la del servicio comprueba la forma que produce, la del
+componente se monta con un simulacro donde el campo sí existe. **Nadie prueba la junta.** Por eso las
+tres sólo aparecieron midiendo contra la respuesta real.
+
+### Medido contra la carga real, desde la página
+
+```
+viajaElCampo: true · conValor: 178 · ejemplos: José Cruz, Salomón Suárez, Rafael Oliva
+```
+
+Los 178 coinciden con la cuenta de la base. La prueba del servicio compara la forma entera y ahora
+lleva un **valor de verdad**, no `undefined`: `toEqual` ignora las claves indefinidas, así que una
+expectativa a `undefined` no vigila nada —que es justo la forma en que este campo se quedó fuera—.
+Validada quitando el campo. Suite 3 692, tipos 664.

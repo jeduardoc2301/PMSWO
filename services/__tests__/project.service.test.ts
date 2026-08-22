@@ -482,6 +482,9 @@ describe('ProjectService', () => {
       updatedAt: new Date('2024-02-01'),
       // El §10.2 pide «fecha de creación» en el filtro unificado, y el resumen la lleva.
       createdAt: new Date('2024-01-10'),
+      // Con valor, y no `undefined`: `toEqual` ignora las claves indefinidas, así que una
+      // expectativa a `undefined` no vigila nada — que es justo como este campo se quedó fuera.
+      clientOwner: 'Banco Unión · Tesorería',
       phase: null,
       templateOrder: null,
       blockers: [],
@@ -570,6 +573,7 @@ describe('ProjectService', () => {
         // Sin terminar: `null` explícito y no ausente, que es lo que distingue «no se sabe cuándo»
         // de «no ha pasado». La tarjeta de «completadas esta semana» necesita esa diferencia.
         completedAt: null,
+        clientOwner: 'Banco Unión · Tesorería',
       })
     })
 

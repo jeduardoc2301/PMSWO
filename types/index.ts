@@ -188,6 +188,13 @@ export interface WorkItemSummary {
    */
   completedAt?: string | null
   /**
+   * Quién responde por esta línea del lado del cliente.
+   *
+   * Lo pide el filtro unificado del §10.2 como criterio propio. Sin él en el resumen, el criterio
+   * salía en el selector y no señalaba nunca nada.
+   */
+  clientOwner?: string | null
+  /**
    * Los valores de los campos personalizados de esta línea, por identificador de campo (§2).
    *
    * Viajan con el resumen y no en una consulta aparte porque el filtro unificado los necesita para

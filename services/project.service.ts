@@ -710,6 +710,17 @@ export class ProjectService {
         // verdades sobre la misma línea.
         progressPct: item.progressPct,
         responsibleName: item.responsibleName,
+        clientOwner: item.clientOwner,
+        /*
+          El responsable del lado del cliente, que el filtro unificado (§10.2) ofrece como criterio.
+
+          No viajaba, y el criterio existía igual en el selector: se podía elegir «Responsable del
+          cliente», escribir un nombre y no encontrar nunca nada — sobre 178 líneas que sí lo tienen.
+          Es la tercera vez que el mismo hueco muerde en este resumen (antes `createdAt` y
+          `completedAt`): un campo que el componente lee y la carga no manda, con las pruebas de
+          ambos lados en verde porque cada una da por buena la mitad que no le toca.
+        */
+
         kind: item.kind,
         party: item.party,
         // De aquí sale el EDT de la tarjeta: sin el padre no hay jerarquía que numerar, y el
