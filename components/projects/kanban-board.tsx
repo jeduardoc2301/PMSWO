@@ -112,10 +112,10 @@ const PRIORITY_BAR: Record<WorkItemPriority, string> = {
 }
 
 const PRIORITY_BADGE: Record<WorkItemPriority, { bg: string; color: string; border: string }> = {
-  [WorkItemPriority.CRITICAL]: { bg: 'rgba(239,68,68,0.12)',  color: '#fca5a5', border: 'rgba(239,68,68,0.3)'  },
-  [WorkItemPriority.HIGH]:     { bg: 'rgba(249,115,22,0.12)', color: '#fdba74', border: 'rgba(249,115,22,0.3)' },
-  [WorkItemPriority.MEDIUM]:   { bg: 'rgba(245,158,11,0.12)', color: '#fcd34d', border: 'rgba(245,158,11,0.3)' },
-  [WorkItemPriority.LOW]:      { bg: 'rgba(59,130,246,0.12)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
+  [WorkItemPriority.CRITICAL]: { bg: 'rgba(239,68,68,0.12)',  color: 'var(--prioridad-critica)', border: 'rgba(239,68,68,0.3)'  },
+  [WorkItemPriority.HIGH]:     { bg: 'rgba(249,115,22,0.12)', color: 'var(--prioridad-alta)', border: 'rgba(249,115,22,0.3)' },
+  [WorkItemPriority.MEDIUM]:   { bg: 'rgba(245,158,11,0.12)', color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)' },
+  [WorkItemPriority.LOW]:      { bg: 'rgba(59,130,246,0.12)', color: 'var(--prioridad-baja)', border: 'rgba(59,130,246,0.3)' },
 }
 
 // ─── WorkItemCard ─────────────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
     if (urgency === 'overdue' && daysFromDue !== null) {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(244,63,94,0.12)', color: '#fda4af', border: '1px solid rgba(244,63,94,0.3)' }}>
+          style={{ background: 'rgba(244,63,94,0.12)', color: 'var(--chip-rosa)', border: '1px solid rgba(244,63,94,0.3)' }}>
           <AlertOctagon size={10} /> {Math.abs(daysFromDue)}d vencida
         </span>
       )
@@ -153,7 +153,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
     if (urgency === 'soon' && daysFromDue !== null) {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(245,158,11,0.12)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}>
+          style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--chip-ambar)', border: '1px solid rgba(245,158,11,0.3)' }}>
           <Clock4 size={10} /> {urgencyDueLabel(daysFromDue)}
         </span>
       )
@@ -169,7 +169,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
     if (urgency === 'blocked') {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(244,63,94,0.12)', color: '#fda4af', border: '1px solid rgba(244,63,94,0.3)' }}
+          style={{ background: 'rgba(244,63,94,0.12)', color: 'var(--chip-rosa)', border: '1px solid rgba(244,63,94,0.3)' }}
           title="Bloqueada">
           <ShieldAlert size={10} />
         </span>
@@ -305,7 +305,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
                 data-testid={`atraso-${workItem.id}`}
                 className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums"
                 style={delta < 0
-                  ? { background: 'rgba(244,63,94,0.12)', color: '#fda4af', border: '1px solid rgba(244,63,94,0.3)' }
+                  ? { background: 'rgba(244,63,94,0.12)', color: 'var(--chip-rosa)', border: '1px solid rgba(244,63,94,0.3)' }
                   : { background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}
                 title="Atraso (−) o ventaja (+) en días hábiles al corte, con la fórmula del plan"
               >

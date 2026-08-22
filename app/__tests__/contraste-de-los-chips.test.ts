@@ -259,3 +259,56 @@ describe('Las tarjetas con urgencia del Tablero se leen en los dos temas', () =>
     }
   }
 })
+
+/**
+ * Todo par «fondo + tinta» del Tablero, barrido del archivo.
+ *
+ * En vez de una lista de casos escrita a mano, se recorre `kanban-board.tsx` buscando cada línea que
+ * ponga un fondo y una tinta a la vez. Así cubre también lo que se añada mañana: un distintivo nuevo
+ * con un color crudo entra en la prueba sin que nadie se acuerde de apuntarlo.
+ *
+ * Sólo mira las tintas por token. Una tinta en crudo no se puede resolver por tema —es la misma en
+ * los dos— y por eso el barrido de pantalla sigue haciendo falta: esto vigila lo migrado.
+ */
+const TABLERO = readFileSync(
+  join(process.cwd(), 'components', 'projects', 'kanban-board.tsx'),
+  'utf8',
+)
+
+function paresDelTablero(): Array<{ linea: number; fondo: string; tinta: string }> {
+  const salida: Array<{ linea: number; fondo: string; tinta: string }> = []
+  const lineas = TABLERO.split(String.fromCharCode(10))
+  for (let i = 0; i < lineas.length; i++) {
+    const l = lineas[i]
+    const c = l.indexOf("color: 'var(--")
+    if (c < 0) continue
+    const marca = l.indexOf("background: '") >= 0 ? "background: '" : "bg: '"
+    const f = l.indexOf(marca)
+    if (f < 0) continue
+    const fondo = l.slice(f + marca.length, l.indexOf("'", f + marca.length))
+    const tinta = l.slice(c + "color: '".length, l.indexOf("'", c + "color: '".length))
+    salida.push({ linea: i + 1, fondo, tinta })
+  }
+  return salida
+}
+
+describe('Los distintivos del Tablero se leen en los dos temas', () => {
+  const pares = paresDelTablero()
+
+  it('el barrido encuentra pares que revisar', () => {
+    // Si un refactor cambia la forma de escribirlos, esta prueba se queda sin nada que mirar y
+    // pasaría vacía para siempre. Mejor que avise.
+    expect(pares.length).toBeGreaterThanOrEqual(6)
+  })
+
+  for (const tema of TEMAS) {
+    const b = bloque(tema.selector)
+    const pagina = color(token(b, '--background'))
+    for (const par of pares) {
+      it(`${tema.nombre} · línea ${par.linea} · ${par.tinta}`, () => {
+        const fondo = sobre(color(par.fondo), sobre(color(token(b, '--superficie')), pagina))
+        expect(contraste(resuelto(par.tinta, b), fondo)).toBeGreaterThanOrEqual(AA)
+      })
+    }
+  }
+})

@@ -138,6 +138,12 @@
 
   --pastilla-archivado: #a1a1aa;
 
+  /* Los distintivos de prioridad de las tarjetas del Tablero. */
+  --prioridad-critica:  #fca5a5;
+  --prioridad-alta:     #fdba74;
+  --prioridad-media:    #fcd34d;
+  --prioridad-baja:     #93c5fd;
+
   /* ── Los colores de DATO (§9.3 C6) ───────────────────────────────────────────────────────
 
      Estos no decoran: **dicen algo**. Cambiarlos cambia lo que la pantalla afirma, y por eso viven
@@ -276,6 +282,12 @@
   --pastilla-plan-violeta: #6d28d9;
   --pastilla-archivado: #3f3f46;
 
+  /* Prioridad en claro: los mismos tonos, varios pasos abajo. */
+  --prioridad-critica:  #b91c1c;
+  --prioridad-alta:     #9a3412;
+  --prioridad-media:    #92400e;
+  --prioridad-baja:     #1d4ed8;
+
   /*
     La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
     blanco — invisible. Ésta da 2.19 / 3.57 / 6.17 / 10.77, monotónica, y con el mismo tono.
@@ -382,6 +394,12 @@
     --pastilla-hecho:     #065f46;
     --pastilla-plan-violeta: #6d28d9;
     --pastilla-archivado: #3f3f46;
+
+    /* Prioridad en claro: los mismos tonos, varios pasos abajo. */
+    --prioridad-critica:  #b91c1c;
+    --prioridad-alta:     #9a3412;
+    --prioridad-media:    #92400e;
+    --prioridad-baja:     #1d4ed8;
 
     /*
       La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
