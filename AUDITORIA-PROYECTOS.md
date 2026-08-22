@@ -6741,3 +6741,18 @@ capturadas, así que el segundo no se puede demostrar con estos datos y hay que 
 
 `aria-pressed` resultó ser el asidero que faltaba en el Gantt: dice el estado **y** distingue el
 control, sin pasar por el rótulo. Ahí donde existe, medir es trivial.
+
+### Desmentido: los conmutadores del Gantt sí se pueden afirmar
+
+Hace seis tandas quedó escrito que «los conmutadores no tienen `data-testid` con el que afirmarlos».
+Lo primero es cierto; **lo segundo era falso**. Tienen `aria-pressed` —22 en la vista— y eso es un
+asidero mejor que un `data-testid`: dice el estado, distingue el control, y es el **contrato de
+accesibilidad**, no un accesorio de pruebas que alguien puede quitar sin que nadie lo note.
+
+Medido: `Todo=true`, `Ruta súper crítica=false`, `Solo hitos=false`, `Del cliente=false`,
+`Nuestro=false`, y las seis escalas con `Mes=true`. Las escalas quedan ahora demostradas **con su
+estado**, no sólo con su presencia.
+
+Lo que falló no fue la pantalla sino la pregunta: busqué `data-testid` porque es lo que uso para
+medir, en vez de preguntarme qué hace **identificable** a un conmutador. La respuesta llevaba puesta
+todo el tiempo.
