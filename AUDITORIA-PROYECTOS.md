@@ -7550,3 +7550,21 @@ La regla no es «todo gesto propone» sino **«propone lo que puede desplazar el
 criterio, no una costumbre, y explica los dos comportamientos sin que ninguno sea una excepción.
 
 **Nueve criterios de gesto demostrados.**
+
+### Estado al perder el navegador
+
+**El puerto de depuración de Chrome dejó de responder** —ninguna pestaña— así que la demostración en
+pantalla queda bloqueada hasta que haya un navegador con depuración abierta. El servidor sigue en 200
+y la suite no depende de él.
+
+Tres cosas medidas por el otro lado, sin navegador:
+
+- **El plan de referencia está en 1368 líneas.** Las tres «Rama» que había creado el usuario ya no
+  están; las quitó él. Se anota para que conste, no como incidencia: sus datos, su decisión.
+- **`Claude-Test` tiene 10 líneas**, no las 5 previstas. Mis intentos fallidos de poblarlo dejaron
+  duplicados —el que creó por Prisma antes de que la ruta funcionara—.
+- **«B» sigue colgando del hito** `de45957c`, de la prueba de sangría, y empieza el 2026-07-03.
+
+**No se ordena a ciegas.** El usuario pidió ver el banco de pruebas; borrar líneas sin que las mire
+sería peor que dejarlas explicadas. Queda dicho qué hay y de dónde salió cada cosa, que es lo que
+permite decidir con la pantalla delante.
