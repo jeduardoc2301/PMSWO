@@ -6457,3 +6457,16 @@ arriba sí, porque esos dos nombres no aparecen dentro de otras palabras.
 
 **Barrido de juntas, cerrado:** Tablero, `/schedule` y `/workload` sin huecos; la jornada, con dos
 campos huérfanos anotados.
+
+### Aviso · una roja intermitente, ya van dos
+
+Dos veces esta noche la suite completa ha dado **una** roja que no reproduce al repetir (3691 y
+luego 3692, sin tocar nada). La primera vez se vio el motivo —`DOMException [AbortError]` de
+`happy-dom` abortando un `fetch` pendiente al desmontar la ventana—; la segunda no se captur&oacute; el
+nombre, y eso es parte del problema.
+
+No se ha arreglado y queda dicho: una suite que falla una de cada tantas **erosiona la regla de la
+que depende todo lo demás** —verde antes de cada commit—, porque enseña a repetir hasta que salga
+bien en vez de a mirar. La pista está en los componentes que lanzan `fetch` sin cancelarlo al
+desmontar; el Panel ya usa una guardia `vigente`, pero eso marca el resultado como obsoleto, no
+aborta la petición.
