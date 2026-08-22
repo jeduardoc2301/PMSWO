@@ -7705,3 +7705,35 @@ sesiones distintas. Diez elementos, ocho hojas, y la cabecera decía 8.
 
 De rebote, el duplicado sirvió de reactivo: `b227c812` es **ACTIVIDAD con hijas**, y la Lista lo
 descarta. Si filtrara por `kind === 'RESUMEN'` habría enseñado 9. Enseñó 8.
+
+### El modo claro está hecho — y trae un defecto visible
+
+El artefacto llevaba tiempo diciendo que la aplicación «es oscura en las seis vistas: sin
+`prefers-color-scheme`, sin clases `dark:`, **sin conmutador**», y que eso era lo único que impedía
+cerrar el sexto criterio del §9.3. Es falso. Medido en pantalla:
+
+| | fondo | tinta | atributo |
+|---|---|---|---|
+| al abrir | `rgb(9,9,11)` | `rgb(250,250,250)` | `data-theme=oscuro` |
+| «Claro» | `rgb(247,247,249)` | `rgb(24,24,27)` | `data-theme=claro` |
+| «Oscuro» | vuelve | vuelve | vuelve |
+
+Pero eso convierte en defecto lo que esta misma noche había descartado como convención inofensiva.
+Los colores crudos de Tailwind están pensados para fondo oscuro y **no se enteran del tema**. Barrido
+de contraste con el tema claro puesto, contra el fondo efectivo de cada elemento:
+
+| texto | color | contraste |
+|---|---|---|
+| «Vencen pronto» | amber-300 | **1,49:1** |
+| «Activo» | emerald-300 | **1,66:1** |
+| «Vencidas», «Bloqueadas» | rose-300 | **1,94:1** |
+| «Estancadas» | indigo-300 | **2,24:1** |
+
+WCAG AA pide 4,5:1. Son etiquetas de estado ilegibles en claro.
+
+Descartados dos falsos positivos del barrido —«PMSWO» y «AU», blanco a 1,0— porque su fondo es un
+degradado que mi rastreo de ancestros no ve. Un barrido que no distingue eso inventa hallazgos.
+
+La lección de la noche: **descarté `text-red-400` por «es la convención de la casa» sin comprobar si
+la casa había cambiado**. La convención era inofensiva mientras sólo hubo tema oscuro. El conmutador
+la volvió un defecto, y yo tenía la medición del conmutador a un clic.
