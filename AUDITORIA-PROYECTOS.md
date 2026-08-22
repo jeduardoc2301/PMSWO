@@ -6828,3 +6828,17 @@ Las cuatro compuertas son, de hecho, el reactivo general para este repositorio: 
 decida «esto es un resumen» se puede separar mirándolas**, porque son las únicas cuatro líneas donde
 los dos criterios discrepan. Vale más que releer el código de cada sitio, y no depende de acertar
 ningún nombre.
+
+### Tercer sitio: el Panel dice 125, no 121
+
+«125 líneas más son resúmenes: no tienen trabajo propio y no entran en el reparto». **125 es la
+cuenta con hijas** —121 resúmenes más 4 compuertas—; si mirara el campo dirían 121. Tercer sitio que
+decide por estructura, y aquí la diferencia sería visible en cada porcentaje del panel.
+
+**Barrido del atajo, cerrado por medición en pantalla:** Gantt (arrastre), Tablero (conmutador de
+resúmenes) y Panel (reparto del avance) usan los tres la regla buena. El atajo que ha mordido cuatro
+veces en este repositorio no está en ninguno de los tres sitios donde más se notaría.
+
+Y lo más reutilizable de todo esto no es el resultado sino el reactivo: **las cuatro compuertas**
+separan los dos criterios en una lectura, sin releer código y sin depender de acertar un nombre. Es
+la respuesta al problema que ha dominado la noche entera.
