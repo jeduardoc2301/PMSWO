@@ -6384,3 +6384,26 @@ leyendo un **rango de líneas** del servicio, y ese rango no cubría todo el obj
 Acusó a `kind` y `party` de no viajar cuando ambos viajan. La medición contra la carga real lo
 desmintió en un segundo. Es la misma lección de siempre —sondas contra texto medido, no supuesto—, y
 esta vez el atajo era mirar el código en vez de la respuesta.
+
+## §3 · La junta de `/schedule`, medida (y cuatro candidatos sin verificar)
+
+Unión de claves sobre **las 1368 tareas**, no sobre la primera. La cautela valía: `tasks[0]` enseña
+**11** campos y la unión real tiene **15**, porque el servicio los propaga condicionalmente.
+
+| campo | en cuántas |
+|---|---|
+| `id name duration duracionMin capacidadDiariaMin kind party owner progress status constraint` | 1368 |
+| `parentId` | 1366 · las dos raíces no lo llevan |
+| `estimacionMin` | 1243 · las hojas |
+| `recoverability` | 276 |
+| `dueDate` | 178 |
+
+Haber concluido con la primera tarea habría dado un catálogo falso — el mismo atajo que ya produjo un
+falso positivo con `kind` y `party`.
+
+Contra el contrato `PlanTask`, la carga **no manda** cuatro que el motor declara: `alap`,
+`compromiso`, `elapsedTime`, `restriccionGuardada`. **No están verificados como defectos** y no se
+tocan hasta comprobarlos uno a uno: pueden ser entradas opcionales legítimas, y dos huelen a pares
+del mismo concepto con distinto nombre (`constraint`/`restriccionGuardada`,
+`recoverability`/`elapsedTime`). Queda nombrado para la próxima pasada; afirmarlo ahora sería
+exactamente lo que este método existe para evitar.
