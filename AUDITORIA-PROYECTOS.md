@@ -7394,3 +7394,20 @@ así se leen igual. Eso es difícil de conseguir y merece decirse.
 
 De paso queda claro que **ningún gesto del Gantt escribe directamente**. Todos proponen. Es una
 decisión sostenida en tres sitios, no un accidente de uno.
+
+### Deshacer y rehacer: existen, y el botón es honesto
+
+Los dos botones están, con `aria-label` «Deshacer» y «Rehacer». Tras recargar la página el de
+deshacer aparece **deshabilitado** y con el título **«No hay nada que deshacer»**.
+
+Eso es correcto y además elegante: el historial vive en la sesión de la página, y el botón **lo
+declara** en vez de quedarse habilitado fingiendo que puede. Un control que miente sobre lo que puede
+hacer es peor que uno ausente — el usuario lo pulsa y no entiende por qué no pasa nada.
+
+**Para demostrarlo hay que hacer el gesto y deshacerlo sin recargar en medio**, y ninguna de mis
+sondas lo hacía: todas arrancan navegando a la página, lo que borra el historial antes de empezar. Es
+la misma clase de error que el resto de la noche —la herramienta de medida interfiere con lo medido—
+pero por una vía nueva: aquí no fallaba dónde miraba, sino que **el propio acto de preparar la
+medición destruía lo que iba a medir**.
+
+Queda planteado así para la próxima: un solo guion que navegue una vez, arrastre, aplique, y deshaga.
