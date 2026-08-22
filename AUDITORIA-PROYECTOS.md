@@ -6559,3 +6559,15 @@ Los conmutadores quedan **inconcluyentes**, no ausentes: se buscaron por texto y
 que se probaron. Es la misma trampa que ya costó un falso hallazgo con «Fechas»/«FECHAS». Salieron
 Reserva, Línea base y «crítica»; la ausencia de los demás **no prueba nada** y se re-mide por
 `data-testid`, no por texto.
+
+### §13 · Columnas configurables, con evidencia; los conmutadores, aún no
+
+Las seis columnas puestas, nombradas por su identificador en pantalla: `name`, `start`, `finish`,
+`kind`, `party`, `progress`. Y el botón `boton-campos`, que es el configurador — sobre un catálogo de
+14. Con eso el criterio «columnas configurables» queda demostrado en pantalla.
+
+Los conmutadores **siguen sin medir**, y esta vez por un fallo de la sonda, no de la pantalla: los
+identificadores por fila (`barra-<uuid>`, `avance-<uuid>`) coparon los primeros cuarenta resultados y
+el corte se los comió. La sonda tiene que **filtrar lo que se repite por fila** antes de listar; una
+lista truncada por ruido se lee igual que una lista completa, que es la forma más silenciosa de
+concluir de menos.
