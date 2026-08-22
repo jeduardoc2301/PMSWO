@@ -7316,3 +7316,19 @@ sólo como criterio cumplido.
 **Criterio del §4 demostrado de punta a punta**, con las dos mitades que importan: el cálculo (días
 hábiles, duración intacta) y el contrato con quien lo usa (avisa, deja cancelar, y cumple lo que
 avisó).
+
+### El tirador de duración: encontrado, con confirmación de propina; el gesto, sin efecto visible
+
+El asidero existe y no es un `data-testid` sino `data-tirador-duracion`, con `role="separator"` y un
+`aria-label` que dice la duración actual: **«Cambiar la duración de «B · tarea suelta para
+arrastrar», ahora 5 días»**.
+
+Ese rótulo confirma de paso lo del turno anterior: tras mover la barra seis días, **sigue durando
+cinco**. Mover desplaza y no estira, ahora dicho por la propia interfaz y no sólo por las fechas.
+
+Y **un resumen no lleva tirador** —el JSX lo condiciona a `!row.isSummary`, «su duración es la de sus
+hijas»—, coherente con todo lo medido esta noche sobre resúmenes.
+
+**Tras arrastrarlo 24 px no aparece propuesta.** No se concluye nada: puede que el redimensionado
+confirme por otra vía, o que 24 px no lleguen a su umbral. Queda medido y sin interpretar, que es lo
+que la noche ha enseñado a hacer con un resultado nulo.
