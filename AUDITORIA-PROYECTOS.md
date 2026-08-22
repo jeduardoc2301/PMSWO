@@ -6481,3 +6481,15 @@ el recuento —que es lo que las dos veces anteriores se perdió—. Una aserci�
 produce operación») sobre algo asíncrono es la misma forma que ya dio un verde falso esta noche con
 `waitFor`: si la operación llega tarde, la prueba pasa; si llega a tiempo, falla. Que sea la negativa
 la que parpadea encaja con esa lectura, pero **no está comprobado** y no se toca hasta medirlo.
+
+### La hipótesis, refutada por medición
+
+Seis pasadas de `edit-dialog-undo.test.tsx` **en aislamiento: las seis verdes**. La prueba no es
+frágil por sí misma; sólo falla dentro de la suite completa.
+
+Eso **descarta** la explicación que parecía obvia —que la aserción negativa corriera una carrera
+contra algo asíncrono suyo— y mueve la sospecha a **interferencia entre archivos** o contención bajo
+carga. La hipótesis encajaba demasiado bien con otro fallo de esa misma noche, y ése es precisamente
+el momento de desconfiar de una explicación: la que explica todo sin medirse no explica nada.
+
+Queda abierto y con el siguiente paso claro: correrla junto a sus vecinas, no sola ni con las 196.
