@@ -6697,3 +6697,17 @@ con quince barras es ilegible—. Si se cortan, existe con otro nombre.
 
 Queda como el candidato más firme y con su medición ya definida, que es la forma de que la próxima
 pasada lo cierre en un paso en vez de volver a tantear.
+
+### Cerrado: es «N líneas más», y el criterio se cumple
+
+Contando las barras por celda —la medición que no depende de ningún nombre— el Calendario corta a
+**3 por día** y remata con «3 líneas más», «9 líneas más», «12 líneas más». El criterio del §13 está
+cumplido.
+
+**Quinta** diferencia de nombre de la noche: el spec dice «tareas» y el producto dice **«líneas»**.
+Y las seis búsquedas fallidas del turno anterior fallaron por no probar justamente esa palabra — la
+que este módulo usa en todas partes, incluida cada cifra que llevo medida esta noche («1243 líneas de
+trabajo», «125 líneas con hijas»). El nombre estaba delante todo el rato.
+
+La lección, ya sin margen de duda: **buscar por nombre no es medir**. La cuenta de barras por celda
+dio la respuesta en un intento después de que seis búsquedas dieran cero.
