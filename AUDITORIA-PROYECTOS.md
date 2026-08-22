@@ -7147,3 +7147,17 @@ entre `dragstart` y `dragover`, funcionó a la primera.
 Eso no era una conjetura sobre el DOM sino una consecuencia de cómo React agrupa las actualizaciones
 — y es la diferencia entre el tercer intento y los dos anteriores: los dos primeros cambiaban **cómo
 apretar el botón**; éste entendió **por qué no llegaba la señal**.
+
+### El arrastre de barra del Gantt: tampoco prendió, con hipótesis nombrada
+
+Puntero sintetizado sobre la barra —marcada `data-movible="sí"`— con presión, ocho movimientos
+espaciados y liberación 40 px a la derecha. **Las fechas no cambiaron.**
+
+**No se concluye que esté roto.** El Gantt usa `onPointerDown` —otra tecnología distinta del arrastre
+nativo del Tablero, comprobado leyendo el JSX y no suponiéndolo—, y la hipótesis concreta es
+`setPointerCapture`: si el manejador captura el puntero, un evento sintetizado desde el ratón puede
+no ser capturable, y entonces los `pointermove` siguientes no llegan al elemento. El gesto arrancaría
+y no continuaría, que es exactamente lo observado.
+
+Se comprueba leyendo si el manejador captura, y en tal caso lanzando eventos de puntero de verdad en
+vez de derivarlos del ratón. Es un dato, no una conjetura — la misma salida que destrabó el Tablero.
