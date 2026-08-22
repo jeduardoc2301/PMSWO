@@ -6603,3 +6603,18 @@ esta noche.
 Se anota y no se toca ahora: añadir identificadores es barato pero toca la vista más delicada, y
 hacerlo de madrugada sin necesidad no compensa. Queda dicho **qué** falta y **por qué** importa, que
 es lo que hace falta para decidirlo con luz.
+
+### §13 · Tablero: falta «Asignados» en el agrupador, o se llama de otro modo
+
+Medido en pantalla: 1091 identificadores, y como controles singulares
+`columnas-del-tablero` y `conmutador-resumenes`. En el texto salen **«Agrupar», «Estado» y
+«Prioridad»**; **«Asignados» no**.
+
+Esta vez la duda se puede acotar en vez de dejarla abierta: las otras dos aparecieron **con su nombre
+exacto**, así que el selector no está pintando en versalitas y la trampa del `text-transform` no
+aplica aquí. Quedan dos posibilidades y sólo dos: la tercera opción se llama de otra forma
+—«Responsable» sería lo natural en este módulo, donde esa es la palabra que se usa— o no existe.
+
+Se resuelve mirando qué opciones ofrece el propio selector, no buscando la palabra que el spec usa.
+Anotado sin arreglar: dar por ausente una función porque no encuentro su rótulo es exactamente el
+error que ya cometí dos veces esta noche.
