@@ -6648,3 +6648,14 @@ Medido: 488 identificadores, «Exportar» presente, y como formatos salen **«Li
 Ninguno se escribe como hallazgo. Tres sospechas iguales se han disuelto ya esta noche en nombres
 distintos, y la única forma de que la cuarta no me haga perder el tiempo es medir el selector antes
 de escribir nada.
+
+### Resuelto: los totales existen y dependen del formato agrupado
+
+`lib/projects/list-totals.ts` — su cabecera dice literalmente «La fila de totales y el formato
+agrupado de la vista Lista (§6.2, §6.3)», e incluye la exigencia de que los **subtotales cuadren con
+el total**. La función está; no salió en la medición porque la Lista estaba en formato plano.
+
+Era la segunda hipótesis que quedó escrita antes de medir, y se confirmó sola. Anotar la hipótesis
+por adelantado no es formalismo: convierte una medición fallida en información en vez de en un falso
+hueco. De los dos candidatos de la Lista, éste queda **cerrado**; el de «EDT» sigue abierto y se
+resuelve leyendo el selector con la vista montada.
