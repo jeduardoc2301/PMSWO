@@ -6587,3 +6587,19 @@ Dos sondas fallidas seguidas, y la segunda es la peligrosa: la primera truncaba 
 entradas; ésta devuelve algo que parece exhaustivo. Un filtro heurístico sobre nombres no distingue
 ruido de señal — hay que distinguir por **cuántas veces se repite** el identificador, que es el dato
 que de verdad separa una fila de un control.
+
+### Los conmutadores existen; lo que falta es por dónde agarrarlos
+
+Tercera sonda, concluyente. Los controles singulares del Gantt son `boton-campos`,
+`conmutador-de-tema`, `eje-superior`, `eje-inferior`, `gantt-rejilla`, `gantt-desplazable`,
+`marca-de-hoy`, `frescura`, `refresco` y los dos de la barra lateral.
+
+**Ninguno de los conmutadores del §13 —atrasadas, ruta crítica, reserva, línea base— lleva
+`data-testid`**, aunque el texto de la página sí los encuentra. No es una función que falte: es un
+asidero que falta. Un control sin identificador sólo se puede afirmar por su rótulo, y el rótulo pasa
+por `text-transform` y por traducción — dos cosas que ya han producido un falso hallazgo cada una
+esta noche.
+
+Se anota y no se toca ahora: añadir identificadores es barato pero toca la vista más delicada, y
+hacerlo de madrugada sin necesidad no compensa. Queda dicho **qué** falta y **por qué** importa, que
+es lo que hace falta para decidirlo con luz.
