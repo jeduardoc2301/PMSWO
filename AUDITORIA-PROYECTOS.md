@@ -7568,3 +7568,46 @@ Tres cosas medidas por el otro lado, sin navegador:
 **No se ordena a ciegas.** El usuario pidió ver el banco de pruebas; borrar líneas sin que las mire
 sería peor que dejarlas explicadas. Queda dicho qué hay y de dónde salió cada cosa, que es lo que
 permite decidir con la pantalla delante.
+
+## §4.5 · DEFECTO · «No se puede» y «a la raíz» eran lo mismo, en las dos direcciones
+
+Al intentar demostrar `Shift+Tab` apareció un defecto de verdad, y resultó ser **doble y duplicado**.
+
+`lib/plan/jerarquia.ts` distingue con cuidado dos respuestas negativas que no son iguales:
+
+- `nuevoPadreAlSangrar` devuelve **`null` = no se puede** —la primera hermana no tiene de quién colgar—.
+- `nuevoPadreAlAnular` devuelve **`null` = no se puede** y **`{ padre: null }` = su nueva casa es la
+  raíz**. Su propio comentario avisa: «Los dos casos son distintos y confundirlos dejaría el menú
+  ofreciendo una acción que no hace nada».
+
+Quien las llamaba leía las dos con la misma vara:
+
+```
+accion === 'SANGRAR' ? nuevoPadreAlSangrar(tasks, id) : nuevoPadreAlAnular(tasks, id)?.padre ?? undefined
+if (destino === undefined) return
+```
+
+| gesto | qué pasaba |
+|---|---|
+| `Tab` en la **primera hermana** | `null` («no se puede») no es `undefined`, así que seguía y llamaba a mover con `null` — que allí significa **raíz**. **La línea salía a primer nivel en silencio.** |
+| `Shift+Tab` en una de **segundo nivel** | `{ padre: null }` («a la raíz») se convertía en `undefined` por culpa de `??`, y el gesto **se descartaba en silencio**. |
+
+Los dos son el mismo malentendido en direcciones opuestas. Y estaba **en dos sitios**: el atajo de
+teclado y el sangrado en lote, donde además el daño era simétrico —sangrar mandaba a la raíz, y
+anular fallaba con un error que no era cierto—.
+
+### Demostrado en pantalla, en los dos sentidos
+
+- Con el arreglo: `Shift+Tab` sobre «B» la devuelve a la raíz, **y el hito pierde su relleno de
+  avance** porque deja de tener hijas. La regla «resumen = tiene hijas» revirtiendo sola.
+- Con el arreglo: `Tab` sobre «A.1», primera hermana, **no la mueve**.
+- **Revertido el guardián**: `Tab` sobre «A.1» la manda a la raíz. El defecto, reproducido.
+
+### El arreglo
+
+La decisión sale a `destinoDelAtajo`, que responde `{ mover: false }` o `{ mover: true, padre }` — sin
+ningún `null` que interpretar. Los dos sitios la usan. Cinco pruebas nuevas, y al reponer la confusión
+original caen **exactamente dos**, una por cada dirección del defecto.
+
+Por qué era invisible: **una tecla que no hace nada —o que hace de más— no deja rastro**. Sin error,
+sin petición fallida, sin aviso. Sólo se ve moviendo la línea y mirando dónde acabó.

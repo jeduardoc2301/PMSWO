@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   type LineaDelArbol,
+  destinoDelAtajo,
   nuevoPadreAlAnular,
   nuevoPadreAlSangrar,
   puedeAnularSangria,
@@ -36,6 +37,43 @@ const PLAN: LineaDelArbol[] = [
   { id: 'b', parentId: 'etapa' },
   { id: 'otra' },
 ]
+
+/**
+ * El atajo, que es donde las dos operaciones se confundieron — en las dos direcciones.
+ *
+ * `nuevoPadreAlSangrar` devuelve `null` para «no se puede», y `nuevoPadreAlAnular` distingue `null`
+ * («no se puede») de `{ padre: null }` («su nueva casa es la raíz»). Quien las llamaba leía las dos
+ * con la misma vara y **colapsaba los dos significados**:
+ *
+ * - al sangrar la primera hermana, el `null` de «no se puede» viajaba a `moverEnElArbol`, donde
+ *   `null` significa raíz: la línea salía a primer nivel en silencio;
+ * - al anular la sangría de una línea de segundo nivel, el `{ padre: null }` de «a la raíz» se
+ *   convertía en `undefined` por culpa de `??`, y el gesto se descartaba, también en silencio.
+ *
+ * Los dos se vieron en pantalla antes de arreglarlos, y los dos eran invisibles: una tecla que no
+ * hace nada —o que hace de más— no deja rastro en ninguna parte.
+ */
+describe('El destino del atajo · «no se puede» y «a la raíz» no son lo mismo', () => {
+  it('sangrar la primera hermana NO mueve nada', () => {
+    expect(destinoDelAtajo(PLAN, 'a1', 'SANGRAR')).toEqual({ mover: false })
+  })
+
+  it('sangrar la segunda la cuelga de la primera', () => {
+    expect(destinoDelAtajo(PLAN, 'a2', 'SANGRAR')).toEqual({ mover: true, padre: 'a1' })
+  })
+
+  it('anular la sangría de una de segundo nivel la lleva a la RAÍZ, y eso es mover', () => {
+    expect(destinoDelAtajo(PLAN, 'a', 'ANULAR_SANGRIA')).toEqual({ mover: true, padre: null })
+  })
+
+  it('anular la sangría de una que ya está en la raíz no mueve nada', () => {
+    expect(destinoDelAtajo(PLAN, 'etapa', 'ANULAR_SANGRIA')).toEqual({ mover: false })
+  })
+
+  it('anular la de tercer nivel la cuelga de su abuela', () => {
+    expect(destinoDelAtajo(PLAN, 'a1', 'ANULAR_SANGRIA')).toEqual({ mover: true, padre: 'etapa' })
+  })
+})
 
 describe('Sangrar · la línea cuelga de la hermana de arriba', () => {
   it('la segunda hermana cuelga de la primera', () => {

@@ -52,6 +52,40 @@ export function nuevoPadreAlSangrar(lineas: readonly LineaDelArbol[], id: string
   return hermanas[posicion - 1]!.id
 }
 
+/**
+ * Qué hacer con un atajo de sangría, sin que quepa confundir «no se puede» con «a la raíz».
+ *
+ * Existe porque esas dos cosas se confundieron, y de las dos formas posibles:
+ *
+ * - Al **sangrar**, `nuevoPadreAlSangrar` devuelve `null` para «no se puede» —la primera hermana no
+ *   tiene de quién colgar—. Quien la llamaba comprobaba `=== undefined`, que esa función nunca
+ *   devuelve, así que pasaba el `null` a mover: y `null` allí significa **raíz**. Pulsar Tab sobre la
+ *   primera hermana la sacaba a primer nivel en silencio.
+ * - Al **anular**, `nuevoPadreAlAnular` distingue `null` («no se puede») de `{ padre: null }` («su
+ *   nueva casa es la raíz»). Quien la llamaba hacía `?.padre ?? undefined`, y `??` trata `null` y
+ *   `undefined` igual: sacar una línea a primer nivel se descartaba, también en silencio.
+ *
+ * Los dos fallos son el mismo malentendido en direcciones opuestas, y los dos eran invisibles porque
+ * una tecla que no hace nada no deja rastro. Aquí la respuesta es explícita —`mover` sí o no— y no
+ * hay ningún `null` que interpretar.
+ */
+export type DestinoDelAtajo =
+  | { readonly mover: false }
+  | { readonly mover: true; readonly padre: string | null }
+
+export function destinoDelAtajo(
+  lineas: readonly LineaDelArbol[],
+  id: string,
+  accion: 'SANGRAR' | 'ANULAR_SANGRIA',
+): DestinoDelAtajo {
+  if (accion === 'SANGRAR') {
+    const padre = nuevoPadreAlSangrar(lineas, id)
+    return padre === null ? { mover: false } : { mover: true, padre }
+  }
+  const anular = nuevoPadreAlAnular(lineas, id)
+  return anular === null ? { mover: false } : { mover: true, padre: anular.padre }
+}
+
 /** ¿Se puede sangrar esta línea? */
 export function puedeSangrar(lineas: readonly LineaDelArbol[], id: string): boolean {
   return nuevoPadreAlSangrar(lineas, id) !== null

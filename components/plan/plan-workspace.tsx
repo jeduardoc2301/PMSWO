@@ -47,7 +47,7 @@ import {
   tipoDeVinculo,
 } from '@/lib/plan/conectores'
 import { aplicarEnLote, contarLoQuePaso } from '@/lib/plan/en-lote'
-import { nuevoPadreAlAnular, nuevoPadreAlSangrar } from '@/lib/plan/jerarquia'
+import { destinoDelAtajo, nuevoPadreAlAnular, nuevoPadreAlSangrar } from '@/lib/plan/jerarquia'
 import {
   SIN_SELECCION,
   type Seleccion,
@@ -547,14 +547,17 @@ export function PlanWorkspace({
         // El destino se calcula con el árbol tal como está ANTES del lote. Recalcularlo tras cada
         // línea encadenaría los movimientos —la segunda colgaría de la primera ya movida— y el
         // resultado dependería del orden, que es justo lo que no se quiere de una operación en lote.
-        const destino = haciaDentro
-          ? nuevoPadreAlSangrar(tasks, id)
-          : nuevoPadreAlAnular(tasks, id)?.padre ?? undefined
-        if (destino === undefined) throw new Error('No se puede mover esta línea en esa dirección.')
+        //
+        // La misma decisión que el atajo de teclado, y por el mismo motivo: escrita en línea aquí
+        // confundía «no se puede» con «a la raíz» en las dos direcciones. Sangrar una primera
+        // hermana la mandaba a primer nivel en vez de rechazarla, y sacar una a la raíz fallaba con
+        // un error que no era cierto.
+        const destino = destinoDelAtajo(tasks, id, haciaDentro ? 'SANGRAR' : 'ANULAR_SANGRIA')
+        if (!destino.mover) throw new Error('No se puede mover esta línea en esa dirección.')
         const r = await fetch(`/api/v1/work-items/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ parentId: destino }),
+          body: JSON.stringify({ parentId: destino.padre }),
         })
         if (!r.ok) {
           const cuerpo = await r.json().catch(() => ({}))
@@ -562,7 +565,7 @@ export function PlanWorkspace({
         }
         // Solo se apunta lo que de verdad se escribió: apuntar una línea que falló haría que
         // deshacer intentara devolver algo que nunca se movió.
-        movidas.push({ id, antes: padresOriginales.get(id) ?? null, despues: destino ?? null })
+        movidas.push({ id, antes: padresOriginales.get(id) ?? null, despues: destino.padre })
       },
       (hechas, total) => setEnCurso({ hechas, total }),
     )
@@ -1249,12 +1252,13 @@ export function PlanWorkspace({
                       // hermana no puede acabar en un error del servidor por algo que aquí ya se
                       // sabe. Y si no se puede, no pasa nada — sin aviso, porque el aviso sería
                       // para una tecla que se pulsa de corrido.
-                      const destino =
-                        accion === 'SANGRAR'
-                          ? nuevoPadreAlSangrar(tasks, id)
-                          : nuevoPadreAlAnular(tasks, id)?.padre ?? undefined
-                      if (destino === undefined) return
-                      void moverEnElArbol(id, destino)
+                      //
+                      // La decisión vive en `destinoDelAtajo` y no aquí: escrita en línea, confundió
+                      // «no se puede» con «a la raíz» en las dos direcciones, y las dos veces el
+                      // síntoma fue una tecla que movía —o dejaba de mover— sin decir nada.
+                      const destino = destinoDelAtajo(tasks, id, accion)
+                      if (!destino.mover) return
+                      void moverEnElArbol(id, destino.padre)
                     }
                   : undefined
               }
