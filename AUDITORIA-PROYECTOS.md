@@ -6618,3 +6618,19 @@ aplica aquí. Quedan dos posibilidades y sólo dos: la tercera opción se llama 
 Se resuelve mirando qué opciones ofrece el propio selector, no buscando la palabra que el spec usa.
 Anotado sin arreglar: dar por ausente una función porque no encuentro su rótulo es exactamente el
 error que ya cometí dos veces esta noche.
+
+### Resuelto: «Asignados» del spec es «Responsable» en la aplicación
+
+`CriterioDeAgrupacion = 'estado' | 'prioridad' | 'responsable'`. La tercera opción **existe**; el
+spec la llama «Asignados» y la aplicación «Responsable», que es la palabra que este módulo usa en
+todas partes. El criterio del §13 se cumple en sustancia.
+
+Por eso el texto no la encontraba: se buscó la palabra **del spec** en una pantalla que habla el
+idioma **del producto**. Tercera vez esta noche que una sospecha de hueco se disuelve en una
+diferencia de nombre —antes `kind`/`party` y los cuatro campos del motor—, y la razón de anotarlas
+como sospechas y no como hallazgos es exactamente ésta.
+
+**Criterios del §13 con evidencia en pantalla hasta aquí:** 6 escalas de zoom, marcador de hoy,
+columnas configurables (14 en catálogo, 6 puestas, con tiradores), dependencias dibujadas, y agrupar
+por estado/prioridad/responsable. Sin resolver: los conmutadores no tienen `data-testid` con el que
+afirmarlos.
