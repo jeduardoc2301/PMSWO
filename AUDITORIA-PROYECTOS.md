@@ -7245,3 +7245,24 @@ un evento que nunca ocurrió.
 
 Y conviene decirlo claro: **este criterio sigue sin demostrarse**, van cuatro turnos, y eso también
 es un resultado. Un recorrido que sólo apuntara lo demostrado y callara dónde se atascó valdría menos.
+
+### La premisa era buena: los eventos entran
+
+Con oyentes propios en la barra: **`pointerdown`, `pointermove` y `pointerup` los tres ENTRAN**. La
+premisa que no había examinado resulta correcta, y con 48 px arrastrados `delta` sale **6**, así que
+el manejador llega hasta `onMoverLinea(row.id, 6)`.
+
+Y las fechas siguen sin cambiar. Eso deja **una sola lectura coherente** con todo lo medido, y estaba
+en el comentario del código desde el primer turno: *«la barra sólo se queda donde la soltaron si el
+plan lo confirma, y el plan lo dice después»*. El arrastre **propone**; algo tiene que confirmar.
+
+Cinco turnos mirando la base de datos después del gesto, cuando lo que había que mirar era **la
+pantalla**: si el arrastre abre un diálogo de confirmación, mis sondas nunca lo habrían visto porque
+todas preguntaban por las fechas guardadas.
+
+Es, otra vez, la lección de la noche —la respuesta estaba en algo ya leído— pero con un giro: aquí no
+fallé al leer el código sino al **elegir dónde mirar el efecto**. Un gesto que propone se comprueba
+en la interfaz, no en la tabla.
+
+Siguiente: leer el DOM inmediatamente después del `pointerup`, buscando diálogo, aviso o barra de
+deshacer.
