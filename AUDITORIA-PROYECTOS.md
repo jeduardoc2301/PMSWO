@@ -7349,3 +7349,26 @@ universal. Un dato medido sigue siendo un dato **de su caso**; extenderlo a un g
 suponer otra vez, sólo que con mejor coartada.
 
 Lo que había que medir era el crecimiento del texto —que sí lo detectó— y de ahí leer qué apareció.
+
+## §4.4 · DEMOSTRADO · El redimensionado propone en su propio panel
+
+El nombre era `propuesta-de-duracion`, y el panel dice:
+
+> «B · tarea suelta para arrastrar» pasa de **5 a 10 días hábiles**, y termina el 2026-06-29.
+> **Mueve 0 líneas** del plan.
+> El **cierre del proyecto no se mueve**: sigue el 2026-06-29.
+
+Con **Aplicar** y **Cancelar**, igual que el del movimiento.
+
+**Dos gestos distintos, dos paneles distintos, el mismo contrato**: anunciar el alcance en líneas,
+decir si el cierre del proyecto se mueve, y dejar cancelar. Esa consistencia no es casualidad — es
+diseño, y hace que quien aprende un gesto ya sepa leer el otro. Se anota como acierto.
+
+Y el redimensionado dice **«pasa de 5 a 10 días hábiles»**: habla en días **hábiles**, no corridos,
+que es la unidad en la que el §2 decidió que se piensa este plan.
+
+### Cómo se encontró
+
+Listando los `data-testid` **nuevos** tras el gesto —comparando contra los de antes— en vez de
+preguntar por un nombre. La técnica no depende de acertar nada: sea cual sea el panel, aparece en la
+diferencia. Es la respuesta general al patrón que ha dominado la sesión entera.
