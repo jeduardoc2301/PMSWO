@@ -6674,3 +6674,13 @@ es toda la diferencia entre una auditoría y una lista de sustos.
 configurables y dependencias dibujadas; Tablero agrupando por estado, prioridad y responsable; Lista
 con sus tres formatos, totales y exportación. Abierto: los conmutadores del Gantt no tienen
 `data-testid` con el que afirmarlos, y la paridad de rejilla Lista↔Gantt sigue medida y sin cerrar.
+
+### §13 · Calendario: dos criterios con evidencia, uno mal medido
+
+Medido: 60 identificadores, con una celda por día (`dia-2026-06-01`…), y en el texto **«Mes»,
+«Semana» y «Agenda»**. Eso demuestra la rejilla mensual y el criterio «vista semanal y de agenda»,
+que el spec marca como mejora sobre GanttPRO.
+
+El «N tareas más» **no queda demostrado**: se buscó la palabra «más» suelta, y «más» aparece dentro
+de medio idioma. Es una medición débil y se anota como tal, no como criterio cumplido — la diferencia
+entre las dos cosas es justo lo que esta noche ha evitado cuatro hallazgos falsos.
