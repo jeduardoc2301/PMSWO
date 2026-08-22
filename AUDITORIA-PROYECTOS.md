@@ -6440,3 +6440,20 @@ Anotarlo como pendiente cuesta una línea; darlo por bueno habría escondido lo 
 
 **Estado del barrido de juntas:** Tablero, `/schedule` y `/workload` recorridas y sin huecos. La
 configuración de jornada, sin recorrer.
+
+### §7 · La junta de la jornada, al revés: dos campos que nadie lee
+
+Buscado el consumidor real en vez de suponerlo: **`turnosGuardados` aparece en un solo archivo, la
+ruta que lo produce**, y **`pais` en ningún componente**. Los otros cuatro sí se usan.
+
+Es el **reflejo** de los tres defectos de anoche. Allí el cliente leía un campo que el servidor no
+mandaba y el criterio quedaba mudo; aquí el servidor manda campos que nadie lee. Esto no rompe nada a
+la vista —es peso muerto, no una cifra mal—, así que se anota y no se toca: quitarlos sin saber si
+alguna pantalla futura los espera cambiaría un contrato por comodidad.
+
+Caveat de la medición, para que nadie la use como si fuera exacta: las cuentas de `semana` y
+`guardado` salen infladas por coincidencias de subcadena y **no valen**. Las dos afirmaciones de
+arriba sí, porque esos dos nombres no aparecen dentro de otras palabras.
+
+**Barrido de juntas, cerrado:** Tablero, `/schedule` y `/workload` sin huecos; la jornada, con dos
+campos huérfanos anotados.
