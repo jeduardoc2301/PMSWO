@@ -6535,3 +6535,16 @@ causa nombrada y la cifra medida, que es lo que hace falta para decidirlo con lu
 la Lista 9. Aquí salen 6. O las configurables están hoy en 6, o aquella nota era de otra
 configuración. Se re-mide antes de usar cualquiera de las dos cifras — encajarla con lo que ya creía
 es exactamente cómo se cuela un dato falso en una bitácora.
+
+### La discrepancia de columnas, resuelta: las dos cifras eran ciertas
+
+El **catálogo** tiene **14** columnas (`lib/plan/gantt-columns.ts`); la preferencia por omisión
+enseña **4** —`name, start, finish, duration`— más la fija, y en pantalla se midieron **6**.
+
+No había contradicción: la nota anterior comparaba **catálogos** (Gantt 14 contra Lista 9) y la
+medición contaba lo **dibujado**. Dos magnitudes distintas con el mismo nombre, que es como nacen la
+mitad de las discrepancias que parecen defectos. Anotarla en vez de encajarla costó una línea y evitó
+perseguir un fantasma.
+
+Con eso, el criterio del §13 «columnas configurables, reordenables, redimensionables y persistidas»
+queda con evidencia en pantalla en sus dos primeras mitades: 14 disponibles, 6 puestas, 7 tiradores.
