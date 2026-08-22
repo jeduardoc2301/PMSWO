@@ -6509,3 +6509,15 @@ más de lo que la prueba espera cuando compiten 196 suites— y no a un defecto 
 Eso cambia el arreglo: no es reescribir la aserción, es que ese `fetch` no debería quedar pendiente
 al desmontar. Queda anotado y sin tocar; arreglarlo a ciegas sobre una prueba que no falla sola sería
 cambiar código por una corazonada.
+
+### La causa, medida: 42 componentes con `fetch`, cero con `AbortController`
+
+Ninguno cancela sus peticiones al desmontar. Todos se protegen con una guardia `vigente`, que marca
+el resultado como obsoleto pero **deja la petición viva** — y es exactamente lo que `happy-dom`
+aborta al derribar la ventana, produciendo el `AbortError` que sólo asoma cuando 196 suites compiten
+y alguna tarda de más.
+
+**No se toca, y no por pereza:** poner `AbortController` en 42 componentes es un cambio de patrón en
+toda la aplicación, no el arreglo de una intermitente. Hacerlo de madrugada, sin una prueba que falle
+en aislamiento y guiado por una corazonada, es cómo se introduce el defecto siguiente. Queda con la
+causa nombrada y la cifra medida, que es lo que hace falta para decidirlo con luz.
