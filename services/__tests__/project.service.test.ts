@@ -567,6 +567,9 @@ describe('ProjectService', () => {
         activeBlockers: 0,
         lastUpdatedAt: FECHAS.updatedAt.toISOString(),
         createdAt: FECHAS.createdAt.toISOString(),
+        // Sin terminar: `null` explícito y no ausente, que es lo que distingue «no se sabe cuándo»
+        // de «no ha pasado». La tarjeta de «completadas esta semana» necesita esa diferencia.
+        completedAt: null,
       })
     })
 

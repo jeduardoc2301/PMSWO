@@ -6309,3 +6309,39 @@ Son **ediciones del usuario probando la aplicación**, no deriva de mis medicion
 la noche manda restaurar ante un MAL, pero esa regla existe para deshacer lo que rompo yo; aplicada
 aquí habría borrado su trabajo sin avisar. Desde ahora el verificador va a seguir diciendo MAL por
 una razón legítima, y la cuenta esperada de 1368/1665 ya no vuelve sola.
+
+## §9 · El arreglo de anoche no funcionaba, y sólo lo dijo la pantalla
+
+Anoche quedó anotado que «completadas esta semana» estaba arreglado pero **sin demostrar en
+pantalla**, porque el proyecto sólo tenía una línea terminada y era de hoy: la cuenta vieja y la
+nueva daban lo mismo. Hoy se sembró una terminada hace dos meses para separarlas, y la tarjeta dijo
+**0** — con una línea terminada hoy delante.
+
+El arreglo filtraba por `completedAt` dando por hecho que el campo llegaba al navegador, porque la
+consulta del Tablero usa `include`, que sí trae todos los escalares. Pero lo que sale de ahí no es la
+fila: es un **resumen**, una forma más estrecha construida a mano, y ese campo no estaba en ella.
+Comprobado contra la respuesta real: veinte campos, ninguno es `completedAt`.
+
+O sea que el arreglo cambió un defecto por otro. El viejo contaba de más y crecía para siempre; el
+mío contaba **siempre cero**, que al menos no miente hacia arriba pero tampoco sirve. Ninguna prueba
+lo vio porque la del Resumen se monta con su propio simulacro, donde el campo sí existe: el hueco
+estaba justo entre las dos piezas que cada prueba daba por buenas.
+
+### Lo que se hizo
+
+`completedAt` viaja ahora en el resumen del Tablero, con `null` explícito cuando no se sabe —que no
+es lo mismo que «no ha pasado»—, y la prueba del servicio compara la forma entera, así que se pone
+roja si alguien lo quita. Validado quitándolo.
+
+### Medido en pantalla, con las dos cifras juntas
+
+| | |
+|---|---|
+| Terminadas en total (widget de tareas) | **2** |
+| Completadas esta semana (tarjeta) | **1** · «Ritmo lento» |
+
+Las dos a la vez es lo que lo demuestra: una sola cifra no distingue un arreglo bueno de uno que
+devuelve cero. La línea sembrada se borró; la base queda como estaba, en 1371 líneas y 1665 vínculos,
+con la terminada del usuario intacta.
+
+Suite 3 692, tipos 664.

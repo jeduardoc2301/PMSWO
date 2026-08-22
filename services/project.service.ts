@@ -692,6 +692,18 @@ export class ProjectService {
         lastUpdatedAt: item.updatedAt.toISOString(),
         // El §10.2 lo pide como criterio del filtro unificado.
         createdAt: item.createdAt.toISOString(),
+        completedAt: item.completedAt ? item.completedAt.toISOString() : null,
+        /*
+          Cuándo se terminó, que no es lo mismo que estar terminada.
+
+          Sin esto, «completadas esta semana» sólo podía filtrar por `status === DONE` y contaba
+          **todas** las del proyecto: en uno con historia habría dicho «500 esta semana» para
+          siempre. Se dio por hecho que el campo ya viajaba porque la consulta usa `include` —que sí
+          trae todos los escalares—, pero el resumen que sale de aquí es una forma más estrecha y lo
+          dejaba fuera. Se vio midiendo en pantalla: la tarjeta se quedaba en cero con una línea
+          terminada hoy delante.
+        */
+
         // Los campos personalizados del §2, para que el filtro unificado pueda usarlos.
         customFields: valoresPorLinea.get(item.id),
         // La paridad con el esquema del plan: la tarjeta dice lo mismo que la tabla, o hay dos

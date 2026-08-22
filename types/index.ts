@@ -181,6 +181,13 @@ export interface WorkItemSummary {
    */
   createdAt?: string
   /**
+   * Cuándo se terminó, en ISO, o `null` si no se sabe.
+   *
+   * No es lo mismo que estar terminada: sin esta fecha, «completadas esta semana» sólo podía contar
+   * las que tienen estado terminal y salían **todas** las del proyecto, para siempre.
+   */
+  completedAt?: string | null
+  /**
    * Los valores de los campos personalizados de esta línea, por identificador de campo (§2).
    *
    * Viajan con el resumen y no en una consulta aparte porque el filtro unificado los necesita para
