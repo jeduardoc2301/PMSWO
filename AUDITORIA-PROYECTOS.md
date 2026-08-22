@@ -7907,3 +7907,57 @@ El defecto grande no salió leyendo código: salió de **una cifra imposible**. 
 contraste malo, es dos cosas del mismo color, y eso siempre tiene una causa concreta que se puede
 preguntar. La vez anterior una cifra imposible delató mi instrumento; esta vez delató el peor defecto
 de la noche. Conviene mirarlas siempre, sin decidir de antemano cuál de las dos cosas es.
+
+---
+
+## Tanda 101 · Las seis vistas en claro, y un token bien puesto en el sitio equivocado
+
+Hasta ahora sólo se había medido el Tablero. Se barrieron **las seis**, y el patrón que salió no era
+un color feo: era el botón **elegido** de los conmutadores segmentados —«Todo», «Esquema»,
+«Todas»—, el que dice dónde estás, a **2,82:1** en el Timeline y en Elementos de Trabajo.
+
+Llevaba `bg-acento text-tinta`. `--tinta` es la tinta de la **página**: en oscuro es casi blanca y
+salía bien sobre el índigo por casualidad; en claro es casi negra.
+
+**El defecto no fue un color malo sino dos tokens buenos mal emparejados.** Eso no se ve leyendo el
+componente —`text-tinta` parece lo más razonable del mundo— y no lo caza una prueba de valores,
+porque cada token está bien por separado. Se caza midiendo, o mirando la pareja. Por eso la prueba
+nueva mira la pareja además de los valores.
+
+Dos correcciones sobre la marcha, las dos usando lo que el archivo ya tenía:
+
+- El fondo era `--acento`, que es el acento de **texto**. `--acento-relleno` existe desde antes y se
+  llama así por algo. Lo cazó la prueba: blanco sobre `--acento` da **4,47** en oscuro, bajo AA.
+- La tinta pasa a `--sobre-acento`. No servía `--sobre-color`, que se invierte por tema porque
+  acompaña a rellenos que cambian de claridad; el acento es índigo en los dos temas.
+
+### La nota operativa que casi me hace arreglarlo mal
+
+Tras el cambio, en pantalla **seguía a 2,82**. Las clases se aplicaban, el fondo era correcto, y la
+tinta seguía siendo la heredada. Creando elementos de prueba en la página: `text-tinta-3` daba color,
+`bg-acento-relleno` daba fondo, y `text-sobre-acento` devolvía **exactamente lo heredado**.
+
+Una clave **nueva** en `@theme` no la recoge el servidor en caliente; editar reglas ya existentes sí
+—por eso los arreglos de las tandas anteriores se vieron sin reiniciar—. Con el servidor reiniciado,
+blanco. Sin saber esto habría concluido que el enfoque no servía y lo habría cambiado por otro peor.
+
+Y de camino, otro instrumento roto: quise comprobar si la regla existía recorriendo
+`document.styleSheets` y salió que **ninguna** de las tres existía, incluidas las que demostrablemente
+funcionan. Tailwind las emite dentro de `@layer` y el bucle sólo miraba el primer nivel. La medición
+que sí valió fue la directa: crear un elemento con la clase y leer su color.
+
+### Estado de las seis vistas en claro
+
+| vista | lo que queda |
+|---|---|
+| Resumen | «En riesgo» y «Crítico» en amber-300 a 1,32:1 |
+| Tablero, Elementos, Timeline, Carga | el «0» de las métricas, emerald-500 a 2,54 sobre un exigido de 3 |
+| Calendario | ídem, y un «6» en `--tinta-3` a 4,29 |
+| todas | la miga «Proyectos /» en `--tinta-3` a 4,40 sobre 4,5 |
+
+Los acentos de los widgets son seis literales en `dashboard-view.tsx` (`#10b981`, `#3b82f6`,
+`#f59e0b`, `#8b5cf6`, `#14b8a6`); tres de los seis no llegan al 3:1 que pide el texto grande.
+
+Y `--tinta-3` da **4,52** sobre `--background` pero **4,40** sobre la superficie donde de verdad se
+apoya la miga. El token no está mal por sí solo: está justo en el filo, y cualquier superficie un
+punto más oscura lo tumba.
