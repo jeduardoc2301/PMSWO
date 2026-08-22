@@ -6815,3 +6815,16 @@ hijas**. Es la regla buena — la misma que ha mordido cuatro veces en otros sit
 Y el método que lo separó merece quedarse: la muestra grande (7 líneas) **no podía** distinguir los
 dos criterios porque en ella coincidían; las cuatro líneas donde divergen lo resolvieron en una
 lectura. Para separar dos reglas no sirve más datos, sirven **los datos donde discrepan**.
+
+### El mismo reactivo, segundo sitio: el Tablero también mira las hijas
+
+Conmutador de resúmenes apagado (por omisión): **0 de 4** compuertas presentes. Encendido: **4 de 4**.
+Devuelto: **0** otra vez, y el estado queda como estaba.
+
+Las compuertas tienen hijas sin ser `RESUMEN`, así que el Tablero las trata como resúmenes **por su
+estructura**. Segundo sitio demostrado con el mismo reactivo, y en el mismo sentido que el Gantt.
+
+Las cuatro compuertas son, de hecho, el reactivo general para este repositorio: **cualquier sitio que
+decida «esto es un resumen» se puede separar mirándolas**, porque son las únicas cuatro líneas donde
+los dos criterios discrepan. Vale más que releer el código de cada sitio, y no depende de acertar
+ningún nombre.
