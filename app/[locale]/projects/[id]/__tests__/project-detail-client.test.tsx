@@ -413,6 +413,49 @@ describe('ProjectDetailClient', { timeout: 25000 }, () => {
     expect(screen.queryByText('90.0%')).not.toBeInTheDocument()
   })
 
+  /**
+   * «Completadas esta semana» contaba todas las terminadas del proyecto.
+   *
+   * En un plan recién importado da cero y nadie lo nota; en uno con historia, la tarjeta habría
+   * dicho «500 esta semana» para siempre, y su insignia «buen ritmo» el resto de la vida del
+   * proyecto — que es la forma más cómoda de mentir: una cifra que sube y nunca baja.
+   *
+   * Se comprueba por la **insignia** y no por el número: con las traducciones dobladas, «buen
+   * ritmo» y «poco ritmo» son dos cadenas distintas e inconfundibles, mientras que un `6` o un `1`
+   * sueltos aparecen por toda la pantalla.
+   */
+  it('«completadas esta semana» sólo cuenta las de esta semana', async () => {
+    const haceDosDias = new Date(Date.now() - 2 * 86400000).toISOString()
+    const haceDosMeses = new Date(Date.now() - 60 * 86400000).toISOString()
+    const terminada = (id: string, cuando: string) => ({
+      ...mockKanbanBoard.workItems[0], id, status: WorkItemStatus.DONE, completedAt: cuando,
+    })
+
+    ;(global.fetch as any).mockImplementation((url: string) => {
+      if (url.includes('/kanban')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            kanbanBoard: {
+              ...mockKanbanBoard,
+              workItems: [
+                terminada('reciente', haceDosDias),
+                ...['v1', 'v2', 'v3', 'v4', 'v5'].map((id) => terminada(id, haceDosMeses)),
+              ],
+            },
+          }),
+        })
+      }
+      return responderA(url)
+    })
+
+    render(<ProjectDetailClient projectId="project-1" />)
+
+    // Una sola de esta semana: «poco ritmo». Contándolas todas serían seis y diría «buen ritmo».
+    expect(await screen.findByText('tacticalDashboard.status.slowProgress')).toBeInTheDocument()
+    expect(screen.queryByText('tacticalDashboard.status.goodProgress')).not.toBeInTheDocument()
+  })
+
   it('should display progress bar with correct percentage', async () => {
     render(<ProjectDetailClient projectId="project-1" />)
 

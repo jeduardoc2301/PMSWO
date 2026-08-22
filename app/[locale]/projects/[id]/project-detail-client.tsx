@@ -355,7 +355,23 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         }, 0) / overdueTasks.length
       : 0
     const pendingAgreements = agreements.filter((a: any) => a.status === 'PENDING' || a.status === 'IN_PROGRESS').length
-    const completedThisWeek = kanban.workItems.filter(i => i.status === WorkItemStatus.DONE).length
+    /*
+      «Completadas esta semana» contaba **todas** las terminadas del proyecto.
+
+      En un plan recién importado da cero y nadie lo nota; en uno con seis meses de historia, la
+      tarjeta habría dicho «500 esta semana» para siempre. La insignia que cuelga de ella —«buen
+      ritmo» a partir de cinco— habría dicho «buen ritmo» el resto de la vida del proyecto.
+
+      Se filtra por `completedAt`, que ya viaja en la carga del Tablero. Una línea terminada **sin**
+      esa fecha no cuenta: preferimos quedarnos cortos a afirmar que algo se cerró esta semana
+      cuando no se sabe cuándo se cerró.
+    */
+    const hace7Dias = new Date(today)
+    hace7Dias.setDate(hace7Dias.getDate() - 7)
+    const completedThisWeek = kanban.workItems.filter((i: { status: string; completedAt?: string | Date | null }) => {
+      if (i.status !== WorkItemStatus.DONE || !i.completedAt) return false
+      return new Date(i.completedAt) >= hace7Dias
+    }).length
     const upcomingTasks = kanban.workItems.filter(item => {
       if (item.status === WorkItemStatus.DONE || !item.estimatedEndDate) return false
       const d = new Date(item.estimatedEndDate); d.setHours(0, 0, 0, 0)

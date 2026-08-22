@@ -6273,3 +6273,39 @@ digan lo mismo**. Validada revirtiendo la tarjeta a la cuenta vieja. Suite 3 691
 - `completedThisWeek` cuenta **todas** las líneas terminadas del proyecto, no las de la semana.
 - El Resumen sigue fechando con `Date.now()` del navegador donde el panel usa la fecha civil del
   servidor. Ya no afecta a estas dos cifras, pero sí a «días restantes».
+
+## §9 · «Completadas esta semana» contaba todas las del proyecto
+
+Quedaba anotado del arreglo anterior y ya está: la tarjeta filtraba sólo por `status === DONE`, sin
+mirar **cuándo** se terminó. En un plan recién importado da cero y nadie lo nota; en uno con seis
+meses de historia habría dicho «500 esta semana» para siempre, y su insignia «buen ritmo» —que salta
+a partir de cinco— el resto de la vida del proyecto. Una cifra que sube y nunca baja es la forma más
+cómoda de mentir.
+
+Se filtra por `completedAt`, que ya viajaba en la carga del Tablero sin que nadie la usara. Una línea
+terminada **sin** esa fecha no cuenta: más vale quedarse corto que afirmar que algo se cerró esta
+semana cuando no se sabe cuándo se cerró.
+
+La prueba comprueba la **insignia**, no el número: con las traducciones dobladas, «buen ritmo» y
+«poco ritmo» son dos cadenas inconfundibles, mientras que un `6` o un `1` sueltos aparecen por toda
+la pantalla y la aserción sería ambigua. Seis terminadas de las que una es de esta semana: dice poco
+ritmo. Validada rompiendo el arreglo. Suite 3 692, tipos 664.
+
+**Sin demostrar en pantalla todavía, y queda dicho.** Hoy el proyecto tiene **una sola** línea
+terminada y es de hoy, así que la cuenta vieja y la nueva dan lo mismo: la pantalla no puede
+distinguirlas. Sembrar una terminada hace dos meses falló al crearla y no se insistió. Queda fijado
+por la prueba mientras tanto.
+
+## Aviso · el plan ya no está en 1368, y está bien
+
+`verificar-referencia.ts` dice **MAL** (`conAvance 2`), y **no se ha restaurado a propósito**.
+
+Medido antes de tocar nada: hay 1371 líneas y 1665 vínculos. Las tres de más se llamn «Rama 1»,
+«rama 1.1» y «Rama 1.1.1» —con la minúscula inconsistente de quien teclea— y se crearon el 21 de
+agosto a las 20:21–20:23 UTC. Y dos líneas del plan se tocaron a las 18:12 UTC: una quedó terminada
+y otra al 50 %.
+
+Son **ediciones del usuario probando la aplicación**, no deriva de mis mediciones. La instrucción de
+la noche manda restaurar ante un MAL, pero esa regla existe para deshacer lo que rompo yo; aplicada
+aquí habría borrado su trabajo sin avisar. Desde ahora el verificador va a seguir diciendo MAL por
+una razón legítima, y la cuenta esperada de 1368/1665 ya no vuelve sola.
