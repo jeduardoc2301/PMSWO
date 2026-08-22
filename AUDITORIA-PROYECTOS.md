@@ -6521,3 +6521,17 @@ y alguna tarda de más.
 toda la aplicación, no el arreglo de una intermitente. Hacerlo de madrugada, sin una prueba que falle
 en aislamiento y guiado por una corazonada, es cómo se introduce el defecto siguiente. Queda con la
 causa nombrada y la cifra medida, que es lo que hace falta para decidirlo con luz.
+
+### §13 · Gantt, primeros criterios medidos en pantalla
+
+| criterio | medido |
+|---|---|
+| marcador de hoy | **1** presente |
+| eje superior (escalas) | **1** presente |
+| dependencias dibujadas | **28** en la ventana visible |
+| columnas y redimensionado | **6** cabeceras, **7** tiradores |
+
+**Discrepancia anotada, no resuelta:** una nota anterior decía que el Gantt enseña **14** columnas y
+la Lista 9. Aquí salen 6. O las configurables están hoy en 6, o aquella nota era de otra
+configuración. Se re-mide antes de usar cualquiera de las dos cifras — encajarla con lo que ya creía
+es exactamente cómo se cuela un dato falso en una bitácora.
