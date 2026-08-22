@@ -6571,3 +6571,19 @@ identificadores por fila (`barra-<uuid>`, `avance-<uuid>`) coparon los primeros 
 el corte se los comió. La sonda tiene que **filtrar lo que se repite por fila** antes de listar; una
 lista truncada por ruido se lee igual que una lista completa, que es la forma más silenciosa de
 concluir de menos.
+
+### La sonda vuelve a mentir, y esta vez con buena cara
+
+Segundo intento de listar los conmutadores: se filtraron los identificadores «por fila» descartando
+los que terminan en un segmento de 8 caracteres o más. La lista salió de 17 nombres, ordenada y con
+aspecto de estar completa.
+
+**Está mal.** Ese filtro se lleva por delante `gantt-desplazable`, `eje-superior` y —justamente—
+cualquier `conmutador-atrasadas` (9) o `conmutador-critica` (8). Los conmutadores pueden estar ahí y
+ser **el filtro** quien los borró. Se sabe porque `gantt-desplazable` **tiene que existir**: el propio
+guion lo usa para detectar que el Gantt montó, y no aparece en la lista.
+
+Dos sondas fallidas seguidas, y la segunda es la peligrosa: la primera truncaba **visiblemente** a 40
+entradas; ésta devuelve algo que parece exhaustivo. Un filtro heurístico sobre nombres no distingue
+ruido de señal — hay que distinguir por **cuántas veces se repite** el identificador, que es el dato
+que de verdad separa una fila de un control.
