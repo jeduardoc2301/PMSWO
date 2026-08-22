@@ -6723,3 +6723,21 @@ palabras tardó seis en no dar en el Calendario.
 
 Anotado: **no hay ningún `<select>`** en la vista, así que los tres modos del §8 —si están— se
 conmutan con botones. Eso decide cómo medirlos, y es dato, no conclusión.
+
+### §13 · Carga de trabajo: cuatro de seis, demostrados
+
+Medido por `aria-pressed` y por identificadores, sin depender de rótulos:
+
+| criterio | evidencia en pantalla |
+|---|---|
+| matriz recurso × día con **los 3 modos** | `Horas=false`, `Tareas=false`, `Porcentajes=true` · 651 celdas |
+| **detección de sobrecarga** | 5 celdas marcadas |
+| **fila «sin asignar»** | `fila-sin-asignar` · «Sin asignar» |
+| **desglose al expandir** | 5 filas de recurso, cada una con su «▸» |
+
+Más `fila-total` con «Todo el equipo». Quedan sin medir dos: «N recursos por tarea en el modelo» y
+«calendario individual por recurso con vacaciones» — el plan de referencia no tiene ausencias
+capturadas, así que el segundo no se puede demostrar con estos datos y hay que sembrarlas.
+
+`aria-pressed` resultó ser el asidero que faltaba en el Gantt: dice el estado **y** distingue el
+control, sin pasar por el rótulo. Ahí donde existe, medir es trivial.
