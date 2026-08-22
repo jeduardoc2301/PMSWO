@@ -231,4 +231,27 @@ describe('Borrar una foto guardada', () => {
     abrirConBaselines({ puedeCrear: false })
     expect(screen.queryByLabelText(/Tomar una foto/)).not.toBeInTheDocument()
   })
+
+  /**
+   * Una cuenta en uno no es un caso raro aquí: se toma la foto, se mueve **una** tarea y se mira
+   * qué cambió. La fila decía «1 movidas», y con las tres cifras a la vez decía las tres mal.
+   */
+  it('concuerda con su cifra cuando sólo se movió una', () => {
+    render(
+      <ResumenDeLineaBase nombre="X" movidas={1} nuevas={1} eliminadas={1} driftDelCierre={0} />,
+    )
+    expect(screen.getByText('movida')).toBeInTheDocument()
+    expect(screen.getByText('nueva')).toBeInTheDocument()
+    expect(screen.getByText('eliminada')).toBeInTheDocument()
+    expect(screen.queryByText('movidas')).not.toBeInTheDocument()
+  })
+
+  it('y sigue en plural en cuanto son dos', () => {
+    render(
+      <ResumenDeLineaBase nombre="X" movidas={2} nuevas={2} eliminadas={2} driftDelCierre={0} />,
+    )
+    expect(screen.getByText('movidas')).toBeInTheDocument()
+    expect(screen.getByText('nuevas')).toBeInTheDocument()
+    expect(screen.getByText('eliminadas')).toBeInTheDocument()
+  })
 })

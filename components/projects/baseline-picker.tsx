@@ -193,6 +193,16 @@ export function BaselinePicker({
   )
 }
 
+/**
+ * La etiqueta concordada con su cifra.
+ *
+ * Estas tres cuentas caen en uno mucho más a menudo de lo que parece: se toma una foto, se mueve una
+ * tarea y se mira qué cambió. Ése es justo el momento en que la fila decía «1 movidas».
+ */
+function concuerda(n: number, singular: string): string {
+  return n === 1 ? singular : `${singular}s`
+}
+
 /** El resumen de cuánto se ha movido el plan desde la foto. Va junto a la rejilla, no dentro. */
 export function ResumenDeLineaBase({
   nombre,
@@ -218,16 +228,19 @@ export function ResumenDeLineaBase({
         Contra <strong className="text-tinta">{nombre}</strong>
       </span>
       <span className="text-tinta-2">
-        <strong className="tabular-nums text-tinta">{movidas}</strong> movidas
+        <strong className="tabular-nums text-tinta">{movidas}</strong>{' '}
+        {concuerda(movidas, 'movida')}
       </span>
       {nuevas > 0 ? (
         <span className="text-tinta-2">
-          <strong className="tabular-nums text-tinta">{nuevas}</strong> nuevas
+          <strong className="tabular-nums text-tinta">{nuevas}</strong>{' '}
+          {concuerda(nuevas, 'nueva')}
         </span>
       ) : null}
       {eliminadas > 0 ? (
         <span className="text-tinta-2">
-          <strong className="tabular-nums text-tinta">{eliminadas}</strong> eliminadas
+          <strong className="tabular-nums text-tinta">{eliminadas}</strong>{' '}
+          {concuerda(eliminadas, 'eliminada')}
         </span>
       ) : null}
       {/* El cierre no es la suma de los desvíos: diez líneas que se corren dentro de su holgura no
