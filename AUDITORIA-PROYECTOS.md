@@ -6873,3 +6873,18 @@ levanta la sospecha que levanta una palabra fuera de lugar.
 
 La Lista queda **sin medir**: su fila de totales vive en el formato agrupado, así que hay que cambiar
 de formato primero. Anotado como pendiente, que es lo que es.
+
+### §13 · Los tres formatos de la Lista, demostrados con su estado
+
+`Esquema=true`, `Lista=false`, `Agrupada=false` — con `aria-pressed`, así que el criterio queda
+demostrado **en pantalla y con estado**, no por un comentario del código. Y de paso asoma otro
+control del §6: el modo de acumulación, `Ponderado por duración` / `Promedio de las hijas`.
+
+Lo revelador no es el resultado sino que **esos botones siempre tuvieron `aria-pressed`**. La sonda
+que los buscó dos tandas atrás no los vio porque preguntaba por «EDT» —la palabra del spec— en vez de
+preguntar por lo que hace identificable a un conmutador.
+
+Es la misma lección que ya cerró los conmutadores del Gantt, y ahora con dos casos: **`aria-pressed`
+es el asidero por omisión de esta aplicación**. Antes de buscar un rótulo o inventar un
+`data-testid`, hay que preguntarle a los elementos que declaran estado. Sale gratis y no depende del
+idioma.
