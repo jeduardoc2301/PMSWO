@@ -7621,3 +7621,87 @@ confundían.
 Eso explica por qué el defecto sobrevivió tanto: **quien pasara por el archivo veía el patrón bueno**.
 Tres usos de las mismas dos funciones, uno correcto y dos rotos, a menos de mil líneas de distancia.
 Un ejemplo correcto cerca no protege de nada — al contrario, tranquiliza.
+
+---
+
+## Tanda 97 · Las líneas base, el Tablero y el filtro que cruza
+
+### §13 «Líneas base», cerrado entero en pantalla
+
+Los cinco pedazos del criterio, en `Claude-Test`:
+
+| pedazo | lo que se vio |
+|---|---|
+| crear | con el nombre tecleado → «Foto del 22 de agosto · 22 ago 2026 · 10 líneas» |
+| listar | en el desplegable, con fecha y tamaño |
+| seleccionar | el botón pasa a «Línea base: Foto del 22 de agosto» |
+| comparar en timeline | diez sombras; moví A.1 y la barra real se fue **72 px** mientras la sombra se quedó en **0** |
+| comparar en grid | «Contra Foto del 22 de agosto · 1 movida · Cierre sin mover» |
+
+Pulsar «Crear» con el campo vacío no hace nada, y **eso está bien**: `if (nombre === '') return`. No
+era un defecto, era mi sonda sin rellenar el nombre.
+
+La última fila es además el caso que el propio código comenta: A.1 se corrió nueve días y **el cierre
+no se movió**, porque la holgura se lo comió. Un resumen que sumara desvíos mentiría justo ahí.
+
+### El defecto: «1 movidas»
+
+`ResumenDeLineaBase` no concordaba con su cifra. Y el uno no es un caso raro aquí — se toma una foto,
+se mueve **una** tarea y se mira qué cambió—: es el caso normal, y las tres etiquetas salían mal a la
+vez. Arreglado en `0bc5529`, validado rompiéndolo (rojo con el plural forzado, verde al restaurar), y
+visible en la captura de arriba.
+
+Queda a propósito el `text-red-400` del cierre: los tokens semánticos `--bien` y `--grave` existen en
+`globals.css` y **no los consume nadie** —cero usos frente a los colores crudos repartidos por cinco
+carpetas—. Cambiar sólo este archivo lo dejaría siendo el raro.
+
+### Lo que casi hago: un duplicado
+
+Escribí un módulo entero —`resumen-de-la-foto.ts`, con pruebas— para enseñar las cifras de la
+comparación, partiendo de que «el taller pide el resumen y tira cinco de los seis números». Falso:
+`ResumenDeLineaBase` ya existía, exportado, montado en la Lista y con pruebas. Lo borré sin
+comprometerlo.
+
+La premisa venía de un `grep` que salió vacío por buscar en un archivo que no existía. **Un `grep`
+vacío no dice que algo no exista: dice que no lo encontré ahí.** Antes de escribir un componente hay
+que preguntarse si ya está, y buscarlo por su nombre en español.
+
+### Hueco medido: reordenar no es alcanzable
+
+`work-items-view.tsx:704` monta `WorkItemsList` con `plana` **sin condición**. Con `plana` la tabla se
+dibuja por el camino virtualizado, mientras el `DndContext`, el `SortableRow` con su asa y
+`handleDragEnd` cuelgan del otro camino, el de tarjetas por fase. Medido en pantalla: **cero asas**.
+
+El manejador es bueno —revierte y avisa si el POST falla, con la razón escrita— pero hoy sólo lo
+ejercitan sus pruebas. Alcanza a mi propio `5cc8d07`: arreglé una hidratación real en un camino que la
+pantalla no abre. Cuál de los dos caminos se queda es decisión del usuario.
+
+### El Tablero contra el §5.3, con el plan de 1368
+
+- **Suma de los contadores: 1243.** Es 1368 − 125 *con hijas*. Con la regla mala del `kind` habría
+  dado 1247. El Tablero aplica la estructural, y la prueba está en la resta.
+- **El contador es el total real**: columnas con 98, 158 y 78 dibujando 50. Criterio cumplido.
+- **Carga paginada por columna**: «48 tarjetas más», tandas de 50.
+- **Lo que falta**: el §5.3 pide «renderizar sólo el viewport» y hay **779 tarjetas en el DOM** —50 por
+  cada una de las 26 columnas con contenido—. Está acotado por columna, no virtualizado. Obra mayor.
+
+### §5.4 · El filtro cruza de vista
+
+Puesto en el Gantt («Clase es HITO»), al pasar al Tablero la suma cae de 1243 a **86** y el botón dice
+«Filtro (1)». Criterio demostrado con una cifra que no admite lectura amable.
+
+Dos avisos de esa misma medición:
+
+- El «28 barras antes y después» del Gantt **no decía nada** del filtro: el Gantt virtualiza por
+  viewport y dibuja unas 28 filas a cualquier nivel. Estuve a punto de leerlo como «el filtro no se
+  aplica». Una cifra que no cambia sólo prueba algo si sabes qué la mueve.
+- El filtro **no sobrevive a una recarga**. No lo pide ningún criterio, y es exactamente el hueco del
+  `SavedFilter` sin ruta ni interfaz ya anotado.
+
+### Las filas repetidas de la Lista no eran un defecto
+
+«A.1» y «A.2» salían dos veces. La base lo explicó: **hay dos juegos de banco de pruebas**, creados en
+sesiones distintas. Diez elementos, ocho hojas, y la cabecera decía 8.
+
+De rebote, el duplicado sirvió de reactivo: `b227c812` es **ACTIVIDAD con hijas**, y la Lista lo
+descarta. Si filtrara por `kind === 'RESUMEN'` habría enseñado 9. Enseñó 8.
