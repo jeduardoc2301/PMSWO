@@ -6938,3 +6938,17 @@ enseñado a hacer con ellas.
 **Del §13 transversal quedan**: los permisos negativos —un usuario con `view_list` y sin `view_gantt`
 recibiendo un 403— que sólo está cubierto por prueba y necesita un segundo rol en la base; y el
 tiempo real, que es decisión del usuario y no tarea.
+
+### El guardado del filtro, sin medir — y una confirmación de propina
+
+El clic sobre el botón del filtro no cambió nada: 13 identificadores antes y 13 después. O el
+selector no dio con el botón, o el desplegable no usa identificadores. **No medido**, y no se apunta
+como ausencia.
+
+Distinto de los nueve casos anteriores, y conviene separarlo: aquellos eran búsquedas por palabra;
+éste es **un clic que no hizo lo que supuse**. Di por hecho que el rótulo empieza por «Filtro» y que
+al abrirse aparecen elementos identificados. Ninguna de las dos cosas se comprobó antes de usarlas.
+
+De propina, la lista sí confirma la fusión de anoche: conviven en la misma pantalla `medidor-marca`,
+`medidor-relleno` y `rebanada-tareas-*` del Panel con `reparto-de-papeles` del Resumen. La mudanza
+está entera.
