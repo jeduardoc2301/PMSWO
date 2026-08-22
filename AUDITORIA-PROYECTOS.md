@@ -7520,3 +7520,33 @@ convertirse en el paso uno.
 
 Se demuestra con `KeyboardEvent` sobre la fila enfocada, con las teclas que declare ese manejador —
 leídas, no supuestas. Queda ahí para la próxima pasada, con la ubicación exacta ya localizada.
+
+## §4.4 · DEMOSTRADO · Sangrar con `Tab`, y dos hallazgos de propina
+
+Teclas **leídas** en `lib/plan/atajos.ts`, no supuestas: `Tab` sangra, `Shift+Tab` anula la sangría
+(y con modificador, las flechas hacen lo mismo).
+
+| | |
+|---|---|
+| padre de «B · tarea suelta» antes | ninguno |
+| tras pulsar `Tab` | **`de45957c`** — el hito, la fila de encima |
+
+### Propina 1: la regla de los resúmenes, en vivo
+
+Tras sangrar apareció un identificador nuevo: **`avance-de45957c`**. El hito no tenía relleno de
+avance y ahora sí — porque **al ganar una hija se convirtió en resumen**, y los resúmenes muestran el
+avance acumulado de las suyas. La regla «resumen = tiene hijas» funcionando delante, sin buscarla.
+
+Es la mejor confirmación de todo el barrido de esta noche: no un `grep` ni una cuenta, sino la
+consecuencia visible de cambiar la estructura de una línea.
+
+### Propina 2: qué gestos proponen y cuáles no
+
+Sangrar **escribe directo**, sin panel de propuesta. Y tiene sentido: los tres que proponen
+—mover, estirar, vincular— cambian **fechas**, y una fecha movida arrastra al resto del plan. Sangrar
+cambia **estructura**, y no mueve nada por sí solo.
+
+La regla no es «todo gesto propone» sino **«propone lo que puede desplazar el plan»**. Eso es un
+criterio, no una costumbre, y explica los dos comportamientos sin que ninguno sea una excepción.
+
+**Nueve criterios de gesto demostrados.**
