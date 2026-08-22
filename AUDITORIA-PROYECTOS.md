@@ -7082,3 +7082,21 @@ de ver que la tarjeta cambió de columna.
 Siguiente paso concreto: encontrar el nodo real leyendo sus atributos —dnd-kit marca con
 `role="button"` y `aria-roledescription`, y suele exponer `aria-describedby`— y leer del código qué
 `activationConstraint` está configurada, en vez de suponerla.
+
+### Por qué no prendió: el Tablero no usa dnd-kit
+
+**dnd-kit está en la Lista, no en el Tablero.** Un solo archivo lo importa,
+`components/projects/work-items-list.tsx`, y encaja con el commit «sacar DndContext de adentro de la
+tabla en la vista de lista». El arrastre de tarjetas del Tablero es **nativo del navegador**.
+
+Por eso una secuencia de `mousePressed`/`mouseMoved`/`mouseReleased` no lo dispara: el arrastre
+nativo va por `dragstart`, `dragover` y `drop`, que no se sintetizan con eventos de ratón.
+
+Lo incómodo del hallazgo: **mi propio ayudante de CDP ya lo decía en su cabecera** —«el arrastre
+nativo se comprueba mirando lo que Chrome intercepta, que es lo único que prueba que el `dragstart`
+de la aplicación corrió»—. Estaba escrito, de una sesión anterior, y no lo leí antes de suponer la
+librería. Dos horas de la noche se han ido en suponer nombres; ésta se fue en suponer una
+**tecnología**, teniendo la respuesta en el archivo que estaba usando.
+
+Siguiente paso, ya sin suposición: comprobar el arrastre del Tablero escuchando los eventos que
+Chrome intercepta, tal como esa cabecera indica.
