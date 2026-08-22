@@ -6659,3 +6659,18 @@ Era la segunda hipótesis que quedó escrita antes de medir, y se confirmó sola
 por adelantado no es formalismo: convierte una medición fallida en información en vez de en un falso
 hueco. De los dos candidatos de la Lista, éste queda **cerrado**; el de «EDT» sigue abierto y se
 resuelve leyendo el selector con la vista montada.
+
+### Cerrado: «EDT» del spec es «Esquema» en la aplicación
+
+Lo dice el propio código en `work-items-list.tsx`: «La jerarquía es el otro formato, **el esquema**».
+Los tres formatos del §13 existen —lista, agrupada, esquema—. **Cuarta** diferencia de nombre de la
+noche, y la única anticipada por escrito antes de medirla.
+
+**Las cuatro:** `kind`/`party` (rango de líneas incompleto), los cuatro campos del motor (conceptos,
+no datos), «Asignados»→«Responsable», «EDT»→«Esquema». Ninguna llegó al reporte como hallazgo, y ésa
+es toda la diferencia entre una auditoría y una lista de sustos.
+
+**§13, estado tras recorrerlo en pantalla:** Gantt con 6 escalas, marcador de hoy, columnas
+configurables y dependencias dibujadas; Tablero agrupando por estado, prioridad y responsable; Lista
+con sus tres formatos, totales y exportación. Abierto: los conmutadores del Gantt no tienen
+`data-testid` con el que afirmarlos, y la paridad de rejilla Lista↔Gantt sigue medida y sin cerrar.
