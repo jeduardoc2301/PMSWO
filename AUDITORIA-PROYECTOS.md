@@ -7062,3 +7062,23 @@ eventos de puntero —`pointerdown`, movimientos por encima del umbral de activa
 sobre la tarjeta y la columna destino. El estado de partida ya está leído: la tarea suelta está en
 Backlog, del 2026-06-15 al 2026-06-19, avance 0. Lo que hay que comprobar tras moverla es que **las
 dos fechas no cambien**, que es la regla que el §5 marca en negrita.
+
+### El arrastre de tarjeta: la simulación no prendió, y no se concluye nada
+
+Secuencia completa de puntero —`mousePressed`, doce movimientos, `mouseReleased`— desde la tarjeta
+(457, 513) hasta la columna «To Do» (757, 287). **La tarjeta no se movió**: sigue en Backlog, mismas
+fechas, mismo avance.
+
+**No se concluye que el arrastre esté roto.** La sospechosa es la simulación: el nodo se agarró con
+`closest('[draggable], [role="button"], li, div')`, que con esa lista casi seguro devolvió una
+envoltura `div` y no el nodo que dnd-kit escucha. Y esa librería exige además una **restricción de
+activación** —distancia o retardo— que no se ha comprobado cuál es.
+
+Y una trampa que conviene nombrar: **«las fechas no cambiaron» no prueba nada aquí**, porque no se
+movió nada. Es una aserción vacía del mismo tipo que las que dieron verde falso anoche —comprobar la
+ausencia de un efecto sin haber provocado la causa—. La comprobación de fechas sólo vale **después**
+de ver que la tarjeta cambió de columna.
+
+Siguiente paso concreto: encontrar el nodo real leyendo sus atributos —dnd-kit marca con
+`role="button"` y `aria-roledescription`, y suele exponer `aria-describedby`— y leer del código qué
+`activationConstraint` está configurada, en vez de suponerla.
