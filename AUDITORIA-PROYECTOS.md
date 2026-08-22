@@ -6372,3 +6372,15 @@ Los 178 coinciden con la cuenta de la base. La prueba del servicio compara la fo
 lleva un **valor de verdad**, no `undefined`: `toEqual` ignora las claves indefinidas, así que una
 expectativa a `undefined` no vigila nada —que es justo la forma en que este campo se quedó fuera—.
 Validada quitando el campo. Suite 3 692, tipos 664.
+
+## §10.2 · La junta, recorrida entera: ya no falta ninguno
+
+Tras los tres huecos —`createdAt`, `completedAt`, `clientOwner`— se recorrió la junta completa en vez
+de esperar al cuarto. Los **doce** criterios que declara el filtro unificado se comprobaron **uno a
+uno contra la respuesta viva**, no contra el código: `faltan: []`.
+
+De paso, un falso positivo propio que conviene dejar escrito: el primer intento comparó los campos
+leyendo un **rango de líneas** del servicio, y ese rango no cubría todo el objeto que se devuelve.
+Acusó a `kind` y `party` de no viajar cuando ambos viajan. La medición contra la carga real lo
+desmintió en un segundo. Es la misma lección de siempre —sondas contra texto medido, no supuesto—, y
+esta vez el atajo era mirar el código en vez de la respuesta.
