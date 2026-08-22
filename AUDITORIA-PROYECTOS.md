@@ -7294,3 +7294,25 @@ y una propuesta pendiente de confirmar no toca la base por definición. Buscaba 
 La lección no es «mirar la pantalla» —eso ya estaba en la regla del encargo— sino algo más fino:
 **cuando un gesto no deja rastro donde lo busco, la pregunta no es por qué falló el gesto sino si
 estoy buscando el rastro correcto.** Cinco explicaciones ingeniosas para un fenómeno que no existía.
+
+### El ciclo entero, cerrado: arrastrar → proponer → aplicar → escribir
+
+| | |
+|---|---|
+| antes | 2026-06-15 → 2026-06-19 |
+| tras arrastrar y pulsar «Aplicar» | **2026-06-23 → 2026-06-29** |
+
+Coincide **exactamente** con lo que la propuesta anunció —«al 2026-06-23», «el cierre pasa al
+2026-06-29»—, así que el aviso no era decorativo: decía la verdad antes de que ocurriera.
+
+Y **la duración se conserva**: cinco días hábiles antes (15–19) y cinco después (23–29, con el fin de
+semana saltado). Mover una barra la desplaza; no la estira. Es la distinción que el §4.4 separa en
+dos gestos distintos.
+
+El panel además dice el alcance —«cambia 1 línea»— y la consecuencia en el cierre del proyecto
+**antes** de comprometer nada. Eso es más de lo que el §13 pide y merece anotarse como acierto, no
+sólo como criterio cumplido.
+
+**Criterio del §4 demostrado de punta a punta**, con las dos mitades que importan: el cálculo (días
+hábiles, duración intacta) y el contrato con quien lo usa (avisa, deja cancelar, y cumple lo que
+avisó).
