@@ -7046,3 +7046,19 @@ criterio del §13 demostrado en pantalla—.
 Quedan los gestos destructivos, que ahora se pueden hacer sin riesgo: arrastre entre columnas sin
 tocar fechas, arrastre y resize de barra, arrastre de progreso, indent/outdent, crear vínculo
 arrastrando, deshacer/rehacer y líneas base.
+
+### §13 Tablero · Estados configurables, demostrado; el arrastre de tarjeta, planteado
+
+Los controles `mover-*` resultaron ser de **columnas**, no de tarjetas: `mover-arriba-<columna>` y
+`mover-abajo-<columna>`, con `aria-label` «Mover Backlog arriba», «Mover To Do abajo». Junto con
+`columnas-del-tablero` eso demuestra el criterio **«estados configurables (no enum fijo)»**: las
+columnas se reordenan y se gestionan desde la pantalla.
+
+Y de paso confirma otra vez que `aria-label` describe el control mejor que su identificador: «Mover
+Backlog arriba» dice qué hace; `mover-arriba-ffcd57b0` no.
+
+**El arrastre de tarjeta queda planteado, no improvisado.** Es dnd-kit y necesita una secuencia de
+eventos de puntero —`pointerdown`, movimientos por encima del umbral de activación, `pointerup`—
+sobre la tarjeta y la columna destino. El estado de partida ya está leído: la tarea suelta está en
+Backlog, del 2026-06-15 al 2026-06-19, avance 0. Lo que hay que comprobar tras moverla es que **las
+dos fechas no cambien**, que es la regla que el §5 marca en negrita.
