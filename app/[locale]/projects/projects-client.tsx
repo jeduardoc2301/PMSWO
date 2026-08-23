@@ -439,7 +439,7 @@ export function ProjectsPageClient() {
 
         {/* Error */}
         {error && (
-          <div className="rounded-xl p-4 mb-6 text-sm text-rose-400"
+          <div className="rounded-xl p-4 mb-6 text-sm text-grave-tinta"
             style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
             {error}
           </div>
@@ -541,7 +541,7 @@ export function ProjectsPageClient() {
                     <td className="px-4 py-3 text-sm text-tinta-2" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>
                       {p._count?.workItems ?? 0}
                       {(p._count?.blockers ?? 0) > 0 && (
-                        <span className="ml-2 text-rose-400">{p._count!.blockers} bloq.</span>
+                        <span className="ml-2 text-grave-tinta">{p._count!.blockers} bloq.</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-tinta-3" onClick={() => location.assign(`/${locale}/projects/${p.id}`)}>

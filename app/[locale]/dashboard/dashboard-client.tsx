@@ -141,7 +141,7 @@ function KpiCard({ icon, label, value, delta, trend, tone = 'indigo', onClick }:
   const colors = {
     indigo:  { bg: 'rgba(99,102,241,0.10)',  bd: 'rgba(99,102,241,0.25)', tx: 'text-indigo-400' },
     emerald: { bg: 'rgba(16,185,129,0.10)',  bd: 'rgba(16,185,129,0.25)', tx: 'text-emerald-400' },
-    rose:    { bg: 'rgba(244,63,94,0.10)',   bd: 'rgba(244,63,94,0.25)',  tx: 'text-rose-400' },
+    rose:    { bg: 'rgba(244,63,94,0.10)',   bd: 'rgba(244,63,94,0.25)',  tx: 'text-grave-tinta' },
     amber:   { bg: 'rgba(245,158,11,0.10)',  bd: 'rgba(245,158,11,0.25)', tx: 'text-amber-400' },
   }[tone]
 
@@ -442,7 +442,7 @@ export function DashboardClient() {
     return (
       <div className="p-8">
         <div className="rounded-xl p-6" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
-          <p className="text-rose-400">{error}</p>
+          <p className="text-grave-tinta">{error}</p>
         </div>
       </div>
     )

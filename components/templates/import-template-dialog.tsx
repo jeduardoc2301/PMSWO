@@ -239,7 +239,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
 
           {/* Parse error */}
           {parseError && (
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm text-rose-400"
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm text-grave-tinta"
               style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
               <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
               {parseError}
@@ -276,7 +276,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
 
           {/* Submit error */}
           {submitError && (
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm text-rose-400"
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm text-grave-tinta"
               style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
               <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
               {submitError}

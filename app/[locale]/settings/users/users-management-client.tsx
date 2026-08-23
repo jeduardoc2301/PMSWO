@@ -269,7 +269,7 @@ export function UsersManagementClient() {
   )
 
   if (error) return (
-    <div className="rounded-xl p-4 text-sm text-rose-400"
+    <div className="rounded-xl p-4 text-sm text-grave-tinta"
       style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
       {error}
     </div>
@@ -424,7 +424,7 @@ export function UsersManagementClient() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               {editError && (
-                <div className="rounded-lg px-3 py-2 text-sm text-rose-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                <div className="rounded-lg px-3 py-2 text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
                   {editError}
                 </div>
               )}
@@ -486,7 +486,7 @@ export function UsersManagementClient() {
                     style={{ ...inputStyle, borderColor: formData.confirmPassword && formData.password !== formData.confirmPassword ? '#ef4444' : 'var(--borde)' }}
                   />
                   {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                    <p className="text-[11px] text-rose-400">Las contraseñas no coinciden</p>
+                    <p className="text-[11px] text-grave-tinta">Las contraseñas no coinciden</p>
                   )}
                 </div>
               </div>
@@ -502,7 +502,7 @@ export function UsersManagementClient() {
                     </label>
                   ))}
                 </div>
-                {formData.roles.length === 0 && <p className="text-xs text-rose-400">{t('selectRoles')}</p>}
+                {formData.roles.length === 0 && <p className="text-xs text-grave-tinta">{t('selectRoles')}</p>}
               </div>
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <Checkbox checked={formData.active} onCheckedChange={(v) => setFormData({ ...formData, active: v as boolean })} />
@@ -533,7 +533,7 @@ export function UsersManagementClient() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               {createError && (
-                <div className="rounded-lg px-3 py-2 text-sm text-rose-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                <div className="rounded-lg px-3 py-2 text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
                   {createError}
                 </div>
               )}
@@ -594,7 +594,7 @@ export function UsersManagementClient() {
                     </label>
                   ))}
                 </div>
-                {createFormData.roles.length === 0 && <p className="text-xs text-rose-400">{t('selectRoles')}</p>}
+                {createFormData.roles.length === 0 && <p className="text-xs text-grave-tinta">{t('selectRoles')}</p>}
               </div>
             </div>
             <DialogFooter>

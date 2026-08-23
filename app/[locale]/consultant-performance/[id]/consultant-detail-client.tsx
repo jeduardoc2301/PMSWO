@@ -196,7 +196,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
 
   if (error || !data) return (
     <div className="p-8 min-h-screen" style={{ background: 'var(--fondo)' }}>
-      <div className="rounded-xl p-4 text-rose-400" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
+      <div className="rounded-xl p-4 text-grave-tinta" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
         {error ?? 'No se encontraron datos'}
       </div>
     </div>
@@ -294,13 +294,13 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
                         />
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={p.activeBlockers > 0 ? 'text-rose-400 font-semibold' : 'text-tinta-3'}>{p.activeBlockers}</span>
+                        <span className={p.activeBlockers > 0 ? 'text-grave-tinta font-semibold' : 'text-tinta-3'}>{p.activeBlockers}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={p.activeRisks > 0 ? 'text-amber-400 font-semibold' : 'text-tinta-3'}>{p.activeRisks}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={p.overdueItems > 0 ? 'text-rose-400 font-semibold' : 'text-tinta-3'}>{p.overdueItems}</span>
+                        <span className={p.overdueItems > 0 ? 'text-grave-tinta font-semibold' : 'text-tinta-3'}>{p.overdueItems}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-full"
@@ -344,7 +344,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
             renderItem={(item) => (
               <div className="px-4 py-2.5 flex items-center justify-between gap-4">
                 <span className="text-sm text-tinta-2 truncate">{item.title}</span>
-                <span className="text-xs text-rose-400 whitespace-nowrap flex-shrink-0">
+                <span className="text-xs text-grave-tinta whitespace-nowrap flex-shrink-0">
                   Venció {fmtDate(item.estimatedEndDate)}
                 </span>
               </div>

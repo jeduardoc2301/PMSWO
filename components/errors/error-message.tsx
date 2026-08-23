@@ -48,8 +48,8 @@ export function ErrorMessage({
     t('errors.generic')
 
   const isError = variant === 'error'
-  const textColor = isError ? 'text-red-400' : 'text-amber-300'
-  const iconColor = isError ? 'text-red-400' : 'text-amber-400'
+  const textColor = isError ? 'text-grave-tinta' : 'text-amber-300'
+  const iconColor = isError ? 'text-grave-tinta' : 'text-amber-400'
   const bgStyle = isError
     ? { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }
     : { background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }

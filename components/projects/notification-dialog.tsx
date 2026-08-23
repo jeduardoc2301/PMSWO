@@ -130,7 +130,7 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
         )}
 
         {error && (
-          <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+          <div className="px-4 py-3 rounded-lg text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
             {error}
           </div>
         )}

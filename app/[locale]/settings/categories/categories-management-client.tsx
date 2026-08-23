@@ -60,7 +60,7 @@ export function CategoriesManagementClient() {
             {t('loadingCategories')}
           </div>
         ) : error ? (
-          <div className="m-4 rounded-xl p-4 text-sm text-rose-400"
+          <div className="m-4 rounded-xl p-4 text-sm text-grave-tinta"
             style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
             {error}
           </div>

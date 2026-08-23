@@ -392,7 +392,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           disabled={isSubmitting}
           className={errors.name ? 'border-red-500' : ''}
         />
-        {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
+        {errors.name && <p className="mt-1 text-sm text-grave-tinta">{errors.name}</p>}
       </div>
 
       {/* Description */}
@@ -410,7 +410,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           disabled={isSubmitting}
           className={errors.description ? 'border-red-500' : ''}
         />
-        {errors.description && <p className="mt-1 text-sm text-red-400">{errors.description}</p>}
+        {errors.description && <p className="mt-1 text-sm text-grave-tinta">{errors.description}</p>}
       </div>
 
       {/* Client */}
@@ -428,7 +428,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           disabled={isSubmitting}
           className={errors.client ? 'border-red-500' : ''}
         />
-        {errors.client && <p className="mt-1 text-sm text-red-400">{errors.client}</p>}
+        {errors.client && <p className="mt-1 text-sm text-grave-tinta">{errors.client}</p>}
       </div>
 
       {/* People section — only on creation */}
@@ -448,7 +448,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
               placeholder="Seleccionar owner..."
               disabled={isSubmitting}
             />
-            {errors.ownerId && <p className="mt-1 text-sm text-red-400">{errors.ownerId}</p>}
+            {errors.ownerId && <p className="mt-1 text-sm text-grave-tinta">{errors.ownerId}</p>}
 
             {/* Project Manager */}
             <SingleUserSelect
@@ -485,7 +485,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
             onChange={(v) => { setFormData(prev => ({ ...prev, startDate: v })); if (errors.startDate) setErrors(prev => { const e = { ...prev }; delete e.startDate; return e }) }}
             disabled={isSubmitting}
           />
-          {errors.startDate && <p className="mt-1 text-sm text-red-400">{errors.startDate}</p>}
+          {errors.startDate && <p className="mt-1 text-sm text-grave-tinta">{errors.startDate}</p>}
         </div>
         <div>
           <Label htmlFor="estimatedEndDate" className="block text-tinta-2 mb-2">
@@ -498,7 +498,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
             min={formData.startDate || undefined}
             disabled={isSubmitting}
           />
-          {errors.estimatedEndDate && <p className="mt-1 text-sm text-red-400">{errors.estimatedEndDate}</p>}
+          {errors.estimatedEndDate && <p className="mt-1 text-sm text-grave-tinta">{errors.estimatedEndDate}</p>}
         </div>
       </div>
 
@@ -526,7 +526,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           <option value={ProjectStatus.ON_HOLD} style={{ background: 'var(--superficie)' }}>{t('statusOptions.onHold')}</option>
           <option value={ProjectStatus.COMPLETED} style={{ background: 'var(--superficie)' }}>{t('statusOptions.completed')}</option>
         </select>
-        {errors.status && <p className="mt-1 text-sm text-red-400">{errors.status}</p>}
+        {errors.status && <p className="mt-1 text-sm text-grave-tinta">{errors.status}</p>}
       </div>
 
       {/* Actions */}

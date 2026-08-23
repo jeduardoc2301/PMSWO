@@ -38,7 +38,7 @@ export default function GlobalError({
               {/* Error icon */}
               <div className="mb-4 flex justify-center">
                 <div className="rounded-full bg-red-100 p-3 dark:bg-red-950">
-                  <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+                  <AlertCircle className="h-8 w-8 text-red-600 dark:text-grave-tinta" />
                 </div>
               </div>
 

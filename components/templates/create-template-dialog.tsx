@@ -293,7 +293,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onSuccess }: CreateTe
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {errors.general && (
-            <div className="rounded-md p-3 text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+            <div className="rounded-md p-3 text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
               {errors.general}
             </div>
           )}
@@ -310,7 +310,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onSuccess }: CreateTe
               className={errors.name ? 'border-red-500' : ''}
             />
             {errors.name && (
-              <p className="text-sm text-red-400">{errors.name}</p>
+              <p className="text-sm text-grave-tinta">{errors.name}</p>
             )}
           </div>
 
@@ -327,7 +327,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onSuccess }: CreateTe
               className={errors.description ? 'border-red-500' : ''}
             />
             {errors.description && (
-              <p className="text-sm text-red-400">{errors.description}</p>
+              <p className="text-sm text-grave-tinta">{errors.description}</p>
             )}
           </div>
 
@@ -351,7 +351,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onSuccess }: CreateTe
               </SelectContent>
             </Select>
             {errors.categoryId && (
-              <p className="text-sm text-red-400">{errors.categoryId}</p>
+              <p className="text-sm text-grave-tinta">{errors.categoryId}</p>
             )}
           </div>
 
@@ -363,7 +363,7 @@ export function CreateTemplateDialog({ open, onOpenChange, onSuccess }: CreateTe
               disabled={submitting}
             />
             {errors.phases && (
-              <p className="text-sm text-red-400">{errors.phases}</p>
+              <p className="text-sm text-grave-tinta">{errors.phases}</p>
             )}
           </div>
 

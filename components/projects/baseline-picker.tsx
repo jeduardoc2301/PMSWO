@@ -245,7 +245,7 @@ export function ResumenDeLineaBase({
       ) : null}
       {/* El cierre no es la suma de los desvíos: diez líneas que se corren dentro de su holgura no
           mueven la fecha final ni un día. Por eso va aparte y con su propia palabra. */}
-      <span className={driftDelCierre === 0 ? 'text-tinta-2' : tarde ? 'text-red-400' : 'text-emerald-400'}>
+      <span className={driftDelCierre === 0 ? 'text-tinta-2' : tarde ? 'text-grave-tinta' : 'text-emerald-400'}>
         Cierre{' '}
         <strong className="tabular-nums">
           {driftDelCierre === 0

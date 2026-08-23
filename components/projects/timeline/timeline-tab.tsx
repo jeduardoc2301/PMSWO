@@ -399,7 +399,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                               <div className="text-[13px] text-tinta truncate">{w.title}</div>
                               <div className="text-[10px] text-tinta-3 flex items-center gap-1.5">
                                 <span>{w.id.slice(0, 8).toUpperCase()}</span>
-                                {isOverdue && <span className="text-rose-400">atrasada</span>}
+                                {isOverdue && <span className="text-grave-tinta">atrasada</span>}
                               </div>
                             </div>
                             {/* Owner avatar */}

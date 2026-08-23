@@ -50,7 +50,7 @@ function Aviso({ aviso }: { readonly aviso: ToastConAsa }) {
           : 'border-borde-fuerte bg-superficie-2 text-tinta'
       }`}
     >
-      <span aria-hidden className={`shrink-0 text-sm ${esError ? 'text-red-400' : 'text-emerald-400'}`}>
+      <span aria-hidden className={`shrink-0 text-sm ${esError ? 'text-grave-tinta' : 'text-emerald-400'}`}>
         {esError ? '⚠' : '✓'}
       </span>
 

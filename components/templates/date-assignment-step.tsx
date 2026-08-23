@@ -177,7 +177,7 @@ export function DateAssignmentStep({
 
   if (error || !templateData) {
     return (
-      <div className="px-4 py-3 rounded-lg text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+      <div className="px-4 py-3 rounded-lg text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
         {error || t('errors.loadFailed')}
       </div>
     )

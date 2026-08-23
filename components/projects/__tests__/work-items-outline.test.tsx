@@ -162,7 +162,7 @@ describe('E6 · el atraso con la fórmula del archivo', () => {
   it('el atraso va en rojo y la décima se conserva', () => {
     dibujar()
 
-    expect(screen.getByTestId('delta-presenta')).toHaveClass('text-red-400')
+    expect(screen.getByTestId('delta-presenta')).toHaveClass('text-grave-tinta')
   })
 
   it('un hito futuro no acumula deuda; vencido y sin cerrar, un día por día hábil', () => {

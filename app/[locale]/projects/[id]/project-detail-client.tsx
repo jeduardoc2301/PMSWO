@@ -773,7 +773,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
   if (error || !project) return (
     <div className="p-8 min-h-screen" style={{ background: 'var(--fondo)' }}>
-      <div className="rounded-xl p-4 text-sm text-rose-400 mb-4"
+      <div className="rounded-xl p-4 text-sm text-grave-tinta mb-4"
         style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
         {error || t('projectNotFound')}
       </div>

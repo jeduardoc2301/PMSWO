@@ -83,7 +83,7 @@ export function ConsultantPerformanceClient() {
           {[
             { label: 'Total consultores', value: consultants.length, icon: <Users2 size={16} />, color: 'text-indigo-400', bg: 'rgba(99,102,241,0.1)', bd: 'rgba(99,102,241,0.25)' },
             { label: 'Disponibles', value: available, icon: <CheckCircle2 size={16} />, color: 'text-emerald-400', bg: 'rgba(16,185,129,0.1)', bd: 'rgba(16,185,129,0.25)' },
-            { label: 'Con vencidos', value: overloaded, icon: <AlertTriangle size={16} />, color: 'text-rose-400', bg: 'rgba(239,68,68,0.1)', bd: 'rgba(239,68,68,0.25)' },
+            { label: 'Con vencidos', value: overloaded, icon: <AlertTriangle size={16} />, color: 'text-grave-tinta', bg: 'rgba(239,68,68,0.1)', bd: 'rgba(239,68,68,0.25)' },
             { label: 'Completitud prom.', value: `${avgCompletion}%`, icon: <TrendingUp size={16} />, color: 'text-amber-400', bg: 'rgba(245,158,11,0.1)', bd: 'rgba(245,158,11,0.25)' },
           ].map((s) => (
             <div key={s.label} className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
@@ -107,7 +107,7 @@ export function ConsultantPerformanceClient() {
 
         {/* Error */}
         {error && (
-          <div className="rounded-xl p-4 text-sm text-rose-400"
+          <div className="rounded-xl p-4 text-sm text-grave-tinta"
             style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>
             {error}
           </div>
@@ -177,7 +177,7 @@ export function ConsultantPerformanceClient() {
                       <div className="text-[10px] text-tinta-3 uppercase tracking-wider">Avance</div>
                     </div>
                     <div>
-                      <div className={`text-lg font-bold tabular-nums ${c.overdueItems > 0 ? 'text-rose-400' : 'text-tinta-2'}`}>
+                      <div className={`text-lg font-bold tabular-nums ${c.overdueItems > 0 ? 'text-grave-tinta' : 'text-tinta-2'}`}>
                         {c.overdueItems}
                       </div>
                       <div className="text-[10px] text-tinta-3 uppercase tracking-wider">Vencidos</div>

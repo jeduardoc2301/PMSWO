@@ -160,7 +160,7 @@ function ValorDeLaFoto({ row, columnaId }: { row: GanttRow; columnaId: string })
       data-foto={columnaId}
       data-corrimiento={corrimiento}
       title={`En la línea base: ${original}`}
-      className={`ml-1.5 shrink-0 tabular-nums ${corrimiento > 0 ? 'text-red-400/80' : 'text-emerald-400/80'}`}
+      className={`ml-1.5 shrink-0 tabular-nums ${corrimiento > 0 ? 'text-grave-tinta/80' : 'text-emerald-400/80'}`}
     >
       {corrimiento > 0 ? '+' : '−'}
       {Math.abs(corrimiento)} d

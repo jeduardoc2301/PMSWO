@@ -222,7 +222,7 @@ export function ActivitySelectionStep({
 
   if (error || !templateData) {
     return (
-      <div className="px-4 py-3 rounded-lg text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+      <div className="px-4 py-3 rounded-lg text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
         {error || t('errors.loadFailed')}
       </div>
     )
@@ -349,7 +349,7 @@ export function ActivitySelectionStep({
 
       {showValidationError && localSelectedIds.size === 0 && (
         <div className="rounded-lg p-4" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-grave-tinta">
             {t('validation.activitiesRequired')}
           </p>
         </div>

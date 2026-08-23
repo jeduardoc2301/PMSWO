@@ -345,13 +345,13 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                           className="flex items-start gap-3 p-3 rounded-lg"
                           style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}
                         >
-                          <Clock className="h-5 w-5 text-red-400 mt-1" />
+                          <Clock className="h-5 w-5 text-grave-tinta mt-1" />
                           <div className="flex-1 space-y-2">
                             <div>
                               <p className="text-sm font-medium text-tinta">
                                 {item.title}
                               </p>
-                              <p className="text-xs text-red-400">
+                              <p className="text-xs text-grave-tinta">
                                 {item.daysOverdue} días de retraso
                               </p>
                             </div>

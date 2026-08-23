@@ -136,7 +136,7 @@ export function DeleteWorkItemDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] bg-superficie border-borde">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-400">
+          <DialogTitle className="flex items-center gap-2 text-grave-tinta">
             <AlertTriangle className="h-5 w-5" />
             {t('deleteDialog.title')}
           </DialogTitle>
@@ -147,7 +147,7 @@ export function DeleteWorkItemDialog({
 
         <div className="space-y-4 py-4">
           {error && (
-            <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <div className="px-4 py-3 rounded-lg text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
               {error}
             </div>
           )}

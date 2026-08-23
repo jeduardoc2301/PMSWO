@@ -87,7 +87,7 @@ export function DeleteTemplateDialog({
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
-              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <AlertTriangle className="h-5 w-5 text-grave-tinta" />
             </div>
             <DialogTitle className="text-lg font-semibold">
               {t('deleteTemplate')}
@@ -104,13 +104,13 @@ export function DeleteTemplateDialog({
               {templateName}
             </div>
           )}
-          <div className="text-sm text-red-400">
+          <div className="text-sm text-grave-tinta">
             {t('confirmations.deleteTemplateWarning')}
           </div>
         </div>
 
         {error && (
-          <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+          <div className="px-4 py-3 rounded-lg text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
             {error}
           </div>
         )}

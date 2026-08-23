@@ -30,7 +30,7 @@ function getTemplateStyle(name: string, category: string | null) {
   if (text.includes('finops') || text.includes('cost') || text.includes('financ'))
     return { icon: <TrendingDown size={20} />, bg: 'rgba(16,185,129,0.12)', bd: 'rgba(16,185,129,0.3)', tx: 'text-emerald-400' }
   if (text.includes('zero trust') || text.includes('security') || text.includes('segur'))
-    return { icon: <Lock size={20} />, bg: 'rgba(244,63,94,0.12)', bd: 'rgba(244,63,94,0.25)', tx: 'text-rose-400' }
+    return { icon: <Lock size={20} />, bg: 'rgba(244,63,94,0.12)', bd: 'rgba(244,63,94,0.25)', tx: 'text-grave-tinta' }
   if (text.includes('data') || text.includes('snowflake') || text.includes('analytics'))
     return { icon: <Database size={20} />, bg: 'rgba(245,158,11,0.12)', bd: 'rgba(245,158,11,0.3)', tx: 'text-amber-400' }
   // default
@@ -119,7 +119,7 @@ export function TemplateCard({ template, onView, onEdit, onDelete, onSelect, isS
           {canManage && onDelete && (
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(template.id) }}
-              className="px-2.5 py-1.5 rounded-lg text-xs text-tinta-3 hover:text-rose-400 hover:bg-rose-900/20 transition-all border border-transparent hover:border-rose-900/40">
+              className="px-2.5 py-1.5 rounded-lg text-xs text-tinta-3 hover:text-grave-tinta hover:bg-rose-900/20 transition-all border border-transparent hover:border-rose-900/40">
               Eliminar
             </button>
           )}

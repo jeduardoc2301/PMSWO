@@ -139,7 +139,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
 
   if (error) return (
     <div className="py-6">
-      <div className="rounded-xl p-4 text-sm text-rose-400" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>{error}</div>
+      <div className="rounded-xl p-4 text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>{error}</div>
     </div>
   )
 
@@ -150,7 +150,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
         <div className="flex gap-4">
           <span className="text-sm text-tinta-2"><span className="font-bold text-tinta">{activeBlockers.length}</span> <span className="text-tinta-3">{t('activeBlockers')}</span></span>
           {criticalBlockers.length > 0 && (
-            <span className="text-sm"><span className="font-bold text-rose-400">{criticalBlockers.length}</span> <span className="text-tinta-3">{t('criticalBlockers')}</span></span>
+            <span className="text-sm"><span className="font-bold text-grave-tinta">{criticalBlockers.length}</span> <span className="text-tinta-3">{t('criticalBlockers')}</span></span>
           )}
         </div>
         <button onClick={() => setShowCreateDialog(true)}

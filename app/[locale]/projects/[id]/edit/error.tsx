@@ -20,7 +20,7 @@ export default function EditProjectError({ error, reset }: EditProjectErrorProps
   return (
     <div className="min-h-screen bg-fondo flex items-center justify-center">
       <div className="max-w-md w-full rounded-lg shadow p-8 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-        <h2 className="text-xl font-semibold text-red-400 mb-2">Error al cargar la página</h2>
+        <h2 className="text-xl font-semibold text-grave-tinta mb-2">Error al cargar la página</h2>
         <p className="text-tinta-2 mb-1 text-sm">{error.message}</p>
         {error.digest && (
           <p className="text-tinta-3 text-xs mb-4">Código: {error.digest}</p>

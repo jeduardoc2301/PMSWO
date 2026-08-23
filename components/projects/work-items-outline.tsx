@@ -532,7 +532,7 @@ function Linea({
           <span
             data-testid={`base-${row.id}`}
             title={`Línea base: ${desvio.base.start} → ${desvio.base.finish}`}
-            className="block text-[11px] text-red-400/80"
+            className="block text-[11px] text-grave-tinta/80"
           >
             {row.isMilestone ? desvio.base.start : `${desvio.base.start} → ${desvio.base.finish}`}
             <span className="ml-1.5 tabular-nums">
@@ -657,7 +657,7 @@ function Delta({ id, valor }: { id: string; valor: number }) {
     )
   }
   return (
-    <span data-testid={`delta-${id}`} className={valor > 0 ? 'text-green-400' : 'text-red-400'}>
+    <span data-testid={`delta-${id}`} className={valor > 0 ? 'text-green-400' : 'text-grave-tinta'}>
       {valor > 0 ? `+${valor.toFixed(1)}` : valor.toFixed(1)}
     </span>
   )

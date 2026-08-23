@@ -97,7 +97,7 @@ export function EditWorkItemDatesDialog({
 
           <div className="space-y-4 py-4">
             {error && (
-              <div className="px-4 py-3 rounded-lg text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <div className="px-4 py-3 rounded-lg text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 {error}
               </div>
             )}

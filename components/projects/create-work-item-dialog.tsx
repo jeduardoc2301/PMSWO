@@ -473,7 +473,7 @@ export function CreateWorkItemDialog({
 
         <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto min-h-0 flex-1 pr-1">
           {errors.general && (
-            <div className="rounded-md p-3 text-sm text-red-400" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+            <div className="rounded-md p-3 text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
               {errors.general}
             </div>
           )}
@@ -489,7 +489,7 @@ export function CreateWorkItemDialog({
               className={errors.title ? 'border-red-500' : ''}
             />
             {errors.title && (
-              <p className="text-sm text-red-400">{errors.title}</p>
+              <p className="text-sm text-grave-tinta">{errors.title}</p>
             )}
           </div>
 
@@ -529,7 +529,7 @@ export function CreateWorkItemDialog({
               className={errors.description ? 'border-red-500' : ''}
             />
             {errors.description && (
-              <p className="text-sm text-red-400">{errors.description}</p>
+              <p className="text-sm text-grave-tinta">{errors.description}</p>
             )}
           </div>
 
@@ -561,7 +561,7 @@ export function CreateWorkItemDialog({
               disabled={submitting}
             />
             {boardError && (
-              <p role="alert" className="text-xs text-red-400">
+              <p role="alert" className="text-xs text-grave-tinta">
                 {boardError}
               </p>
             )}
@@ -576,7 +576,7 @@ export function CreateWorkItemDialog({
                 disabled={submitting}
               />
               {errors.startDate && (
-                <p className="text-sm text-red-400">{errors.startDate}</p>
+                <p className="text-sm text-grave-tinta">{errors.startDate}</p>
               )}
             </div>
 
@@ -588,7 +588,7 @@ export function CreateWorkItemDialog({
                 disabled={submitting}
               />
               {errors.estimatedEndDate && (
-                <p className="text-sm text-red-400">{errors.estimatedEndDate}</p>
+                <p className="text-sm text-grave-tinta">{errors.estimatedEndDate}</p>
               )}
             </div>
           </div>
@@ -628,7 +628,7 @@ export function CreateWorkItemDialog({
                 </SelectContent>
               </Select>
               {errors.ownerId && (
-                <p className="text-sm text-red-400">{errors.ownerId}</p>
+                <p className="text-sm text-grave-tinta">{errors.ownerId}</p>
               )}
             </div>
 
@@ -650,7 +650,7 @@ export function CreateWorkItemDialog({
                 </SelectContent>
               </Select>
               {errors.priority && (
-                <p className="text-sm text-red-400">{errors.priority}</p>
+                <p className="text-sm text-grave-tinta">{errors.priority}</p>
               )}
             </div>
           </div>

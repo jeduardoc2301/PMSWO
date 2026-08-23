@@ -46,7 +46,7 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
 
 const SAVED_VIEWS = [
   { label: 'Mis críticos',   icon: <Star size={12} />,         color: 'text-amber-400',   href: 'projects?priority=CRITICAL' },
-  { label: 'En riesgo',      icon: <AlertTriangle size={12} />, color: 'text-rose-400',    href: 'projects?health=low' },
+  { label: 'En riesgo',      icon: <AlertTriangle size={12} />, color: 'text-grave-tinta',    href: 'projects?health=low' },
   { label: 'Esta semana',    icon: <Calendar size={12} />,      color: 'text-indigo-400',  href: 'projects?due=week' },
   { label: 'Con bloqueadores', icon: <ShieldAlert size={12} />, color: 'text-orange-400',  href: 'projects?blocker=true' },
 ]
@@ -274,7 +274,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
               </div>
               <button
                 onClick={onSignOut}
-                className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-400 hover:bg-superficie-3 transition-all"
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-grave-tinta hover:bg-superficie-3 transition-all"
               >
                 <LogOut size={14} />
                 {t('nav.signOut')}

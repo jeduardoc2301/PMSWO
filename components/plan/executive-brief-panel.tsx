@@ -23,7 +23,7 @@ export interface ExecutiveBriefPanelProps {
 const MARGIN_TONE: Readonly<Record<MarginState, { label: string; className: string }>> = {
   HOLGADO: { label: 'Con margen', className: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
   JUSTO: { label: 'Sin margen', className: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  EN_DEUDA: { label: 'Después de la fecha', className: 'text-red-400 border-red-500/30 bg-red-500/10' },
+  EN_DEUDA: { label: 'Después de la fecha', className: 'text-grave-tinta border-red-500/30 bg-red-500/10' },
   SIN_COMPROMISO: { label: 'Sin fecha comprometida', className: 'text-tinta-2 border-borde-fuerte/40 bg-zinc-500/10' },
 }
 

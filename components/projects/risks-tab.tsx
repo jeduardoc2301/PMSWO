@@ -144,7 +144,7 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
 
   if (error) return (
     <div className="py-6">
-      <div className="rounded-xl p-4 text-sm text-rose-400" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>{error}</div>
+      <div className="rounded-xl p-4 text-sm text-grave-tinta" style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.18)' }}>{error}</div>
     </div>
   )
 
