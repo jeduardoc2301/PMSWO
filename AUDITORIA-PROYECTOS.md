@@ -8421,3 +8421,67 @@ Costó tres sondas, y las tres fallaron por el instrumento y no por el código:
 La lección repetida: cuando una sonda no encuentra algo, **volcar lo que hay** antes de refinar la
 búsqueda. Las dos primeras veces afiné el filtro sobre una suposición del nombre; el volcado lo
 resolvió a la primera.
+
+---
+
+## Tanda 106 · Lo transversal, y tres agujeros de permisos
+
+**60 requisitos del §10 revisados: 36 cumplen.** Los cimientos están —los diez permisos con sus
+nombres exactos, `authorize()` que lanza, el filtro AND/OR anidado, las nueve claves de preferencias,
+deshacer/rehacer completo, y **un solo** panel de detalle para las seis vistas—. Lo que falla es el
+cableado: guardias que nadie llama y filtros que no leen lo que dicen leer.
+
+Esta auditoría midió de verdad: los agentes levantaron sesiones reales, hicieron PATCH y POST contra
+el servidor, y consultaron la base. La diferencia con la del motor se nota en la calidad de lo que
+trajo.
+
+### Tres agujeros de permisos, los tres con la misma forma
+
+Un **cargo de organización haciéndose pasar por permiso de proyecto**. Y el aviso llevaba escrito
+años en un comentario, junto a la única puerta que sí preguntaba: «`withAuth` ya exige
+`PROJECT_UPDATE`, que es el cargo de organización, y eso no distingue en qué proyecto».
+
+| dónde | qué permitía |
+|---|---|
+| la celda de **Duración** | mover el cronograma sin `edit_schedule` — doble clic en el Gantt |
+| **DELETE** de proyecto | archivar un proyecto ajeno, con 200 y `archived: true` |
+| **convertir riesgo** | crear una línea del plan sin asiento |
+
+El de la duración es el más fino: `tocaElCronograma` miraba fechas y restricción, y la duración mueve
+el plan igual —el motor la lee como `duracionMin`—. Era la misma puerta **una celda más allá**.
+
+### Lo que de verdad cambia el futuro: el censo
+
+La prueba que vigilaba esto era **una lista fija de 16 rutas**, y una lista fija no sabe lo que no
+está en ella. Por eso la suite pasaba en verde con un gestor archivando proyectos ajenos.
+
+Ahora hay un censo que **enumera el árbol** y obliga a que cada manejador que muta o pregunte, o
+esté escrito con su razón. Hoy: 28 preguntan, 12 no. Dos de esas doce son correctas; diez están
+marcadas DEUDA con la frase de qué pasa si nadie las arregla. Y hay una tercera prueba para que la
+lista no sea sólo de ida: **lo arreglado hay que borrarlo de ella**.
+
+### El fallo que más enseñó
+
+La primera versión del censo contaba **cero manejadores y pasaba en verde**. La causa es una trampa
+del lenguaje: `\b` dentro de una plantilla de JavaScript es el escape de **retroceso**, no el límite
+de palabra, así que la marca llevaba un carácter de control dentro y no casaba con nada.
+
+Lo cazó una guarda que había puesto por costumbre —`conGuardia > 20`—. Sin ella habría comprometido
+una prueba que no comprueba nada **y que además parece rigurosa**, que es peor que no tenerla.
+
+Es el mismo género que los cuatro errores del generador de carga: **medir cero y llamarlo cumplir**.
+De ahí la regla que vale para las dos: en una prueba que cuenta, **afirmar también cuánto contó**.
+
+### Cola del §10
+
+- `convert-to-blocker`, `close`, `resolve`, `risks PATCH`, `blockers POST`, `risks POST`,
+  `agreements POST`, `workload POST`, `filters POST/DELETE`: diez manejadores sin asiento, en el
+  censo con su razón.
+- **Guardar un filtro con campo personalizado falla en silencio**: `filter.ts:259` valida contra el
+  catálogo base y `:303` evalúa contra el del contexto, así que una condición `cf:` tumba el filtro
+  entero — y el cliente se traga el 400 sin rama `else`.
+- **«Responsable del cliente» lee la columna equivocada**: `filter.ts:142` lee `clientOwner` y la
+  pantalla rellena esa propiedad con `responsibleName`. Medido: `is_not_empty` da 1368 donde
+  corresponden 178. Arreglo de una palabra, y el `as LineaFiltrable[]` es lo que impide que `tsc` lo
+  vea.
+- **Cuatro sistemas de filtro conviviendo** que se acumulan en vez de sustituirse.
