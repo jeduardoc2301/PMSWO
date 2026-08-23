@@ -337,6 +337,26 @@ async function deleteProjectHandler(
   try {
     const { id } = await context.params
 
+    /*
+      El asiento en ESTE proyecto, no el cargo en la organización.
+
+      `withAuth` exige `PROJECT_ARCHIVE`, que `lib/rbac.ts` da a toda la organización, así que un
+      gestor de proyectos sin papel aquí archivaba el proyecto entero: medido contra el servidor,
+      DELETE devolvía 200 y dejaba `archived: true`. El PATCH de al lado sí preguntaba —lleva el
+      aviso escrito desde que se cerró ese mismo agujero— y el DELETE se quedó sin ella.
+
+      Va antes de buscar el proyecto a propósito: la pregunta tiene que ir por delante de
+      cualquier trabajo. Quien no tiene asiento aquí no necesita saber siquiera si el proyecto
+      existe — responder «no encontrado» o «no autorizado» según el caso ya cuenta algo.
+    */
+    const negado = await exigirPermiso(
+      authContext.userId,
+      id,
+      'manage_project_settings',
+      'Archivar un proyecto lo saca de la vista de todo el mundo.',
+    )
+    if (negado) return negado
+
     // First, verify the project exists and belongs to the user's organization
     const existingProject = await projectService.getProject(id)
 

@@ -1193,6 +1193,38 @@ describe('DELETE /api/v1/projects/:id', () => {
     },
   }
 
+  describe('el asiento en el proyecto', () => {
+    /**
+     * Archivar saca el proyecto de la vista de todo el mundo, y lo hacía cualquiera de la
+     * organización.
+     *
+     * `withAuth` exige `PROJECT_ARCHIVE`, que `lib/rbac.ts` da a todo gestor de proyectos sin mirar
+     * en cuál. Medido contra el servidor real: un gestor sin papel en este proyecto recibía 200 y
+     * dejaba `archived: true`. El PATCH de al lado sí preguntaba —lleva el aviso escrito desde que
+     * se cerró ese mismo agujero— y el DELETE se había quedado sin ella.
+     *
+     * Las demás pruebas de este archivo dejan a quien escribe como DUEÑO, así que la guardia les
+     * concede todo y no habrían notado nada. Ésta es la que hace falta.
+     */
+    it('un gestor sin papel en el proyecto no puede archivarlo', async () => {
+      vi.mocked(auth).mockResolvedValue(mockSession as any)
+      // Ni dueño, ni jefe de proyecto, ni colaborador: sin asiento.
+      vi.mocked(prisma.project.findUnique).mockResolvedValue({
+        ownerId: 'otra-persona',
+        projectManagerId: null,
+      } as never)
+      vi.mocked(prisma.projectCollaborator.findUnique).mockResolvedValue(null as never)
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ roles: [UserRole.PROJECT_MANAGER] } as never)
+      vi.mocked(projectService.getProject).mockResolvedValue(mockProject as any)
+
+      const response = await DELETE(createRequest('project-123'), { params: { id: 'project-123' } })
+
+      expect(response.status).toBe(403)
+      // Lo que de verdad importa: que no se haya archivado. Un 403 que archiva igual es un cartel.
+      expect(projectService.archiveProject).not.toHaveBeenCalled()
+    })
+  })
+
   describe('successful archive', () => {
     it('should archive project successfully', async () => {
       vi.mocked(auth).mockResolvedValue(mockSession as any)
