@@ -144,8 +144,8 @@ export function PlanTab({
 
   if (estado.fase === 'error') {
     return (
-      <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
-        <p className="text-sm text-red-300">No se pudo cargar el plan: {estado.mensaje}</p>
+      <div className="rounded-lg border border-grave-borde bg-grave-fondo p-6 text-center">
+        <p className="text-sm text-grave-tinta">No se pudo cargar el plan: {estado.mensaje}</p>
       </div>
     )
   }

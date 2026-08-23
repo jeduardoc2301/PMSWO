@@ -264,8 +264,8 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
     return (
       <div className="flex flex-col gap-3">
         {barraDeFiltro}
-        <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
-          <p className="text-sm text-red-300">No se pudo cargar la vista: {estado.mensaje}</p>
+        <div className="rounded-lg border border-grave-borde bg-grave-fondo p-6 text-center">
+          <p className="text-sm text-grave-tinta">No se pudo cargar la vista: {estado.mensaje}</p>
         </div>
       </div>
     )

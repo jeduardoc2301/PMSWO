@@ -82,7 +82,7 @@ export function EditProjectClient({ projectId }: EditProjectClientProps) {
     return (
       <div className="min-h-screen bg-fondo">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-red-950/30 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg">
+          <div className="bg-grave-fondo border border-grave-borde text-grave-tinta px-4 py-3 rounded-lg">
             {error || t('projectNotFound')}
           </div>
           <Button onClick={() => router.push(`/${locale}/projects`)} className="mt-4">

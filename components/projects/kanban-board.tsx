@@ -935,11 +935,11 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
         <div
           role="alert"
           data-testid="error-de-movimiento"
-          className="flex items-start gap-3 rounded-lg border border-amber-900/50 bg-amber-950/20 px-3 py-2"
+          className="flex items-start gap-3 rounded-lg border border-aviso-borde bg-aviso-fondo px-3 py-2"
         >
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-amber-100">«{errorDeMovimiento.titulo}» volvió a su sitio.</p>
-            <p className="mt-0.5 text-xs text-amber-200/80">{errorDeMovimiento.motivo}</p>
+            <p className="text-xs text-aviso-tinta">«{errorDeMovimiento.titulo}» volvió a su sitio.</p>
+            <p className="mt-0.5 text-xs text-aviso-tinta/80">{errorDeMovimiento.motivo}</p>
           </div>
           <button
             type="button"

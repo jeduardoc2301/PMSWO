@@ -750,8 +750,8 @@ export function WorkItemsView({
       ) : estado.fase === 'cargando' ? (
         <EsqueletoDeTabla />
       ) : estado.fase === 'error' ? (
-        <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
-          <p className="text-sm text-red-300">No se pudo cargar el plan: {estado.mensaje}</p>
+        <div className="rounded-lg border border-grave-borde bg-grave-fondo p-6 text-center">
+          <p className="text-sm text-grave-tinta">No se pudo cargar el plan: {estado.mensaje}</p>
         </div>
       ) : estado.plan.tasks.length === 0 ? (
         <p className="py-12 text-center text-sm text-tinta-2">
@@ -762,7 +762,7 @@ export function WorkItemsView({
           {aviso ? (
             <div
               role="alert"
-              className="rounded-lg border border-red-900/40 bg-red-950/20 px-4 py-3 text-sm text-red-300"
+              className="rounded-lg border border-grave-borde bg-grave-fondo px-4 py-3 text-sm text-grave-tinta"
             >
               {aviso}
             </div>

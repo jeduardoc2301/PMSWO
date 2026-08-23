@@ -226,8 +226,8 @@ export function FilterBar({
           ) : null}
 
           {!editable ? (
-            <div className="rounded border border-amber-900/50 bg-amber-950/20 p-2.5">
-              <p className="text-xs leading-relaxed text-amber-300">
+            <div className="rounded border border-aviso-borde bg-aviso-fondo p-2.5">
+              <p className="text-xs leading-relaxed text-aviso-tinta">
                 Este filtro anida más de lo que el editor sabe dibujar, así que se enseña sin editar
                 para no romperlo. Se está aplicando correctamente: <em>{resumen}</em>
               </p>

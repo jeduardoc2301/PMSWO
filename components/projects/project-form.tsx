@@ -367,12 +367,12 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {submitSuccess && (
-        <div className="bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 px-4 py-3 rounded-lg">
+        <div className="bg-bien-fondo border border-bien-borde text-bien-tinta px-4 py-3 rounded-lg">
           {isEditMode ? t('messages.updateSuccess') : t('messages.createSuccess')}
         </div>
       )}
       {submitError && (
-        <div className="bg-red-950/30 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg">
+        <div className="bg-grave-fondo border border-grave-borde text-grave-tinta px-4 py-3 rounded-lg">
           {submitError}
         </div>
       )}

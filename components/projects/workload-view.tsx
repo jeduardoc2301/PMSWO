@@ -557,7 +557,7 @@ export function WorkloadView({
               </ul>
             )}
             {errorAlMover !== null ? (
-              <p role="alert" className="mt-2 text-sm text-red-300">
+              <p role="alert" className="mt-2 text-sm text-grave-tinta">
                 {errorAlMover}
               </p>
             ) : null}

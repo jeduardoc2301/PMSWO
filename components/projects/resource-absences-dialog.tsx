@@ -176,7 +176,7 @@ export function ResourceAbsencesDialog({
         </div>
 
         {error ? (
-          <p role="alert" className="mb-3 rounded border border-red-900/50 bg-red-950/20 px-2.5 py-2 text-xs text-red-300">
+          <p role="alert" className="mb-3 rounded border border-grave-borde bg-grave-fondo px-2.5 py-2 text-xs text-grave-tinta">
             {error}
           </p>
         ) : null}

@@ -115,7 +115,7 @@ export function RepartoDePapeles({ projectId, puedeRepartir = false }: RepartoDe
       </div>
 
       {aviso ? (
-        <p role="alert" className="rounded border border-amber-900/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-100">
+        <p role="alert" className="rounded border border-aviso-borde bg-aviso-fondo px-3 py-2 text-xs text-aviso-tinta">
           {aviso}
         </p>
       ) : null}

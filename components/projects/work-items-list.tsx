@@ -1143,7 +1143,7 @@ export function WorkItemsList({
               <p
                 role="alert"
                 data-testid="error-de-orden"
-                className="mb-2 rounded border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200"
+                className="mb-2 rounded border border-aviso-borde bg-aviso-fondo px-3 py-2 text-xs text-aviso-tinta"
               >
                 {errorDeOrden}
               </p>

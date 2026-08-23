@@ -132,7 +132,7 @@ export function DependencyEditor({
       </header>
 
       {error ? (
-        <div role="alert" className="rounded-md border border-red-900/40 bg-red-950/20 px-3 py-2 text-sm text-red-300">
+        <div role="alert" className="rounded-md border border-grave-borde bg-grave-fondo px-3 py-2 text-sm text-grave-tinta">
           {error}
         </div>
       ) : null}
