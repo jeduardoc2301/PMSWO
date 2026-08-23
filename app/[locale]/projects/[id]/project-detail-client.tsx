@@ -92,7 +92,7 @@ const TABS: readonly { readonly value: string; readonly label: string }[] = [
 ]
 
 // Reusable dark metric card
-function DarkCard({ title, value, valueColor = '#fff', subtitle, accentColor }: {
+function DarkCard({ title, value, valueColor = 'var(--tinta)', subtitle, accentColor }: {
   title: string; value: string | number; valueColor?: string; subtitle?: string; accentColor?: string
 }) {
   return (
@@ -919,17 +919,17 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         {metrics && (
           <div className="grid grid-cols-4 gap-4">
             <DarkCard title={t('completionRate')} value={completionTexto}
-              valueColor={completionPct >= 70 ? '#10b981' : completionPct >= 40 ? '#f59e0b' : '#ef4444'}
+              valueColor={completionPct >= 70 ? 'var(--bien)' : completionPct >= 40 ? 'var(--aviso)' : 'var(--grave-tinta)'}
               subtitle={
                 metricasDelPanel
                   ? `${Math.round(metricasDelPanel.proyecto.progresoGlobal * metricasDelPanel.tareas.hojas)} de ${metricasDelPanel.tareas.hojas} completados`
                   : `${metrics.completedWorkItems} de ${metrics.totalWorkItems} completados`
               } />
             <DarkCard title={t('activeBlockers')} value={metrics.activeBlockers}
-              valueColor={metrics.activeBlockers === 0 ? '#10b981' : '#f97316'}
+              valueColor={metrics.activeBlockers === 0 ? 'var(--bien)' : 'var(--prioridad-alta)'}
               subtitle={metrics.activeBlockers > 0 ? t('critical') : t('none')} />
             <DarkCard title={t('risks')} value={metrics.highPriorityRisks}
-              valueColor={metrics.highPriorityRisks === 0 ? '#10b981' : '#f59e0b'}
+              valueColor={metrics.highPriorityRisks === 0 ? 'var(--bien)' : 'var(--aviso)'}
               subtitle={t('highPriority')} />
             <DarkCard title={t('averageBlockerResolutionTime')}
               value={`${Math.round(metrics.averageBlockerResolutionTimeHours)}h`}

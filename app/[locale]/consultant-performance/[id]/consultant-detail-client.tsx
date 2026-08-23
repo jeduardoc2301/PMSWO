@@ -103,7 +103,7 @@ function MetricCard({ title, value, subtitle, variant = 'default', icon }: {
   title: string; value: string | number; subtitle?: string
   variant?: 'default' | 'success' | 'warning' | 'danger'; icon?: React.ReactNode
 }) {
-  const valueColor = { default: '#fff', success: '#10b981', warning: '#f59e0b', danger: '#ef4444' }[variant]
+  const valueColor = { default: 'var(--tinta)', success: 'var(--bien)', warning: 'var(--aviso)', danger: 'var(--grave-tinta)' }[variant]
   return (
     <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
       <div className="flex items-center justify-between mb-3">

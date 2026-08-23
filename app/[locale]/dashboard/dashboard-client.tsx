@@ -63,7 +63,7 @@ interface KpiPanelData {
 function KpiPanel({ data, locale, onClose }: { data: KpiPanelData; locale: string; onClose: () => void }) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const toneColor = {
-    indigo: 'var(--acento)', rose: '#f43f5e', emerald: '#10b981', amber: '#f59e0b',
+    indigo: 'var(--acento-tinta)', rose: 'var(--chip-rosa)', emerald: 'var(--bien)', amber: 'var(--aviso)',
   }[data.tone]
 
   useEffect(() => {
