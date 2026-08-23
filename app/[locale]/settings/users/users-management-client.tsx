@@ -333,8 +333,8 @@ export function UsersManagementClient() {
 
         {canCreateUsers && (
           <button onClick={() => setCreateDialogOpen(true)}
-            className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90 flex-shrink-0"
-            style={{ background: 'var(--acento)' }}>
+            className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-sobre-acento transition-all hover:opacity-90 flex-shrink-0"
+            style={{ background: 'var(--acento-relleno)' }}>
             <UserPlus size={13} /> {t('createUser')}
           </button>
         )}
@@ -514,8 +514,8 @@ export function UsersManagementClient() {
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{tCommon('cancel')}</button>
               <button type="submit" disabled={submitting || formData.roles.length === 0}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: 'var(--acento)' }}>
+                className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? `${tCommon('save')}...` : tCommon('save')}
               </button>
             </DialogFooter>
@@ -602,8 +602,8 @@ export function UsersManagementClient() {
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{tCommon('cancel')}</button>
               <button type="submit" disabled={submitting || createFormData.roles.length === 0}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: 'var(--acento)' }}>
+                className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? `${tCommon('create')}...` : tCommon('create')}
               </button>
             </DialogFooter>

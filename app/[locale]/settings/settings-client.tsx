@@ -134,8 +134,8 @@ export function SettingsClient({ locale }: SettingsClientProps) {
         )}
 
         <button onClick={handleSave} disabled={isLoading || selectedLocale === locale}
-          className="h-9 px-5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-          style={{ background: 'var(--acento)' }}>
+          className="h-9 px-5 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+          style={{ background: 'var(--acento-relleno)' }}>
           {isLoading ? `${t('common.save')}...` : t('common.save')}
         </button>
       </div>

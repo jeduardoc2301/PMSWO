@@ -266,7 +266,7 @@ export function FinalPreviewStep({
                     <button
                       type="button"
                       onClick={() => togglePhase(phaseName)}
-                      className="flex-shrink-0 w-8 h-8 rounded-full bg-acento text-white flex items-center justify-center hover:bg-[#5254cc] transition-colors"
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-acento-relleno text-sobre-acento flex items-center justify-center hover:bg-[#5254cc] transition-colors"
                     >
                       {isExpanded ? (
                         <ChevronDown className="h-4 w-4" />

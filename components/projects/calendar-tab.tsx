@@ -480,7 +480,7 @@ export function CalendarTab({
               type="button"
               disabled={aplicando}
               onClick={() => void aplicarMovimiento()}
-              className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+              className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
             >
               {aplicando ? 'Aplicando...' : 'Aplicar'}
             </button>

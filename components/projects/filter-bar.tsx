@@ -243,7 +243,7 @@ export function FilterBar({
                     aria-pressed={filtro.op === op}
                     onClick={() => onCambiar({ ...filtro, op })}
                     className={`rounded px-2 py-0.5 text-xs ${
-                      filtro.op === op ? 'bg-acento text-white' : 'text-tinta-2 hover:bg-superficie-3'
+                      filtro.op === op ? 'bg-acento-relleno text-sobre-acento' : 'text-tinta-2 hover:bg-superficie-3'
                     }`}
                   >
                     {op === 'AND' ? 'todas' : 'alguna'}
@@ -279,7 +279,7 @@ export function FilterBar({
                         aria-pressed={grupo.op === op}
                         onClick={() => rehacer(sueltas, { ...grupo, op })}
                         className={`rounded px-2 py-0.5 text-xs ${
-                          grupo.op === op ? 'bg-acento text-white' : 'text-tinta-2 hover:bg-superficie-3'
+                          grupo.op === op ? 'bg-acento-relleno text-sobre-acento' : 'text-tinta-2 hover:bg-superficie-3'
                         }`}
                       >
                         {op === 'AND' ? 'todas' : 'alguna'}
@@ -371,7 +371,7 @@ export function FilterBar({
                     setNombreNuevo('')
                     setCompartir(false)
                   }}
-                  className="shrink-0 rounded bg-acento px-2.5 py-1 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+                  className="shrink-0 rounded bg-acento-relleno px-2.5 py-1 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-40"
                 >
                   Guardar
                 </button>

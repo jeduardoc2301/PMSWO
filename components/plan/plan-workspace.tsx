@@ -1195,7 +1195,7 @@ export function PlanWorkspace({
                     type="button"
                     disabled={aplicando}
                     onClick={() => void aplicarMovimiento()}
-                    className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                    className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
                   >
                     {aplicando ? 'Aplicando...' : 'Aplicar'}
                   </button>
@@ -1344,7 +1344,7 @@ export function PlanWorkspace({
                 type="button"
                 disabled={alcance.sobreLasQueOperar.length === 0 || enCurso !== null}
                 onClick={() => void sangrarEnLote(true)}
-                className="rounded bg-acento px-2 py-1 font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+                className="rounded bg-acento-relleno px-2 py-1 font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-40"
               >
                 Sangrar
               </button>
@@ -1406,7 +1406,7 @@ export function PlanWorkspace({
                   type="button"
                   disabled={escribiendoDuracion}
                   onClick={() => void escribirDuracion()}
-                  className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                  className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
                 >
                   {escribiendoDuracion ? 'Aplicando...' : 'Aplicar'}
                 </button>
@@ -1437,7 +1437,7 @@ export function PlanWorkspace({
                   type="button"
                   disabled={escribiendoVinculo}
                   onClick={() => void escribirVinculo()}
-                  className="rounded-lg bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+                  className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
                 >
                   {escribiendoVinculo ? 'Creando...' : 'Crear el vínculo'}
                 </button>

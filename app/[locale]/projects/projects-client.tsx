@@ -359,8 +359,8 @@ export function ProjectsPageClient() {
         </div>
         {canCreateProject && (
           <a href={`/${locale}/projects/new`}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: 'var(--acento)' }}>
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+            style={{ background: 'var(--acento-relleno)' }}>
             <Plus size={16} /> Nuevo proyecto
           </a>
         )}
@@ -466,8 +466,8 @@ export function ProjectsPageClient() {
             </div>
             {canCreateProject && (
               <a href={`/${locale}/projects/new`}
-                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-lg text-sm font-medium text-white"
-                style={{ background: 'var(--acento)' }}>
+                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-lg text-sm font-medium text-sobre-acento"
+                style={{ background: 'var(--acento-relleno)' }}>
                 <Plus size={16} /> Nuevo proyecto
               </a>
             )}

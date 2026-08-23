@@ -126,8 +126,8 @@ export function TemplateCard({ template, onView, onEdit, onDelete, onSelect, isS
           {onView && (
             <button
               onClick={(e) => { e.stopPropagation(); onView(template.id) }}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
-              style={{ background: 'var(--acento)' }}>
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-sobre-acento transition-all hover:opacity-90"
+              style={{ background: 'var(--acento-relleno)' }}>
               Ver plantilla
             </button>
           )}

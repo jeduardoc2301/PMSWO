@@ -116,7 +116,7 @@ export function BaselinePicker({
                   type="button"
                   disabled={creando || nombreNuevo.trim() === ''}
                   onClick={crear}
-                  className="shrink-0 rounded bg-acento px-2.5 py-1 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+                  className="shrink-0 rounded bg-acento-relleno px-2.5 py-1 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-40"
                 >
                   {creando ? 'Tomando...' : 'Crear'}
                 </button>

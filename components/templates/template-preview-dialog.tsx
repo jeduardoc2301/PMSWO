@@ -210,7 +210,7 @@ export function TemplatePreviewDialog({ open, onOpenChange, templateId }: Templa
                           <button
                             type="button"
                             onClick={() => togglePhase(phase.id)}
-                            className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-acento hover:bg-[#5254cc] text-white transition-colors flex-shrink-0 mt-0.5"
+                            className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-acento-relleno hover:bg-[#5254cc] text-sobre-acento transition-colors flex-shrink-0 mt-0.5"
                           >
                             {isPhaseExpanded ? (
                               <ChevronDown className="w-4 h-4" />

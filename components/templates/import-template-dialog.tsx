@@ -294,8 +294,8 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
             type="button"
             onClick={handleImport}
             disabled={!parsed || !categoryId || submitting}
-            className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'var(--acento)' }}>
+            className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'var(--acento-relleno)' }}>
             {submitting ? 'Importando...' : 'Importar plantilla'}
           </button>
         </DialogFooter>

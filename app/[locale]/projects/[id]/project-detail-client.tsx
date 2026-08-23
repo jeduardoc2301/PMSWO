@@ -831,8 +831,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             onAdjustDates={handleAdjustDatesFromAI} onCreateRisk={handleCreateRiskFromAI} />
           <AIReportDialog projectId={projectId} />
           <button onClick={() => router.push(`/${locale}/projects/${projectId}/edit`)}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: 'var(--acento)' }}>
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+            style={{ background: 'var(--acento-relleno)' }}>
             <Pencil size={14} /> {t('editProject')}
           </button>
           {canArchive && !project.archived && (
@@ -1120,7 +1120,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                         sub: t('tacticalDashboard.labels.lastSevenDays'),
                       },
                       {
-                        title: t('tacticalDashboard.questions.upcomingTasks'), color: 'var(--acento)',
+                        title: t('tacticalDashboard.questions.upcomingTasks'), color: 'var(--acento-tinta)',
                         value: tacticalMetrics?.upcomingTasks ?? 0,
                         badge: (tacticalMetrics?.upcomingTasks ?? 0) === 0 ? t('tacticalDashboard.status.nothingUpcoming') : (tacticalMetrics?.upcomingTasks ?? 0) <= 5 ? t('tacticalDashboard.status.fewUpcoming') : t('tacticalDashboard.status.manyUpcoming'),
                         ok: true,

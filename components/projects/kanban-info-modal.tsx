@@ -128,7 +128,7 @@ const STATES = [
     id: 'stale',
     icon: Hourglass,
     label: 'Estancada',
-    color: 'var(--acento)',
+    color: 'var(--acento-tinta)',
     rule: 'Lleva más de 7 días en la misma columna sin moverse.',
     detail: 'Patrón de líneas diagonales sutiles + píldora indigo "Nd sin mover". No es crítica, pero alguien debería revisarla.',
     sample: { title: 'Documento de gobierno de datos', priority: 'LOW', urgency: 'stale' as const, daysStale: 9 },

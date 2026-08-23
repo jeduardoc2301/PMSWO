@@ -298,7 +298,7 @@ export function WorkloadTab({ projectId, barraDeFiltro, idsVisibles }: WorkloadT
           type="button"
           disabled={sembrando}
           onClick={() => void sembrar()}
-          className="mt-4 rounded-lg bg-acento px-4 py-2 text-sm font-medium text-white hover:bg-[#5457e5] disabled:opacity-50"
+          className="mt-4 rounded-lg bg-acento-relleno px-4 py-2 text-sm font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
         >
           {sembrando ? 'Creando asignaciones...' : 'Crear las asignaciones desde el plan'}
         </button>

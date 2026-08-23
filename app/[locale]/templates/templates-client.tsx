@@ -47,8 +47,8 @@ export function TemplatesClient() {
           </button>
           <button
             onClick={() => setCreateDialogOpen(true)}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: 'var(--acento)' }}>
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+            style={{ background: 'var(--acento-relleno)' }}>
             <Plus size={16} /> Nueva plantilla
           </button>
         </div>
@@ -96,8 +96,8 @@ export function TemplatesClient() {
             </div>
           </div>
           <button
-            className="flex-shrink-0 px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: 'var(--acento)' }}>
+            className="flex-shrink-0 px-5 py-2.5 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+            style={{ background: 'var(--acento-relleno)' }}>
             Generar plantilla con IA
           </button>
         </div>

@@ -150,8 +150,8 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
           <span className="text-sm"><span className="font-bold text-emerald-400">{completedAgreements.length}</span> <span className="text-tinta-3">{t('completedAgreements')}</span></span>
         </div>
         <button onClick={() => setShowCreateDialog(true)}
-          className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: 'var(--acento)' }}>
+          className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+          style={{ background: 'var(--acento-relleno)' }}>
           <Plus size={14} /> {t('createAgreement')}
         </button>
       </div>
@@ -190,8 +190,8 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                         <FileText size={12} /> {t('addProgressNote')}
                       </button>
                       <button onClick={() => handleCompleteAgreement(agreement.id)}
-                        className="h-8 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
-                        style={{ background: 'var(--acento)' }}>
+                        className="h-8 px-3 rounded-lg text-xs font-medium text-sobre-acento transition-all hover:opacity-90"
+                        style={{ background: 'var(--acento-relleno)' }}>
                         {t('completeAgreement')}
                       </button>
                     </div>
@@ -291,8 +291,8 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: 'var(--acento)' }}>
+                className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? t('creating') : t('createAgreement')}
               </button>
             </DialogFooter>
@@ -324,8 +324,8 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: 'var(--acento)' }}>
+                className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? t('linking') : t('linkWorkItem')}
               </button>
             </DialogFooter>
@@ -352,8 +352,8 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: 'var(--acento)' }}>
+                className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? t('adding') : t('addProgressNote')}
               </button>
             </DialogFooter>

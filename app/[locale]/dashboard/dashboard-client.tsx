@@ -513,8 +513,8 @@ export function DashboardClient() {
           <span className="text-sm text-tinta-3">Esto es lo que necesita tu atención hoy.</span>
         </div>
         <a href={`/${locale}/projects/new`}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: 'var(--acento)' }}>
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+          style={{ background: 'var(--acento-relleno)' }}>
           + Nuevo proyecto
         </a>
       </div>
@@ -566,7 +566,7 @@ export function DashboardClient() {
                   { label: 'A tiempo',    color: '#10b981', n: aTiempo },
                   { label: 'En riesgo',   color: '#f59e0b', n: enRiesgo },
                   { label: 'Crítico',     color: '#ef4444', n: critico },
-                  { label: 'Sin alertas', color: 'var(--acento)', n: sinAlerta },
+                  { label: 'Sin alertas', color: 'var(--acento-tinta)', n: sinAlerta },
                 ].map((s) => (
                   <div key={s.label} className="flex items-center gap-1.5">
                     <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
@@ -582,7 +582,7 @@ export function DashboardClient() {
                     { label: 'A tiempo',    color: '#10b981', value: aTiempo },
                     { label: 'En riesgo',   color: '#f59e0b', value: enRiesgo },
                     { label: 'Crítico',     color: '#ef4444', value: critico },
-                    { label: 'Sin alertas', color: 'var(--acento)', value: sinAlerta },
+                    { label: 'Sin alertas', color: 'var(--acento-tinta)', value: sinAlerta },
                   ]}
                 />
                 <span className="text-[10px] text-tinta-3 mt-1">Distribución de estatus</span>

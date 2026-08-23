@@ -1073,8 +1073,8 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
             </div>
           )}
           <button onClick={() => setCreateDialogOpen(true)}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-            style={{ background: 'var(--acento)' }}>
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+            style={{ background: 'var(--acento-relleno)' }}>
             <Plus size={14} /> {t('createWorkItem')}
           </button>
           <button onClick={() => setShowInfo(true)}

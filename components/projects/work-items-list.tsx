@@ -935,7 +935,7 @@ export function WorkItemsList({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tinta-2)' }}>{t('filterByStatus', { defaultValue: 'Estado' })}</span>
                   {statusFilters.length > 0 && (
-                    <button onClick={() => setStatusFilters([])} style={{ fontSize: 11, color: 'var(--acento)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => setStatusFilters([])} style={{ fontSize: 11, color: 'var(--acento-tinta)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {t('clearFilters', { defaultValue: 'Limpiar' })}
                     </button>
                   )}
@@ -974,7 +974,7 @@ export function WorkItemsList({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 8px' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--tinta-2)' }}>{t('filterByPriority', { defaultValue: 'Prioridad' })}</span>
                   {priorityFilters.length > 0 && (
-                    <button onClick={() => setPriorityFilters([])} style={{ fontSize: 11, color: 'var(--acento)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                    <button onClick={() => setPriorityFilters([])} style={{ fontSize: 11, color: 'var(--acento-tinta)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                       {t('clearFilters', { defaultValue: 'Limpiar' })}
                     </button>
                   )}
@@ -1008,7 +1008,7 @@ export function WorkItemsList({
           )}
           <button
             onClick={() => setCreateDialogOpen(true)}
-            style={{ background: 'var(--acento)', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ background: 'var(--acento-relleno)', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
             className="hover:bg-indigo-500 transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -1059,7 +1059,7 @@ export function WorkItemsList({
                       </div>
                       <div style={{ textAlign: 'left' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {!isNoPhase && <Layers className="h-4 w-4" style={{ color: 'var(--acento)' }} />}
+                          {!isNoPhase && <Layers className="h-4 w-4" style={{ color: 'var(--acento-tinta)' }} />}
                           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--tinta)' }}>{displayName}</span>
                         </div>
                         <span style={{ fontSize: 12, color: 'var(--tinta-3)' }}>

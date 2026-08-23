@@ -157,8 +157,8 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
           {highRisks.length > 0 && <span className="text-sm"><span className="font-bold text-amber-400">{highRisks.length}</span> <span className="text-tinta-3">{t('highRisks')}</span></span>}
         </div>
         <button onClick={() => setShowCreateDialog(true)}
-          className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: 'var(--acento)' }}>
+          className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+          style={{ background: 'var(--acento-relleno)' }}>
           <Plus size={14} /> {t('createRisk')}
         </button>
       </div>
@@ -233,8 +233,8 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
                       {t('convertToBlocker')}
                     </button>
                     <button onClick={() => { setSelectedRisk(risk); setShowCloseDialog(true) }}
-                      className="h-8 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
-                      style={{ background: 'var(--acento)' }}>
+                      className="h-8 px-3 rounded-lg text-xs font-medium text-sobre-acento transition-all hover:opacity-90"
+                      style={{ background: 'var(--acento-relleno)' }}>
                       {t('closeRisk')}
                     </button>
                   </div>
@@ -324,8 +324,8 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: 'var(--acento)' }}>
+                className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? t('creating') : t('createRisk')}
               </button>
             </DialogFooter>
@@ -352,8 +352,8 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ background: 'var(--acento)' }}>
+                className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
+                style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? t('closing') : t('closeRisk')}
               </button>
             </DialogFooter>

@@ -301,7 +301,7 @@ export function WorkloadView({
               aria-pressed={modo === clave}
               onClick={() => setModo(clave)}
               className={`rounded-md px-3 py-1 text-sm ${
-                modo === clave ? 'bg-acento text-white' : 'text-tinta-2 hover:bg-superficie-3'
+                modo === clave ? 'bg-acento-relleno text-sobre-acento' : 'text-tinta-2 hover:bg-superficie-3'
               }`}
             >
               {rotulo}

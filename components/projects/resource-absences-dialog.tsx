@@ -169,7 +169,7 @@ export function ResourceAbsencesDialog({
             type="button"
             disabled={guardando || desde === ''}
             onClick={() => void guardar()}
-            className="rounded bg-acento px-3 py-1.5 text-xs font-medium text-white hover:bg-[#5457e5] disabled:opacity-40"
+            className="rounded bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-40"
           >
             {guardando ? 'Guardando...' : 'Añadir'}
           </button>

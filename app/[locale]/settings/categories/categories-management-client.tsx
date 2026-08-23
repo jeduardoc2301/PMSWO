@@ -46,8 +46,8 @@ export function CategoriesManagementClient() {
           <p className="text-xs text-tinta-3 mt-0.5">{t('description')}</p>
         </div>
         <button onClick={() => setCreateDialogOpen(true)}
-          className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
-          style={{ background: 'var(--acento)' }}>
+          className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs font-medium text-sobre-acento transition-all hover:opacity-90"
+          style={{ background: 'var(--acento-relleno)' }}>
           <Plus size={13} /> {t('createCategory')}
         </button>
       </div>

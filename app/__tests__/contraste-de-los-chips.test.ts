@@ -495,3 +495,34 @@ describe('Los mapas de insignias de las demás vistas se leen en los dos temas',
     }
   }
 })
+
+/**
+ * Nadie rellena un botón con el acento de TEXTO.
+ *
+ * `--acento` y `--acento-relleno` existen los dos y se parecen; el primero es para escribir y el
+ * segundo para rellenar. Usar el de texto como fondo daba 4,47:1 con blanco encima en oscuro —bajo
+ * AA por poco, que es la forma en que estas cosas sobreviven años—. Diecisiete botones lo hacían.
+ *
+ * Esto no lo caza una prueba de valores: los dos tokens están bien cada uno por su lado.
+ */
+it('ningún botón rellena con el acento de texto', () => {
+  const sospechosas: string[] = []
+  for (const ruta of [
+    ['components', 'plan', 'plan-workspace.tsx'],
+    ['components', 'projects', 'filter-bar.tsx'],
+    ['components', 'projects', 'baseline-picker.tsx'],
+    ['components', 'projects', 'workload-view.tsx'],
+    ['components', 'templates', 'phase-manager.tsx'],
+  ]) {
+    const texto = readFileSync(join(process.cwd(), ...ruta), 'utf8')
+    for (const l of texto.split(String.fromCharCode(10))) {
+      if (l.indexOf('text-white') < 0) continue
+      const i = l.indexOf('bg-acento')
+      if (i < 0) continue
+      const siguiente = l.charAt(i + 'bg-acento'.length)
+      const esSuelto = siguiente === '' || 'abcdefghijklmnopqrstuvwxyz-'.indexOf(siguiente) < 0
+      if (esSuelto) sospechosas.push(`${ruta[ruta.length - 1]}: ${l.trim().slice(0, 60)}`)
+    }
+  }
+  expect(sospechosas).toEqual([])
+})
