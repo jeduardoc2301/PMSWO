@@ -8160,3 +8160,52 @@ salta los elementos con degradado por encima.
 
 Un falso positivo que se descarta a mano cada vez no es inofensivo: **enseña a mirar la lista con
 desconfianza**, y el día que aparezca uno de verdad al lado, se va con él.
+
+---
+
+## Tanda 104 · Cero fallos de contraste, las seis vistas, los dos temas
+
+```
+=== TEMA CLARO ===          === TEMA OSCURO ===
+Resumen        sin fallos   Resumen        sin fallos
+Tablero Kanban sin fallos   Tablero Kanban sin fallos
+Elementos      sin fallos   Elementos      sin fallos
+Timeline       sin fallos   Timeline       sin fallos
+Calendario     sin fallos   Calendario     sin fallos
+Carga          sin fallos   Carga          sin fallos
+```
+
+De dónde se venía, todo medido en pantalla:
+
+| lo que estaba roto | medía |
+|---|---|
+| los títulos de las tarjetas urgentes del Tablero | **1,00:1** — invisibles |
+| los paneles que dicen qué va a cambiar el plan (`role="alertdialog"`) | **1,02:1** |
+| el botón de salir de la página de error, la única salida | blanco sobre blanco |
+| 58 rótulos de formulario en zinc-200 | 1,05–1,2:1 |
+| el «Eliminar» del menú contextual, en reposo | 1,9:1 |
+| 82 `text-white` sobre superficies temáticas | 1,00:1 |
+
+### Lo que hizo falta para llegar aquí
+
+- **Dos auditorías de código en paralelo.** El barrido en pantalla sólo ve lo pintado en las páginas
+  que uno visita: los rótulos de formulario viven en diálogos y el botón de error en una página a la
+  que hay que llegar. 323 hallazgos y 168 `text-white` clasificados uno a uno.
+- **Nunca un reemplazo global.** De los 168 `text-white`, **84 eran correctos** —van sobre relleno de
+  color— y un `sed` los habría roto todos en oscuro.
+- **Vocabulario antes que colores.** La mitad de los defectos no eran colores feos sino **tokens
+  buenos mal emparejados**: `--acento` (de texto) rellenando y `--acento-relleno` escribiendo, la
+  tinta de la página encima de un relleno, el color de una serie como tinta de su rótulo. Eso no lo
+  ve una prueba de valores, porque cada token está bien por su lado.
+- **Faltaba una palabra.** No existía token de *fondo* de alerta, sólo de tinta, así que la pareja no
+  se podía expresar y cada sitio se la inventaba. Por eso el panel llevaba años a 1,02:1.
+- **El instrumento mintió tres veces**: tratando un fondo translúcido como opaco, leyendo prosa como
+  código, y tomando `'none'` por un color. Regla que salió de ahí: **un fallo en los dos temas es
+  sospechoso del instrumento; uno sólo en claro es del código.**
+
+### Lo que queda vigilado
+
+`app/__tests__/contraste-de-los-chips.test.ts` pasó de 0 a **~250 casos**: lee el CSS y el TSX de
+verdad, barre archivos enteros buscando pares fondo+tinta, cruza las tres tintas con las cuatro
+superficies en los dos temas, y vigila **emparejamientos** además de valores. Todas validadas
+rompiéndolas.
