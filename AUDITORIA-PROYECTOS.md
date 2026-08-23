@@ -8084,3 +8084,28 @@ menú (`main-nav.tsx:196`, ya señalado en A3 a 2,5:1) y el día seleccionado de
 es su propio par fondo+tinta y hay que mirarlos de uno en uno.
 
 **Siguiente:** A3, los ~45 mapas de pastillas. El peor, `projects-client.tsx:245` a 1,05:1.
+
+### Tanda 103c · A3 cerrado, y la prueba encontró defectos anteriores
+
+41 tintas en 10 archivos. `SEV_STYLE` de los bloqueadores era **idéntico** al `PRIORITY_BADGE` del
+Tablero: los mismos cuatro colores con los mismos tintes, copiados. Había una docena de mapas así.
+
+La conversión es segura por construcción —cada literal tiene un token con el mismo valor en oscuro—
+y sólo toca los que aparecen como `color:` en un objeto de estilo, donde son tinta siempre.
+
+**Lo que enseñó extender la prueba.** El barrido de pares vigilaba sólo el Tablero; al aplicarlo a
+los otros ocho archivos dio **22 fallos**. De ésos, **18 eran el instrumento**: trataba `'none'` y
+`var(--superficie)` como si fueran rgba. Tercera vez en la noche que el instrumento inventa defectos.
+
+Los 4 que sobrevivieron fallaban **sólo en claro**, que es la firma de un defecto de verdad: eran
+`var(--aviso)` sobre su propio tinte ámbar al 15 %, y son **anteriores** a este cambio — alguien
+había migrado esos archivos a medias. `--aviso` en claro (#b45309) cumple sobre superficie plana pero
+no sobre ámbar. Pasan al tono de insignia; `--aviso` no se toca en global, que donde se usa plano
+está bien.
+
+La regla que sale de esto: **un fallo en los dos temas es sospechoso del instrumento; uno sólo en
+claro es del código.** Sirve para ordenar qué mirar primero.
+
+**Queda:** los acentos de widgets y tarjetas de pregunta (tinta de números de 24-30 px, exigen 3:1),
+los botones que rellenan con `bg-acento` en vez de `bg-acento-relleno`, los 7 `bg-*-950/*` que no son
+cajas (hovers destructivos, `main-nav.tsx:196` a 2,5:1, el día elegido del calendario).
