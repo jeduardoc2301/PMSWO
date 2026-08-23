@@ -308,7 +308,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                 {todayPct >= 0 && todayPct <= 100 && (
                   <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${todayPct}%`, width: 0 }}>
                     <div className="absolute text-[10px] font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded-full"
-                      style={{ top: 6, left: -24, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', whiteSpace: 'nowrap' }}>
+                      style={{ top: 6, left: -24, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--prioridad-critica)', whiteSpace: 'nowrap' }}>
                       <CircleDot size={9} /> Hoy
                     </div>
                   </div>

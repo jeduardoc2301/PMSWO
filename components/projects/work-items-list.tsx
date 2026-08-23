@@ -61,15 +61,15 @@ import React from 'react'
 const STATUS_STYLE: Record<WorkItemStatus, React.CSSProperties> = {
   [WorkItemStatus.BACKLOG]: { background: 'rgba(113,113,122,0.2)', color: 'var(--tinta-2)', border: '1px solid rgba(113,113,122,0.35)' },
   [WorkItemStatus.TODO]: { background: 'rgba(99,102,241,0.15)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' },
-  [WorkItemStatus.IN_PROGRESS]: { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(245,158,11,0.3)' },
-  [WorkItemStatus.BLOCKED]: { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' },
-  [WorkItemStatus.DONE]: { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' },
+  [WorkItemStatus.IN_PROGRESS]: { background: 'rgba(245,158,11,0.15)', color: 'var(--chip-ambar)', border: '1px solid rgba(245,158,11,0.3)' },
+  [WorkItemStatus.BLOCKED]: { background: 'rgba(239,68,68,0.15)', color: 'var(--grave-tinta)', border: '1px solid rgba(239,68,68,0.3)' },
+  [WorkItemStatus.DONE]: { background: 'rgba(16,185,129,0.15)', color: 'var(--chip-verde)', border: '1px solid rgba(16,185,129,0.3)' },
 }
 
 const PRIORITY_STYLE: Record<WorkItemPriority, React.CSSProperties> = {
-  [WorkItemPriority.CRITICAL]: { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' },
-  [WorkItemPriority.HIGH]: { background: 'rgba(249,115,22,0.15)', color: '#fb923c', border: '1px solid rgba(249,115,22,0.3)' },
-  [WorkItemPriority.MEDIUM]: { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(245,158,11,0.3)' },
+  [WorkItemPriority.CRITICAL]: { background: 'rgba(239,68,68,0.15)', color: 'var(--grave-tinta)', border: '1px solid rgba(239,68,68,0.3)' },
+  [WorkItemPriority.HIGH]: { background: 'rgba(249,115,22,0.15)', color: 'var(--prioridad-alta)', border: '1px solid rgba(249,115,22,0.3)' },
+  [WorkItemPriority.MEDIUM]: { background: 'rgba(245,158,11,0.15)', color: 'var(--chip-ambar)', border: '1px solid rgba(245,158,11,0.3)' },
   [WorkItemPriority.LOW]: { background: 'rgba(99,102,241,0.15)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' },
 }
 
@@ -1070,7 +1070,7 @@ export function WorkItemsList({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 11, color: 'var(--tinta-3)' }}>Completados</div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#34d399' }}>{doneCount}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--chip-verde)' }}>{doneCount}</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 11, color: 'var(--tinta-3)' }}>En Progreso</div>

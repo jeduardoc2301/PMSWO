@@ -19,10 +19,10 @@ interface User {
 }
 
 const ROLE_COLOR: Record<string, { bg: string; color: string; border: string }> = {
-  ADMIN:               { bg: 'rgba(167,139,250,0.12)', color: '#c4b5fd', border: 'rgba(167,139,250,0.3)' },
+  ADMIN:               { bg: 'rgba(167,139,250,0.12)', color: 'var(--pastilla-plan-violeta)', border: 'rgba(167,139,250,0.3)' },
   EXECUTIVE:           { bg: 'rgba(14,165,233,0.12)',  color: '#7dd3fc', border: 'rgba(14,165,233,0.3)'  },
-  PROJECT_MANAGER:     { bg: 'rgba(16,185,129,0.12)',  color: '#6ee7b7', border: 'rgba(16,185,129,0.3)'  },
-  INTERNAL_CONSULTANT: { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)'  },
+  PROJECT_MANAGER:     { bg: 'rgba(16,185,129,0.12)',  color: 'var(--pastilla-activo)', border: 'rgba(16,185,129,0.3)'  },
+  INTERNAL_CONSULTANT: { bg: 'rgba(245,158,11,0.12)',  color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)'  },
   EXTERNAL_CONSULTANT: { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)' },
 }
 
@@ -390,8 +390,8 @@ export function UsersManagementClient() {
               <td className="px-5 py-3.5">
                 <span className="text-[11px] px-2 py-1 rounded-full font-medium"
                   style={user.active
-                    ? { background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.3)' }
-                    : { background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}>
+                    ? { background: 'rgba(16,185,129,0.12)', color: 'var(--pastilla-activo)', border: '1px solid rgba(16,185,129,0.3)' }
+                    : { background: 'rgba(239,68,68,0.12)', color: 'var(--prioridad-critica)', border: '1px solid rgba(239,68,68,0.3)' }}>
                   {user.active ? t('active') : t('inactive')}
                 </span>
               </td>

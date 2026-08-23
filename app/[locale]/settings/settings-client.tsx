@@ -127,8 +127,8 @@ export function SettingsClient({ locale }: SettingsClientProps) {
         {message && (
           <div className="rounded-lg p-3 text-sm mb-4"
             style={message.type === 'success'
-              ? { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7' }
-              : { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
+              ? { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--pastilla-activo)' }
+              : { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--prioridad-critica)' }}>
             {message.text}
           </div>
         )}

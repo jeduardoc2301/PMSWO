@@ -656,7 +656,7 @@ export function DashboardClient() {
 
             <a href={`/${locale}/projects`}
               className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium transition-all"
-              style={{ border: '1px solid rgba(167,139,250,0.3)', color: '#c4b5fd', background: 'rgba(167,139,250,0.06)' }}>
+              style={{ border: '1px solid rgba(167,139,250,0.3)', color: 'var(--pastilla-plan-violeta)', background: 'rgba(167,139,250,0.06)' }}>
               Explorar proyectos
               <ArrowRight size={12} />
             </a>

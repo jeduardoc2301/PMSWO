@@ -25,10 +25,10 @@ interface BlockersTabProps {
 }
 
 const SEV_STYLE: Record<BlockerSeverity, { bg: string; color: string; border: string }> = {
-  [BlockerSeverity.CRITICAL]: { bg: 'rgba(239,68,68,0.12)',  color: '#fca5a5', border: 'rgba(239,68,68,0.3)'  },
-  [BlockerSeverity.HIGH]:     { bg: 'rgba(249,115,22,0.12)', color: '#fdba74', border: 'rgba(249,115,22,0.3)' },
-  [BlockerSeverity.MEDIUM]:   { bg: 'rgba(245,158,11,0.12)', color: '#fcd34d', border: 'rgba(245,158,11,0.3)' },
-  [BlockerSeverity.LOW]:      { bg: 'rgba(59,130,246,0.12)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
+  [BlockerSeverity.CRITICAL]: { bg: 'rgba(239,68,68,0.12)',  color: 'var(--prioridad-critica)', border: 'rgba(239,68,68,0.3)'  },
+  [BlockerSeverity.HIGH]:     { bg: 'rgba(249,115,22,0.12)', color: 'var(--prioridad-alta)', border: 'rgba(249,115,22,0.3)' },
+  [BlockerSeverity.MEDIUM]:   { bg: 'rgba(245,158,11,0.12)', color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)' },
+  [BlockerSeverity.LOW]:      { bg: 'rgba(59,130,246,0.12)', color: 'var(--prioridad-baja)', border: 'rgba(59,130,246,0.3)' },
 }
 
 const inputStyle: React.CSSProperties = { background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta)' }
@@ -216,7 +216,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
               style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.3)' }}>
+                  style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--pastilla-activo)', border: '1px solid rgba(16,185,129,0.3)' }}>
                   <CheckCircle2 size={10} /> {t('resolved')}
                 </span>
                 <span className="flex items-center gap-1 text-xs text-tinta-3">

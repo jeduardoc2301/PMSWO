@@ -25,17 +25,17 @@ interface RisksTabProps {
 }
 
 const LEVEL_STYLE: Record<RiskLevel, { bg: string; color: string; border: string }> = {
-  [RiskLevel.CRITICAL]: { bg: 'rgba(239,68,68,0.12)',  color: '#fca5a5', border: 'rgba(239,68,68,0.3)'  },
-  [RiskLevel.HIGH]:     { bg: 'rgba(249,115,22,0.12)', color: '#fdba74', border: 'rgba(249,115,22,0.3)' },
-  [RiskLevel.MEDIUM]:   { bg: 'rgba(245,158,11,0.12)', color: '#fcd34d', border: 'rgba(245,158,11,0.3)' },
-  [RiskLevel.LOW]:      { bg: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: 'rgba(16,185,129,0.3)' },
+  [RiskLevel.CRITICAL]: { bg: 'rgba(239,68,68,0.12)',  color: 'var(--prioridad-critica)', border: 'rgba(239,68,68,0.3)'  },
+  [RiskLevel.HIGH]:     { bg: 'rgba(249,115,22,0.12)', color: 'var(--prioridad-alta)', border: 'rgba(249,115,22,0.3)' },
+  [RiskLevel.MEDIUM]:   { bg: 'rgba(245,158,11,0.12)', color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)' },
+  [RiskLevel.LOW]:      { bg: 'rgba(16,185,129,0.12)', color: 'var(--pastilla-activo)', border: 'rgba(16,185,129,0.3)' },
 }
 
 const STATUS_STYLE: Record<RiskStatus, { bg: string; color: string; border: string }> = {
-  [RiskStatus.IDENTIFIED]:  { bg: 'rgba(59,130,246,0.12)',  color: '#93c5fd', border: 'rgba(59,130,246,0.3)'  },
-  [RiskStatus.MONITORING]:  { bg: 'rgba(139,92,246,0.12)',  color: '#c4b5fd', border: 'rgba(139,92,246,0.3)'  },
-  [RiskStatus.MITIGATING]:  { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)'  },
-  [RiskStatus.MATERIALIZED]:{ bg: 'rgba(239,68,68,0.12)',   color: '#fca5a5', border: 'rgba(239,68,68,0.3)'   },
+  [RiskStatus.IDENTIFIED]:  { bg: 'rgba(59,130,246,0.12)',  color: 'var(--prioridad-baja)', border: 'rgba(59,130,246,0.3)'  },
+  [RiskStatus.MONITORING]:  { bg: 'rgba(139,92,246,0.12)',  color: 'var(--pastilla-plan-violeta)', border: 'rgba(139,92,246,0.3)'  },
+  [RiskStatus.MITIGATING]:  { bg: 'rgba(245,158,11,0.12)',  color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)'  },
+  [RiskStatus.MATERIALIZED]:{ bg: 'rgba(239,68,68,0.12)',   color: 'var(--prioridad-critica)', border: 'rgba(239,68,68,0.3)'   },
   [RiskStatus.CLOSED]:      { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)' },
 }
 

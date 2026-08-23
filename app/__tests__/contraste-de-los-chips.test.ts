@@ -275,9 +275,9 @@ const TABLERO = readFileSync(
   'utf8',
 )
 
-function paresDelTablero(): Array<{ linea: number; fondo: string; tinta: string }> {
+function paresDeArchivo(texto: string): Array<{ linea: number; fondo: string; tinta: string }> {
   const salida: Array<{ linea: number; fondo: string; tinta: string }> = []
-  const lineas = TABLERO.split(String.fromCharCode(10))
+  const lineas = texto.split(String.fromCharCode(10))
   for (let i = 0; i < lineas.length; i++) {
     const l = lineas[i]
     const c = l.indexOf("color: 'var(--")
@@ -286,6 +286,10 @@ function paresDelTablero(): Array<{ linea: number; fondo: string; tinta: string 
     const f = l.indexOf(marca)
     if (f < 0) continue
     const fondo = l.slice(f + marca.length, l.indexOf("'", f + marca.length))
+    // El fondo también puede venir por token, o no ser un color en absoluto. Tratar `'none'` o
+    // `var(--superficie)` como si fueran rgba daba 22 fallos que no existían: el instrumento
+    // inventándose defectos, no el código teniéndolos.
+    if (fondo === 'none' || fondo === 'transparent' || fondo.indexOf('gradient') >= 0) continue
     const tinta = l.slice(c + "color: '".length, l.indexOf("'", c + "color: '".length))
     salida.push({ linea: i + 1, fondo, tinta })
   }
@@ -293,7 +297,7 @@ function paresDelTablero(): Array<{ linea: number; fondo: string; tinta: string 
 }
 
 describe('Los distintivos del Tablero se leen en los dos temas', () => {
-  const pares = paresDelTablero()
+  const pares = paresDeArchivo(TABLERO)
 
 /**
  * En el Tablero ya no queda ninguna tinta escrita en crudo.
@@ -444,5 +448,50 @@ it('plan-workspace.tsx no lleva ningún color crudo', () => {
   const texto = readFileSync(join(process.cwd(), 'components', 'plan', 'plan-workspace.tsx'), 'utf8')
   for (const familia of ['amber-', 'emerald-', 'rose-', 'red-']) {
     expect(texto.indexOf(familia)).toBe(-1)
+  }
+})
+
+/**
+ * Los mismos pares, en los otros archivos que llevan mapas de insignias.
+ *
+ * `SEV_STYLE` de los bloqueadores era **idéntico** al `PRIORITY_BADGE` del Tablero: los mismos
+ * cuatro colores con los mismos tintes, copiados. Hay una docena de mapas así repartidos, y
+ * comprobar sólo el del Tablero deja los otros sin vigilancia ninguna.
+ *
+ * Se recorre cada archivo buscando pares fondo+tinta, igual que allí. Un mapa nuevo con un color
+ * crudo no aparece —el barrido sólo ve tintas por token— y para eso está el barrido de pantalla:
+ * esto vigila lo migrado, aquello encuentra lo que falta.
+ */
+const CON_INSIGNIAS = [
+  ['components', 'dashboard', 'project-list.tsx'],
+  ['components', 'projects', 'agreements-tab.tsx'],
+  ['components', 'projects', 'blockers-tab.tsx'],
+  ['components', 'projects', 'kanban-info-modal.tsx'],
+  ['components', 'projects', 'risks-tab.tsx'],
+  ['components', 'projects', 'work-items-list.tsx'],
+  ['app', '[locale]', 'settings', 'settings-client.tsx'],
+  ['app', '[locale]', 'settings', 'users', 'users-management-client.tsx'],
+] as const
+
+describe('Los mapas de insignias de las demás vistas se leen en los dos temas', () => {
+  for (const ruta of CON_INSIGNIAS) {
+    const texto = readFileSync(join(process.cwd(), ...ruta), 'utf8')
+    const pares = paresDeArchivo(texto)
+    const archivo = ruta[ruta.length - 1]
+
+    it(`${archivo} tiene pares que revisar`, () => {
+      expect(pares.length).toBeGreaterThanOrEqual(1)
+    })
+
+    for (const tema of TEMAS) {
+      const b = bloque(tema.selector)
+      const pagina = color(token(b, '--background'))
+      for (const par of pares) {
+        it(`${archivo} · ${tema.nombre} · línea ${par.linea}`, () => {
+          const fondo = sobre(resuelto(par.fondo, b), sobre(color(token(b, '--superficie')), pagina))
+          expect(contraste(resuelto(par.tinta, b), fondo)).toBeGreaterThanOrEqual(AA)
+        })
+      }
+    }
   }
 })

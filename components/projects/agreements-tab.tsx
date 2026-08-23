@@ -21,9 +21,9 @@ interface Agreement {
 interface AgreementsTabProps { projectId: string }
 
 const STATUS_STYLE: Record<AgreementStatus, { bg: string; color: string; border: string; label: string }> = {
-  [AgreementStatus.PENDING]:     { bg: 'rgba(245,158,11,0.12)',  color: '#fcd34d', border: 'rgba(245,158,11,0.3)',  label: 'pending'    },
-  [AgreementStatus.IN_PROGRESS]: { bg: 'rgba(59,130,246,0.12)',  color: '#93c5fd', border: 'rgba(59,130,246,0.3)',  label: 'inprogress' },
-  [AgreementStatus.COMPLETED]:   { bg: 'rgba(16,185,129,0.12)',  color: '#6ee7b7', border: 'rgba(16,185,129,0.3)',  label: 'completed'  },
+  [AgreementStatus.PENDING]:     { bg: 'rgba(245,158,11,0.12)',  color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)',  label: 'pending'    },
+  [AgreementStatus.IN_PROGRESS]: { bg: 'rgba(59,130,246,0.12)',  color: 'var(--prioridad-baja)', border: 'rgba(59,130,246,0.3)',  label: 'inprogress' },
+  [AgreementStatus.COMPLETED]:   { bg: 'rgba(16,185,129,0.12)',  color: 'var(--pastilla-activo)', border: 'rgba(16,185,129,0.3)',  label: 'completed'  },
   [AgreementStatus.CANCELLED]:   { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)', label: 'cancelled'  },
 }
 
@@ -248,7 +248,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
             <div key={agreement.id} className="rounded-xl p-5 opacity-60" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(16,185,129,0.12)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.3)' }}>
+                  style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--pastilla-activo)', border: '1px solid rgba(16,185,129,0.3)' }}>
                   <CheckCircle2 size={10} /> {t('status.completed')}
                 </span>
                 <span className="text-xs text-tinta-3">{new Date(agreement.agreementDate).toLocaleDateString(locale)}</span>

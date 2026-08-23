@@ -25,11 +25,11 @@ export function ProjectList({ projects }: ProjectListProps) {
   const getHealthBadgeStyle = (status: string): React.CSSProperties => {
     switch (status) {
       case 'healthy':
-        return { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
+        return { background: 'rgba(16,185,129,0.15)', color: 'var(--chip-verde)', border: '1px solid rgba(52,211,153,0.3)' }
       case 'at-risk':
-        return { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(251,191,36,0.3)' }
+        return { background: 'rgba(245,158,11,0.15)', color: 'var(--chip-ambar)', border: '1px solid rgba(251,191,36,0.3)' }
       case 'critical':
-        return { background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }
+        return { background: 'rgba(239,68,68,0.15)', color: 'var(--grave-tinta)', border: '1px solid rgba(248,113,113,0.3)' }
       default:
         return { background: 'rgba(113,113,122,0.15)', color: 'var(--tinta-2)', border: '1px solid rgba(113,113,122,0.3)' }
     }
@@ -40,11 +40,11 @@ export function ProjectList({ projects }: ProjectListProps) {
       case ProjectStatus.ACTIVE:
         return { background: 'rgba(99,102,241,0.15)', color: 'var(--acento-tinta)', border: '1px solid rgba(99,102,241,0.3)' }
       case ProjectStatus.PLANNING:
-        return { background: 'rgba(167,139,250,0.15)', color: '#c4b5fd', border: '1px solid rgba(167,139,250,0.3)' }
+        return { background: 'rgba(167,139,250,0.15)', color: 'var(--pastilla-plan-violeta)', border: '1px solid rgba(167,139,250,0.3)' }
       case ProjectStatus.ON_HOLD:
-        return { background: 'rgba(245,158,11,0.15)', color: 'var(--aviso)', border: '1px solid rgba(251,191,36,0.3)' }
+        return { background: 'rgba(245,158,11,0.15)', color: 'var(--chip-ambar)', border: '1px solid rgba(251,191,36,0.3)' }
       case ProjectStatus.COMPLETED:
-        return { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
+        return { background: 'rgba(16,185,129,0.15)', color: 'var(--chip-verde)', border: '1px solid rgba(52,211,153,0.3)' }
       default:
         return { background: 'rgba(113,113,122,0.15)', color: 'var(--tinta-2)', border: '1px solid rgba(113,113,122,0.3)' }
     }

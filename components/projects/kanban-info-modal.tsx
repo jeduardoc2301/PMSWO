@@ -16,10 +16,10 @@ const PRIORITY_BAR: Record<string, string> = {
 }
 
 const PRIORITY_BADGE: Record<string, { bg: string; color: string; border: string }> = {
-  CRITICAL: { bg: 'rgba(239,68,68,0.12)',  color: '#fca5a5', border: 'rgba(239,68,68,0.3)'  },
-  HIGH:     { bg: 'rgba(249,115,22,0.12)', color: '#fdba74', border: 'rgba(249,115,22,0.3)' },
-  MEDIUM:   { bg: 'rgba(245,158,11,0.12)', color: '#fcd34d', border: 'rgba(245,158,11,0.3)' },
-  LOW:      { bg: 'rgba(59,130,246,0.12)', color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
+  CRITICAL: { bg: 'rgba(239,68,68,0.12)',  color: 'var(--prioridad-critica)', border: 'rgba(239,68,68,0.3)'  },
+  HIGH:     { bg: 'rgba(249,115,22,0.12)', color: 'var(--prioridad-alta)', border: 'rgba(249,115,22,0.3)' },
+  MEDIUM:   { bg: 'rgba(245,158,11,0.12)', color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)' },
+  LOW:      { bg: 'rgba(59,130,246,0.12)', color: 'var(--prioridad-baja)', border: 'rgba(59,130,246,0.3)' },
 }
 
 interface SampleCard {
@@ -41,7 +41,7 @@ function MiniKanbanCard({ card }: { card: SampleCard }) {
     if (card.urgency === 'overdue' && card.daysFromDue !== undefined) {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(244,63,94,0.12)', color: '#fda4af', border: '1px solid rgba(244,63,94,0.3)' }}>
+          style={{ background: 'rgba(244,63,94,0.12)', color: 'var(--chip-rosa)', border: '1px solid rgba(244,63,94,0.3)' }}>
           <AlertOctagon size={10} /> {Math.abs(card.daysFromDue)}d vencida
         </span>
       )
@@ -50,7 +50,7 @@ function MiniKanbanCard({ card }: { card: SampleCard }) {
       const label = card.daysFromDue === 0 ? 'Hoy' : card.daysFromDue === 1 ? 'Mañana' : `en ${card.daysFromDue}d`
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(245,158,11,0.12)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.3)' }}>
+          style={{ background: 'rgba(245,158,11,0.12)', color: 'var(--prioridad-media)', border: '1px solid rgba(245,158,11,0.3)' }}>
           <Clock4 size={10} /> {label}
         </span>
       )
@@ -66,7 +66,7 @@ function MiniKanbanCard({ card }: { card: SampleCard }) {
     if (card.urgency === 'blocked') {
       return (
         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(244,63,94,0.12)', color: '#fda4af', border: '1px solid rgba(244,63,94,0.3)' }}>
+          style={{ background: 'rgba(244,63,94,0.12)', color: 'var(--chip-rosa)', border: '1px solid rgba(244,63,94,0.3)' }}>
           <ShieldAlert size={10} />
         </span>
       )
