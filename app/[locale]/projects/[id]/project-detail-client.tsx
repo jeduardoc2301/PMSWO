@@ -1150,7 +1150,10 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       <QuestionCard key={item.title} title={item.title} accentColor={item.color}>
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</span>
+                            {/* El numero en TINTA, no en el color de la tarjeta: la identidad ya la lleva la franja
+                                lateral de 3 px de `QuestionCard`. Tenido con el acento daba 2,15-2,8:1 en claro,
+                                y son cifras de 24 px que exigen 3. */}
+                            <span className="text-2xl font-bold" style={{ color: 'var(--tinta)' }}>{item.value}</span>
                             <StatusBadge value={item.badge} positive={item.ok} />
                           </div>
                           <p className="text-xs text-tinta-2">{item.sub}</p>
