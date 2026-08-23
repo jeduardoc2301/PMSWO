@@ -295,6 +295,17 @@ function paresDelTablero(): Array<{ linea: number; fondo: string; tinta: string 
 describe('Los distintivos del Tablero se leen en los dos temas', () => {
   const pares = paresDelTablero()
 
+/**
+ * En el Tablero ya no queda ninguna tinta escrita en crudo.
+ *
+ * El barrido de pares de arriba comprueba que lo migrado se lee; esto comprueba que no queda nada
+ * **sin** migrar. Son cosas distintas: un color nuevo escrito a mano pasaría el primero sin
+ * enterarse, porque el primero sólo mira lo que ya usa `var(--...)`.
+ */
+it('kanban-board.tsx no escribe ninguna tinta en crudo', () => {
+  expect(TABLERO.indexOf("color: '#")).toBe(-1)
+})
+
   it('el barrido encuentra pares que revisar', () => {
     // Si un refactor cambia la forma de escribirlos, esta prueba se queda sin nada que mirar y
     // pasaría vacía para siempre. Mejor que avise.

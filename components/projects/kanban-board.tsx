@@ -306,7 +306,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
                 className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums"
                 style={delta < 0
                   ? { background: 'rgba(244,63,94,0.12)', color: 'var(--chip-rosa)', border: '1px solid rgba(244,63,94,0.3)' }
-                  : { background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}
+                  : { background: 'rgba(16,185,129,0.12)', color: 'var(--chip-verde)', border: '1px solid rgba(16,185,129,0.3)' }}
                 title="Atraso (−) o ventaja (+) en días hábiles al corte, con la fórmula del plan"
               >
                 {delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)}d

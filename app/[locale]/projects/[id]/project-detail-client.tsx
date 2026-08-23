@@ -110,7 +110,14 @@ function DarkCard({ title, value, valueColor = '#fff', subtitle, accentColor }: 
 // Small status badge
 function StatusBadge({ value, positive, neutral }: { value: string | number; positive?: boolean; neutral?: boolean }) {
   const bg = positive ? 'rgba(16,185,129,0.12)' : neutral ? 'rgba(113,113,122,0.12)' : 'rgba(245,158,11,0.12)'
-  const color = positive ? '#6ee7b7' : neutral ? 'var(--tinta-2)' : '#fcd34d'
+  /*
+    Las tintas por token, y reutilizando las que ya hay en vez de declarar otras dos con los mismos
+    valores: `--pastilla-activo` y `--chip-ambar` valen **exactamente** esto en oscuro, así que el
+    tema oscuro no cambia y el claro deja de ser ilegible —«En riesgo» y «Crítico» iban a 1,32:1—.
+    Los nombres saben a otra cosa porque nacieron en otro sitio; lo que importa es que un color
+    tenga UNA declaración: dos copias acaban divergiendo, como ya pasó con «Planeación».
+  */
+  const color = positive ? 'var(--pastilla-activo)' : neutral ? 'var(--tinta-2)' : 'var(--chip-ambar)'
   const border = positive ? 'rgba(16,185,129,0.3)' : neutral ? 'rgba(113,113,122,0.3)' : 'rgba(245,158,11,0.3)'
   return (
     <span className="text-[11px] px-2 py-0.5 rounded-full font-medium"
@@ -832,7 +839,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
-              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171' }}
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: 'var(--grave-tinta)' }}
             >
               <Trash2 size={14} /> Eliminar
             </button>
@@ -849,7 +856,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                <AlertTriangle size={18} style={{ color: '#f87171' }} />
+                <AlertTriangle size={18} style={{ color: 'var(--grave-tinta)' }} />
               </div>
               <div>
                 <h2 className="text-base font-semibold text-white">Eliminar proyecto</h2>

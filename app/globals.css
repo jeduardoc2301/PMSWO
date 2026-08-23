@@ -124,6 +124,7 @@
   --chip-indigo:        #a5b4fc;
   --chip-indigo-cuenta: #c7d2fe;
   --chip-indigo-activo: rgba(99,102,241,0.18);
+  --chip-verde:         #34d399;
 
   /*
     Las pastillas de estado de proyecto (`.pms-status-pill`). Mismo problema que las píldoras del
@@ -286,6 +287,7 @@
   --chip-indigo:        #4338ca;
   --chip-indigo-cuenta: #3730a3;
   --chip-indigo-activo: #4338ca;
+  --chip-verde:         #047857;
 
   /* Las pastillas de estado en claro: los mismos tonos, un par de pasos más abajo. */
   --pastilla-activo:    #065f46;
@@ -400,6 +402,7 @@
     --chip-indigo:        #4338ca;
     --chip-indigo-cuenta: #3730a3;
     --chip-indigo-activo: #4338ca;
+    --chip-verde:         #047857;
 
     /* Las pastillas de estado en claro: los mismos tonos, un par de pasos más abajo. */
     --pastilla-activo:    #065f46;
