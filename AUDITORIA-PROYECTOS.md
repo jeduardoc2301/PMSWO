@@ -8235,3 +8235,37 @@ Verificado con el diálogo de «Nueva tarea» abierto en claro: cero fallos.
 **No demostrado en pantalla:** los mensajes de validación en línea. Este formulario no los pinta
 —valida por otra vía— así que esas 90 quedan respaldadas por la sustitución y la prueba, no por
 haberlas visto. Queda anotado como tal, no como cierre.
+
+### Tanda 104c · El mapa de color, recorrido entero
+
+Cerradas las secciones que quedaban: **C** (texto grande), **D1** (anillos de foco) y **D2**
+(bordes). Con eso el informe de 323 hallazgos está recorrido de A a D.
+
+**D1 — los anillos de foco.** El hueco del anillo iba cableado en 11 sitios, cinco de ellos
+componentes base, así que en claro cada control enfocado llevaba un halo casi negro. Es accesibilidad
+de teclado: lo ve exactamente quien no usa el ratón. Y **ningún barrido de contraste podía verlo**,
+porque no es texto sobre fondo — venía en la sección que la propia auditoría titulaba «probablemente
+no importa».
+
+**C — los avatares, y mi punto ciego.** Los seis degradados fallaban **en los dos temas**: el ámbar a
+2,15:1, hasta el índigo a 4,47. Eso los separa de todo lo demás de la noche: no era deriva del modo
+claro, era una paleta que nunca se comprobó, y ningún cambio de tema la iba a delatar.
+
+Son los mismos que mi sonda reportaba como «AU a 1,00:1» y que descarté como falso positivo toda la
+noche. **El número era falso; el defecto no.** Cuando le enseñé a saltarse los degradados cambié un
+ruido molesto por un punto ciego, y sólo lo supe porque la auditoría de código sí los alcanzaba. Lo
+que un instrumento no alcanza tiene que alcanzarlo otro, y conviene saber cuál es el hueco de cada
+uno.
+
+**D2 — cinco grises para el mismo papel.** Repartidos como bordes y como fondos; en claro dejaban un
+marco casi negro alrededor de **todos** los diálogos. El contexto decide el token, porque un borde y
+un fondo no son lo mismo aunque compartan el hex. Once se quedaron sin tocar por contexto ambiguo:
+mejor eso que acertar por casualidad.
+
+### Y ahora el motor
+
+Lanzada la auditoría del **§3** contra la implementación, criterio a criterio, con una fase de
+**refutación**: cada incumplimiento tiene que sobrevivir a un agente que intente tumbarlo, con la
+instrucción de que ante la duda refute. Después de una noche en que el instrumento se inventó
+defectos tres veces, un hallazgo falso cuesta más que uno que falta — manda a alguien a arreglar algo
+que no está roto y le enseña a desconfiar del resto del informe.
