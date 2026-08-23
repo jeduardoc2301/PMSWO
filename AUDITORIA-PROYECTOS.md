@@ -8065,3 +8065,22 @@ No mirando el token: arrastrando una barra en claro hasta que salió la propuest
 3. Los acentos de widgets y tarjetas de pregunta: tinta de números de 24-30 px, exigen 3:1 y tres de
    seis no llegan.
 4. Botones que rellenan con `bg-acento` (4,47 con blanco) en vez de `bg-acento-relleno`.
+
+### Tanda 103b · A4 cerrado
+
+16 contenedores y 17 tintas más, en 15 archivos. Aplicado por **firmas exactas de contenedor**, y las
+tintas sólo cuando están dentro de una caja ya convertida —su línea o las tres siguientes—. Un
+reemplazo por color suelto habría tocado 61 `text-red-400` que en su mayoría no son cajas.
+
+La primera pasada se dejó cuatro variantes de contenedor (`/30`, `/60`, `/40`, `/50`) y las tintas de
+la línea de debajo. **Se vio al ir a verificar en pantalla**: buscando una caja que enseñar,
+`filter-bar` y `columnas-del-tablero` seguían crudas. Una lista de firmas escrita de memoria no es un
+inventario, y el paso de verificar es el que lo destapa.
+
+Medido en la página viva: claro 7,86 / 5,33 / 6,45 · oscuro 17,29 / 7,05 / 12,37.
+
+Quedan 7 `bg-*-950/*` que **no son cajas**: hovers de botones destructivos, el elemento activo del
+menú (`main-nav.tsx:196`, ya señalado en A3 a 2,5:1) y el día seleccionado del calendario. Cada uno
+es su propio par fondo+tinta y hay que mirarlos de uno en uno.
+
+**Siguiente:** A3, los ~45 mapas de pastillas. El peor, `projects-client.tsx:245` a 1,05:1.
