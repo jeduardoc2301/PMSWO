@@ -1071,7 +1071,13 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     ((metrics.highPriorityRisks === 0 ? 100 : Math.max(0, 100 - metrics.highPriorityRisks * 15)) * 0.2) +
                     ((daysRemaining > 0 ? 100 : 0) * 0.1)
                   )
-                  const hColor = healthScore >= 80 ? '#10b981' : healthScore >= 60 ? 'var(--acento)' : healthScore >= 40 ? '#f59e0b' : '#ef4444'
+                  /*
+                    La escalera de salud, por tokens semanticos: es TINTA de un numero de 30 px y de
+                    un rotulo de 18, no decoracion. Con los tonos crudos de Tailwind daba 2,54:1 en
+                    el numero (exige 3) y 3,97:1 en el rotulo (exige 4,5) — y el rotulo es el que
+                    dice si el proyecto va bien.
+                  */
+                  const hColor = healthScore >= 80 ? 'var(--bien)' : healthScore >= 60 ? 'var(--acento-tinta)' : healthScore >= 40 ? 'var(--aviso)' : 'var(--grave-tinta)'
                   const hLabel = healthScore >= 80 ? t('executiveDashboard.health.excellent') : healthScore >= 60 ? t('executiveDashboard.health.good') : healthScore >= 40 ? t('executiveDashboard.health.fair') : t('executiveDashboard.health.critical')
                   const hMsg = healthScore >= 80 ? t('executiveDashboard.health.excellentMessage') : healthScore >= 60 ? t('executiveDashboard.health.goodMessage') : healthScore >= 40 ? t('executiveDashboard.health.fairMessage') : t('executiveDashboard.health.criticalMessage')
                   return (
