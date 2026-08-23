@@ -29,13 +29,24 @@ function healthHex(h: ProjectHealthStatus) {
   return h === 'HEALTHY' ? '#10b981' : h === 'AT_RISK' ? '#f59e0b' : '#ef4444'
 }
 
+/*
+  Los seis degradados de avatar, con las iniciales en blanco encima.
+
+  Fallaban LOS SEIS, y **en los dos temas**: el ambar daba 2,15:1 y el indigo 4,47, contra los 4,5
+  que pide un texto de 12 px. No es deriva del modo claro — es una paleta que nunca se comprobo, y
+  por eso el fallo no cambiaba al cambiar de tema.
+
+  Ahora la parada MAS CLARA de cada degradado ya aguanta el blanco: es la que manda, porque el texto
+  cae encima de todo el recorrido. Los tonos siguen siendo los mismos seis, un par de pasos abajo,
+  asi que se siguen distinguiendo entre si.
+*/
 const AVATAR_COLORS = [
-  'linear-gradient(135deg,#6366f1,#4f46e5)',
-  'linear-gradient(135deg,#8b5cf6,#7c3aed)',
-  'linear-gradient(135deg,#ec4899,#db2777)',
-  'linear-gradient(135deg,#10b981,#059669)',
-  'linear-gradient(135deg,#f59e0b,#d97706)',
-  'linear-gradient(135deg,#0ea5e9,#0284c7)',
+  'linear-gradient(135deg,#4338ca,#3730a3)',
+  'linear-gradient(135deg,#6d28d9,#5b21b6)',
+  'linear-gradient(135deg,#be185d,#9d174d)',
+  'linear-gradient(135deg,#047857,#065f46)',
+  'linear-gradient(135deg,#b45309,#92400e)',
+  'linear-gradient(135deg,#0369a1,#075985)',
 ]
 
 export function ConsultantPerformanceClient() {

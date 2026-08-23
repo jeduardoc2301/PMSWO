@@ -526,3 +526,42 @@ it('ningún botón rellena con el acento de texto', () => {
   }
   expect(sospechosas).toEqual([])
 })
+
+/**
+ * Los degradados de avatar, con las iniciales en blanco encima.
+ *
+ * Fallaban los seis, y **en los dos temas** —el ámbar a 2,15:1—, que es la firma de una paleta que
+ * nunca se comprobó: si fallara sólo en claro sería deriva del tema, pero esto estaba mal desde el
+ * principio y nadie lo midió.
+ *
+ * Se comprueba la parada MÁS CLARA de cada degradado, que es la que manda: el texto cae encima de
+ * todo el recorrido, así que basta con que el punto más flojo aguante.
+ *
+ * Y hace falta una prueba precisamente porque el barrido de pantalla **no puede verlo**: se salta
+ * los elementos con degradado por detrás, porque componer un degradado no es componer un color. Lo
+ * que un instrumento no alcanza tiene que alcanzarlo otro.
+ */
+it('las iniciales blancas se leen sobre los seis avatares', () => {
+  const texto = readFileSync(
+    join(process.cwd(), 'app', '[locale]', 'consultant-performance', 'consultant-performance-client.tsx'),
+    'utf8',
+  )
+  const i = texto.indexOf('const AVATAR_COLORS = [')
+  expect(i).toBeGreaterThan(0)
+  const bloque = texto.slice(i, texto.indexOf(']', i))
+
+  const paradas: string[] = []
+  let desde = 0
+  for (;;) {
+    const j = bloque.indexOf('#', desde)
+    if (j < 0) break
+    paradas.push(bloque.slice(j, j + 7))
+    desde = j + 7
+  }
+  // Seis degradados de dos paradas. Si alguien añade uno, esto lo obliga a comprobarlo también.
+  expect(paradas.length).toBe(12)
+
+  for (const parada of paradas) {
+    expect(contraste([255, 255, 255, 1], color(parada))).toBeGreaterThanOrEqual(AA)
+  }
+})
