@@ -7961,3 +7961,62 @@ Los acentos de los widgets son seis literales en `dashboard-view.tsx` (`#10b981`
 Y `--tinta-3` da **4,52** sobre `--background` pero **4,40** sobre la superficie donde de verdad se
 apoya la miga. El token no está mal por sí solo: está justo en el filo, y cualquier superficie un
 punto más oscura lo tumba.
+
+---
+
+## Tanda 102 · Dos mapeos en paralelo, y lo que el barrido en pantalla no podía ver
+
+Hasta aquí el contraste se perseguía con la sonda: mirar una vista, arreglar lo peor, volver a mirar.
+Eso encuentra lo que está **pintado en ese momento** y en las páginas que uno visita. Se lanzaron dos
+auditorías de código en paralelo, sólo lectura, para ver lo que la pantalla no enseña.
+
+Resultado: **323 hallazgos** en una, y en la otra **168 apariciones de `text-white` clasificadas una
+a una** — 82 defectos, 84 correctos y 2 dudosas.
+
+Que 84 sean correctos es el dato que importa: van encima de un relleno de color, donde el blanco es
+lo que toca. **Un reemplazo global las habría roto todas en oscuro.** Por eso se aplicó desde la
+lista, línea a línea, con un guion que comprueba que la línea contiene lo que se espera antes de
+tocarla, busca el único candidato cerca si el número no cuadra, y se planta si hay más de uno.
+
+### El botón que era la única salida
+
+Las páginas de error, «no encontrado» y el error global llevaban su botón con `bg-superficie
+text-white` y una tanda de `dark:bg-zinc-50 dark:text-zinc-900`. Esas clases **nunca se aplican**: el
+variante `dark:` de Tailwind sigue al sistema operativo, y aquí el tema va por `:root[data-theme]`
+sin `@custom-variant dark`. O sea que el botón era blanco sobre blanco **siempre**, en la única
+pantalla donde hace falta pulsarlo para salir.
+
+Eso no lo encuentra un barrido de las seis vistas: hay que llegar a la página de error.
+
+### Los rótulos de los formularios
+
+`text-[#e4e4e7]` —zinc-200— como tinta en 56 rótulos de diálogo, más dos `#d4d4d8` en el filtro de la
+Lista. Sobre blanco dan 1,05–1,2:1. Viven en **diálogos**, que hay que abrir para verlos, así que la
+sonda no los había visto nunca. Verificado abriendo «+ Nueva tarea» en claro: los rótulos ya salen en
+`rgb(24,24,27)`.
+
+### El barrido en oscuro, que nunca se había hecho
+
+Tras tocar más de ochenta archivos, medir sólo el claro habría sido irresponsable. En oscuro: nada
+roto, y tres marginales de una causa ya localizada —botones rellenos con `bg-acento`, que es el
+acento de **texto** (4,47 con blanco encima), en vez de `bg-acento-relleno`—.
+
+### Lo que queda, por gravedad
+
+- **A4, lo peor del informe.** Las cajas de alerta `bg-*-950/20` con tinta `-100/-300`: el fondo se
+  eligió para *aclarar* un lienzo negro y sobre blanco hace lo contrario. Necesita **un token nuevo**
+  —no hay token de *fondo* de alerta— así que no es sustitución. Y lo más sangrante:
+  `plan-workspace.tsx` **1141 y 1378**, los paneles de propuesta de reprogramación, a **1,02:1**. Es
+  el texto «El cierre del proyecto no se mueve» que llevo toda la noche leyendo en las
+  demostraciones del Gantt: en claro es invisible. Van con `role="alertdialog"`.
+- **A3.** Unos 45 mapas de pastillas con pasos `-300`, clones del `PRIORITY_BADGE` ya arreglado. Los
+  tokens ya existen; varios llevan fondo **y** tinta cableados a la vez y hay que rehacer la pareja.
+- Los seis acentos de los widgets, que son la tinta de números de 24 y 30 px: tres no llegan al 3:1.
+- Los botones que rellenan con `bg-acento` en vez de `bg-acento-relleno`.
+
+### Sobre repartir el trabajo
+
+Las dos auditorías se repartieron entre agentes porque son **lectura ancha**: 48 y 21 archivos, sin
+riesgo de pisarse. La aplicación de los arreglos NO se repartió: era una lista conocida y una edición
+mecánica, y ahí la varianza de un agente sólo puede restar — el propio informe avisaba de que un
+reemplazo global rompía 84 sitios buenos. Un guion determinista es mejor herramienta para eso.
