@@ -418,8 +418,8 @@ export function CalendarTab({
     return (
       <div className="flex flex-col gap-3">
         {barraDeFiltro}
-        <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-6 text-center">
-          <p className="text-sm text-red-300">No se pudo cargar el plan: {estado.mensaje}</p>
+        <div className="rounded-lg border border-grave-borde bg-grave-fondo p-6 text-center">
+          <p className="text-sm text-grave-tinta">No se pudo cargar el plan: {estado.mensaje}</p>
         </div>
       </div>
     )
@@ -447,9 +447,9 @@ export function CalendarTab({
           role="alertdialog"
           aria-label="Confirmar la reprogramación"
           data-testid="propuesta-reprogramacion"
-          className="rounded-xl border border-amber-900/50 bg-amber-950/20 p-4"
+          className="rounded-xl border border-aviso-borde bg-aviso-fondo p-4"
         >
-          <p className="text-sm text-amber-100">
+          <p className="text-sm text-aviso-tinta">
             Mover «{propuesta.nombre}» al {propuesta.nuevoInicio} cambia{' '}
             <strong className="tabular-nums">{propuesta.cambios}</strong>{' '}
             {propuesta.cambios === 1 ? 'línea' : 'líneas'}
@@ -466,11 +466,11 @@ export function CalendarTab({
               Empujar dentro de la holgura no lo mueve, y decirlo evita el susto. */}
           <p className="mt-1.5 text-xs">
             {propuesta.cierreDespues === propuesta.cierreAntes ? (
-              <span className="text-emerald-300">
+              <span className="text-bien-tinta">
                 El cierre del proyecto no se mueve: sigue el {propuesta.cierreAntes}.
               </span>
             ) : (
-              <span className="text-red-300">
+              <span className="text-grave-tinta">
                 El cierre del proyecto pasa del {propuesta.cierreAntes} al {propuesta.cierreDespues}.
               </span>
             )}
