@@ -8209,3 +8209,29 @@ De dónde se venía, todo medido en pantalla:
 verdad, barre archivos enteros buscando pares fondo+tinta, cruza las tres tintas con las cuatro
 superficies en los dos temas, y vigila **emparejamientos** además de valores. Todas validadas
 rompiéndolas.
+
+### Tanda 104b · La sección B de la auditoría, y una caja negra escondida
+
+**90 tintas de error y validación** al token. Aquí el reemplazo global **sí** vale, al revés que con
+`text-white`: `#f87171` es el valor de `--grave-tinta` en oscuro, así que el cambio no puede alterar
+ese tema — sólo puede mejorar el claro, donde pasan de 2,77:1 a 6,47:1.
+
+La diferencia entre los dos casos vale la pena tenerla clara: **si el literal ES el valor del token
+en un tema, la sustitución es demostrablemente inocua en ese tema.** Con `text-white` no lo era,
+porque 84 sitios lo llevaban sobre relleno.
+
+### Lo que apareció midiendo
+
+El **selector de fechas entero** era de tema oscuro: `.dp-input` con fondo `#0e0e12` y texto blanco,
+un recuadro casi negro dentro de un diálogo blanco. Diecinueve reglas.
+
+Sale un caso que no se traduce solo: los días **de fuera del mes** eran `#3f3f46`, un gris *más
+oscuro* que la tinta — así se hace secundario algo sobre fondo negro. En claro eso se invierte y
+habría que aclararlo, no oscurecerlo. Se resuelve con `--tinta-3` y opacidad, que expresa
+«secundario» sin depender de hacia dónde va la escala del tema.
+
+Verificado con el diálogo de «Nueva tarea» abierto en claro: cero fallos.
+
+**No demostrado en pantalla:** los mensajes de validación en línea. Este formulario no los pinta
+—valida por otra vía— así que esas 90 quedan respaldadas por la sustitución y la prueba, no por
+haberlas visto. Queda anotado como tal, no como cierre.
