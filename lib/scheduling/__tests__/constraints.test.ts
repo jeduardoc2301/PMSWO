@@ -181,6 +181,30 @@ describe('§3.3 · MSO no puede empezar el plan antes que el plan', () => {
     expect(plan.start).toBe('2027-03-15')
   })
 
+  /**
+   * Una fecha clavada NO tiene margen: si puede moverse, no estaba clavada.
+   *
+   * El pase atrás acotaba con `NO_EMPIEZA_DESPUES_DE` —el techo débil, «no más tarde de»— y se
+   * dejaba `DEBE_EMPEZAR_EL`, que es **más fuerte**: fija el arranque, luego implica ese mismo
+   * techo. Sin la cota, la línea heredaba el fin tardío de lo que viniera detrás y la aplicación
+   * anunciaba días de margen sobre una fecha que no se puede mover.
+   *
+   * Se llega por la ruta corriente, no por una API rara: arrastrar una barra en el Gantt clava
+   * justamente con `DEBE_EMPEZAR_EL`. Y la holgura no es decoración — decide qué sale en la ruta
+   * crítica, en el aviso de atraso y en lo que se le dice a un cliente por teléfono.
+   *
+   * La prueba de arriba mira la holgura de la PREDECESORA; ésta mira la de la línea clavada, que
+   * era justo la que nadie afirmaba.
+   */
+  it('una línea clavada no tiene margen, aunque detrás quede hueco de sobra', () => {
+    const conHueco = [
+      tarea('CLAVADA', 2, { type: 'DEBE_EMPEZAR_EL', date: '2027-03-01' }),
+      tarea('LARGA', 40),
+    ]
+    const holgura = analizar(conHueco, []).byId.get('CLAVADA')!.totalFloat
+    expect(holgura).toBe(0)
+  })
+
   it('y sigue pisando a su predecesora, que es lo que MSO significa', () => {
     const plan = programar(
       [tarea('A', 5), tarea('B', 2, { type: 'DEBE_EMPEZAR_EL', date: '2027-03-01' })],

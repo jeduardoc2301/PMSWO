@@ -191,15 +191,25 @@ export function analyzeCriticalPath(
     const tope = topeComprometido(task, calendar)
     if (tope !== undefined && tope < latest) latest = tope
 
-    // `NO_EMPIEZA_DESPUES_DE` (SNLT) amarra el ARRANQUE, así que su techo del fin es esa fecha más
-    // lo que dura la tarea. Se resuelve aquí y no en `topeComprometido` porque es el único sitio
-    // donde se conoce el tramo, y pasárselo obligaría a esa función a saber de programación.
-    const snlt =
-      task.constraint?.type === 'NO_EMPIEZA_DESPUES_DE'
-        ? task.constraint
-        : task.compromiso?.type === 'NO_EMPIEZA_DESPUES_DE'
-          ? task.compromiso
-          : null
+    /*
+      Las restricciones que amarran el ARRANQUE: su techo del fin es esa fecha más lo que dura la
+      tarea. Se resuelve aquí y no en `topeComprometido` porque es el único sitio donde se conoce el
+      tramo, y pasárselo obligaría a esa función a saber de programación.
+
+      Son DOS, no una. `NO_EMPIEZA_DESPUES_DE` es el techo débil —«no más tarde de»— y
+      `DEBE_EMPEZAR_EL` es el fuerte: fija el arranque, luego implica ese mismo techo y además el
+      suelo. Faltaba la segunda, y por eso una línea clavada por contrato heredaba el fin tardío de
+      lo que viniera detrás: la aplicación anunciaba días de margen sobre una fecha que no se puede
+      mover. Se llega por la ruta corriente —arrastrar una barra clava con `DEBE_EMPEZAR_EL`— y la
+      holgura decide qué sale en la ruta crítica y qué se le dice a un cliente.
+    */
+    const amarraElArranque = (c: { readonly type: string } | null | undefined) =>
+      c?.type === 'NO_EMPIEZA_DESPUES_DE' || c?.type === 'DEBE_EMPEZAR_EL'
+    const snlt = amarraElArranque(task.constraint)
+      ? task.constraint
+      : amarraElArranque(task.compromiso)
+        ? task.compromiso
+        : null
     if (snlt) {
       const arranqueMaximo = calendar.ordinalOf(calendar.previous(toDayNumber(snlt.date)))
       const finMaximo = arranqueMaximo + tramo
