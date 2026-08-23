@@ -526,7 +526,7 @@ export function GanttChart({
                 >
                   {layout.ticksSuperiores.map((tick) => (
                     <div
-                      key={`sup-${tick.date}`}
+                      key={`sup-${tick.date}-${tick.x}`}
                       data-tick-superior={tick.date}
                       className="shrink-0 overflow-hidden border-r border-borde px-2 text-[11px] font-medium text-tinta-2"
                       style={{
@@ -546,7 +546,18 @@ export function GanttChart({
               >
                 {layout.ticks.map((tick) => (
                   <div
-                    key={tick.date}
+                    /*
+                      La clave lleva la posición y no sólo la fecha.
+
+                      En la escala de HORA todas las marcas de un mismo día comparten `date` —ocho
+                      por jornada— así que la clave se repetía y React avisaba de hijos duplicados:
+                      «Encountered two children with the same key». Con claves repetidas React puede
+                      duplicar u omitir hijos, y la cabecera se descomponía al pasar a Horas.
+
+                      `x` es la posición en el eje y es única por marca, que es justo lo que una
+                      clave necesita ser.
+                    */
+                    key={`${tick.date}-${tick.x}`}
                     data-tick={tick.date}
                     className="shrink-0 overflow-hidden border-r border-borde px-2 text-xs text-tinta-2"
                     style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}

@@ -458,6 +458,33 @@ describe('El eje de tiempo', () => {
     expect(enero[0].label).toBe('S1-d4')
   })
 
+  /**
+   * Las marcas del eje tienen que poder distinguirse entre sí, en TODAS las escalas.
+   *
+   * En la escala de hora, las ocho marcas de una jornada comparten `date` —es el mismo día— y el
+   * componente las usaba de clave de React. Con claves repetidas React puede duplicar u omitir
+   * hijos: la cabecera se descomponía al pasar a Horas, y la consola se llenaba de avisos.
+   *
+   * La prueba vive aquí, en el trazado, aunque el defecto estuviera en el componente: lo que hay
+   * que garantizar es que las marcas **traen con qué distinguirse**. Si algún día `x` dejara de ser
+   * único, el componente volvería a romperse y ninguna prueba de React lo diría.
+   */
+  it('cada marca del eje se distingue de las demás, en todas las escalas', () => {
+    for (const escala of ['HORA', 'DIA', 'SEMANA', 'MES', 'TRIMESTRE', 'ANIO'] as const) {
+      const marcas = axisTicks(calendar, '2026-06-01', '2026-06-19', escala)
+      const claves = new Set(marcas.map((m) => `${m.date}-${m.x}`))
+      expect(claves.size).toBe(marcas.length)
+    }
+  })
+
+  it('y en la escala de hora las marcas del mismo día comparten fecha, que es por lo que hacía falta', () => {
+    // Se afirma el hecho que causó el defecto: si un refactor lo cambiara, la prueba de arriba
+    // seguiría pasando por otro motivo y convendría saberlo.
+    const marcas = axisTicks(calendar, '2026-06-01', '2026-06-01', 'HORA')
+    expect(marcas.length).toBeGreaterThan(1)
+    expect(new Set(marcas.map((m) => m.date)).size).toBe(1)
+  })
+
   it('un rango vacío no produce marcas', () => {
     expect(axisTicks(calendar, '2026-06-10', '2026-06-01', 'MES')).toEqual([])
   })
