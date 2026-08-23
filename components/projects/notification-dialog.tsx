@@ -117,7 +117,7 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
-          <DialogTitle className="text-[#e4e4e7]">{t('title')}</DialogTitle>
+          <DialogTitle className="text-tinta">{t('title')}</DialogTitle>
           <DialogDescription className="text-tinta-3">
             {loading ? tCommon('loading') : t('generate')}
           </DialogDescription>
@@ -151,14 +151,14 @@ export function NotificationDialog({ type, entityId, triggerLabel }: Notificatio
             <div className="space-y-2">
               <Label className="text-tinta-2">{t('subject')}</Label>
               <div className="rounded-lg p-3" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-                <p className="text-sm font-medium text-[#e4e4e7]">{notification.subject}</p>
+                <p className="text-sm font-medium text-tinta">{notification.subject}</p>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label className="text-tinta-2">{t('body')}</Label>
               <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-                <pre className="text-sm whitespace-pre-wrap font-sans text-[#e4e4e7]">{notification.body}</pre>
+                <pre className="text-sm whitespace-pre-wrap font-sans text-tinta">{notification.body}</pre>
               </div>
             </div>
 

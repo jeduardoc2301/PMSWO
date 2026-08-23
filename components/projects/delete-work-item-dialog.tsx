@@ -162,7 +162,7 @@ export function DeleteWorkItemDialog({
             <p className="text-sm text-tinta-3 mb-1">
               {t('deleteDialog.workItemTitle')}
             </p>
-            <p className="font-medium text-[#e4e4e7]">{workItem.title}</p>
+            <p className="font-medium text-tinta">{workItem.title}</p>
           </div>
         </div>
 

@@ -103,7 +103,7 @@ export function EditWorkItemDatesDialog({
             )}
 
             <div className="space-y-2">
-              <Label className="text-[#e4e4e7]">
+              <Label className="text-tinta">
                 {t('createDialog.startDateLabel')}
               </Label>
               <DatePicker
@@ -113,7 +113,7 @@ export function EditWorkItemDatesDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[#e4e4e7]">
+              <Label className="text-tinta">
                 {t('createDialog.endDateLabel')}
               </Label>
               <DatePicker

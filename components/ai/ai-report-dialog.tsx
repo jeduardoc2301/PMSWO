@@ -137,7 +137,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
-          <DialogTitle className="text-[#e4e4e7]">{t('report.title')}</DialogTitle>
+          <DialogTitle className="text-tinta">{t('report.title')}</DialogTitle>
           <DialogDescription className="text-tinta-3">
             {t('detailLevel.title')}
           </DialogDescription>
@@ -239,7 +239,7 @@ export function AIReportDialog({ projectId }: AIReportDialogProps) {
               </div>
 
               <div className="rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-                <pre className="whitespace-pre-wrap text-sm font-mono text-[#e4e4e7]">{report}</pre>
+                <pre className="whitespace-pre-wrap text-sm font-mono text-tinta">{report}</pre>
               </div>
             </div>
           )}

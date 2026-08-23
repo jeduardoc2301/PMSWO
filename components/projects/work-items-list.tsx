@@ -949,7 +949,7 @@ export function WorkItemsList({
                       onChange={() => toggleStatusFilter(status)}
                       style={{ accentColor: 'var(--acento)', width: 14, height: 14 }}
                     />
-                    <span style={{ fontSize: 13, color: '#d4d4d8' }}>{getStatusLabel(status)}</span>
+                    <span style={{ fontSize: 13, color: 'var(--tinta)' }}>{getStatusLabel(status)}</span>
                   </label>
                 ))}
               </div>
@@ -988,7 +988,7 @@ export function WorkItemsList({
                       onChange={() => togglePriorityFilter(priority)}
                       style={{ accentColor: 'var(--acento)', width: 14, height: 14 }}
                     />
-                    <span style={{ fontSize: 13, color: '#d4d4d8' }}>{getPriorityLabel(priority)}</span>
+                    <span style={{ fontSize: 13, color: 'var(--tinta)' }}>{getPriorityLabel(priority)}</span>
                   </label>
                 ))}
               </div>

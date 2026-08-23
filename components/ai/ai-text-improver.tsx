@@ -116,7 +116,7 @@ export function AITextImprover({
             {t('textImprovement.improved')}
           </p>
           <div className="rounded-lg p-3" style={{ background: 'var(--superficie)', border: '1px solid rgba(99,102,241,0.3)' }}>
-            <p className="text-sm text-[#e4e4e7] whitespace-pre-wrap">{improvedText}</p>
+            <p className="text-sm text-tinta whitespace-pre-wrap">{improvedText}</p>
           </div>
         </div>
 

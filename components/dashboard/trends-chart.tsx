@@ -35,7 +35,7 @@ export function TrendsChart({ projects }: TrendsChartProps) {
 
   return (
     <div className="bg-superficie rounded-lg p-6" style={{ border: '1px solid var(--borde)' }}>
-      <h3 className="text-lg font-semibold text-[#e4e4e7] mb-4">
+      <h3 className="text-lg font-semibold text-tinta mb-4">
         {t('title')}
       </h3>
 
@@ -47,7 +47,7 @@ export function TrendsChart({ projects }: TrendsChartProps) {
             <div key={status.label}>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-tinta-2">{status.label}</span>
-                <span className="font-medium text-[#e4e4e7]">
+                <span className="font-medium text-tinta">
                   {status.count} ({percentage.toFixed(0)}%)
                 </span>
               </div>

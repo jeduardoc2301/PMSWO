@@ -306,7 +306,7 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
 
             {/* Template Name */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-[#e4e4e7]">{t('templateName')}</Label>
+              <Label htmlFor="name" className="text-tinta">{t('templateName')}</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -322,7 +322,7 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
 
             {/* Template Description */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-[#e4e4e7]">{t('templateDescription')}</Label>
+              <Label htmlFor="description" className="text-tinta">{t('templateDescription')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
@@ -339,7 +339,7 @@ export function EditTemplateDialog({ open, onOpenChange, onSuccess, templateId }
 
             {/* Category Selection */}
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-[#e4e4e7]">{t('category')}</Label>
+              <Label htmlFor="category" className="text-tinta">{t('category')}</Label>
               <Select
                 value={formData.categoryId}
                 onValueChange={(value) => handleFieldChange('categoryId', value)}

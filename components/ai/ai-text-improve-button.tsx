@@ -106,7 +106,7 @@ export function AITextImproveButton({
       </DialogTrigger>
       <DialogContent className="max-w-2xl bg-superficie border-borde">
         <DialogHeader>
-          <DialogTitle className="text-[#e4e4e7]">{t('textImprovement.title')}</DialogTitle>
+          <DialogTitle className="text-tinta">{t('textImprovement.title')}</DialogTitle>
           <DialogDescription className="text-tinta-3">
             {t('textImprovement.original')}
           </DialogDescription>
@@ -140,7 +140,7 @@ export function AITextImproveButton({
                 <p className="text-sm font-medium text-tinta-2 mb-2">
                   {t('textImprovement.improved')}
                 </p>
-                <div className="rounded-lg p-3 text-sm text-[#e4e4e7] max-h-32 overflow-y-auto" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
+                <div className="rounded-lg p-3 text-sm text-tinta max-h-32 overflow-y-auto" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)' }}>
                   {improvedText}
                 </div>
               </div>

@@ -82,7 +82,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
 
   return (
     <div className="bg-superficie rounded-lg p-6" style={{ border: '1px solid var(--borde)' }}>
-      <h3 className="text-lg font-semibold text-[#e4e4e7] mb-4">Project Health</h3>
+      <h3 className="text-lg font-semibold text-tinta mb-4">Project Health</h3>
 
       <div className="flex items-center justify-center mb-6">
         <div className="relative">
@@ -138,7 +138,7 @@ export function ProjectHealthVisualization({ health }: ProjectHealthProps) {
                 {getImpactIcon(factor.impact)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#e4e4e7]">
+                <p className="text-sm font-medium text-tinta">
                   {factor.name}
                 </p>
                 <p className="text-sm text-tinta-2 mt-1">

@@ -205,7 +205,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
-          <DialogTitle className="text-[#e4e4e7]">{t('analysis.title')}</DialogTitle>
+          <DialogTitle className="text-tinta">{t('analysis.title')}</DialogTitle>
           <DialogDescription>
             {analysis && (
               <span className="text-sm text-tinta-2">
@@ -227,7 +227,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
             <div className="space-y-6">
               <Card style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <CardHeader>
-                  <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.suggestions')}</CardTitle>
+                  <CardTitle className="text-lg text-tinta">{t('analysis.suggestions')}</CardTitle>
                   <CardDescription className="text-tinta-3">
                     {analysis.suggestions.length} {t('analysis.suggestions').toLowerCase()}
                   </CardDescription>
@@ -255,7 +255,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                                 {t(`analysis.suggestionTypes.${getSuggestionTypeKey(suggestion.type)}`)}
                               </span>
                             </div>
-                            <p className="text-sm text-[#e4e4e7]">{suggestion.description}</p>
+                            <p className="text-sm text-tinta">{suggestion.description}</p>
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
@@ -278,7 +278,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
 
               <Card style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <CardHeader>
-                  <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.detectedRisks')}</CardTitle>
+                  <CardTitle className="text-lg text-tinta">{t('analysis.detectedRisks')}</CardTitle>
                   <CardDescription className="text-tinta-3">
                     {analysis.detectedRisks.length} {t('analysis.detectedRisks').toLowerCase()}
                   </CardDescription>
@@ -298,7 +298,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                         >
                           <AlertTriangle className="h-5 w-5 text-orange-400 mt-1" />
                           <div className="flex-1">
-                            <p className="text-sm text-[#e4e4e7]">{risk.description}</p>
+                            <p className="text-sm text-tinta">{risk.description}</p>
                             <div className="mt-2">
                               <Button
                                 size="sm"
@@ -327,7 +327,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
 
               <Card style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
                 <CardHeader>
-                  <CardTitle className="text-lg text-[#e4e4e7]">{t('analysis.overdueItems')}</CardTitle>
+                  <CardTitle className="text-lg text-tinta">{t('analysis.overdueItems')}</CardTitle>
                   <CardDescription className="text-tinta-3">
                     {analysis.overdueItems.length} {t('analysis.overdueItems').toLowerCase()}
                   </CardDescription>
@@ -348,7 +348,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
                           <Clock className="h-5 w-5 text-red-400 mt-1" />
                           <div className="flex-1 space-y-2">
                             <div>
-                              <p className="text-sm font-medium text-[#e4e4e7]">
+                              <p className="text-sm font-medium text-tinta">
                                 {item.title}
                               </p>
                               <p className="text-xs text-red-400">

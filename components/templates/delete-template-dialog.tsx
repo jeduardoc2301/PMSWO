@@ -100,7 +100,7 @@ export function DeleteTemplateDialog({
             {t('confirmations.deleteTemplate')}
           </div>
           {templateName && (
-            <div className="font-semibold text-[#e4e4e7]">
+            <div className="font-semibold text-tinta">
               {templateName}
             </div>
           )}

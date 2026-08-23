@@ -9,7 +9,7 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, subtitle, variant = 'default' }: MetricCardProps) {
   const variantStyles = {
-    default: 'text-[#e4e4e7]',
+    default: 'text-tinta',
     success: 'text-[#34d399]',
     warning: 'text-[#fbbf24]',
     danger: 'text-[#f87171]',

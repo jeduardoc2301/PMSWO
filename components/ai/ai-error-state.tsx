@@ -87,7 +87,7 @@ export function AIErrorState({ error, onRetry, type = 'general' }: AIErrorStateP
 
       {type === 'guardrails' && (
         <div className="text-sm text-tinta-2 rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-          <p className="font-medium mb-2 text-[#e4e4e7]">¿Por qué veo este mensaje?</p>
+          <p className="font-medium mb-2 text-tinta">¿Por qué veo este mensaje?</p>
           <p>
             El contenido solicitado no cumple con nuestras políticas de seguridad y uso
             responsable de IA. Por favor, revise el contenido e intente nuevamente.
@@ -97,7 +97,7 @@ export function AIErrorState({ error, onRetry, type = 'general' }: AIErrorStateP
 
       {type === 'rateLimit' && (
         <div className="text-sm text-tinta-2 rounded-lg p-4" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-          <p className="font-medium mb-2 text-[#e4e4e7]">¿Qué puedo hacer?</p>
+          <p className="font-medium mb-2 text-tinta">¿Qué puedo hacer?</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Espere unos minutos antes de intentar nuevamente</li>
             <li>Use el análisis cacheado si está disponible</li>

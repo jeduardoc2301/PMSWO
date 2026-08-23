@@ -39,7 +39,7 @@ export function DashboardFilters({ onFilterChange }: DashboardFiltersProps) {
 
   return (
     <div className="bg-superficie rounded-lg p-6" style={{ border: '1px solid var(--borde)' }}>
-      <h3 className="text-lg font-semibold text-[#e4e4e7] mb-4">{t('filters')}</h3>
+      <h3 className="text-lg font-semibold text-tinta mb-4">{t('filters')}</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>

@@ -33,7 +33,7 @@ export function AILoadingState({ message, type = 'report' }: AILoadingStateProps
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p className="text-sm font-medium text-[#e4e4e7]">
+        <p className="text-sm font-medium text-tinta">
           {message || getDefaultMessage()}
         </p>
         <p className="text-xs text-tinta-3">

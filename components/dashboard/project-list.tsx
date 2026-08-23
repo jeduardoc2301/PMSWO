@@ -92,12 +92,12 @@ export function ProjectList({ projects }: ProjectListProps) {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Link
                       href={`/${locale}/projects/${project.id}`}
-                      className="text-sm font-medium text-acento-tinta hover:text-[#e4e4e7] transition-colors"
+                      className="text-sm font-medium text-acento-tinta hover:text-tinta transition-colors"
                     >
                       {project.name}
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[#e4e4e7]">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-tinta">
                     {project.client}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -116,7 +116,7 @@ export function ProjectList({ projects }: ProjectListProps) {
                       {t(`projectSummary.healthStatus.${healthStatus}`, { defaultValue: healthStatus.toUpperCase() })}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[#e4e4e7]">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-tinta">
                     <div className="flex items-center">
                       <div className="w-16 bg-superficie-3 rounded-full h-2 mr-2">
                         <div

@@ -107,7 +107,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-superficie border-borde">
         <DialogHeader>
-          <DialogTitle className="text-[#e4e4e7]">{t('title')}</DialogTitle>
+          <DialogTitle className="text-tinta">{t('title')}</DialogTitle>
           <DialogDescription className="text-tinta-3">
             {exportContent ? t('download') : t('sections')}
           </DialogDescription>
@@ -149,7 +149,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-work-items"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-tinta"
                 >
                   {t('includeWorkItems')}
                 </label>
@@ -163,7 +163,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-blockers"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-tinta"
                 >
                   {t('includeBlockers')}
                 </label>
@@ -177,7 +177,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-risks"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-tinta"
                 >
                   {t('includeRisks')}
                 </label>
@@ -191,7 +191,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="include-agreements"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-tinta"
                 >
                   {t('includeAgreements')}
                 </label>
@@ -205,7 +205,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
                 />
                 <label
                   htmlFor="use-ai-narrative"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[#e4e4e7]"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-tinta"
                 >
                   {t('useAINarrative')}
                 </label>
@@ -230,7 +230,7 @@ export function ExportProjectDialog({ projectId }: ExportProjectDialogProps) {
         ) : (
           <div className="space-y-4">
             <div className="rounded-lg p-4 max-h-96 overflow-y-auto" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-              <pre className="text-sm whitespace-pre-wrap font-mono text-[#e4e4e7]">{exportContent}</pre>
+              <pre className="text-sm whitespace-pre-wrap font-mono text-tinta">{exportContent}</pre>
             </div>
 
             <div className="flex justify-end gap-2">
