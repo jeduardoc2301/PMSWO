@@ -8020,3 +8020,48 @@ Las dos auditorías se repartieron entre agentes porque son **lectura ancha**: 4
 riesgo de pisarse. La aplicación de los arreglos NO se repartió: era una lista conocida y una edición
 mecánica, y ahí la varianza de un agente sólo puede restar — el propio informe avisaba de que un
 reemplazo global rompía 84 sitios buenos. Un guion determinista es mejor herramienta para eso.
+
+---
+
+## Tanda 103 · El panel que decía qué iba a cambiar el plan, invisible
+
+Lo peor de la auditoría, cerrado. Los paneles de propuesta de reprogramación —`plan-workspace.tsx`
+1141 y 1378, y su copia literal en `calendar-tab.tsx`— iban con `bg-amber-950/20` y
+`text-amber-100`: **1,02:1**. Van con `role="alertdialog"`, y lo que dicen es exactamente lo que va
+a cambiar en el plan si pulsas «Aplicar».
+
+### Por qué llevaba tanto ahí
+
+No bastaba con cambiar la tinta. **No existía ningún token de FONDO de aviso** —sólo de tinta—, así
+que la pareja no se podía expresar y cada sitio se la inventaba. Ese fondo se eligió para *aclarar*
+un lienzo negro; sobre blanco hace lo contrario.
+
+Ahora existen `--aviso-fondo/-borde/-tinta`, `--grave-fondo/-borde` y `--bien-fondo/-borde/-tinta`
+en los tres bloques, con los valores oscuros idénticos a los de antes.
+
+De paso: `plan-workspace.tsx` usaba **cinco tonos distintos para el mismo papel** —amber-500/5,
+amber-950/20, amber-200, amber-200/80, amber-300—. Ahora es una familia, y hay prueba que vigila que
+no quede ningún color crudo en el archivo.
+
+### Demostrado en pantalla, provocando el gesto
+
+No mirando el token: arrastrando una barra en claro hasta que salió la propuesta de verdad.
+
+| texto del panel | antes | ahora |
+|---|---|---|
+| «El cierre del proyecto no se mueve» | **1,02:1** | **7,06:1** |
+| «Debe empezar el del 20…» | ilegible | 5,94:1 |
+| la cifra de líneas afectadas | ilegible | 8,33:1 |
+
+### Cola que queda
+
+1. **Resto de A4**: ~30 cajas de alerta más con el mismo patrón, repartidas por `work-items-view`,
+   `plan-tab`, `dashboard-tab`, `workload-tab`, `dependency-editor`, `columnas-del-tablero`,
+   `filter-bar`, `project-form`, `errors/error-message` y varias más. Los tokens ya existen, así que
+   es aplicar la familia. **No hacer reemplazo global**: `text-red-300` y compañía también aparecen
+   fuera de cajas de alerta, y ahí puede no tocar.
+2. **A3**: ~45 mapas de pastillas con pasos -300. Tokens listos. El peor, `projects-client.tsx:245`
+   a 1,05:1. Varios llevan fondo **y** tinta cableados: rehacer la pareja.
+3. Los acentos de widgets y tarjetas de pregunta: tinta de números de 24-30 px, exigen 3:1 y tres de
+   seis no llegan.
+4. Botones que rellenan con `bg-acento` (4,47 con blanco) en vez de `bg-acento-relleno`.
