@@ -8350,3 +8350,47 @@ propia se quede corta frente a sus hijas. Cambiar cómo entran los resúmenes en
 la segunda se contesta con una consulta a la base, no leyendo. Los dos hallazgos eran ciertos y
 ninguno de los dos había que arreglarlo esta noche; saber cuál es cuál es lo que evita gastar el
 tiempo en lo que no cambia nada.
+
+### Tanda 105c · El §3.8 medido, y el §3.6 leído con cuidado
+
+**El motor cumple los dos objetivos de rendimiento**, medidos por primera vez a la escala que el spec
+pide (10 000 tareas, 8 000 dependencias):
+
+| operación | medido | objetivo |
+|---|---|---|
+| `schedule()` completo | ~110–300 ms | < 400 ms |
+| ruta crítica encima | 22–71 ms | — |
+| reprogramar tras mover 1 tarea | **29 ms**, arrastrando 1 259 líneas | < 50 ms |
+
+Lo que había era un «cumple» que medía otra cosa: 5 000 tareas **en cadena simple** con un techo
+cinco veces más flojo. Un objetivo que se satisface con el caso fácil no dice nada del difícil.
+
+### Cuatro errores míos en la misma prueba de carga
+
+Todos del mismo género —**medir algo más fácil de lo que dice medirse**— y ninguno visible leyendo:
+
+1. El congruente lineal se salía de los 2^53 exactos y degeneraba: pedía 8 000 vínculos y conseguía
+   5 195. Un plan más flojo del que dice generar.
+2. Emparejaba sin mirar el parentesco y creaba vínculos resumen→descendiente, que el motor rechaza
+   con razón. El inválido era el generador.
+3. Moviendo `t0` daba «1 línea tocada»: en un grafo con grado de salida menor que uno la primera
+   tarea puede no tener sucesoras. Eso no mide reprogramar, mide **no hacer nada** — y habría
+   quedado escrito como que el motor cumple el objetivo más duro del spec.
+4. Eligiendo por grado de salida daba quince: un nodo con tres vecinos locales gana al de la cadena
+   larga.
+
+De ahí salió que al plan generado le faltaba lo esencial: **una espina dorsal**. Sin una cadena que
+lo atraviese, 10 000 líneas dejan una ruta crítica trivial, y ningún plan real es así.
+
+**La regla que sale de esto:** en una prueba de rendimiento hay que mirar la cifra **secundaria**
+—cuántos vínculos se generaron, cuántas líneas se tocaron— antes que el tiempo. El tiempo siempre da
+un número; sólo la otra dice si midió algo.
+
+### §3.6 · «máximo 16 niveles» es una capacidad, no una prohibición
+
+La auditoría lo dio como incumplimiento por no haber límite. Pero leída entera, la frase dice hasta
+dónde debe llegar la numeración, no qué echar atrás. Se comprueba la capacidad —una rama de 16
+numera bien, y dos hermanas a esa profundidad se distinguen— en vez de añadir un guardián.
+
+El plan real tiene **6 niveles**: un rechazo en el 17 no protegería de nada y sí podría echar atrás
+datos legítimos.
