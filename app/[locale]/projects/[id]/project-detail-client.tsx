@@ -653,10 +653,21 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           estimatedEndDate: w.estimatedEndDate,
           progressPct: w.progressPct ?? 0,
           ownerName: w.ownerName ?? null,
-          // `responsibleName` es el nombre que el resumen del kanban trae del lado del cliente;
-          // el modelo lo llama `clientOwner` y el filtro también, para que el campo se llame igual
-          // en la barra que en la base.
-          clientOwner: w.responsibleName ?? null,
+          /*
+            `clientOwner` y no `responsibleName`: son dos columnas distintas, no dos nombres de la
+            misma.
+
+            Aquí había un comentario que afirmaba lo contrario —«el resumen del kanban lo trae del
+            lado del cliente»— y era falso. Medido sobre el plan de referencia: `clientOwner` está
+            en **178** líneas y `responsibleName` en las **1 368**; coinciden sólo en esas 178, y
+            donde el cliente es nulo el responsable tiene nombre. Son quien responde del lado del
+            cliente y quien responde por dentro.
+
+            Con la equivocación, el criterio rotulado «Responsable del cliente» filtraba por el
+            responsable interno: «tiene valor» devolvía 1 368 donde corresponden 178, y buscar a una
+            persona del cliente sacaba a gente de casa.
+          */
+          clientOwner: w.clientOwner ?? null,
           // El §10.2 pide «fecha de creación» entre los criterios, y el campo estaba en el selector
           // leyendo algo que nadie rellenaba: filtrar por «creada después de» dejaba pasar las 1 368.
           createdAt: w.createdAt,
@@ -664,7 +675,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
           // Sin esto el filtro no puede saber quién es resumen —«ser resumen» es tener hijas, y eso
           // no se ve mirando una línea sola— y «Es resumen» respondía que no de las 1368.
           parentId: w.parentId ?? null,
-        })) as LineaFiltrable[],
+        })),
         filtro,
         { hoy: hoyDelFiltro, camposPropios: declararCampos(camposPropios) },
       )

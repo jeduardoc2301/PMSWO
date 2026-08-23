@@ -64,8 +64,19 @@ export interface LineaFiltrable {
   readonly priority: string
   readonly kind: string
   readonly party: string
-  readonly startDate: IsoDate
-  readonly estimatedEndDate: IsoDate
+  /*
+    Opcionales, como `createdAt`.
+
+    Eran obligatorias y el llamador tenía que meter un `as LineaFiltrable[]` para que cuadrara,
+    porque el resumen del Tablero puede traerlas sin fecha. Ese molde apagaba la comprobación de
+    tipos de TODO el objeto — y con ella escondió que «Responsable del cliente» leía la columna
+    equivocada, que es la cuarta vez que esta junta falla en silencio.
+
+    Una línea sin fecha no es un error: es una línea sin fecha, y el filtro ya sabe decir «está
+    vacío».
+  */
+  readonly startDate?: IsoDate
+  readonly estimatedEndDate?: IsoDate
   readonly createdAt?: string
   readonly progressPct: number
   readonly ownerId?: string | null
@@ -140,8 +151,8 @@ export const CAMPOS_BASE: Readonly<Record<string, CampoDeclarado>> = {
   party: { tipo: 'texto', etiqueta: 'Responde', leer: (l) => l.party },
   owner: { tipo: 'texto', etiqueta: 'Responsable', leer: (l) => l.ownerName ?? l.ownerId ?? null },
   clientOwner: { tipo: 'texto', etiqueta: 'Responsable del cliente', leer: (l) => l.clientOwner },
-  startDate: { tipo: 'fecha', etiqueta: 'Fecha de inicio', leer: (l) => l.startDate },
-  endDate: { tipo: 'fecha', etiqueta: 'Fecha final', leer: (l) => l.estimatedEndDate },
+  startDate: { tipo: 'fecha', etiqueta: 'Fecha de inicio', leer: (l) => l.startDate ?? null },
+  endDate: { tipo: 'fecha', etiqueta: 'Fecha final', leer: (l) => l.estimatedEndDate ?? null },
   createdAt: { tipo: 'fecha', etiqueta: 'Fecha de creación', leer: (l) => l.createdAt?.slice(0, 10) ?? null },
   /**
    * El avance **en porcentaje**, que es la unidad en la que lo dice todo lo demás.
