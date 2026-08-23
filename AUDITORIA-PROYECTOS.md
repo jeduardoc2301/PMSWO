@@ -8109,3 +8109,34 @@ claro es del código.** Sirve para ordenar qué mirar primero.
 **Queda:** los acentos de widgets y tarjetas de pregunta (tinta de números de 24-30 px, exigen 3:1),
 los botones que rellenan con `bg-acento` en vez de `bg-acento-relleno`, los 7 `bg-*-950/*` que no son
 cajas (hovers destructivos, `main-nav.tsx:196` a 2,5:1, el día elegido del calendario).
+
+### Tanda 103d · Los dos acentos estaban cambiados, y la escalera de salud
+
+`--acento` y `--acento-relleno` existen los dos, se parecen, y estaban usados al revés en **53
+sitios**: 46 rellenaban con el de texto (4,47:1 con blanco en oscuro) y 7 escribían con el de
+relleno (3,97:1). Los dos fallos son de los que sobreviven años: por poco, y sólo en un tema.
+
+Aparecieron en **tres formas distintas** —clase y tinta en la misma línea, clase y `style` en líneas
+separadas, y el literal dentro de un objeto— y las dos primeras pasadas se dejaron la tercera. Lo
+destapó volver a medir y ver que «+ Nueva tarea» seguía a 4,47. **Arreglar no es haber arreglado
+hasta que se vuelve a medir.**
+
+### La escalera de salud
+
+Los dos últimos fallos venían de una sola línea: `#10b981 / var(--acento) / #f59e0b / #ef4444`,
+alimentando el número de 30 px y el rótulo de 18. Ese rótulo es el que dice si el proyecto va bien.
+
+Costó encontrarla porque el texto viene de traducción —no hay ningún «Bueno» en el código— y el
+color de una variable: ni buscar el texto ni buscar el literal servía. Lo dio **preguntarle al
+elemento en pantalla** y tirar del hilo desde su estilo calculado.
+
+Ahora son los cuatro tokens semánticos que la escalera ya significaba: `--bien`, `--acento-tinta`,
+`--aviso`, `--grave-tinta`.
+
+### Estado
+
+**Modo oscuro: las seis vistas sin un solo fallo de contraste.**
+
+Queda en claro el falso positivo conocido del avatar, y los 7 `bg-*-950/*` que no son cajas —hovers
+de botones destructivos, `main-nav.tsx:196` y el día elegido del calendario—, cada uno con su propio
+par que hay que mirar de uno en uno.
