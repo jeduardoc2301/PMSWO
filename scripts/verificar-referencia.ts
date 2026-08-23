@@ -33,6 +33,21 @@ function diasHabiles(desde: Date, hasta: Date): number {
 const ESPERADO = {
   lineas: 1368,
   vinculos: 1665,
+  /*
+    Las dos definiciones de «resumen», ancladas.
+
+    125 con hijas contra 121 marcadas RESUMEN: las cuatro de diferencia son COMPUERTA con hijas, y
+    son el reactivo que separa la regla buena —tener hijas— de la mala —`kind === 'RESUMEN'`—. El
+    error ha mordido cinco veces en este repo.
+
+    `resumenSinHijas` es la del otro lado y vale cero. Importa que esté aquí porque un comentario de
+    `gantt.ts` afirmaba que eran catorce, una auditoría se lo creyó y lo reportó como defecto. Una
+    cifra medible escrita en prosa se lee como dato; escrita aquí, se entera una prueba cuando deja
+    de ser cierta.
+  */
+  conHijas: 125,
+  marcadasResumen: 121,
+  resumenSinHijas: 0,
   cierre: '2026-11-30',
   conRestriccionRara: 0,
   conAvance: 0,
@@ -132,11 +147,24 @@ async function main(): Promise<void> {
     where: { id: projectId },
     select: { startDate: true },
   })
+  const todas = await prisma.workItem.findMany({
+    where: { projectId },
+    select: { id: true, kind: true, parentId: true },
+  })
+  const madres = new Set(todas.filter((t) => t.parentId).map((t) => t.parentId as string))
+  const marcadas = todas.filter((t) => t.kind === 'RESUMEN')
+  const conHijas = madres.size
+  const marcadasResumen = marcadas.length
+  const resumenSinHijas = marcadas.filter((t) => !madres.has(t.id)).length
+
   const lineasBase = await prisma.baseline.count({ where: { projectId } })
 
   const real = {
     lineas,
     vinculos,
+    conHijas,
+    marcadasResumen,
+    resumenSinHijas,
     cierre: cierre._max.estimatedEndDate ? cierre._max.estimatedEndDate.toISOString().slice(0, 10) : '(sin fechas)',
     conRestriccionRara,
     conAvance,

@@ -687,12 +687,20 @@ export function ganttLayout(input: GanttInput): GanttLayout {
         // cada antepasado suyo— y en un plan de siete niveles eso multiplica la cifra.
         //
         // «Resumen» aquí es **tener hijas**, y no la clase declarada, que es lo que usa `isSummary`
-        // para pintarlo gris. No son lo mismo y la diferencia importa: en el plan de referencia hay
-        // catorce líneas marcadas RESUMEN de las que no cuelga nadie. No tienen hijas de las que
-        // heredar nada, así que sus fechas son suyas y su atraso es real; descartarlas por la clase
-        // las borraría de la cuenta sin que nadie las echara de menos. El Panel ya cuenta así —sus
-        // «hojas» son las que nadie nombra como madre— y dos definiciones de la misma palabra en la
-        // misma pantalla es exactamente lo que el §9.3 pide que no pase.
+        // para pintarlo gris. No son lo mismo, y la diferencia se mide: en el plan de referencia hay
+        // 125 líneas con hijas y 121 marcadas RESUMEN. Las cuatro de diferencia son COMPUERTA con
+        // hijas — el reactivo que separa las dos reglas—. Al revés no hay ninguna hoy: cero líneas
+        // marcadas RESUMEN de las que no cuelgue nadie.
+        //
+        // Aquí manda la estructura porque una línea sin hijas no hereda nada de nadie: sus fechas
+        // son suyas y su atraso es real, así que descartarla por la clase la borraría de la cuenta.
+        // El Panel ya cuenta así —sus «hojas» son las que nadie nombra como madre— y dos
+        // definiciones de la misma palabra en la misma pantalla es lo que el §9.3 pide que no pase.
+        //
+        // Este comentario decía «catorce líneas marcadas RESUMEN de las que no cuelga nadie». Era
+        // falso, y una auditoría se lo creyó y lo reportó como defecto: un comentario que afirma una
+        // cifra medible se lee como dato. Las cifras de arriba están ancladas en `gantt.test.ts`
+        // para que, si el plan cambia, se entere una prueba y no un lector confiado.
         !children.has(task.id) &&
         (tramo?.finish ?? scheduled?.finish ?? schedule.start) < input.hoy &&
         clamp(task.progress ?? 0) < 1 &&
