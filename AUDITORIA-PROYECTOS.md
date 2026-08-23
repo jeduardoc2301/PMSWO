@@ -8140,3 +8140,23 @@ Ahora son los cuatro tokens semánticos que la escalera ya significaba: `--bien`
 Queda en claro el falso positivo conocido del avatar, y los 7 `bg-*-950/*` que no son cajas —hovers
 de botones destructivos, `main-nav.tsx:196` y el día elegido del calendario—, cada uno con su propio
 par que hay que mirar de uno en uno.
+
+### Tanda 103e · Los números de las métricas y la leyenda
+
+Tres escaleras de tono con literales —ficha, detalle de consultor y Tablero de control— alimentaban
+números de 30 px. Exigen 3:1 y `#10b981` daba 2,54. Las tres significan lo mismo (bien / aviso /
+grave) y los tokens ya existían.
+
+Y la leyenda del burndown: **recharts viste cada rótulo con el color de su serie**, y esos colores
+están elegidos para verse como línea sobre el lienzo, no para leerse como texto — 2,15 a 2,54:1. El
+rótulo pasa a `--tinta-2` y el color se queda en la muestra. La identidad ya la lleva la muestra, y
+así el texto deja de depender del color para poder leerse.
+
+### La sonda deja de inventarse «AU»
+
+Toda la noche reportó ese avatar a 1,00:1 y toda la noche lo descarté a mano. Su fondo es un
+degradado y el rastreo de ancestros sólo sabe de colores planos, así que lo daba por blanco. Ahora
+salta los elementos con degradado por encima.
+
+Un falso positivo que se descarta a mano cada vez no es inofensivo: **enseña a mirar la lista con
+desconfianza**, y el día que aparezca uno de verdad al lado, se va con él.
