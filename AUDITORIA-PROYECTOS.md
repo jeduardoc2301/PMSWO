@@ -8394,3 +8394,30 @@ numera bien, y dos hermanas a esa profundidad se distinguen— en vez de añadir
 
 El plan real tiene **6 niveles**: un rechazo en el 17 no protegería de nada y sí podría echar atrás
 datos legítimos.
+
+### Tanda 105d · La holgura, ya demostrada en pantalla
+
+Queda cerrado el «no demostrado en pantalla» del arreglo del §3.3. El panel de detalle de la línea
+recién clavada arrastrando dice:
+
+```
+FECHAS                Del 2026-07-16 al 2026-07-22 · 5 días hábiles
+MARGEN                Ninguno: cualquier atraso mueve el cierre
+RESTRICCIÓN DE FECHA  Debe empezar el · 2026-07-16
+```
+
+Las dos mitades a la vez: la restricción que pone el arrastre es **`DEBE_EMPEZAR_EL`** —lo que hacía
+alcanzable el defecto por la ruta corriente— y su margen es **Ninguno**. Antes anunciaba días de
+holgura sobre una fecha que no se puede mover.
+
+Costó tres sondas, y las tres fallaron por el instrumento y no por el código:
+
+1. Leí «MARGEN 125 días» y era del **encabezado del proyecto**, no de la línea: la misma palabra en
+   dos sitios.
+2. El panel no se abre pulsando la barra sino el **nombre** en la rejilla, y con un clic de ratón de
+   verdad, no un `MouseEvent` despachado.
+3. Buscaba «Margen» y el rótulo va en **mayúsculas**.
+
+La lección repetida: cuando una sonda no encuentra algo, **volcar lo que hay** antes de refinar la
+búsqueda. Las dos primeras veces afiné el filtro sobre una suposición del nombre; el volcado lo
+resolvió a la primera.
