@@ -196,7 +196,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
         <div className="flex items-center justify-between flex-wrap gap-3">
           {/* Left */}
           <div>
-            <h3 className="text-base font-semibold text-white flex items-center gap-2">
+            <h3 className="text-base font-semibold text-tinta flex items-center gap-2">
               <GanttChart size={15} className="text-violet-300" />
               Timeline · {startLabel} → {endLabel}
             </h3>
@@ -243,20 +243,20 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
             {/* Plegar / desplegar fases */}
             <div className="flex items-center gap-1">
               <button onClick={() => setExpanded(new Set(phases.map((p) => p.name)))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
                 title="Desplegar todas las fases"><ChevronsUpDown size={14} /></button>
               <button onClick={() => setExpanded(new Set())}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
                 title="Plegar todas las fases"><ChevronsDownUp size={14} /></button>
             </div>
 
             {/* Zoom */}
             <div className="flex items-center gap-1">
               <button onClick={() => setZoom((z) => Math.max(0.7, +(z - 0.2).toFixed(1)))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
                 title="Alejar"><ZoomOut size={14} /></button>
               <button onClick={() => setZoom((z) => Math.min(2, +(z + 0.2).toFixed(1)))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
                 title="Acercar"><ZoomIn size={14} /></button>
             </div>
           </div>
@@ -277,7 +277,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                 <Icon size={14} style={{ color: c }} />
               </div>
               <div>
-                <div className="text-lg font-bold text-white tabular-nums">{v}</div>
+                <div className="text-lg font-bold text-tinta tabular-nums">{v}</div>
                 <div className="text-[10px] text-tinta-3 uppercase tracking-wider">{l}</div>
               </div>
             </div>
@@ -353,7 +353,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                           : <ChevronRight size={14} className="text-tinta-3 flex-shrink-0" />}
                         <div className="w-1 rounded-sm flex-shrink-0" style={{ height: 28, background: phColor, boxShadow: `0 0 12px ${phColor}` }} />
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">{g.name}</div>
+                          <div className="text-sm font-semibold text-tinta truncate">{g.name}</div>
                           <div className="text-[10px] text-tinta-3 truncate">
                             {phItems.length} tareas · {doneCount} completadas · {fmtShort(phStart)} → {fmtShort(phEnd)}
                           </div>
@@ -396,7 +396,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                           <div className="flex items-center gap-2.5 py-2.5" style={{ paddingLeft: 36, paddingRight: 12, borderRight: '1px solid var(--borde)' }}>
                             <div className="w-0.5 rounded-full flex-shrink-0" style={{ height: 18, background: PRIORITY_COLOR[w.priority] ?? 'var(--tinta-3)' }} />
                             <div className="min-w-0 flex-1">
-                              <div className="text-[13px] text-white truncate">{w.title}</div>
+                              <div className="text-[13px] text-tinta truncate">{w.title}</div>
                               <div className="text-[10px] text-tinta-3 flex items-center gap-1.5">
                                 <span>{w.id.slice(0, 8).toUpperCase()}</span>
                                 {isOverdue && <span className="text-rose-400">atrasada</span>}
@@ -471,7 +471,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
                           <div className="w-3 h-3 border-2" style={{ transform: 'rotate(45deg)', background: mc, borderColor: mb, boxShadow: `0 0 14px ${mc}` }} />
                         </div>
                         {/* Tooltip */}
-                        <div className="absolute opacity-0 group-hover/m:opacity-100 transition-opacity pointer-events-none rounded-md px-2 py-1 text-[10px] text-white whitespace-nowrap z-10"
+                        <div className="absolute opacity-0 group-hover/m:opacity-100 transition-opacity pointer-events-none rounded-md px-2 py-1 text-[10px] text-tinta whitespace-nowrap z-10"
                           style={{ bottom: 24, left: '50%', transform: 'translateX(-50%)', background: 'var(--superficie)', border: '1px solid var(--borde-fuerte)' }}>
                           {m.name} · {fmtShort(m.date)}
                         </div>

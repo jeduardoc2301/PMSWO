@@ -213,11 +213,11 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center gap-4" style={{ borderBottom: '1px solid #18181b' }}>
         <button onClick={() => router.push(`/${locale}/consultant-performance`)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all">
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all">
           <ArrowLeft size={16} />
         </button>
         <div className="text-sm text-tinta-3">Consultores /</div>
-        <h1 className="text-base font-semibold text-white">{consultant.name}</h1>
+        <h1 className="text-base font-semibold text-tinta">{consultant.name}</h1>
       </div>
 
       <div className="p-8 max-w-[1200px] space-y-7">
@@ -231,7 +231,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
                 : getInitials(consultant.name)}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold text-white tracking-tight">{consultant.name}</h2>
+              <h2 className="text-2xl font-bold text-tinta tracking-tight">{consultant.name}</h2>
               <p className="text-sm text-tinta-2 mt-1">{consultant.email}</p>
             </div>
           </div>
@@ -441,7 +441,7 @@ export function ConsultantDetailClient({ consultantId }: { consultantId: string 
                   <div className="w-2 h-2 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-tinta-2">
-                      <span className="font-medium text-white">{a.workItemTitle}</span>
+                      <span className="font-medium text-tinta">{a.workItemTitle}</span>
                       {' — '}<span className="text-tinta-3">{a.field}:</span>{' '}
                       <span className="text-tinta-2">{String(a.oldValue ?? '—')}</span>
                       {' → '}

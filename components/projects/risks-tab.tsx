@@ -153,7 +153,7 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
-          <span className="text-sm"><span className="font-bold text-white">{activeRisks.length}</span> <span className="text-tinta-3">{t('activeRisks')}</span></span>
+          <span className="text-sm"><span className="font-bold text-tinta">{activeRisks.length}</span> <span className="text-tinta-3">{t('activeRisks')}</span></span>
           {highRisks.length > 0 && <span className="text-sm"><span className="font-bold text-amber-400">{highRisks.length}</span> <span className="text-tinta-3">{t('highRisks')}</span></span>}
         </div>
         <button onClick={() => setShowCreateDialog(true)}
@@ -228,7 +228,7 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
                       <NotificationDialog type="risk" entityId={risk.id} />
                     )}
                     <button onClick={() => handleConvertToBlocker(risk.id)}
-                      className="h-8 px-3 rounded-lg text-xs text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                      className="h-8 px-3 rounded-lg text-xs text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                       style={{ border: '1px solid var(--borde)' }}>
                       {t('convertToBlocker')}
                     </button>
@@ -321,7 +321,7 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowCreateDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
@@ -349,7 +349,7 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowCloseDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"

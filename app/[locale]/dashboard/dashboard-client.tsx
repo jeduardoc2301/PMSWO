@@ -82,9 +82,9 @@ function KpiPanel({ data, locale, onClose }: { data: KpiPanelData; locale: strin
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--borde)' }}>
           <div className="flex items-center gap-3">
             <span className="text-3xl font-bold tabular-nums" style={{ color: toneColor }}>{data.value}</span>
-            <span className="text-base font-semibold text-white">{data.label}</span>
+            <span className="text-base font-semibold text-tinta">{data.label}</span>
           </div>
-          <button onClick={onClose} className="text-tinta-3 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-tinta-3 hover:text-tinta transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -111,7 +111,7 @@ function KpiPanel({ data, locale, onClose }: { data: KpiPanelData; locale: strin
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-superficie-3/60 transition-all group">
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: toneColor }} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-tinta truncate group-hover:text-white">{p.name}</div>
+                    <div className="text-sm font-medium text-tinta truncate group-hover:text-tinta">{p.name}</div>
                     <div className="text-xs text-tinta-3 truncate">{p.client}</div>
                   </div>
                   <ArrowRight size={12} className="text-tinta-3 group-hover:text-tinta-2 flex-shrink-0 transition-colors" />
@@ -164,7 +164,7 @@ function KpiCard({ icon, label, value, delta, trend, tone = 'indigo', onClick }:
           {delta}
         </span>
       </div>
-      <div className="mt-4 text-3xl font-bold text-white tabular-nums tracking-tight">{value}</div>
+      <div className="mt-4 text-3xl font-bold text-tinta tabular-nums tracking-tight">{value}</div>
       <div className="text-xs text-tinta-3 mt-1">{label}</div>
       {onClick && <div className="text-[10px] text-tinta-3 mt-2">Clic para ver proyectos →</div>}
     </div>
@@ -221,7 +221,7 @@ function HealthGauge({ value }: { value: number }) {
           transform="rotate(-90 70 70)" style={{ transition: 'stroke-dashoffset 800ms ease' }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-3xl font-bold text-white tabular-nums">{value}</div>
+        <div className="text-3xl font-bold text-tinta tabular-nums">{value}</div>
         <div className="text-[10px] text-tinta-3 uppercase tracking-wider">Health</div>
       </div>
     </div>
@@ -509,7 +509,7 @@ export function DashboardClient() {
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div className="flex items-baseline gap-3">
-          <h1 className="text-lg font-semibold text-white">Buen día, {firstName} 👋</h1>
+          <h1 className="text-lg font-semibold text-tinta">Buen día, {firstName} 👋</h1>
           <span className="text-sm text-tinta-3">Esto es lo que necesita tu atención hoy.</span>
         </div>
         <a href={`/${locale}/projects/new`}
@@ -545,14 +545,14 @@ export function DashboardClient() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <div className="text-xs text-tinta-3 uppercase tracking-wider">Salud del portafolio</div>
-                <div className="text-lg font-semibold text-white mt-1">
+                <div className="text-lg font-semibold text-tinta mt-1">
                   Vista general · {inProgressCount} proyectos en curso
                 </div>
               </div>
               <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
                 {([7, 30, 90] as const).map((d) => (
                   <button key={d} onClick={() => handlePeriodChange(d)}
-                    className={`px-3 py-1.5 text-xs font-medium transition-all ${period === d ? 'bg-superficie-3 text-white' : 'text-tinta-3 hover:text-tinta-2'}`}>
+                    className={`px-3 py-1.5 text-xs font-medium transition-all ${period === d ? 'bg-acento-relleno text-sobre-acento' : 'text-tinta-3 hover:text-tinta-2'}`}>
                     {d} días
                   </button>
                 ))}
@@ -571,7 +571,7 @@ export function DashboardClient() {
                   <div key={s.label} className="flex items-center gap-1.5">
                     <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
                     <span className="text-xs text-tinta-2">{s.label}</span>
-                    <span className="text-sm font-semibold text-white ml-1">{s.n}</span>
+                    <span className="text-sm font-semibold text-tinta ml-1">{s.n}</span>
                   </div>
                 ))}
               </div>
@@ -669,13 +669,13 @@ export function DashboardClient() {
           <div className="col-span-2 rounded-xl overflow-hidden" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--borde)' }}>
               <div className="flex items-center gap-3">
-                <h3 className="text-base font-semibold text-white">Proyectos en curso</h3>
+                <h3 className="text-base font-semibold text-tinta">Proyectos en curso</h3>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-superficie-3 text-tinta-2">
                   {inProgressCount}
                 </span>
               </div>
               <a href={`/${locale}/projects`}
-                className="inline-flex items-center gap-1.5 text-xs text-tinta-2 hover:text-white transition-all">
+                className="inline-flex items-center gap-1.5 text-xs text-tinta-2 hover:text-tinta transition-all">
                 Ver todos <ArrowUpRight size={12} />
               </a>
             </div>
@@ -694,7 +694,7 @@ export function DashboardClient() {
           {/* Quick actions */}
           <div className="space-y-3">
             <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-              <h3 className="text-sm font-semibold text-white mb-4">Acciones rápidas</h3>
+              <h3 className="text-sm font-semibold text-tinta mb-4">Acciones rápidas</h3>
               <div className="space-y-2">
                 {[
                   { icon: <FolderKanban size={14} />, label: 'Nuevo proyecto', sub: 'Desde plantilla o vacío', href: `/${locale}/projects/new` },
@@ -719,11 +719,11 @@ export function DashboardClient() {
 
             {/* Stats summary */}
             <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-              <h3 className="text-sm font-semibold text-white mb-4">Resumen</h3>
+              <h3 className="text-sm font-semibold text-tinta mb-4">Resumen</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-tinta-3">Tasa de completitud</span>
-                  <span className="text-sm font-semibold text-white">{(dashboard.completionRate ?? 0).toFixed(1)}%</span>
+                  <span className="text-sm font-semibold text-tinta">{(dashboard.completionRate ?? 0).toFixed(1)}%</span>
                 </div>
                 <div className="pms-progress">
                   <div style={{ width: `${dashboard.completionRate ?? 0}%`, background: healthHex(dashboard.completionRate ?? 0) }} />
@@ -734,7 +734,7 @@ export function DashboardClient() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-tinta-3">Total proyectos</span>
-                  <span className="text-sm font-semibold text-white">{projects.length}</span>
+                  <span className="text-sm font-semibold text-tinta">{projects.length}</span>
                 </div>
               </div>
             </div>

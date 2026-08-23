@@ -73,7 +73,7 @@ export function ConsultantPerformanceClient() {
     <div className="min-h-screen" style={{ background: 'var(--fondo)' }}>
       {/* Topbar */}
       <div className="px-8 py-5" style={{ borderBottom: '1px solid #18181b' }}>
-        <h1 className="text-lg font-semibold text-white">Consultores</h1>
+        <h1 className="text-lg font-semibold text-tinta">Consultores</h1>
         <div className="text-xs text-tinta-3 mt-0.5">{consultants.length} consultores activos</div>
       </div>
 
@@ -91,7 +91,7 @@ export function ConsultantPerformanceClient() {
                 style={{ background: s.bg, border: `1px solid ${s.bd}` }}>
                 <span className={s.color}>{s.icon}</span>
               </div>
-              <div className="text-2xl font-bold text-white tabular-nums">{s.value}</div>
+              <div className="text-2xl font-bold text-tinta tabular-nums">{s.value}</div>
               <div className="text-xs text-tinta-3 mt-1">{s.label}</div>
             </div>
           ))}
@@ -117,7 +117,7 @@ export function ConsultantPerformanceClient() {
         {!loading && !error && consultants.length === 0 && (
           <div className="rounded-xl p-16 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
             <Users2 size={32} className="text-tinta-3 mx-auto mb-4" />
-            <div className="text-base font-semibold text-white">Sin consultores registrados</div>
+            <div className="text-base font-semibold text-tinta">Sin consultores registrados</div>
             <div className="text-sm text-tinta-3 mt-2">No hay consultores activos en la organización.</div>
           </div>
         )}
@@ -169,7 +169,7 @@ export function ConsultantPerformanceClient() {
                   {/* Stats row */}
                   <div className="grid grid-cols-3 gap-2 text-center pt-1" style={{ borderTop: '1px solid var(--borde)' }}>
                     <div>
-                      <div className="text-lg font-bold text-white tabular-nums">{c.activeProjects}</div>
+                      <div className="text-lg font-bold text-tinta tabular-nums">{c.activeProjects}</div>
                       <div className="text-[10px] text-tinta-3 uppercase tracking-wider">Proyectos</div>
                     </div>
                     <div>

@@ -78,7 +78,7 @@ export function SettingsClient({ locale }: SettingsClientProps) {
               : initials}
           </div>
           <div>
-            <div className="text-base font-semibold text-white">{session?.user?.name}</div>
+            <div className="text-base font-semibold text-tinta">{session?.user?.name}</div>
             <div className="text-sm text-tinta-2 mt-0.5">{session?.user?.email}</div>
           </div>
         </div>

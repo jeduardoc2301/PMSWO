@@ -778,7 +778,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         {error || t('projectNotFound')}
       </div>
       <button onClick={() => router.push(`/${locale}/projects`)}
-        className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+        className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
         style={{ border: '1px solid var(--borde)' }}>
         {t('backToProjects')}
       </button>
@@ -815,11 +815,11 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div className="flex items-center gap-4 min-w-0">
           <button onClick={() => router.push(`/${locale}/projects`)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-3 hover:text-white hover:bg-superficie-3 transition-all flex-shrink-0">
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all flex-shrink-0">
             <ArrowLeft size={16} />
           </button>
           <div className="text-sm text-tinta-3 flex-shrink-0">Proyectos /</div>
-          <h1 className="text-base font-semibold text-white truncate">{project.name}</h1>
+          <h1 className="text-base font-semibold text-tinta truncate">{project.name}</h1>
           <span className="text-[11px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
             style={{ background: statusStyle.bg, color: statusStyle.color, border: `1px solid ${statusStyle.border}` }}>
             {statusStyle.label}
@@ -859,9 +859,9 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                 <AlertTriangle size={18} style={{ color: 'var(--grave-tinta)' }} />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-white">Eliminar proyecto</h2>
+                <h2 className="text-base font-semibold text-tinta">Eliminar proyecto</h2>
                 <p className="text-sm text-tinta-2 mt-1">
-                  ¿Estás seguro que deseas eliminar <span className="text-white font-medium">{project.name}</span>?
+                  ¿Estás seguro que deseas eliminar <span className="text-tinta font-medium">{project.name}</span>?
                   El proyecto quedará inactivo y no aparecerá en la lista. Esta acción se puede revertir.
                 </p>
               </div>
@@ -870,7 +870,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="h-9 px-4 rounded-lg text-sm font-medium text-tinta-2 hover:text-white transition-all"
+                className="h-9 px-4 rounded-lg text-sm font-medium text-tinta-2 hover:text-tinta transition-all"
                 style={{ border: '1px solid var(--borde)' }}
               >
                 Cancelar
@@ -897,7 +897,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         <div className="rounded-xl p-5" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-white tracking-tight truncate">{project.name}</h2>
+              <h2 className="text-xl font-bold text-tinta tracking-tight truncate">{project.name}</h2>
               {project.description && <p className="text-sm text-tinta-2 mt-1 line-clamp-2">{project.description}</p>}
             </div>
           </div>
@@ -963,7 +963,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             {/* ── RESUMEN ── */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
-                <h3 className="text-lg font-bold text-white">{t('executiveDashboard.title')}</h3>
+                <h3 className="text-lg font-bold text-tinta">{t('executiveDashboard.title')}</h3>
 
                 {/* Executive questions */}
                 <div className="grid grid-cols-2 gap-4">
@@ -975,7 +975,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       return (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold text-white">
+                            <span className="text-2xl font-bold text-tinta">
                               {daysRemaining > 0 ? `${daysRemaining} ${t('executiveDashboard.labels.days')}` : t('executiveDashboard.status.overdue')}
                             </span>
                             <StatusBadge
@@ -1008,7 +1008,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       return (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-2xl font-bold text-white">{porciento.toFixed(1)}%</span>
+                            <span className="text-2xl font-bold text-tinta">{porciento.toFixed(1)}%</span>
                             <span className="text-xs text-tinta-3">{terminadas}/{hojas} {t('executiveDashboard.labels.tasks')}</span>
                           </div>
                           <div className="pms-progress">
@@ -1091,7 +1091,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
 
                 {/* Tactical */}
                 <div>
-                  <h3 className="text-base font-bold text-white mb-4">{t('tacticalDashboard.title')}</h3>
+                  <h3 className="text-base font-bold text-tinta mb-4">{t('tacticalDashboard.title')}</h3>
                   <div className="grid grid-cols-3 gap-4">
                     {[
                       {
@@ -1176,7 +1176,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       { label: t('executiveDashboard.quickActions.viewKanban'),   tab: 'kanban'     },
                     ].map(a => (
                       <button key={a.tab} onClick={() => setActiveTab(a.tab)}
-                        className="h-9 rounded-lg text-sm text-tinta-2 hover:text-white hover:border-borde-fuerte transition-all"
+                        className="h-9 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:border-borde-fuerte transition-all"
                         style={{ border: '1px solid var(--borde)' }}>
                         {a.label}
                       </button>

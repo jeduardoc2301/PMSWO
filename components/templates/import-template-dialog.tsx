@@ -258,8 +258,8 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
                   <p className="text-xs text-tinta-3 mt-0.5">{parsed.description}</p>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-tinta-2">
-                  <span><span className="text-white font-medium">{parsed.phases.length}</span> fases</span>
-                  <span><span className="text-white font-medium">{totalActivities}</span> actividades</span>
+                  <span><span className="text-tinta font-medium">{parsed.phases.length}</span> fases</span>
+                  <span><span className="text-tinta font-medium">{totalActivities}</span> actividades</span>
                 </div>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto">
                   {parsed.phases.map((ph) => (

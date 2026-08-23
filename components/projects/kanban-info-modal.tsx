@@ -98,7 +98,7 @@ function AnatomyRow({ color, label, desc }: { color: string; label: string; desc
       <span className="w-3 h-3 rounded-sm mt-1 flex-shrink-0"
         style={{ background: color, boxShadow: `0 0 10px ${color}88` }} />
       <div>
-        <div className="text-[12.5px] text-white font-medium">{label}</div>
+        <div className="text-[12.5px] text-tinta font-medium">{label}</div>
         <div className="text-[12px] text-tinta-3 leading-relaxed">{desc}</div>
       </div>
     </div>
@@ -230,11 +230,11 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
           <header className="flex items-center justify-between px-7 py-5" style={{ borderBottom: '1px solid #1c1c20' }}>
             <div>
               <div className="text-[11px] uppercase tracking-widest text-tinta-3 font-semibold">Estados visuales</div>
-              <h2 className="text-xl font-bold text-white tracking-tight mt-0.5">4 estados temporales + saludable</h2>
+              <h2 className="text-xl font-bold text-tinta tracking-tight mt-0.5">4 estados temporales + saludable</h2>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
               aria-label="Cerrar"
             >
               <X size={16} />

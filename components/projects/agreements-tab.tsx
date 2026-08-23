@@ -146,7 +146,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
-          <span className="text-sm"><span className="font-bold text-white">{activeAgreements.length}</span> <span className="text-tinta-3">{t('activeAgreements')}</span></span>
+          <span className="text-sm"><span className="font-bold text-tinta">{activeAgreements.length}</span> <span className="text-tinta-3">{t('activeAgreements')}</span></span>
           <span className="text-sm"><span className="font-bold text-emerald-400">{completedAgreements.length}</span> <span className="text-tinta-3">{t('completedAgreements')}</span></span>
         </div>
         <button onClick={() => setShowCreateDialog(true)}
@@ -174,18 +174,18 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
                         </span>
                         <span className="text-xs text-tinta-3">{new Date(agreement.agreementDate).toLocaleDateString(locale)}</span>
                       </div>
-                      <h3 className="text-base font-bold text-white mb-1">{agreement.title}</h3>
+                      <h3 className="text-base font-bold text-tinta mb-1">{agreement.title}</h3>
                       <p className="text-sm text-tinta-2 mb-2">{agreement.description}</p>
                       <p className="text-xs text-tinta-3"><span className="text-tinta-2">{t('participants')}:</span> {agreement.participants}</p>
                     </div>
                     <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
                       <button onClick={() => { setSelectedAgreement(agreement); setShowLinkDialog(true) }}
-                        className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                         style={{ border: '1px solid var(--borde)' }}>
                         <LinkIcon size={12} /> {t('linkWorkItem')}
                       </button>
                       <button onClick={() => { setSelectedAgreement(agreement); setShowNoteDialog(true) }}
-                        className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                        className="h-8 flex items-center gap-1.5 px-3 rounded-lg text-xs text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                         style={{ border: '1px solid var(--borde)' }}>
                         <FileText size={12} /> {t('addProgressNote')}
                       </button>
@@ -288,7 +288,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowCreateDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
@@ -321,7 +321,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowLinkDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
@@ -349,7 +349,7 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowNoteDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"

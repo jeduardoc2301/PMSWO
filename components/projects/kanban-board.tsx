@@ -1078,7 +1078,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
             <Plus size={14} /> {t('createWorkItem')}
           </button>
           <button onClick={() => setShowInfo(true)}
-            className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm font-medium text-tinta-2 transition-all hover:text-white hover:bg-superficie-3"
+            className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm font-medium text-tinta-2 transition-all hover:text-tinta hover:bg-superficie-3"
             style={{ border: '1px solid var(--borde)' }}
             title="Sistema de urgencia">
             <Info size={14} /> Información
@@ -1099,7 +1099,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
           onClick={() => setActiveFilter(f => f === 'blocked' ? null : 'blocked')} />
         {activeFilter && (
           <button onClick={() => setActiveFilter(null)}
-            className="inline-flex items-center gap-1 text-[11px] text-tinta-3 hover:text-white ml-1 transition-colors">
+            className="inline-flex items-center gap-1 text-[11px] text-tinta-3 hover:text-tinta ml-1 transition-colors">
             <X size={12} /> Limpiar
           </button>
         )}

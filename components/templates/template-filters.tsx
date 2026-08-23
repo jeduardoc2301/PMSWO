@@ -129,7 +129,7 @@ export function TemplateFilters({ onFilterChange }: TemplateFiltersProps) {
             <div className="text-[10px] uppercase tracking-widest text-tinta-3 font-semibold px-3 pb-2">Categoría</div>
             {[{ id: '', name: 'Todas las categorías' }, ...categories].map((c) => (
               <button key={c.id} onClick={() => handleCategory(c.id)}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3 hover:text-white transition-all">
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3 hover:text-tinta transition-all">
                 {c.name}
                 {categoryFilter === c.id && <Check size={12} className="ml-auto text-indigo-400" />}
               </button>
@@ -158,7 +158,7 @@ export function TemplateFilters({ onFilterChange }: TemplateFiltersProps) {
             style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', minWidth: 160 }}>
             {sortOptions.map(([v, l]) => (
               <button key={v} onClick={() => handleSort(v)}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3 hover:text-white transition-all">
+                className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3 hover:text-tinta transition-all">
                 {l}
                 {sortBy === v && <Check size={12} className="ml-auto text-indigo-400" />}
               </button>

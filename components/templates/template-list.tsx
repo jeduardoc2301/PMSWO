@@ -135,7 +135,7 @@ export function TemplateList({
   if (templates.length === 0) {
     return (
       <div className="rounded-xl p-16 text-center" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
-        <div className="text-base font-semibold text-white">Sin plantillas que coincidan</div>
+        <div className="text-base font-semibold text-tinta">Sin plantillas que coincidan</div>
         <div className="text-sm text-tinta-3 mt-2">
           {searchQuery || categoryFilter ? 'Prueba ajustando los filtros.' : 'Crea tu primera plantilla.'}
         </div>

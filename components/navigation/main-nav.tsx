@@ -152,7 +152,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
             <FolderKanban size={14} className="text-white" />
           </div>
           <div>
-            <div className="text-sm font-bold text-white tracking-tight leading-none">PMSWO</div>
+            <div className="text-sm font-bold text-tinta tracking-tight leading-none">PMSWO</div>
             <div className="text-[10px] text-tinta-3 leading-none mt-0.5">SoftwareOne</div>
           </div>
         </Link>

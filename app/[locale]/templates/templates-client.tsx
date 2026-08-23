@@ -28,7 +28,7 @@ export function TemplatesClient() {
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div>
-          <h1 className="text-lg font-semibold text-white">Plantillas</h1>
+          <h1 className="text-lg font-semibold text-tinta">Plantillas</h1>
           <p className="text-xs text-tinta-3 mt-0.5">
             Comienza un proyecto en segundos con flujos pre-configurados de SoftwareOne.
           </p>
@@ -41,7 +41,7 @@ export function TemplatesClient() {
           </button>
           <button
             onClick={() => setImportDialogOpen(true)}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-tinta-2 transition-all hover:text-white hover:border-borde-fuerte"
+            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-tinta-2 transition-all hover:text-tinta hover:border-borde-fuerte"
             style={{ border: '1px solid var(--borde)', background: 'var(--superficie)' }}>
             <Upload size={14} /> Importar plantilla
           </button>
@@ -57,7 +57,7 @@ export function TemplatesClient() {
       <div className="p-8">
         {/* Page headline */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white tracking-tight">Acelera con plantillas</h2>
+          <h2 className="text-2xl font-bold text-tinta tracking-tight">Acelera con plantillas</h2>
           <p className="text-sm text-tinta-2 mt-1">
             Comienza un proyecto en segundos con flujos pre-configurados de SoftwareOne.
           </p>

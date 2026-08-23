@@ -148,7 +148,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
-          <span className="text-sm text-tinta-2"><span className="font-bold text-white">{activeBlockers.length}</span> <span className="text-tinta-3">{t('activeBlockers')}</span></span>
+          <span className="text-sm text-tinta-2"><span className="font-bold text-tinta">{activeBlockers.length}</span> <span className="text-tinta-3">{t('activeBlockers')}</span></span>
           {criticalBlockers.length > 0 && (
             <span className="text-sm"><span className="font-bold text-rose-400">{criticalBlockers.length}</span> <span className="text-tinta-3">{t('criticalBlockers')}</span></span>
           )}
@@ -275,7 +275,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowCreateDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
@@ -303,7 +303,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
             </div>
             <DialogFooter>
               <button type="button" onClick={() => setShowResolveDialog(false)}
-                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-white hover:bg-superficie-3 transition-all"
+                className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
               <button type="submit" disabled={submitting}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"

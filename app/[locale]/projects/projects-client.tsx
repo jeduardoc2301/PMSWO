@@ -352,7 +352,7 @@ export function ProjectsPageClient() {
       {/* Topbar */}
       <div className="px-8 py-5 flex items-center justify-between" style={{ borderBottom: '1px solid #18181b' }}>
         <div>
-          <h1 className="text-lg font-semibold text-white">{t('title')}</h1>
+          <h1 className="text-lg font-semibold text-tinta">{t('title')}</h1>
           <div className="text-xs text-tinta-3 mt-0.5">
             {pagination.total > 0 ? `${projects.length} de ${pagination.total}` : `${projects.length} proyectos`}
           </div>
@@ -426,11 +426,11 @@ export function ProjectsPageClient() {
           <div className="ml-auto flex items-center">
             <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
               <button onClick={() => setView('grid')}
-                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'grid' ? 'bg-superficie-3 text-white' : 'text-tinta-3 hover:text-tinta-2'}`}>
+                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'grid' ? 'bg-acento-relleno text-sobre-acento' : 'text-tinta-3 hover:text-tinta-2'}`}>
                 <LayoutGrid size={15} />
               </button>
               <button onClick={() => setView('table')}
-                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'table' ? 'bg-superficie-3 text-white' : 'text-tinta-3 hover:text-tinta-2'}`}>
+                className={`h-9 w-9 flex items-center justify-center text-sm transition-all ${view === 'table' ? 'bg-acento-relleno text-sobre-acento' : 'text-tinta-3 hover:text-tinta-2'}`}>
                 <Table2 size={15} />
               </button>
             </div>
@@ -460,7 +460,7 @@ export function ProjectsPageClient() {
               style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
               <FolderSearch size={28} className="text-indigo-400" />
             </div>
-            <div className="text-base font-semibold text-white">Sin proyectos que coincidan</div>
+            <div className="text-base font-semibold text-tinta">Sin proyectos que coincidan</div>
             <div className="text-sm text-tinta-3 mt-2 max-w-sm mx-auto">
               Prueba ajustando los filtros, o crea tu primer proyecto.
             </div>

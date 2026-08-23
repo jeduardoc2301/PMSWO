@@ -152,7 +152,7 @@ function SortableRow({
           <button
             type="button"
             onClick={() => onAbrirDetalle(item.id)}
-            className="text-left text-sm font-medium text-tinta hover:text-white hover:underline"
+            className="text-left text-sm font-medium text-tinta hover:text-tinta hover:underline"
             title={item.title}
           >
             {item.title}
