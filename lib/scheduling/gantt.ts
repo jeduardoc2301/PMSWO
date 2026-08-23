@@ -45,7 +45,7 @@ import { rollUpProgress } from './progress'
 import type { ModoDeRollup } from './rollup-modos'
 import { fechasDeResumen } from './summary-rollup'
 import { estaTerminada } from '@/lib/urgency'
-import { numerarPlan } from './wbs'
+import { compararWbs, numerarPlan } from './wbs'
 import { type Dependency, type LinkType, type PlanTask, type Recoverability, type ResponsibleParty, type TaskKind } from './types'
 
 /** De qué extremo de una barra sale o entra una flecha. */
@@ -533,7 +533,30 @@ export function ganttLayout(input: GanttInput): GanttLayout {
   const passesFilter = filterPredicate(input.filter, analysis)
   const kept = keepWithAncestors(tasks, byId, passesFilter)
 
-  const visible = tasks.filter((task) => !folded.has(task.id) && kept.has(task.id))
+  /*
+    Las filas van en el orden del ÁRBOL, no en el que vengan.
+
+    El plan se carga ordenado por `templateOrder`, que es el orden en que se crearon las líneas. En
+    un plan importado eso coincide con el árbol y nadie lo nota; pero al crear una hija nueva se
+    añade al final de esa cuenta, así que aparecía **fuera de su grupo**: numerada 1.3 y dibujada la
+    última de todo el plan.
+
+    Dos verdades distintas sobre la misma línea: el número EDT sale de `numerarPlan`, que recorre el
+    árbol, y las filas salían del array tal cual.
+
+    Se ordena por el **propio EDT** con `compararWbs`, que ya existía para esto —pone 1.9 antes que
+    1.10, cosa que comparar cadenas no hace—. Así la fila va donde dice su número por construcción,
+    y no por que el almacenamiento venga ordenado de casualidad.
+
+    No se cambia el orden que devuelve `numerarPlan`: es de entrada a propósito, porque quien llama
+    empareja por posición.
+  */
+  const edtDe = new Map(numerarPlan(tasks).map((n) => [n.id, n.wbs]))
+  const enOrden = [...tasks].sort((a, b) =>
+    compararWbs(edtDe.get(a.id) ?? '', edtDe.get(b.id) ?? ''),
+  )
+
+  const visible = enOrden.filter((task) => !folded.has(task.id) && kept.has(task.id))
   const indexOf = new Map(visible.map((task, index) => [task.id, index]))
 
   /**

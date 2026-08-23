@@ -1297,3 +1297,47 @@ describe('El rótulo del desfase', () => {
     expect(linkLabel({ type: 'FS', lag: 0, lagMin: 420 }, 480)).toBe('FS +7 h')
   })
 })
+
+
+describe('§6.1 · las filas van donde dice su número, no donde se crearon', () => {
+  /**
+   * Una hija creada después aparecía **fuera de su grupo**.
+   *
+   * El plan se carga ordenado por `templateOrder`, que es el orden de creación. En un plan importado
+   * eso coincide con el árbol y nadie lo nota; pero al crear una hija nueva se añade al final de esa
+   * cuenta. El resultado, medido en pantalla: numerada `1.3` y dibujada la última de once filas,
+   * debajo de líneas que no tienen nada que ver con ella.
+   *
+   * Eran dos verdades sobre la misma línea: el número salía de recorrer el árbol y la posición del
+   * array tal cual. Ahora las filas se ordenan por el propio EDT con `compararWbs` —que ya existía y
+   * pone 1.9 antes que 1.10—, así que la fila va donde dice su número por construcción.
+   *
+   * El orden que devuelve `numerarPlan` NO se toca: es de entrada a propósito, porque quien llama
+   * empareja por posición.
+   */
+  it('una hija añadida al final del array se dibuja junto a sus hermanas', () => {
+    const tasks: PlanTask[] = [
+      { id: 'bloque', name: 'Bloque A', duration: 1, progress: 0 } as never,
+      { id: 'a1', name: 'A.1', duration: 1, progress: 0, parentId: 'bloque' } as never,
+      { id: 'a2', name: 'A.2', duration: 1, progress: 0, parentId: 'bloque' } as never,
+      { id: 'hito', name: 'HITO', duration: 0, progress: 0 } as never,
+      { id: 'suelta', name: 'B suelta', duration: 1, progress: 0 } as never,
+      // La recién creada: última en el array, hija del primer bloque.
+      { id: 'nueva', name: 'Padre', duration: 1, progress: 0, parentId: 'bloque' } as never,
+    ]
+
+    const orden = trazar(tasks).rows.map((r) => r.id)
+    expect(orden).toEqual(['bloque', 'a1', 'a2', 'nueva', 'hito', 'suelta'])
+  })
+
+  it('y el orden respeta el EDT también con más de nueve hermanas', () => {
+    // Comparar los EDT como cadenas pondría «1.10» antes que «1.9». Es el mismo error que ordena
+    // mal las versiones de un programa, y aquí saldría una fila entre medias de otras.
+    const tasks: PlanTask[] = [{ id: 'p', name: 'Padre', duration: 1, progress: 0 } as never]
+    for (let i = 1; i <= 11; i += 1) {
+      tasks.push({ id: `h${i}`, name: `Hija ${i}`, duration: 1, progress: 0, parentId: 'p' } as never)
+    }
+    const orden = trazar(tasks).rows.map((r) => r.id)
+    expect(orden.slice(9, 12)).toEqual(['h9', 'h10', 'h11'])
+  })
+})
