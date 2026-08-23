@@ -713,6 +713,10 @@ export function WorkItemsView({
           // se dibuja en la cabecera común a los dos modos— anunciaba «822 de 1368» encima de una
           // tabla con las 1368. No era una carencia: era la pantalla afirmando algo falso.
           workItems={idsVisibles ? workItems.filter((w) => idsVisibles.has(w.id)) : workItems}
+          // El plan entero para el árbol: la fase de una línea es su antepasado de nivel 1, y ese
+          // antepasado puede estar filtrado fuera. Se dibuja lo filtrado; esto es sólo para saber
+          // quién cuelga de quién.
+          lineasDelPlan={workItems}
           // El plan también, no solo la lista de líneas. Editar una fecha desde aquí escribe en la
           // base y el servidor reprograma lo que cuelga de esa línea; sin volver a pedir
           // `/schedule`, el panel de detalle y los totales siguen enseñando las fechas de antes.

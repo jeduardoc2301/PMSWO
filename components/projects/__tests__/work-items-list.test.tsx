@@ -252,21 +252,57 @@ describe('§6.3 · los grupos salen en el orden que tienen, no en el del alfabet
   })
 
   it('las fases por el orden del plan, que es el revés del alfabético', () => {
-    // `templateOrder` es lo que dice en qué punto del proyecto va cada fase.
+    // La fase de una línea es su antepasado de nivel 1, y el sitio de la banda es el `templateOrder`
+    // de ese nodo. Antes esto se armaba con cuatro líneas sueltas y un campo de texto; ahora hace
+    // falta el árbol, porque es de donde sale el grupo.
     render(
       <WorkItemsList
         projectId="p1"
         workItems={[
-          linea('a', { phase: 'Planificación', templateOrder: 10 }),
-          linea('b', { phase: 'Cierre', templateOrder: 30 }),
-          linea('c', { phase: 'Inicio', templateOrder: 0 }),
-          linea('d', { phase: 'Ejecución', templateOrder: 20 }),
+          linea('e', { title: 'Etapa', templateOrder: 0 }),
+          linea('f2', { title: 'Planificación', parentId: 'e', templateOrder: 10 }),
+          linea('h2', { parentId: 'f2', templateOrder: 11 }),
+          linea('f4', { title: 'Cierre', parentId: 'e', templateOrder: 30 }),
+          linea('h4', { parentId: 'f4', templateOrder: 31 }),
+          linea('f1', { title: 'Inicio', parentId: 'e', templateOrder: 1 }),
+          linea('h1', { parentId: 'f1', templateOrder: 2 }),
+          linea('f3', { title: 'Ejecución', parentId: 'e', templateOrder: 20 }),
+          linea('h3', { parentId: 'f3', templateOrder: 21 }),
         ] as never[]}
         plana
         agruparPor="phase"
       />,
     )
     expect(claves()).toEqual(['Inicio', 'Planificación', 'Ejecución', 'Cierre'])
+  })
+
+  it('y siguen ahí cuando el filtro esconde a los antepasados', () => {
+    /*
+      Lo que le llega a la lista cuando el filtro deja pasar unas pocas líneas: `workItems` trae lo
+      visible y `lineasDelPlan` el plan del que cuelga.
+
+      Sin el plan entero, el ascenso hasta el nivel 1 se corta en la primera línea que el filtro
+      escondió, y las cuatro bandas se derrumban en un «Sin asignar» — justo cuando el filtro se puso
+      para no perder de vista esas líneas.
+    */
+    const PLAN = [
+      linea('e', { title: 'Etapa', templateOrder: 0 }),
+      linea('f1', { title: 'Inicio', parentId: 'e', templateOrder: 1 }),
+      linea('h1', { parentId: 'f1', templateOrder: 2 }),
+      linea('f2', { title: 'Planificación', parentId: 'e', templateOrder: 10 }),
+      linea('h2', { parentId: 'f2', templateOrder: 11 }),
+    ]
+    const soloLasHojas = [PLAN[2], PLAN[4]]
+    render(
+      <WorkItemsList
+        projectId="p1"
+        workItems={soloLasHojas as never[]}
+        lineasDelPlan={PLAN as never[]}
+        plana
+        agruparPor="phase"
+      />,
+    )
+    expect(claves()).toEqual(['Inicio', 'Planificación'])
   })
 
   it('por responsable el nombre sí es el orden: es lo que se busca con el dedo', () => {

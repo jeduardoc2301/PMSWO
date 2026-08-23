@@ -6,7 +6,7 @@ import { Plus, Search, Filter, Pencil, ChevronDown, ChevronRight, Layers, Trash2
 import { WorkItemStatus, WorkItemPriority, type WorkItemSummary } from '@/types'
 import { type Operacion, operacionDeBorrado, operacionDesde } from '@/lib/projects/undo-stack'
 import { renombrarLinea } from '@/lib/projects/renombrar'
-import { buildPhaseRank, makePhaseComparator } from '@/lib/phase-order'
+import { construirFases, compararFases } from '@/lib/projects/fase-del-arbol'
 import { ORDEN_DE_ESTADOS } from '@/lib/projects/dashboard-metrics'
 import { ORDEN_DE_PRIORIDAD } from '@/lib/projects/kanban-group'
 import { conFechasDeResumen } from '@/lib/projects/fechas-de-resumen'
@@ -219,6 +219,18 @@ interface WorkItemsListProps {
   projectId: string
   workItems: WorkItemSummary[]
   /**
+   * **El plan entero**, sin filtrar. Se dibuja `workItems`; esto es sólo para saber quién cuelga de
+   * quién.
+   *
+   * La fase de una línea es su antepasado de nivel 1, y con un filtro puesto ese antepasado puede no
+   * venir en la lista: el ascenso se corta creyendo que llegó a la raíz y la línea cae en «Sin fase»
+   * —lejos de sus hermanas— justo cuando el filtro se puso para no perderla de vista. Es la misma
+   * trampa que el Tablero ya documenta en su propiedad homónima.
+   *
+   * Opcional para que quien no lo pase siga viendo lo de antes en vez de una pantalla en blanco.
+   */
+  lineasDelPlan?: WorkItemSummary[]
+  /**
    * Dibuja la tabla plana en lugar de las tarjetas por fase.
    *
    * El §6.1 define «Lista» como «plana: todas las tareas al mismo nivel, sin jerarquía», y lo que
@@ -284,6 +296,7 @@ export function WorkItemsList({
   plana = false,
   projectId,
   workItems: lineasComoVienen,
+  lineasDelPlan,
   onWorkItemCreated,
   onApuntarOperacion,
   editDatesData,
@@ -563,13 +576,29 @@ export function WorkItemsList({
    * El §6.3 lo pide literal —«suma correctamente y respeta el filtro activo»—, y es lo único que
    * evita el error clásico de una tabla que enseña doce filas y totaliza mil trescientas.
    */
+  /**
+   * Las fases, **del árbol** y sobre la lista completa.
+   *
+   * Sobre la completa porque filtrar no debe reacomodar las fases, y porque el antepasado de nivel 1
+   * de una línea puede estar filtrado fuera: buscándolo en lo visible, el ascenso se corta y la
+   * línea cae en «Sin fase».
+   *
+   * Del árbol porque hasta ahora esta vista agrupaba por la columna `phase` mientras su propio
+   * Esquema llamaba «Fase» al nivel 1 del plan: dos cosas con el mismo nombre en la misma pestaña.
+   * Se podía crear una fase llamada «Fase» y no encontrarla donde el Esquema decía que estaba.
+   */
+  const paraElArbol = useMemo(() => lineasDelPlan ?? workItems, [lineasDelPlan, workItems])
+  const fases = useMemo(() => construirFases(paraElArbol), [paraElArbol])
+
   const sumables: LineaSumable[] = useMemo(
     () => lineasPlanas.map((i) => ({
       id: i.id,
       status: i.status,
       priority: i.priority,
       ownerName: i.ownerName ?? null,
-      phase: i.phase ?? null,
+      // La fase del árbol, no la del campo: el desplegable «Agrupar por: Fase» tiene que decir lo
+      // mismo que las tarjetas de fase y que el Esquema.
+      phase: fases.faseDe(i.id),
       estimatedHours: i.estimatedHours ?? null,
       progressPct: i.progressPct ?? 0,
       // Sumar un resumen duplicaría cada rama del árbol: sus horas son las de sus hijas.
@@ -583,7 +612,7 @@ export function WorkItemsList({
       // líneas sí. En otro plan donde un resumen sin marcar tenga horas, se moverían las dos.
       esResumen: esResumen(i, conHijas),
     })),
-    [lineasPlanas, conHijas],
+    [lineasPlanas, conHijas, fases],
   )
   const total: Totales = useMemo(() => totalizar(sumables), [sumables])
 
@@ -726,8 +755,7 @@ export function WorkItemsList({
   const cajaDeFilas = useRef<HTMLDivElement | null>(null)
   const [desplazamiento, setDesplazamiento] = useState(0)
 
-  // Sobre la lista completa: filtrar no debe reacomodar las fases.
-  const phaseRank = useMemo(() => buildPhaseRank(workItems), [workItems])
+  const phaseRank = fases.rangoDeFases
 
   /**
    * En qué orden salen los grupos, que para tres de los cuatro campos no es el alfabético.
@@ -790,16 +818,16 @@ export function WorkItemsList({
     const grouped: Record<string, WorkItemSummary[]> = {}
     const noPhaseKey = '__NO_PHASE__'
     filteredWorkItems.forEach(item => {
-      const phaseKey = item.phase || noPhaseKey
+      const phaseKey = fases.faseDe(item.id) ?? noPhaseKey
       if (!grouped[phaseKey]) grouped[phaseKey] = []
       grouped[phaseKey].push(item)
     })
     return grouped
-  }, [filteredWorkItems, plana])
+  }, [filteredWorkItems, plana, fases])
 
   const hasPhases = Object.keys(workItemsByPhase).some(key => key !== '__NO_PHASE__')
 
-  const comparePhases = useMemo(() => makePhaseComparator(phaseRank), [phaseRank])
+  const comparePhases = useMemo(() => compararFases(phaseRank), [phaseRank])
 
   const togglePhase = (phaseName: string) => {
     setExpandedPhases(prev => {
@@ -813,7 +841,7 @@ export function WorkItemsList({
   useEffect(() => {
     const porFase: Record<string, WorkItemSummary[]> = {}
     for (const item of workItems) {
-      const clave = item.phase || '__NO_PHASE__'
+      const clave = fases.faseDe(item.id) ?? '__NO_PHASE__'
       if (!porFase[clave]) porFase[clave] = []
       porFase[clave]!.push(item)
     }
@@ -821,7 +849,7 @@ export function WorkItemsList({
     const orderMap = new Map<string, WorkItemSummary[]>()
     for (const [fase, items] of Object.entries(porFase)) orderMap.set(fase, sortItems(items))
     setLocalOrder(orderMap)
-  }, [workItems, sortItems])
+  }, [workItems, sortItems, fases])
 
   const thStyle: React.CSSProperties = {
     padding: '10px 16px',
@@ -1348,7 +1376,7 @@ export function WorkItemsList({
                         ) : null}
                         {visible('phase') ? (
                           <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
-                            {item.phase || '—'}
+                            {fases.faseDe(item.id) ?? '—'}
                           </td>
                         ) : null}
                         {visible('progressPct') ? (
