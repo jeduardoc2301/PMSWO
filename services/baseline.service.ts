@@ -25,7 +25,8 @@ import {
   type ResumenContraLaBase,
   compararContraLaBase,
 } from '@/lib/scheduling/baseline'
-import { schedulePlan } from '@/lib/scheduling/schedule'
+import { programarConALAP } from '@/lib/scheduling/alap'
+import { ordinalesNoDisponibles } from '@/lib/scheduling/availability'
 import { loadProjectPlan } from '@/services/schedule.service'
 
 /** El cien por cien en puntos base. */
@@ -65,11 +66,26 @@ async function planProgramado(
   // El calendario viene con el plan: la foto tiene que retratar los mismos días laborables que
   // vio quien la tomó, no lunes-a-viernes genérico.
   const calendar = calendarioDesde(plan.calendar)
-  const schedule = schedulePlan({
+  /*
+    Se programa **igual que la pantalla**, no de una manera parecida.
+
+    Esto llamaba a `schedulePlan` a secas mientras el taller usa `programarConALAP` con las
+    ausencias de quien lleva cada línea. En un proyecto con líneas tardías o con ausencias
+    registradas, la foto guardaba fechas que **nadie llegó a ver**.
+
+    Y eso es peor que no tener foto: al comparar días después, la diferencia de origen aparece como
+    desvío del plan. La línea base existe para responder «¿cuánto nos hemos movido?», y respondía
+    contando un movimiento que no ocurrió.
+
+    `programarConALAP` sin líneas tardías devuelve exactamente lo que devolvía `schedulePlan` —lo
+    dice su propia cabecera— así que en el caso corriente no cambia nada.
+  */
+  const schedule = programarConALAP({
     tasks: plan.tasks,
     dependencies: plan.dependencies,
     calendar,
     start: plan.start,
+    noDisponible: ordinalesNoDisponibles(plan.ausencias, calendar, toDayNumber),
   })
 
   const lineas: LineaDeHoy[] = plan.tasks.map((task) => {
