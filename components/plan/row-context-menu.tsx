@@ -32,6 +32,8 @@ export interface AccionesDeFila {
   readonly editar: () => void
   readonly anadirSubtarea: () => void
   readonly anadirHermana: () => void
+  /** Al mismo nivel pero POR ENCIMA: es lo único que puede poner una línea la primera del plan. */
+  readonly anadirEncima: () => void
   readonly sangrar: (() => void) | null
   readonly anularSangria: (() => void) | null
   readonly eliminar: () => void
@@ -107,7 +109,12 @@ export function RowContextMenu({ x, y, nombre, acciones, onClose }: RowContextMe
         Añadir subtarea
       </Entrada>
       <Entrada onClick={acciones.anadirHermana} onClose={onClose}>
-        Añadir tarea al mismo nivel
+        Añadir tarea debajo
+      </Entrada>
+      {/* «Encima» existe porque «debajo» no puede expresar un caso: la primera de todas. Para meter
+          una etapa al principio del plan no hay ninguna línea detrás de la cual ponerla. */}
+      <Entrada onClick={acciones.anadirEncima} onClose={onClose}>
+        Añadir tarea encima
       </Entrada>
 
       <div className="my-1 h-px bg-superficie-3" />

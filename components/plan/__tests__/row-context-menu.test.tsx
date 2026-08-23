@@ -18,6 +18,7 @@ function acciones(sobre: Partial<AccionesDeFila> = {}): AccionesDeFila {
     editar: vi.fn(),
     anadirSubtarea: vi.fn(),
     anadirHermana: vi.fn(),
+    anadirEncima: vi.fn(),
     sangrar: vi.fn(),
     anularSangria: vi.fn(),
     eliminar: vi.fn(),
@@ -38,7 +39,11 @@ describe('Qué ofrece', () => {
       'Ver el detalle',
       'Configuraciones de la tarea',
       'Añadir subtarea',
-      'Añadir tarea al mismo nivel',
+      // «Debajo» y «encima» son dos entradas y no una con opción: «encima» existe porque «debajo»
+      // no puede expresar la primera de todas, y esconderla en un submenú la haría invisible justo
+      // para el caso que la justifica.
+      'Añadir tarea debajo',
+      'Añadir tarea encima',
       'Sangrar',
       'Anular sangría',
       'Eliminar',

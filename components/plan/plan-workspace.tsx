@@ -582,7 +582,7 @@ export function PlanWorkspace({
     setResultadoDelLote(contarLoQuePaso(resumen, haciaDentro ? 'sangradas' : 'movidas', alcance.fueraDeLaVista))
     onPlanCambiado?.()
   }
-  const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null; detrasDe?: string } | null>(null)
+  const [creandoBajo, setCreandoBajo] = useState<{ padre: string | null; detrasDe?: string; delanteDe?: string } | null>(null)
   const [errorDeJerarquia, setErrorDeJerarquia] = useState<string | null>(null)
 
   /**
@@ -1295,6 +1295,10 @@ export function PlanWorkspace({
                       // y no al final del plan, que es donde nacia y donde nadie la veia.
                       anadirHermana: () =>
                         setCreandoBajo({ padre: tasks.find((t) => t.id === id)?.parentId ?? null, detrasDe: id }),
+                      // Encima: el unico camino para poner una linea la PRIMERA del plan. Con
+                      // «debajo» no se puede expresar, porque no hay fila detras de la cual ponerla.
+                      anadirEncima: () =>
+                        setCreandoBajo({ padre: tasks.find((t) => t.id === id)?.parentId ?? null, delanteDe: id }),
                       sangrar: sangrarA === null ? null : () => void moverEnElArbol(id, sangrarA),
                       anularSangria:
                         anularA === null ? null : () => void moverEnElArbol(id, anularA.padre),
@@ -1479,6 +1483,7 @@ export function PlanWorkspace({
               projectId={projectId}
               defaultParentId={creandoBajo.padre}
               insertAfterId={creandoBajo.detrasDe ?? null}
+              insertBeforeId={creandoBajo.delanteDe ?? null}
               onSuccess={() => { setCreandoBajo(null); onPlanCambiado?.() }}
             />
           ) : null}

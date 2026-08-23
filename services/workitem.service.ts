@@ -35,6 +35,14 @@ export interface CreateWorkItemDTO {
    * dentro de su rama y el plan la dibujaba al final, suelta.
    */
   insertAfterId?: string | null
+  /**
+   * Ponerla **delante** de una línea concreta.
+   *
+   * Existe además de `insertAfterId` y no en su lugar porque hay un caso que «detrás de» no puede
+   * expresar: **la primera de todas**. No hay ninguna línea detrás de la cual ponerla, así que sin
+   * esto no había forma de meter una etapa al principio del plan desde ninguna parte.
+   */
+  insertBeforeId?: string | null
 }
 
 export interface UpdateWorkItemDTO {
@@ -242,17 +250,20 @@ export class WorkItemService {
      * Si el ancla no existe o no es de este proyecto, se cae al final: es lo que hacía antes, y una
      * línea al final se ve, mientras que un error deja al usuario sin la línea que pidió.
      */
+    const idDelAncla = data.insertBeforeId ?? data.insertAfterId ?? null
     const ancla =
-      data.insertAfterId != null
+      idDelAncla != null
         ? await prisma.workItem.findFirst({
-            where: { id: data.insertAfterId, projectId: data.projectId },
+            where: { id: idDelAncla, projectId: data.projectId },
             select: { templateOrder: true },
           })
         : null
 
     let puesto: number
     if (ancla?.templateOrder != null) {
-      puesto = ancla.templateOrder + 1
+      // Delante ocupa el puesto del ancla y la empuja; detrás ocupa el siguiente. El corrimiento de
+      // abajo es el mismo en los dos casos, y por eso comparten camino.
+      puesto = data.insertBeforeId != null ? ancla.templateOrder : ancla.templateOrder + 1
       await prisma.workItem.updateMany({
         where: { projectId: data.projectId, templateOrder: { gte: puesto } },
         data: { templateOrder: { increment: 1 } },

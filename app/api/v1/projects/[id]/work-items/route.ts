@@ -207,9 +207,12 @@ async function createWorkItemHandler(
     // exista y sea de este proyecto lo resuelve el servicio, que ya carga la linea para leer su
     // puesto. Comprobarlo dos veces seria una consulta de mas por cada alta.
     if (
-      body.insertAfterId !== undefined &&
-      body.insertAfterId !== null &&
-      typeof body.insertAfterId !== 'string'
+      (body.insertAfterId !== undefined &&
+        body.insertAfterId !== null &&
+        typeof body.insertAfterId !== 'string') ||
+      (body.insertBeforeId !== undefined &&
+        body.insertBeforeId !== null &&
+        typeof body.insertBeforeId !== 'string')
     ) {
       return NextResponse.json(
         {
@@ -256,6 +259,8 @@ async function createWorkItemHandler(
         estimatedHours: body.estimatedHours != null ? parseInt(body.estimatedHours) : null,
         parentId: body.parentId ?? null,
         insertAfterId: body.insertAfterId ?? null,
+        // «Delante de», que es lo único que puede poner una línea la primera del plan.
+        insertBeforeId: body.insertBeforeId ?? null,
       },
       authContext.userId
     )

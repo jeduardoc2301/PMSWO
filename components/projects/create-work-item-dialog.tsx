@@ -38,6 +38,8 @@ interface CreateWorkItemDialogProps {
    * disparate para un menu que se abre sobre una fila concreta.
    */
   insertAfterId?: string | null
+  /** Delante de cuál. Es lo único que puede poner una línea la primera del plan. */
+  insertBeforeId?: string | null
   /**
    * Fechas con que abre el formulario, cuando quien lo abre ya sabe cuáles (§7.2).
    *
@@ -84,6 +86,7 @@ export function CreateWorkItemDialog({
   onSuccess,
   defaultParentId = null,
   insertAfterId = null,
+  insertBeforeId = null,
   defaultStartDate = null,
   defaultEndDate = null,
 }: CreateWorkItemDialogProps) {
@@ -356,6 +359,7 @@ export function CreateWorkItemDialog({
           estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : null,
           parentId: formData.parentId,
           insertAfterId,
+          insertBeforeId,
         }),
       })
 

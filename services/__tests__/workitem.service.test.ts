@@ -840,6 +840,37 @@ describe('§4.5 · la línea nueva nace donde se pidió, no al final del plan', 
     })
   })
 
+  /**
+   * «Delante de» existe porque «detrás de» no puede expresar un caso: **la primera de todas**.
+   *
+   * Para meter una etapa al principio del plan no hay ninguna línea detrás de la cual ponerla, así
+   * que sin esto no había forma de hacerlo desde ninguna parte de la aplicación — ni por API.
+   */
+  it('delante de la fila 12 ocupa el 12 y la empuja', async () => {
+    preparar()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({ templateOrder: 12 } as any)
+    await crear({ insertBeforeId: 'fila-12' })
+    expect(puesto()).toBe(12)
+  })
+
+  it('y el corrimiento empieza en el puesto que ocupa, no en el siguiente', async () => {
+    // El error fácil aquí es correr desde el 13 y dejar dos líneas en el 12.
+    preparar()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({ templateOrder: 12 } as any)
+    await crear({ insertBeforeId: 'fila-12' })
+    expect(prisma.workItem.updateMany).toHaveBeenCalledWith({
+      where: { projectId: 'p1', templateOrder: { gte: 12 } },
+      data: { templateOrder: { increment: 1 } },
+    })
+  })
+
+  it('delante de la primera la deja la primera, que es para lo que se hizo', async () => {
+    preparar()
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({ templateOrder: 1 } as any)
+    await crear({ insertBeforeId: 'la-primera' })
+    expect(puesto()).toBe(1)
+  })
+
   it('sin ancla sigue yendo al final: el botón de alta no cambia', async () => {
     preparar()
     await crear()
