@@ -513,7 +513,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
           value={formData.status}
           onChange={handleChange}
           disabled={isSubmitting}
-          className={`w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#18181b] ${
+          className={`w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-superficie ${
             errors.status ? 'border-red-500' : ''
           } ${!formData.status ? 'text-tinta-3' : 'text-tinta'}`}
           style={{ background: 'var(--superficie)', border: errors.status ? '1px solid #ef4444' : '1px solid var(--borde)' }}

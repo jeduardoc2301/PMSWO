@@ -84,7 +84,7 @@ export function PageHeader({
                     onClick={quickAction.onClick}
                     className={cn(
                       'inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors',
-                      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#18181b]',
+                      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-superficie',
                       quickAction.variant === 'primary'
                         ? 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500'
                         : 'bg-transparent text-tinta-2 hover:bg-superficie-3 focus:ring-indigo-500'

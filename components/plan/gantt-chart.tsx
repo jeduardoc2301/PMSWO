@@ -859,7 +859,7 @@ function Bar({
         className={`absolute overflow-hidden rounded-sm ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${barTone(row, rutaCritica)} ${
           // El resalte va como anillo y no como color de relleno: el relleno ya dice si la línea es
           // crítica, y pisarlo cambiaría una información por otra en vez de sumarla.
-          resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-[#0e0e11]' : ''
+          resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-fondo' : ''
         }`}
         style={{ left: row.x * dayWidth, top: y, width: Math.max(row.anchoExacto * dayWidth, 2), height: alto }}
       >
