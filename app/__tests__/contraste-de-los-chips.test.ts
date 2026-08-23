@@ -381,3 +381,31 @@ describe('Los conmutadores segmentados no visten su relleno con la tinta de la p
     })
   }
 })
+
+/**
+ * Las tres tintas contra las cuatro superficies, en los dos temas.
+ *
+ * Un token puede cumplir contra el fondo de la página y fallar donde de verdad se usa: `--tinta-3`
+ * daba 4,52 sobre `--background` y **4,18** sobre `--superficie-3`, que es la superficie más oscura
+ * del tema claro y donde se apoya la miga de navegación. Medir contra el fondo de página y darlo por
+ * bueno es medir el caso fácil.
+ *
+ * Por eso se prueban todas las parejas: el caso peor es el que manda, y cuál es el peor depende del
+ * tema —en claro la superficie más oscura, en oscuro la más clara—, así que no se elige a mano.
+ */
+const TINTAS = ['--tinta', '--tinta-2', '--tinta-3'] as const
+const SUPERFICIES = ['--background', '--superficie', '--superficie-2', '--superficie-3'] as const
+
+describe('Las tintas se leen sobre todas las superficies', () => {
+  for (const tema of TEMAS) {
+    const b = bloque(tema.selector)
+    for (const tinta of TINTAS) {
+      for (const superficie of SUPERFICIES) {
+        it(`${tema.nombre} · ${tinta} sobre ${superficie}`, () => {
+          const c = contraste(color(token(b, tinta)), color(token(b, superficie)))
+          expect(c).toBeGreaterThanOrEqual(AA)
+        })
+      }
+    }
+  }
+})
