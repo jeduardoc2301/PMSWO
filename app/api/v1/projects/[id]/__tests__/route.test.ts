@@ -1217,7 +1217,11 @@ describe('DELETE /api/v1/projects/:id', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ roles: [UserRole.PROJECT_MANAGER] } as never)
       vi.mocked(projectService.getProject).mockResolvedValue(mockProject as any)
 
-      const response = await DELETE(createRequest('project-123'), { params: { id: 'project-123' } })
+      // `Promise.resolve` y no el objeto a secas: la firma pide una promesa. El resto del archivo
+      // usa la forma corta y por eso `tsc` ya venía con esos errores; no los añado uno más.
+      const response = await DELETE(createRequest('project-123'), {
+        params: Promise.resolve({ id: 'project-123' }),
+      })
 
       expect(response.status).toBe(403)
       // Lo que de verdad importa: que no se haya archivado. Un 403 que archiva igual es un cartel.
