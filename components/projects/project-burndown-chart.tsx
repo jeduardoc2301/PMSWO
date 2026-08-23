@@ -193,6 +193,15 @@ export function ProjectBurndownChart({
             <Legend
               wrapperStyle={{ fontSize: '12px' }}
               iconType="line"
+              /*
+                El rótulo en TINTA, y el color en la muestra que va al lado.
+
+                Recharts pinta cada rótulo con el color de su serie, y esos colores están elegidos
+                para verse como línea sobre el lienzo, no para leerse como texto: en claro daban
+                2,15-2,54:1. La identidad ya la lleva la muestra, así que el texto no tiene por qué
+                cargarla — y así deja de depender del color para poder leerse.
+              */
+              formatter={(valor: string) => <span style={{ color: 'var(--tinta-2)' }}>{valor}</span>}
             />
             
             {/* Ideal burndown line (dashed) */}
