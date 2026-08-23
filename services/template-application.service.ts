@@ -151,6 +151,51 @@ export class TemplateApplicationService {
       )
     }
 
+    /*
+      Una línea madre por fase, y las actividades colgadas de ella.
+
+      Antes esto creaba el plan **plano**: decenas de líneas todas en la raíz, con el nombre de su
+      fase copiado en un campo de texto. Y desde que el Tablero agrupa por el árbol —que es lo que
+      el Esquema ya llamaba «Fase»— un plan plano no tiene de dónde sacar el grupo: las bandas
+      desaparecían justo en los proyectos nacidos de plantilla.
+
+      La fase de la plantilla no era menos jerarquía que la del Excel importado; sólo estaba
+      guardada como etiqueta en vez de como sitio. `plan-import.service.ts` lleva desde el principio
+      creando esa madre; esto se había quedado atrás.
+    */
+    const fases: { nombre: string; inicio: Date; fin: Date; horas: number }[] = []
+    for (const calc of calculatedActivities) {
+      const ultima = fases[fases.length - 1]
+      // Vienen ordenadas por fase y luego por actividad, así que las de una fase van seguidas.
+      if (ultima && ultima.nombre === calc.phaseName) {
+        if (calc.startDate < ultima.inicio) ultima.inicio = calc.startDate
+        if (calc.estimatedEndDate > ultima.fin) ultima.fin = calc.estimatedEndDate
+        ultima.horas += calc.estimatedHours
+        continue
+      }
+      fases.push({
+        nombre: calc.phaseName,
+        inicio: calc.startDate,
+        fin: calc.estimatedEndDate,
+        horas: calc.estimatedHours,
+      })
+    }
+
+    /*
+      El orden del plan, con cada madre justo delante de sus hijas.
+
+      No vale numerar las actividades 0..n y meter las madres después: `templateOrder` es el orden en
+      que se cuenta el plan, y una fase que aparece detrás de sus propias actividades desordena el
+      EDT y las bandas de todas las vistas.
+    */
+    const ordenDeLaFase = new Map<string, number>()
+    const ordenDeLaLinea = new Map<string, number>()
+    let siguiente = 0
+    for (const calc of calculatedActivities) {
+      if (!ordenDeLaFase.has(calc.phaseName)) ordenDeLaFase.set(calc.phaseName, siguiente++)
+      ordenDeLaLinea.set(calc.activityId, siguiente++)
+    }
+
     // Los minutos de cada línea, resueltos antes de la transacción: dentro habría que preguntar por
     // el calendario del proyecto una vez por línea, y una plantilla trae decenas.
     const minutosPorLinea = await Promise.all(
@@ -158,9 +203,74 @@ export class TemplateApplicationService {
         minutosDeLaLinea(projectId, organizationId, null, calc.startDate, calc.estimatedEndDate),
       ),
     )
+    const minutosPorFase = await Promise.all(
+      fases.map((f) => minutosDeLaLinea(projectId, organizationId, null, f.inicio, f.fin)),
+    )
+    const minutosDeLaEtapa = await minutosDeLaLinea(
+      projectId, organizationId, null, fases[0].inicio, fases[fases.length - 1].fin,
+    )
 
     // Create work items in batch using transaction
     const workItems = await prisma.$transaction(async (tx) => {
+      /*
+        La etapa que contiene a todas las fases, con el nombre de la plantilla.
+
+        Sin ella las fases serían raíces, y en el árbol de esta aplicación la raíz es la **etapa**:
+        el Esquema llama «Etapa» al nivel 0 y «Fase» al nivel 1, y el Tablero agrupa por ese nivel 1.
+        Unas fases colgadas de la nada quedarían al nivel de las etapas y no encabezarían nada. Es
+        además lo que ya trae el plan importado, que tiene dos raíces y sus fases debajo.
+
+        Aplicar dos plantillas al mismo proyecto deja dos etapas, que es exactamente lo que se ve en
+        el plan de referencia y se lee sin explicación.
+      */
+      const etapa = await tx.workItem.create({
+        data: {
+          organizationId,
+          projectId,
+          ownerId: userId,
+          title: template.name.trim(),
+          description: '',
+          kind: 'RESUMEN',
+          status: WorkItemStatus.BACKLOG,
+          priority: WorkItemPriority.MEDIUM,
+          startDate: fases[0].inicio,
+          estimatedEndDate: fases[fases.length - 1].fin,
+          estimatedHours: fases.reduce((a, f) => a + f.horas, 0),
+          templateOrder: -1,
+          kanbanColumnId: backlogColumn.id,
+          durationMinutes: minutosDeLaEtapa,
+        },
+      })
+
+      // Las madres después: sus hijas necesitan el identificador para colgarse.
+      const idDeLaFase = new Map<string, string>()
+      const madres = await Promise.all(
+        fases.map((f, i) =>
+          tx.workItem.create({
+            data: {
+              organizationId,
+              projectId,
+              ownerId: userId,
+              title: f.nombre.trim(),
+              description: '',
+              // Se nombra a sí misma, que es lo que hace el importador con el nivel 1.
+              phase: f.nombre,
+              parentId: etapa.id,
+              kind: 'RESUMEN',
+              status: WorkItemStatus.BACKLOG,
+              priority: WorkItemPriority.MEDIUM,
+              startDate: f.inicio,
+              estimatedEndDate: f.fin,
+              estimatedHours: f.horas,
+              templateOrder: ordenDeLaFase.get(f.nombre)!,
+              kanbanColumnId: backlogColumn.id,
+              durationMinutes: minutosPorFase[i],
+            },
+          }),
+        ),
+      )
+      for (const m of madres) idDeLaFase.set(m.title, m.id)
+
       // Create all work items
       const createdItems = await Promise.all(
         calculatedActivities.map((calc, index) =>
@@ -172,12 +282,13 @@ export class TemplateApplicationService {
               title: calc.title.trim(),
               description: calc.description.trim(),
               phase: calc.phaseName,
+              parentId: idDeLaFase.get(calc.phaseName.trim()) ?? null,
               status: WorkItemStatus.BACKLOG,
               priority: calc.priority,
               startDate: calc.startDate,
               estimatedEndDate: calc.estimatedEndDate,
               estimatedHours: calc.estimatedHours,
-              templateOrder: index,
+              templateOrder: ordenDeLaLinea.get(calc.activityId)!,
               kanbanColumnId: backlogColumn.id,
               // Los minutos que le tocan por sus fechas (§2), igual que en el alta a mano: una línea
               // que nace sin ellos deja el plan a medias.
@@ -187,7 +298,7 @@ export class TemplateApplicationService {
         )
       )
 
-      return createdItems
+      return [etapa, ...madres, ...createdItems]
     }, {
       maxWait: 30000, // Maximum time to wait for transaction to start (30 seconds)
       timeout: 30000, // Maximum time for transaction to complete (30 seconds)

@@ -232,25 +232,29 @@ describe('Integration: Template Application Flow', () => {
     // Verify
     expect(response.status).toBe(201)
     const data = await response.json()
-    expect(data.workItems).toHaveLength(3)
-    expect(data.createdCount).toBe(3)
+    // Aplicar una plantilla ya no devuelve una lista plana: trae también la etapa que la contiene y
+    // una madre por fase, porque el grupo sale del árbol y no de un campo de texto. Las actividades
+    // se buscan por lo que son, no por su sitio en el arreglo.
+    const actividades = data.workItems.filter((w: { kind: string }) => w.kind !== 'RESUMEN')
+    expect(actividades).toHaveLength(3)
+    expect(data.createdCount).toBe(data.workItems.length)
 
     // Verify work item fields
-    expect(data.workItems[0].title).toBe('Activity 1')
-    expect(data.workItems[0].priority).toBe(WorkItemPriority.HIGH)
-    expect(data.workItems[0].status).toBe(WorkItemStatus.BACKLOG)
-    expect(data.workItems[0].ownerId).toBe(userId)
-    expect(data.workItems[0].projectId).toBe(projectId)
-    expect(data.workItems[0].organizationId).toBe(orgId)
-    expect(data.workItems[0].kanbanColumnId).toBe(backlogColumnId)
+    expect(actividades[0].title).toBe('Activity 1')
+    expect(actividades[0].priority).toBe(WorkItemPriority.HIGH)
+    expect(actividades[0].status).toBe(WorkItemStatus.BACKLOG)
+    expect(actividades[0].ownerId).toBe(userId)
+    expect(actividades[0].projectId).toBe(projectId)
+    expect(actividades[0].organizationId).toBe(orgId)
+    expect(actividades[0].kanbanColumnId).toBe(backlogColumnId)
 
     // Verify sequential dates
     const startDate = new Date('2024-02-01T00:00:00.000Z')
-    expect(data.workItems[0].startDate).toBe(startDate.toISOString())
+    expect(actividades[0].startDate).toBe(startDate.toISOString())
     
     const activity1End = new Date(startDate.getTime() + 40 * 60 * 60 * 1000)
-    expect(data.workItems[0].estimatedEndDate).toBe(activity1End.toISOString())
-    expect(data.workItems[1].startDate).toBe(activity1End.toISOString())
+    expect(actividades[0].estimatedEndDate).toBe(activity1End.toISOString())
+    expect(actividades[1].startDate).toBe(activity1End.toISOString())
   })
 
   it('should update usage tracking after successful application', async () => {
@@ -417,19 +421,20 @@ describe('Integration: Template Application Flow', () => {
     // Verify
     expect(response.status).toBe(201)
     const data = await response.json()
-    expect(data.workItems).toHaveLength(2)
+    const actividades = data.workItems.filter((w: { kind: string }) => w.kind !== 'RESUMEN')
+    expect(actividades).toHaveLength(2)
 
     // Verify sequential dates across phases
     const startDate = new Date('2024-02-01T00:00:00.000Z')
-    expect(data.workItems[0].title).toBe('Activity 1')
-    expect(data.workItems[0].startDate).toBe(startDate.toISOString())
+    expect(actividades[0].title).toBe('Activity 1')
+    expect(actividades[0].startDate).toBe(startDate.toISOString())
 
     const activity1End = new Date(startDate.getTime() + 40 * 60 * 60 * 1000)
-    expect(data.workItems[0].estimatedEndDate).toBe(activity1End.toISOString())
+    expect(actividades[0].estimatedEndDate).toBe(activity1End.toISOString())
 
     // Activity3 should start when activity1 ends
-    expect(data.workItems[1].title).toBe('Activity 3')
-    expect(data.workItems[1].startDate).toBe(activity1End.toISOString())
+    expect(actividades[1].title).toBe('Activity 3')
+    expect(actividades[1].startDate).toBe(activity1End.toISOString())
   })
 
   it('should return 400 when no activities selected', async () => {

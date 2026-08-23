@@ -96,6 +96,10 @@ async function applyTemplateHandler(
           ownerId: wi.ownerId,
           title: wi.title,
           description: wi.description,
+          // El árbol que se acaba de construir: aplicar una plantilla ya no devuelve una lista
+          // plana, y sin estos dos campos quien la recibe no puede saber qué cuelga de qué.
+          kind: wi.kind,
+          parentId: wi.parentId,
           status: wi.status,
           priority: wi.priority,
           startDate: wi.startDate,
