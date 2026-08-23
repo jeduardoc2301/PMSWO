@@ -317,9 +317,15 @@ async function updateWorkItemHandler(
     const tocaElCronograma =
       updateData.startDate !== undefined ||
       updateData.estimatedEndDate !== undefined ||
+      // La duración mueve el plan igual que una fecha: la ruta la acepta, la escribe, y el motor la
+      // lee como `duracionMin` (`services/schedule.service.ts:209`), así que cambiarla corre todo
+      // lo que cuelga detrás. Estaba fuera de esta lista y se llegaba con doble clic en la columna
+      // Duración del Gantt: quien sólo puede capturar avance corría el cierre del proyecto.
+      updateData.durationMinutes !== undefined ||
       // Cambiar la restricción mueve la línea y lo que cuelgue de ella, igual que cambiar la fecha.
       // Si no entrara aquí, quien no puede tocar el cronograma lo tocaría por la puerta de al lado
-      // — que es exactamente el agujero que abrió esta guardia en su día.
+      // — que es exactamente el agujero que abrió esta guardia en su día. La duración era esa misma
+      // puerta una celda más allá, y el aviso llevaba escrito aquí desde entonces.
       tocaLaRestriccion
 
     if (tocaLaRestriccion) {

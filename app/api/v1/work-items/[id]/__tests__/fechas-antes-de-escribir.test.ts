@@ -133,6 +133,36 @@ describe('§10.1 · la guardia de las fechas muerde ANTES de escribir', () => {
     expect(prisma.workItem.update).toHaveBeenCalled()
   })
 
+  /**
+   * La misma puerta, una celda más allá.
+   *
+   * El comentario de `tocaElCronograma` dice que la restricción entra ahí porque «quien no puede
+   * tocar el cronograma lo tocaría por la puerta de al lado — que es exactamente el agujero que
+   * abrió esta guardia en su día». La duración quedó fuera de esa lista.
+   *
+   * Y mueve el plan igual que una fecha: la ruta la acepta, la escribe, y el motor la lee como
+   * `duracionMin` (`services/schedule.service.ts:209`). Cambiarla corre a todo lo que cuelga
+   * detrás. Un colaborador puede capturar avance; no puede correr el cierre del proyecto.
+   */
+  it('un colaborador tampoco mueve el cronograma por la celda de Duración', async () => {
+    sesion([UserRole.PROJECT_MANAGER], 'COLLABORATOR')
+
+    const res = await PATCH(pedir({ durationMinutes: 2400 }), params as never)
+
+    expect(res.status).toBe(403)
+    expect(prisma.workItem.update).not.toHaveBeenCalled()
+  })
+
+  it('y el dueño sí puede cambiarla', async () => {
+    // La otra mitad: una guardia que bloquea a todo el mundo también «pasa» la prueba de arriba.
+    sesion([UserRole.PROJECT_MANAGER], 'OWNER')
+
+    const res = await PATCH(pedir({ durationMinutes: 2400 }), params as never)
+
+    expect(res.status).toBe(200)
+    expect(prisma.workItem.update).toHaveBeenCalled()
+  })
+
   it('el dueño del proyecto sí mueve las fechas', async () => {
     // La otra mitad: una guardia que bloquea a todo el mundo también «pasa» la prueba de arriba.
     sesion([UserRole.PROJECT_MANAGER], 'OWNER')
