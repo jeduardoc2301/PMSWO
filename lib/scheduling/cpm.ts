@@ -334,6 +334,21 @@ function latestFinish(
   const successorFinish = finishOf.get(dependency.successorId)!
 
   switch (dependency.type) {
+    /*
+      AVISO MEDIDO, no supuesto: aquí el desfase se lee en DÍAS y el pase adelante lo lee en MINUTOS.
+
+      `programar-en-minutos.ts` usa `vinculo.lagMin ?? vinculo.lag * jornada`; aquí sólo hay
+      `dependency.lag`. Con `lag: 1, lagMin: 120`, el adelante mueve dos horas y el atrás descuenta
+      una jornada entera: dos desfases distintos del mismo vínculo, y la holgura sale de ahí.
+
+      No se alcanza desde ninguna pantalla —el editor de vínculos manda días (`dependency-editor`),
+      y `lagMinutes` sólo se escribe por API (`dependency.service.ts:133`)— así que hoy no hay
+      holguras mal calculadas en producción.
+
+      No se arregla aquí de una línea: este pase trabaja en ordinales de día hábil y no puede
+      expresar 120 minutos, así que hace falta decidir CÓMO redondea un desfase de dos horas — y esa
+      decisión cambia números que la gente lee. Se deja señalado en vez de resuelto a ojo.
+    */
     case 'FS':
       return successorStart - 1 - dependency.lag
     case 'SS':
