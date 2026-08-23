@@ -673,10 +673,97 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
     return items
   }, [activeFilter, filterAssignee, filterPriority, searchQuery, enriched, localWorkItems, conResumenes, esResumen])
 
+  /**
+   * La fase de una línea **sale del árbol**, no de un campo aparte.
+   *
+   * Hasta ahora agrupaba por la columna `phase`, un texto libre que se escribe a mano en el alta. Y
+   * eso daba dos ideas de «fase» conviviendo: el Esquema llama «Fase» al nivel 1 del árbol, y el
+   * Tablero llamaba fase a lo que dijera ese campo. Dos cosas con el mismo nombre en dos pestañas,
+   * que es exactamente lo que el §9.3 pide que no pase.
+   *
+   * Medido sobre el plan de referencia antes de cambiarlo: de las 1 366 líneas con `phase`, **1 341
+   * llevan por fase el título de uno de sus antepasados**, y las 25 restantes son los propios nodos
+   * de fase, que se nombran a sí mismos. Los 25 viven **todos en el nivel 1**. O sea que el campo
+   * era una copia desnormalizada de esto mismo: no eran dos ideas, era una guardada dos veces.
+   *
+   * Las líneas de nivel 0 no tienen fase —no hay antepasado de nivel 1 sobre ellas— y por eso caen
+   * en «Sin fase», igual que antes caían las que no tenían el campo puesto.
+   */
+  const faseDe = useMemo(() => {
+    const padreDe = new Map(localWorkItems.map(w => [w.id, w.parentId ?? null]))
+    const nombreDe = new Map(localWorkItems.map(w => [w.id, w.title]))
+    const memoria = new Map<string, string | null>()
+
+    const buscar = (id: string): string | null => {
+      const yaEsta = memoria.get(id)
+      if (yaEsta !== undefined) return yaEsta
+      // Se sube guardando el camino: en un plan de seis niveles y mil líneas, resolver cada una por
+      // separado repetiría el mismo tramo cientos de veces.
+      const camino: string[] = []
+      let actual: string | null = id
+      let resultado: string | null = null
+      const visto = new Set<string>()
+      while (actual !== null && !visto.has(actual)) {
+        visto.add(actual)
+        camino.push(actual)
+        const padre: string | null = padreDe.get(actual) ?? null
+        if (padre === null) {
+          /*
+            `actual` es raíz, así que el camino va de la línea hasta ella.
+
+            El de nivel 1 es el penúltimo, y hace falta que haya **al menos tres** eslabones: la
+            línea, su fase y su etapa. Con dos, la propia línea ES la fase, y agruparla bajo su
+            nombre pondría la misma frase en la cabecera y en la tarjeta —se vio en una prueba, con
+            «Configurar la red» dos veces—. Los niveles 0 y 1 no tienen fase: ellos son la etapa y
+            la fase.
+          */
+          resultado = camino.length >= 3 ? nombreDe.get(camino[camino.length - 2]) ?? null : null
+          break
+        }
+        actual = padre
+      }
+      for (const paso of camino) memoria.set(paso, resultado)
+      return resultado
+    }
+
+    return buscar
+  }, [localWorkItems])
+
+  /**
+   * De qué etapa cuelga cada fase, para que la cabecera se lea como un trozo de árbol.
+   *
+   * Un tablero con veinticinco fases en fila es una lista, no una jerarquía: dice cómo se llama el
+   * grupo pero no dónde está. Poner la etapa encima contesta la pregunta con la que uno mira el
+   * tablero mientras arrastra —«¿esto de qué parte del plan es?»— sin abrir otra vista.
+   */
+  const etapaDeLaFase = useMemo(() => {
+    const padreDe = new Map(localWorkItems.map(w => [w.id, w.parentId ?? null]))
+    const nombreDe = new Map(localWorkItems.map(w => [w.id, w.title]))
+    const raizDe = (id: string): string | null => {
+      let actual = id
+      const visto = new Set<string>()
+      for (;;) {
+        const padre = padreDe.get(actual) ?? null
+        if (padre === null || visto.has(actual)) return nombreDe.get(actual) ?? null
+        visto.add(actual)
+        actual = padre
+      }
+    }
+    const mapa = new Map<string, string>()
+    for (const w of localWorkItems) {
+      const fase = faseDe(w.id)
+      if (fase === null || mapa.has(fase)) continue
+      const etapa = raizDe(w.id)
+      // Sólo si la etapa no es la fase misma: repetir el nombre encima no informa de nada.
+      if (etapa !== null && etapa !== fase) mapa.set(fase, etapa)
+    }
+    return mapa
+  }, [localWorkItems, faseDe])
+
   const groupWorkItemsByPhase = (items: WorkItemSummary[]) => {
     const grouped: Record<string, WorkItemSummary[]> = {}
     items.forEach(item => {
-      const k = item.phase || '__NO_PHASE__'
+      const k = faseDe(item.id) ?? '__NO_PHASE__'
       if (!grouped[k]) grouped[k] = []
       grouped[k].push(item)
     })
@@ -784,8 +871,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
   const getWorkItemsForColumnAndPhase = (columnId: string, phaseName: string) => {
     const phaseKey = phaseName === '__NO_PHASE__' ? null : phaseName
     const deLaColumna = filteredWorkItems.filter(item =>
-      enLaColumna(item, columnId) &&
-      (phaseKey === null ? !item.phase : item.phase === phaseKey)
+      enLaColumna(item, columnId) && faseDe(item.id) === phaseKey
     )
     // El «Ordenar por» del §5.1. El EDT se numera sobre `localWorkItems` —el plan entero— y no
     // sobre lo que queda en la columna: si cambiara al filtrar o al mover una tarjeta, dejaría de
@@ -1131,8 +1217,15 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
                         {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       </div>
                       <div className="text-left">
+                        {/* La etapa, encima y en pequeño: el grupo se lee como una rama y no como
+                            una etiqueta suelta. */}
+                        {!isNoPhase && etapaDeLaFase.get(phaseName) ? (
+                          <div className="text-[11px] text-tinta-3 truncate max-w-[28rem]">
+                            {etapaDeLaFase.get(phaseName)}
+                          </div>
+                        ) : null}
                         <div className="text-sm font-semibold text-tinta flex items-center gap-2">
-                          {!isNoPhase && <Layers size={13} className="text-indigo-400" />}
+                          {!isNoPhase && <Layers size={13} className="text-acento-tinta" />}
                           {displayName}
                         </div>
                         <div className="text-xs text-tinta-3">{total} elemento{total !== 1 ? 's' : ''}</div>
