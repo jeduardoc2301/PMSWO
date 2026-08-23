@@ -1102,8 +1102,38 @@ function labelFor(day: DayNumber, scale: AxisScale): string {
   if (scale === 'ANIO') return iso.slice(0, 4)
   if (scale === 'TRIMESTRE') return `T${Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1} ${iso.slice(0, 4)}`
   if (scale === 'MES') return `${MESES[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
-  if (scale === 'SEMANA') return iso
+  /*
+    Número de semana y día de arranque, sin espacios: `S26-d22`.
+
+    La fecha ISO entera —`2026-06-22`— necesita 64 px y la columna sólo tiene 54 útiles, así que se
+    recortaba a «2026-06-» en todas: la escala que se llama «Semana» no decía qué semana era, y
+    encima repetía el mes y el año que la banda de arriba ya da.
+
+    El formato se eligió midiendo con la fuente real de la página, no a ojo. Con espacios,
+    `S26 · d22` pedía 55 px y se habría vuelto a cortar por uno. Sin ellos ocupa 48, y el peor caso
+    posible —`S53-d31`— también. La `d` está para que el segundo número se lea como día y no como
+    otra cosa; el mes y el año los pone la banda de encima.
+  */
+  if (scale === 'SEMANA') return `S${semanaIso(iso)}-d${Number(iso.slice(8, 10))}`
   return iso.slice(8, 10)
+}
+
+/**
+ * El número de semana ISO 8601: la semana 1 es la que contiene el primer jueves del año.
+ *
+ * Se calcula aquí y no con una librería porque es media docena de líneas y traer una dependencia
+ * para esto sería peor. La regla del jueves no es un capricho: es lo que hace que una semana
+ * pertenezca al año en el que cae la mayoría de sus días, y por eso el 31 de diciembre puede ser
+ * semana 1 del año siguiente.
+ */
+function semanaIso(iso: IsoDate): number {
+  const [anio, mes, dia] = [Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), Number(iso.slice(8, 10))]
+  const fecha = Date.UTC(anio, mes - 1, dia)
+  // Al jueves de esta semana: con el lunes como día 1, sumar (4 - díaDeLaSemana) días.
+  const diaSemana = (new Date(fecha).getUTCDay() + 6) % 7
+  const jueves = fecha + (3 - diaSemana) * 86400000
+  const primeroDeEnero = Date.UTC(new Date(jueves).getUTCFullYear(), 0, 1)
+  return Math.floor((jueves - primeroDeEnero) / 86400000 / 7) + 1
 }
 
 /**

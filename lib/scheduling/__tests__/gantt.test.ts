@@ -424,6 +424,40 @@ describe('El eje de tiempo', () => {
     expect(marcas.every((m) => m.width === 5)).toBe(true)
   })
 
+  /**
+   * La cabecera de la escala semanal decía la fecha ISO entera —`2026-06-22`— y **no cabía**.
+   *
+   * Medido en pantalla: la columna de una semana mide 70 px, quedan 54 útiles tras el relleno, y
+   * ese texto necesita 64. Se recortaba a «2026-06-» en todas las columnas, así que la escala que
+   * se llama «Semana» no decía qué semana era. Y encima repetía el mes y el año, que la banda de
+   * arriba ya da.
+   *
+   * Ahora dice el número de semana ISO y el día en que arranca, sin espacios: `S26-d22`, que ocupa
+   * 48 px de los 54. Se midieron los candidatos con la fuente real de la página en vez de elegir a
+   * ojo: con espacios, `S26 · d22` pedía 55 y se habría vuelto a cortar por un píxel.
+   */
+  it('la escala semanal dice qué semana es, en lo que cabe en la columna', () => {
+    const marcas = axisTicks(calendar, '2026-06-01', '2026-06-19', 'SEMANA')
+    expect(marcas.map((m) => m.label)).toEqual(['S23-d1', 'S24-d8', 'S25-d15'])
+    // El límite medido: 54 px útiles, y `S53-d31` —el peor caso— ocupa 48. Con espacios pedía 55 y
+    // se cortaba por uno, que es exactamente el fallo que esta prueba impide repetir.
+    expect(marcas.every((m) => m.label.length <= 8)).toBe(true)
+    expect(marcas.every((m) => !m.label.includes(' '))).toBe(true)
+  })
+
+  /**
+   * La semana 1 es la que contiene el primer jueves del año, no la que contiene el 1 de enero. Por
+   * eso el 31 de diciembre puede pertenecer a la semana 1 del año siguiente.
+   */
+  it('el número de semana sigue la regla ISO del jueves', () => {
+    // 2026-12-31 es jueves: su semana contiene el primer jueves de 2027 no, pero sí es la 53 de
+    // 2026. Y 2027-01-04, lunes, abre la semana 1.
+    const finDeAnio = axisTicks(calendar, '2026-12-31', '2026-12-31', 'SEMANA')
+    expect(finDeAnio[0].label.startsWith('S53')).toBe(true)
+    const enero = axisTicks(calendar, '2027-01-04', '2027-01-04', 'SEMANA')
+    expect(enero[0].label).toBe('S1-d4')
+  })
+
   it('un rango vacío no produce marcas', () => {
     expect(axisTicks(calendar, '2026-06-10', '2026-06-01', 'MES')).toEqual([])
   })
