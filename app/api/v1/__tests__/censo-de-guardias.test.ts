@@ -60,8 +60,6 @@ const SIN_GUARDIA_A_PROPOSITO: Record<string, string> = {
     'DEUDA: cerrar un riesgo es una decisión del proyecto.',
   'risks/[id]/convert-to-blocker/route.ts POST':
     'DEUDA: convierte contenido del proyecto sin mirar el asiento.',
-  'risks/[id]/convert-to-work-item/route.ts POST':
-    'DEUDA GRAVE: crea una LÍNEA DEL PLAN. Es la más urgente de esta lista.',
   'blockers/[id]/resolve/route.ts POST':
     'DEUDA: resolver un bloqueador es una decisión del proyecto.',
 }

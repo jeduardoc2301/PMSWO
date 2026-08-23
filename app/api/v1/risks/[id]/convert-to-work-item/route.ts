@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { withAuth, AuthContext } from '@/lib/middleware/withAuth'
 import { riskService } from '@/services/risk.service'
 import { Permission } from '@/types'
@@ -31,6 +32,8 @@ async function convertToWorkItemHandler(
         id: true,
         organizationId: true,
         status: true,
+        // Hace falta para preguntar por el asiento: el permiso es del PROYECTO, no del riesgo.
+        projectId: true,
       },
     })
 
@@ -43,6 +46,24 @@ async function convertToWorkItemHandler(
         { status: 404 }
       )
     }
+
+    /*
+      El asiento en el proyecto del riesgo.
+
+      `withAuth` exige `RISK_UPDATE` y `WORK_ITEM_CREATE`, que son cargos de ORGANIZACIÓN y no
+      distinguen en qué proyecto. Esta ruta **crea una línea del plan** a partir de un riesgo: es
+      exactamente lo que `edit_schedule` protege en las demás puertas, y aquí no se preguntaba.
+
+      Medido por la auditoría del §10 contra el servidor real: POST devolvía 201 y la línea quedaba
+      creada para quien no tiene papel en ese proyecto.
+    */
+    const negado = await exigirPermiso(
+      authContext.userId,
+      risk.projectId,
+      'edit_schedule',
+      'Convertir un riesgo en tarea añade una línea al plan.',
+    )
+    if (negado) return negado
 
     // Verify risk belongs to user's organization
     if (risk.organizationId !== authContext.organizationId) {
