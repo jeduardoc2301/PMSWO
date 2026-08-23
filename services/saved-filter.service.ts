@@ -12,7 +12,9 @@
  */
 
 import prisma from '@/lib/prisma'
-import { type Filtro, FiltroInvalido, validarFiltro } from '@/lib/projects/filter'
+import { CAMPOS, type CampoDeclarado, type Filtro, FiltroInvalido, validarFiltro } from '@/lib/projects/filter'
+import { declararCampos } from '@/lib/projects/campos-en-el-filtro'
+import { catalogoDelProyecto } from '@/services/custom-field.service'
 
 export interface FiltroGuardado {
   readonly id: string
@@ -26,14 +28,18 @@ export interface FiltroGuardado {
   readonly invalido?: string
 }
 
-function interpretar(fila: {
-  id: string
-  name: string
-  isShared: boolean
-  createdById: string
-  createdAt: Date
-  expression: unknown
-}): FiltroGuardado {
+function interpretar(
+  fila: {
+    id: string
+    name: string
+    isShared: boolean
+    createdById: string
+    createdAt: Date
+    expression: unknown
+  },
+  /** El mismo catálogo con el que se guardó: si no, un filtro con campo propio vuelve vacío. */
+  campos: Readonly<Record<string, CampoDeclarado>> = CAMPOS,
+): FiltroGuardado {
   const base = {
     id: fila.id,
     name: fila.name,
@@ -42,7 +48,7 @@ function interpretar(fila: {
     createdAt: fila.createdAt.toISOString(),
   }
   try {
-    validarFiltro(fila.expression)
+    validarFiltro(fila.expression, 'filtro', campos)
     return { ...base, expression: fila.expression }
   } catch (error) {
     return {
@@ -64,6 +70,7 @@ export async function listarFiltros(
   organizationId: string,
   userId: string,
 ): Promise<FiltroGuardado[]> {
+  const campos = { ...CAMPOS, ...declararCampos(await catalogoDelProyecto(projectId, organizationId)) }
   const filas = await prisma.savedFilter.findMany({
     where: {
       projectId,
@@ -81,7 +88,7 @@ export async function listarFiltros(
     },
   })
 
-  return filas.map(interpretar)
+  return filas.map((f) => interpretar(f, campos))
 }
 
 /**
@@ -95,7 +102,17 @@ export async function guardarFiltro(
   createdById: string,
   datos: { name: string; expression: unknown; isShared: boolean },
 ): Promise<FiltroGuardado | null> {
-  validarFiltro(datos.expression)
+  /*
+    Se valida contra el catálogo del PROYECTO, no contra el base.
+
+    Evaluar usa `camposDe(contexto)`, que incluye los campos personalizados; validar usaba sólo los
+    de siempre. Resultado: una condición sobre un campo propio —la barra los ofrece— tumbaba el
+    filtro entero con un 400, y el cliente se lo tragaba sin rama `else`. No aparecía y nadie sabía
+    por qué. Y la puerta estaba cerrada por los dos lados: leer también validaba igual, así que un
+    filtro guardado por otra vía tampoco se podía recuperar.
+  */
+  const campos = { ...CAMPOS, ...declararCampos(await catalogoDelProyecto(projectId, organizationId)) }
+  validarFiltro(datos.expression, 'filtro', campos)
 
   const proyecto = await prisma.project.findFirst({
     where: { id: projectId, organizationId },
@@ -122,7 +139,7 @@ export async function guardarFiltro(
     },
   })
 
-  return interpretar(fila)
+  return interpretar(fila, campos)
 }
 
 /**

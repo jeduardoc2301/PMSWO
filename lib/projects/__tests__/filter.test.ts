@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CAMPOS,
   FILTRO_VACIO,
   type Filtro,
   FiltroInvalido,
@@ -642,5 +643,57 @@ describe('§10.2 · los campos de texto comparan el código, no la etiqueta', ()
 
   it('las mayúsculas sí dan igual, que es lo único que hoy perdona', () => {
     expect(cuantas('kind', 'Actividad')).toBe(1)
+  })
+})
+
+/**
+ * Validar con un catálogo más estrecho que el que evalúa deja filtros que la aplicación sabe
+ * aplicar y no deja guardar.
+ *
+ * `validarFiltro` usaba sólo el catálogo base mientras `filtrar` evalúa con `camposDe(contexto)`,
+ * que incluye los campos personalizados. Una condición sobre un campo propio —la barra los ofrece,
+ * y en el plan de referencia hay uno con 443 valores capturados— tumbaba el filtro entero con un
+ * 400. El cliente se lo tragaba sin rama `else`: no aparecía y nadie sabía por qué.
+ *
+ * Y la puerta estaba cerrada por los dos lados: leer validaba igual, así que un filtro guardado por
+ * otra vía tampoco se recuperaba.
+ */
+describe('§10.2 · validar y evaluar miran el mismo catálogo', () => {
+  const propios = {
+    'cf:tags': {
+      tipo: 'lista' as const,
+      etiqueta: 'Etiquetas',
+      leer: () => [] as string[],
+    },
+  }
+
+  const conCampoPropio = {
+    op: 'AND' as const,
+    conditions: [{ field: 'cf:tags', operator: 'contains', value: 'banco' }],
+  }
+
+  it('un campo propio no pasa la validación con el catálogo base', () => {
+    // El defecto, tal cual: por sí solo el validador no conoce los campos del proyecto.
+    expect(() => validarFiltro(conCampoPropio)).toThrow(FiltroInvalido)
+  })
+
+  it('y sí pasa cuando se le da el catálogo con el que se evalúa', () => {
+    const campos = { ...CAMPOS, ...propios }
+    expect(() => validarFiltro(conCampoPropio, 'filtro', campos)).not.toThrow()
+  })
+
+  it('también dentro de un grupo anidado, que es donde se pierde el catálogo si no se pasa', () => {
+    const anidado = {
+      op: 'OR' as const,
+      conditions: [{ op: 'AND' as const, conditions: [{ field: 'cf:tags', operator: 'contains', value: 'x' }] }],
+    }
+    const campos = { ...CAMPOS, ...propios }
+    expect(() => validarFiltro(anidado, 'filtro', campos)).not.toThrow()
+  })
+
+  it('y el resumen lo llama por su nombre, no por su identificador', () => {
+    const campos = { ...CAMPOS, ...propios }
+    // Sin catálogo saldría «cf:tags: banco», que no le dice nada a quien lo lee.
+    expect(describirFiltro(conCampoPropio as never, campos)).toContain('Etiquetas')
   })
 })

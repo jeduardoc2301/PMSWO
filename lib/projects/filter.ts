@@ -232,7 +232,20 @@ export class FiltroInvalido extends Error {
  *
  * @throws FiltroInvalido con un mensaje que nombra el campo o el operador que falla.
  */
-export function validarFiltro(nodo: unknown, ruta = 'filtro'): asserts nodo is Filtro {
+export function validarFiltro(
+  nodo: unknown,
+  ruta = 'filtro',
+  /*
+    El catálogo contra el que se valida.
+
+    Por omisión el base, que es lo que quiere quien valida un filtro suelto. Pero **evaluar** usa
+    `camposDe(contexto)`, que incluye los campos personalizados del proyecto, y validar con uno más
+    estrecho que el que evalúa deja un filtro que la aplicación sabe aplicar y no deja guardar: una
+    sola condición `cf:` devolvía 400 y el cliente se lo tragaba sin rama `else`. El filtro no
+    aparecía y nadie sabía por qué.
+  */
+  campos: Readonly<Record<string, CampoDeclarado>> = CAMPOS,
+): asserts nodo is Filtro {
   if (typeof nodo !== 'object' || nodo === null) {
     throw new FiltroInvalido(`${ruta}: se esperaba un objeto`)
   }
@@ -246,28 +259,32 @@ export function validarFiltro(nodo: unknown, ruta = 'filtro'): asserts nodo is F
     if (!Array.isArray(candidato.conditions)) {
       throw new FiltroInvalido(`${ruta}: un grupo necesita una lista de condiciones`)
     }
-    candidato.conditions.forEach((hija, i) => validarNodo(hija, `${ruta}.conditions[${i}]`))
+    candidato.conditions.forEach((hija, i) => validarNodo(hija, `${ruta}.conditions[${i}]`, campos))
     return
   }
 
   throw new FiltroInvalido(`${ruta}: la raíz del filtro tiene que ser un grupo con op AND u OR`)
 }
 
-function validarNodo(nodo: unknown, ruta: string): void {
+function validarNodo(
+  nodo: unknown,
+  ruta: string,
+  campos: Readonly<Record<string, CampoDeclarado>> = CAMPOS,
+): void {
   if (typeof nodo !== 'object' || nodo === null) {
     throw new FiltroInvalido(`${ruta}: se esperaba un objeto`)
   }
   const candidato = nodo as Partial<Grupo> & Partial<Condicion>
 
   if (candidato.op !== undefined) {
-    validarFiltro(nodo, ruta)
+    validarFiltro(nodo, ruta, campos)
     return
   }
 
   if (typeof candidato.field !== 'string') {
     throw new FiltroInvalido(`${ruta}: una condición necesita un campo`)
   }
-  const campo = CAMPOS[candidato.field]
+  const campo = campos[candidato.field]
   if (!campo) {
     throw new FiltroInvalido(`${ruta}: no existe el campo «${candidato.field}»`)
   }
@@ -473,9 +490,13 @@ export function contarCondiciones(nodo: Filtro | Condicion): number {
  * Enseñar «Filtro (3)» y nada más obliga a abrir el panel para saber qué se está escondiendo. Con
  * el resumen, quien llega a una pantalla ya filtrada sabe de un vistazo por qué faltan líneas.
  */
-export function describirFiltro(nodo: Filtro | Condicion): string {
+export function describirFiltro(
+  nodo: Filtro | Condicion,
+  /** El mismo catálogo con el que se evalúa: si no, un campo propio sale como `cf:313c8dbe-…`. */
+  campos: Readonly<Record<string, CampoDeclarado>> = CAMPOS,
+): string {
   if (!esGrupo(nodo)) {
-    const campo = CAMPOS[nodo.field]
+    const campo = campos[nodo.field]
     const etiqueta = campo?.etiqueta ?? nodo.field
     if (nodo.operator === 'is_empty') return `${etiqueta} vacío`
     if (nodo.operator === 'is_not_empty') return `${etiqueta} con valor`
@@ -488,7 +509,9 @@ export function describirFiltro(nodo: Filtro | Condicion): string {
   }
 
   const partes = nodo.conditions.map((hija) =>
-    esGrupo(hija) && hija.conditions.length > 1 ? `(${describirFiltro(hija)})` : describirFiltro(hija),
+    esGrupo(hija) && hija.conditions.length > 1
+      ? `(${describirFiltro(hija, campos)})`
+      : describirFiltro(hija, campos),
   )
   return partes.join(nodo.op === 'AND' ? ' y ' : ' o ')
 }
