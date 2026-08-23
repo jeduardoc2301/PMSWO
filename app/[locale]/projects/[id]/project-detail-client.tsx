@@ -595,6 +595,8 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
     await refreshMetrics()
   }
 
+  const [errorAlGuardarFiltro, setErrorAlGuardarFiltro] = useState<string | null>(null)
+
   const cargarFiltros = async () => {
     try {
       const res = await fetch(`/api/v1/projects/${projectId}/filters`)
@@ -612,15 +614,29 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   }, [projectId])
 
   const guardarFiltro = async (nombre: string, compartido: boolean) => {
+    /*
+      Se **dice** cuando no se puede guardar, en vez de tragárselo.
+
+      Esto hacía `if (res.ok) await cargarFiltros()` y nada más: si el servidor rechazaba el filtro
+      —cosa que pasaba con cualquier condición sobre un campo personalizado— el filtro no aparecía
+      en la lista y no había forma de saber por qué. Callar un fallo deja a quien lo sufre buscando
+      el error en lo que hizo bien.
+    */
+    setErrorAlGuardarFiltro(null)
     try {
       const res = await fetch(`/api/v1/projects/${projectId}/filters`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: nombre, expression: filtro, isShared: compartido }),
       })
-      if (res.ok) await cargarFiltros()
+      if (res.ok) {
+        await cargarFiltros()
+        return
+      }
+      const cuerpo = (await res.json().catch(() => null)) as { message?: string } | null
+      setErrorAlGuardarFiltro(cuerpo?.message ?? `No se pudo guardar el filtro (HTTP ${res.status}).`)
     } catch {
-      // El filtro sigue puesto en pantalla aunque no se haya podido guardar con nombre.
+      setErrorAlGuardarFiltro('No se pudo guardar el filtro: no hubo respuesta del servidor.')
     }
   }
 
@@ -722,6 +738,16 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   )
 
   const barraDeFiltro = (
+    <>
+      {errorAlGuardarFiltro ? (
+        <p
+          role="alert"
+          data-testid="error-al-guardar-filtro"
+          className="mb-2 rounded border border-grave-borde bg-grave-fondo px-3 py-2 text-xs text-grave-tinta"
+        >
+          {errorAlGuardarFiltro}
+        </p>
+      ) : null}
     <FilterBar
       filtro={filtro}
       onCambiar={setFiltro}
@@ -731,6 +757,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
       conteo={{ visibles: idsFiltrados.size, total: kanbanBoard?.workItems.length ?? 0 }}
       camposPropios={declararCampos(paraElegir(camposPropios))}
     />
+    </>
   )
 
   const handleWorkItemCreated = async () => {
