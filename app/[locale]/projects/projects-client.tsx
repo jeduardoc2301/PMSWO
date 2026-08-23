@@ -506,7 +506,7 @@ export function ProjectsPageClient() {
               <tbody>
                 {projects.map((p) => (
                   <tr key={p.id}
-                    className={`border-b transition-all hover:bg-superficie/40 cursor-pointer ${selected.has(p.id) ? 'bg-indigo-950/20' : ''}`}
+                    className={`border-b transition-all hover:bg-superficie/40 cursor-pointer ${selected.has(p.id) ? 'bg-acento-suave' : ''}`}
                     style={{ borderColor: 'var(--borde)' }}>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSel(p.id)}

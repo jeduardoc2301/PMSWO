@@ -568,7 +568,7 @@ function Agenda({
           data-dia-de-agenda={dia.date}
           className={`rounded-xl border p-3 ${
             dia.date === today
-              ? 'border-indigo-700 bg-indigo-950/20'
+              ? 'border-acento bg-acento-suave'
               : dia.isWorking
                 ? 'border-borde bg-superficie'
                 : 'border-borde bg-fondo/40'

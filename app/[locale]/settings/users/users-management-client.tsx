@@ -403,7 +403,7 @@ export function UsersManagementClient() {
                   </button>
                   {user.active && (
                     <button onClick={() => handleDeactivateUser(user)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-rose-400 hover:bg-rose-950/40 transition-all">
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-all">
                       <UserX size={13} />
                     </button>
                   )}

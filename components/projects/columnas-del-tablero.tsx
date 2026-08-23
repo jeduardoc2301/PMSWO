@@ -321,7 +321,7 @@ export function ColumnasDelTablero({
                 )
                 if (ok) setBorrando(null)
               }}
-              className="rounded border border-red-900 px-3 py-1 text-xs text-red-200 hover:bg-red-950/40 disabled:opacity-40"
+              className="rounded border border-grave-borde px-3 py-1 text-xs text-grave-tinta hover:bg-grave-fondo disabled:opacity-40"
             >
               Quitar la columna
             </button>

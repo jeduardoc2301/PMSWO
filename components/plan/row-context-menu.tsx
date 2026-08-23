@@ -160,7 +160,7 @@ function Entrada({
       }}
       className={`block w-full px-3 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:text-tinta-3 ${
         peligrosa
-          ? 'text-rose-300 hover:bg-rose-950/40 disabled:hover:bg-transparent'
+          ? 'text-grave-tinta hover:bg-grave-fondo disabled:hover:bg-transparent'
           : 'text-tinta hover:bg-superficie-3 disabled:hover:bg-transparent'
       }`}
     >

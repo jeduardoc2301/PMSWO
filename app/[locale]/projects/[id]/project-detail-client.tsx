@@ -1025,7 +1025,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     {metrics && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-2xl font-bold" style={{ color: metrics.activeBlockers > 0 ? '#f87171' : '#10b981' }}>{metrics.activeBlockers}</span>
+                          <span className="text-2xl font-bold" style={{ color: metrics.activeBlockers > 0 ? 'var(--grave-tinta)' : 'var(--bien)' }}>{metrics.activeBlockers}</span>
                           <StatusBadge
                             value={metrics.activeBlockers === 0 ? t('executiveDashboard.status.noBlockers') : metrics.activeBlockers <= 2 ? t('executiveDashboard.status.underControl') : t('critical')}
                             positive={metrics.activeBlockers === 0} neutral={metrics.activeBlockers > 2} />
@@ -1047,7 +1047,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                     {metrics && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-2xl font-bold" style={{ color: metrics.highPriorityRisks > 0 ? 'var(--aviso)' : '#10b981' }}>{metrics.highPriorityRisks}</span>
+                          <span className="text-2xl font-bold" style={{ color: metrics.highPriorityRisks > 0 ? 'var(--aviso)' : 'var(--bien)' }}>{metrics.highPriorityRisks}</span>
                           <StatusBadge
                             value={metrics.highPriorityRisks === 0 ? t('executiveDashboard.status.lowRisk') : metrics.highPriorityRisks <= 2 ? t('executiveDashboard.status.moderateRisk') : t('executiveDashboard.status.highRisk')}
                             positive={metrics.highPriorityRisks === 0} neutral={metrics.highPriorityRisks > 2} />

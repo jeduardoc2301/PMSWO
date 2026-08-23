@@ -82,7 +82,7 @@ export function BaselinePicker({
         onClick={() => setAbierto((v) => !v)}
         className={`rounded border px-2 py-1 text-xs ${
           elegida
-            ? 'border-red-900/60 bg-red-950/20 text-red-300'
+            ? 'border-grave-borde bg-grave-fondo text-grave-tinta'
             : 'border-borde-fuerte text-tinta-2 hover:bg-superficie-3'
         }`}
       >

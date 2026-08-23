@@ -190,7 +190,7 @@ function SortableRow({
             onClick={() => onDelete(item)}
             aria-label={`Eliminar «${item.title}»`}
             title="Eliminar"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-all"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -1387,7 +1387,7 @@ export function WorkItemsList({
                               onClick={() => { setSelectedWorkItem(item); setDeleteDialogOpen(true) }}
                               aria-label={`Eliminar «${item.title}»`}
                               title="Eliminar"
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-rose-400 hover:bg-rose-950/40 transition-all"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-all"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

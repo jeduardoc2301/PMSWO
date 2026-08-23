@@ -193,7 +193,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                   active
-                    ? 'bg-indigo-950/60 text-indigo-200'
+                    ? 'bg-acento-suave text-acento-tinta'
                     : 'text-tinta-2 hover:bg-superficie hover:text-tinta'
                 )}
                 style={active ? { boxShadow: 'inset 2px 0 0 #6366f1' } : {}}
