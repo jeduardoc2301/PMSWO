@@ -409,3 +409,40 @@ describe('Las tintas se leen sobre todas las superficies', () => {
     }
   }
 })
+
+/**
+ * Las cajas de aviso: tinta sobre su propio fondo, en los dos temas.
+ *
+ * Aquí no bastaba con cambiar una tinta. El fondo iba con `bg-amber-950/20`, un tono elegido para
+ * **aclarar un lienzo negro**; sobre blanco hace justo lo contrario y la tinta casi blanca de encima
+ * daba 1,02:1. No había ningún token de FONDO de aviso —sólo de tinta—, así que el par no se podía
+ * expresar y cada sitio se lo inventaba.
+ *
+ * Son paneles con `role="alertdialog"`: lo que dicen es lo que va a cambiar el plan.
+ */
+const CAJAS = [
+  { familia: 'aviso', fondo: '--aviso-fondo', tinta: '--aviso-tinta' },
+  { familia: 'grave', fondo: '--grave-fondo', tinta: '--grave-tinta' },
+  { familia: 'bien', fondo: '--bien-fondo', tinta: '--bien-tinta' },
+] as const
+
+describe('Las cajas de aviso se leen en los dos temas', () => {
+  for (const tema of TEMAS) {
+    const b = bloque(tema.selector)
+    const pagina = color(token(b, '--background'))
+    for (const caja of CAJAS) {
+      it(`${tema.nombre} · ${caja.familia}`, () => {
+        const fondo = sobre(color(token(b, caja.fondo)), pagina)
+        expect(contraste(color(token(b, caja.tinta)), fondo)).toBeGreaterThanOrEqual(AA)
+      })
+    }
+  }
+})
+
+/** Y que el taller no vuelva a escribir un tono de Tailwind a pelo en esos paneles. */
+it('plan-workspace.tsx no lleva ningún color crudo', () => {
+  const texto = readFileSync(join(process.cwd(), 'components', 'plan', 'plan-workspace.tsx'), 'utf8')
+  for (const familia of ['amber-', 'emerald-', 'rose-', 'red-']) {
+    expect(texto.indexOf(familia)).toBe(-1)
+  }
+})

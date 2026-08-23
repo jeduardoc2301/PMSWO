@@ -1074,7 +1074,7 @@ export function PlanWorkspace({
         </div>
 
         {warnings.length > 0 ? (
-          <details className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-300">
+          <details className="rounded-lg border border-aviso-borde bg-aviso-fondo p-3 text-xs text-aviso-tinta">
             <summary className="cursor-pointer">
               {warnings.length === 1
                 ? 'Hay 1 advertencia al leer el plan'
@@ -1138,9 +1138,9 @@ export function PlanWorkspace({
                 role="alertdialog"
                 aria-label="Confirmar la reprogramación"
                 data-testid="propuesta-reprogramacion"
-                className="mb-3 rounded-xl border border-amber-900/50 bg-amber-950/20 p-4"
+                className="mb-3 rounded-xl border border-aviso-borde bg-aviso-fondo p-4"
               >
-                <p className="text-sm text-amber-100">
+                <p className="text-sm text-aviso-tinta">
                   Mover «{propuesta.nombre}» al {propuesta.nuevoInicio} cambia{' '}
                   <strong className="tabular-nums">{propuesta.cambios}</strong>{' '}
                   {propuesta.cambios === 1 ? 'línea' : 'líneas'}
@@ -1166,7 +1166,7 @@ export function PlanWorkspace({
                   enterarse semanas después, cuando el plan deje de respetarla.
                 */}
                 {propuesta.restriccionQueSePierde ? (
-                  <p data-testid="restriccion-que-se-pierde" className="mt-1.5 text-xs text-red-300">
+                  <p data-testid="restriccion-que-se-pierde" className="mt-1.5 text-xs text-grave-tinta">
                     Se reemplaza la restricción{' '}
                     <strong>
                       {(restriccion(propuesta.restriccionQueSePierde.tipo)?.nombre ?? propuesta.restriccionQueSePierde.tipo)}
@@ -1180,11 +1180,11 @@ export function PlanWorkspace({
                 {/* El cierre es la cifra que decide si esto es un ajuste o un problema. */}
                 <p className="mt-1.5 text-xs">
                   {propuesta.cierreDespues === propuesta.cierreAntes ? (
-                    <span className="text-emerald-300">
+                    <span className="text-bien-tinta">
                       El cierre del proyecto no se mueve: sigue el {propuesta.cierreAntes}.
                     </span>
                   ) : (
-                    <span className="text-red-300">
+                    <span className="text-grave-tinta">
                       El cierre del proyecto pasa del {propuesta.cierreAntes} al{' '}
                       {propuesta.cierreDespues}.
                     </span>
@@ -1375,15 +1375,15 @@ export function PlanWorkspace({
               role="alertdialog"
               aria-label="Confirmar el cambio de duración"
               data-testid="propuesta-de-duracion"
-              className="mt-2 rounded-xl border border-amber-900/50 bg-amber-950/20 p-3"
+              className="mt-2 rounded-xl border border-aviso-borde bg-aviso-fondo p-3"
             >
-              <p className="text-sm text-amber-100">
+              <p className="text-sm text-aviso-tinta">
                 «{duracionPropuesta.nombre}» pasa de{' '}
                 <strong className="tabular-nums">{duracionPropuesta.diasAntes}</strong> a{' '}
                 <strong className="tabular-nums">{duracionPropuesta.dias}</strong> días hábiles, y
                 termina el {duracionPropuesta.nuevoFin}.
               </p>
-              <p className="mt-1 text-xs text-amber-200/80">
+              <p className="mt-1 text-xs text-aviso-tinta">
                 Mueve <strong className="tabular-nums">{duracionPropuesta.movidas}</strong>{' '}
                 {duracionPropuesta.movidas === 1 ? 'línea' : 'líneas'} del plan.
               </p>
@@ -1391,11 +1391,11 @@ export function PlanWorkspace({
                   Alargar dentro de la holgura no lo mueve, y decirlo evita el susto. */}
               <p className="mt-1 text-xs">
                 {duracionPropuesta.cierreDespues === duracionPropuesta.cierreAntes ? (
-                  <span className="text-emerald-300">
+                  <span className="text-bien-tinta">
                     El cierre del proyecto no se mueve: sigue el {duracionPropuesta.cierreAntes}.
                   </span>
                 ) : (
-                  <span className="text-red-300">
+                  <span className="text-grave-tinta">
                     El cierre del proyecto pasa del {duracionPropuesta.cierreAntes} al{' '}
                     {duracionPropuesta.cierreDespues}.
                   </span>
@@ -1456,7 +1456,7 @@ export function PlanWorkspace({
             <p
               role="alert"
               data-testid="error-de-vinculo"
-              className="mt-2 rounded border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200"
+              className="mt-2 rounded border border-aviso-borde bg-aviso-fondo px-3 py-2 text-xs text-aviso-tinta"
             >
               {errorDeVinculo}
             </p>
@@ -1466,7 +1466,7 @@ export function PlanWorkspace({
             <p
               role="alert"
               data-testid="error-de-jerarquia"
-              className="mt-2 rounded border border-red-900/40 bg-red-950/20 px-3 py-2 text-xs text-red-300"
+              className="mt-2 rounded border border-grave-borde bg-grave-fondo px-3 py-2 text-xs text-grave-tinta"
             >
               {errorDeJerarquia}
             </p>

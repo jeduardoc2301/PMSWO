@@ -157,6 +157,25 @@
   --prioridad-media:    #fcd34d;
   --prioridad-baja:     #93c5fd;
 
+  /*
+    Las cajas de aviso: fondo, borde y tinta.
+
+    Iban con `bg-amber-950/20`, `border-amber-900/50` y `text-amber-100` escritos a mano. Ese fondo
+    se eligio para ACLARAR un lienzo negro; sobre blanco hace lo contrario, y la tinta casi blanca
+    encima daba **1,02:1** — invisible, en paneles con `role="alertdialog"`.
+
+    Los valores oscuros son exactamente los de antes, asi que el tema oscuro no cambia. Lo unico que
+    hacia falta era que existieran, porque no habia ningun token de FONDO de aviso: solo de tinta.
+  */
+  --aviso-fondo:    rgba(69,26,3,0.20);
+  --aviso-borde:    rgba(120,53,15,0.50);
+  --aviso-tinta:    #fef3c7;
+  --grave-fondo:    rgba(69,10,10,0.20);
+  --grave-borde:    rgba(127,29,29,0.50);
+  --bien-fondo:     rgba(2,44,34,0.30);
+  --bien-borde:     rgba(6,78,59,0.50);
+  --bien-tinta:     #6ee7b7;
+
   /* ── Los colores de DATO (§9.3 C6) ───────────────────────────────────────────────────────
 
      Estos no decoran: **dicen algo**. Cambiarlos cambia lo que la pantalla afirma, y por eso viven
@@ -303,6 +322,16 @@
   --prioridad-media:    #92400e;
   --prioridad-baja:     #1d4ed8;
 
+  /* Las cajas de aviso en claro: el tinte por debajo del color, no por encima del negro. */
+  --aviso-fondo:    rgba(251,191,36,0.16);
+  --aviso-borde:    rgba(180,83,9,0.35);
+  --aviso-tinta:    #78350f;
+  --grave-fondo:    rgba(239,68,68,0.10);
+  --grave-borde:    rgba(185,28,28,0.35);
+  --bien-fondo:     rgba(16,185,129,0.12);
+  --bien-borde:     rgba(21,128,61,0.35);
+  --bien-tinta:     #065f46;
+
   /*
     La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
     blanco — invisible. Ésta da 2.19 / 3.57 / 6.17 / 10.77, monotónica, y con el mismo tono.
@@ -418,6 +447,16 @@
     --prioridad-media:    #92400e;
     --prioridad-baja:     #1d4ed8;
 
+    /* Las cajas de aviso en claro: el tinte por debajo del color, no por encima del negro. */
+    --aviso-fondo:    rgba(251,191,36,0.16);
+    --aviso-borde:    rgba(180,83,9,0.35);
+    --aviso-tinta:    #78350f;
+    --grave-fondo:    rgba(239,68,68,0.10);
+    --grave-borde:    rgba(185,28,28,0.35);
+    --bien-fondo:     rgba(16,185,129,0.12);
+    --bien-borde:     rgba(21,128,61,0.35);
+    --bien-tinta:     #065f46;
+
     /*
       La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
       blanco — invisible. Ésta da 2.19 / 3.57 / 6.17 / 10.77, monotónica, y con el mismo tono.
@@ -490,6 +529,14 @@
   --color-tinta-3:        var(--tinta-3);
   --color-acento:         var(--acento);
   --color-sobre-acento:   var(--sobre-acento);
+  --color-aviso-fondo:    var(--aviso-fondo);
+  --color-aviso-borde:    var(--aviso-borde);
+  --color-aviso-tinta:    var(--aviso-tinta);
+  --color-grave-fondo:    var(--grave-fondo);
+  --color-grave-borde:    var(--grave-borde);
+  --color-bien-fondo:     var(--bien-fondo);
+  --color-bien-borde:     var(--bien-borde);
+  --color-bien-tinta:     var(--bien-tinta);
   --color-acento-tinta:   var(--acento-tinta);
   --color-acento-suave:   var(--acento-suave);
   --color-bien:           var(--bien);
