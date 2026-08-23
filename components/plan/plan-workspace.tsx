@@ -1195,7 +1195,7 @@ export function PlanWorkspace({
                     type="button"
                     disabled={aplicando}
                     onClick={() => void aplicarMovimiento()}
-                    className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
+                    className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:opacity-90 disabled:opacity-50"
                   >
                     {aplicando ? 'Aplicando...' : 'Aplicar'}
                   </button>
@@ -1342,13 +1342,13 @@ export function PlanWorkspace({
                 Limpiar
               </button>
 
-              <span className="mx-1 h-4 w-px bg-zinc-700" aria-hidden />
+              <span className="mx-1 h-4 w-px bg-rejilla" aria-hidden />
 
               <button
                 type="button"
                 disabled={alcance.sobreLasQueOperar.length === 0 || enCurso !== null}
                 onClick={() => void sangrarEnLote(true)}
-                className="rounded bg-acento-relleno px-2 py-1 font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-40"
+                className="rounded bg-acento-relleno px-2 py-1 font-medium text-sobre-acento hover:opacity-90 disabled:opacity-40"
               >
                 Sangrar
               </button>
@@ -1410,7 +1410,7 @@ export function PlanWorkspace({
                   type="button"
                   disabled={escribiendoDuracion}
                   onClick={() => void escribirDuracion()}
-                  className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
+                  className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:opacity-90 disabled:opacity-50"
                 >
                   {escribiendoDuracion ? 'Aplicando...' : 'Aplicar'}
                 </button>
@@ -1441,7 +1441,7 @@ export function PlanWorkspace({
                   type="button"
                   disabled={escribiendoVinculo}
                   onClick={() => void escribirVinculo()}
-                  className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:bg-[#5457e5] disabled:opacity-50"
+                  className="rounded-lg bg-acento-relleno px-3 py-1.5 text-xs font-medium text-sobre-acento hover:opacity-90 disabled:opacity-50"
                 >
                   {escribiendoVinculo ? 'Creando...' : 'Crear el vínculo'}
                 </button>

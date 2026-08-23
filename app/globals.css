@@ -32,6 +32,19 @@
   --borde:          #27272a;
   --borde-fuerte:   #3f3f46;  /* el borde que hay que ver: foco, selección */
   /*
+    La línea de una REJILLA: la que separa filas y columnas en una tabla o en el Gantt.
+
+    No vale `--borde` para esto. Medido: `--borde` da 1,19:1 sobre la superficie en oscuro y 1,28:1
+    en claro, y `--borde-fuerte` 1,70 y 1,68. Con eso una tabla de nueve columnas no tiene rejilla:
+    el ojo no puede seguir una fila de un lado al otro, que es justo para lo que sirve una tabla.
+    La norma pide 3:1 a lo que transmite información (1.4.11), y una separación de columnas la
+    transmite. Estos dos valores dan 3,12:1 y 3,00:1: se ve la línea sin que la cuadrícula grite.
+
+    Va aparte y no se sube `--borde`, que es el contorno tenue de una tarjeta y ahí lo tenue está
+    bien: subirlo repintaría de recuadros toda la aplicación por un problema que es de las tablas.
+  */
+  --rejilla:        #666670;
+  /*
     Un **hueco** dentro de una tarjeta: un día que no se trabaja, una casilla que no admite nada.
     
     No es `--superficie-3`, que es lo que se **eleva** — cabecera de tabla, campo— y en oscuro es más
@@ -270,6 +283,7 @@
   --superficie-3:   #eeeef2;
   --borde:          #e3e3e9;
   --borde-fuerte:   #c7c7d1;
+  --rejilla:        #94949e;
   --hueco:          #f1f1f5;
 
   --tinta:          #18181b;
@@ -395,6 +409,7 @@
     --superficie-3:   #eeeef2;
     --borde:          #e3e3e9;
     --borde-fuerte:   #c7c7d1;
+    --rejilla:        #94949e;
     --hueco:          #f1f1f5;
 
     --tinta:          #18181b;
@@ -523,6 +538,7 @@
   --color-superficie-3:   var(--superficie-3);
   --color-borde:          var(--borde);
   --color-borde-fuerte:   var(--borde-fuerte);
+  --color-rejilla:        var(--rejilla);
   --color-hueco:          var(--hueco);
   --color-tinta:          var(--tinta);
   --color-tinta-2:        var(--tinta-2);
@@ -559,11 +575,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/*
+  La barra de desplazamiento.
+
+  El pulgar iba con `--superficie-3`, que sobre `--superficie` da 1,16:1 en claro y 1,19:1 en
+  oscuro: no se veía en ninguno de los dos. Importa en el Gantt, donde el pulgar horizontal es lo
+  único que avisa de que la rejilla sigue a la derecha. Con `--tinta-3` son 5,53 y 5,67, y seis
+  píxeles de ancho para algo que hay que agarrar con el ratón eran pocos.
+*/
+::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--superficie-3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #52525b; }
+::-webkit-scrollbar-thumb { background: var(--tinta-3); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--tinta-2); }
 
 /* Progress bar utility */
 .pms-progress {
@@ -613,9 +636,9 @@ body {
 .pms-priority-LOW      { background: #6366f1; }
 
 /* Health color helpers */
-.pms-health-good    { color: #10b981; }
-.pms-health-warning { color: #f59e0b; }
-.pms-health-danger  { color: #ef4444; }
+.pms-health-good    { color: var(--bien-tinta); }
+.pms-health-warning { color: var(--aviso-tinta); }
+.pms-health-danger  { color: var(--grave-tinta); }
 
 /* Kanban card drag */
 .pms-kanban-dragging { opacity: 0.4; transform: rotate(1deg); }
@@ -626,7 +649,7 @@ body {
   bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
-  background: #1c1c1f;
+  background: var(--superficie-2);
   border: 1px solid var(--borde);
   border-radius: 12px;
   padding: 10px 16px;
@@ -642,10 +665,20 @@ body {
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* Dropdown menu */
+/*
+  Los menús emergentes.
+
+  El fondo iba con `#1c1c1f` a pelo, o sea el tono oscuro: en tema claro salía un menú casi negro en
+  medio de una pantalla blanca. Y peor, al pasar el ratón el fondo sí cambiaba a `--superficie-3`
+  —que en claro es casi blanco— mientras el texto se iba a `#fff`: **blanco sobre blanco, 1,06:1**.
+  El renglón que uno está a punto de pulsar era el único que no se veía.
+
+  `--superficie-2` es precisamente el token que el propio archivo reserva para «menús y filas al
+  pasar» unas líneas más arriba.
+*/
 .pms-menu {
   position: absolute;
-  background: #1c1c1f;
+  background: var(--superficie-2);
   border: 1px solid var(--borde);
   border-radius: 10px;
   padding: 6px;
@@ -661,16 +694,16 @@ body {
   padding: 7px 10px;
   border-radius: 6px;
   font-size: 13px;
-  color: #d4d4d8;
+  color: var(--tinta-2);
   text-align: left;
   transition: background 0.1s;
 }
-.pms-menu button:hover { background: var(--superficie-3); color: #fff; }
+.pms-menu button:hover { background: var(--superficie-3); color: var(--tinta); }
 .pms-menu-label {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #52525b;
+  color: var(--tinta-3);
   font-weight: 600;
   padding: 4px 10px 8px;
 }
@@ -732,11 +765,23 @@ body {
   font-size: 13px; font-weight: 600;
   cursor: pointer; transition: all .12s;
 }
-.dp-title:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+/*
+  De aquí abajo, el calendario de fechas.
+
+  Se escribió cuando la aplicación sólo era oscura, y **ninguna regla `.dp-*` vive dentro de un
+  bloque de tema**: los bloques claros sólo redefinen variables, nunca selectores. Así que estos
+  hexadecimales eran los mismos en los dos temas. Medido sobre blanco: los números de los días
+  (`#d4d4d8`) daban 1,48:1, los botones del pie (`#a1a1aa`) 2,56:1, y el botón «Hoy» —blanco sobre
+  un degradado casi transparente— 1,21:1. Un calendario cuyos días no se leen.
+
+  El blanco sobre blanco no avisa de nada: no hay error, no hay prueba roja, el día sigue ahí y
+  sigue pulsable.
+*/
+.dp-title:hover { background: var(--superficie-3); border-color: var(--borde-fuerte); }
 .dp-nav-btn {
   width: 28px; height: 28px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid transparent; color: #a1a1aa;
+  background: transparent; border: 1px solid transparent; color: var(--tinta-3);
   cursor: pointer; transition: all .12s;
 }
 .dp-nav-btn:hover { background: var(--superficie-3); border-color: var(--borde-fuerte); color: var(--tinta); }
@@ -744,7 +789,7 @@ body {
 .dp-dow { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
 .dp-dow > div {
   text-align: center; font-size: 10px; font-weight: 600;
-  color: #52525b; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--tinta-3); letter-spacing: 0.08em; text-transform: uppercase;
   padding: 6px 0;
 }
 .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
@@ -752,7 +797,7 @@ body {
   aspect-ratio: 1 / 1;
   display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid transparent; border-radius: 8px;
-  color: #d4d4d8; font-size: 12px; font-weight: 500;
+  color: var(--tinta-2); font-size: 12px; font-weight: 500;
   cursor: pointer; transition: all .12s; font-family: inherit;
   position: relative;
 }
@@ -763,11 +808,13 @@ body {
 .dp-day[data-today="true"] { font-weight: 700; color: var(--tinta); }
 .dp-day[data-today="true"]::after {
   content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
-  width: 4px; height: 4px; border-radius: 50%; background: #a78bfa;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--acento);
 }
 .dp-day[data-selected="true"] {
-  background: linear-gradient(135deg, #6366f1, #a78bfa);
-  border-color: transparent; color: #fff; font-weight: 700;
+  /* El relleno de acento y la tinta que le toca, que es la pareja para la que se calibraron. Un
+     degradado no es un color plano y no se puede medir: bajo el glifo rondaba 3,4:1. */
+  background: var(--acento-relleno);
+  border-color: transparent; color: var(--sobre-acento); font-weight: 700;
   box-shadow: 0 6px 16px -6px rgba(99,102,241,0.7);
 }
 .dp-day[data-selected="true"]::after { background: var(--sobre-acento); }
@@ -777,31 +824,33 @@ body {
 .dp-month-cell {
   padding: 14px 6px; text-align: center;
   background: transparent; border: 1px solid transparent; border-radius: 10px;
-  color: #d4d4d8; font-size: 13px; font-weight: 500;
+  color: var(--tinta-2); font-size: 13px; font-weight: 500;
   cursor: pointer; transition: all .12s; font-family: inherit;
 }
 .dp-month-cell:hover { background: var(--acento-suave); border-color: rgba(99,102,241,0.25); color: var(--tinta); }
 .dp-month-cell[data-selected="true"] {
-  background: linear-gradient(135deg, #6366f1, #a78bfa); color: #fff;
+  background: var(--acento-relleno); color: var(--sobre-acento);
   border-color: transparent; font-weight: 700;
   box-shadow: 0 6px 16px -6px rgba(99,102,241,0.6);
 }
 
 .dp-footer {
   display: flex; gap: 6px; padding-top: 10px; margin-top: 6px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--borde);
 }
 .dp-foot-btn {
   flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 7px 10px; border-radius: 8px;
   background: transparent; border: 1px solid var(--borde);
-  color: #a1a1aa; font-size: 11px; font-weight: 500;
+  color: var(--tinta-2); font-size: 11px; font-weight: 500;
   cursor: pointer; transition: all .12s; font-family: inherit;
 }
 .dp-foot-btn:hover { background: var(--superficie-3); color: var(--tinta); border-color: var(--borde-fuerte); }
 .dp-foot-primary {
-  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(167,139,250,0.12));
-  border-color: rgba(167,139,250,0.30); color: #fff;
+  /* Blanco sobre un degradado al 15 % es blanco sobre blanco: 1,21:1. El botón «Hoy» del pie no se
+     veía en claro. */
+  background: var(--acento-suave);
+  border-color: var(--acento); color: var(--acento-tinta);
 }
 .dp-foot-primary:hover { filter: brightness(1.15); border-color: rgba(167,139,250,0.50); }
 

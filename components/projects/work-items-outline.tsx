@@ -133,8 +133,8 @@ const TIPO_EN_PALABRAS: Readonly<Record<Exclude<TaskKind, 'RESUMEN'>, string>> =
 const INSIGNIA: Readonly<Record<EstadoAlCorte, { readonly texto: string; readonly clase: string }>> =
   Object.freeze({
     NO_INICIADO: { texto: 'No iniciado', clase: 'border-borde-fuerte bg-superficie-3/60 text-tinta-2' },
-    EN_CURSO: { texto: 'En curso', clase: 'border-amber-500/30 bg-amber-500/10 text-amber-300' },
-    CERRADO: { texto: 'Cerrado', clase: 'border-green-500/30 bg-green-500/10 text-green-400' },
+    EN_CURSO: { texto: 'En curso', clase: 'border-aviso-borde bg-aviso-fondo text-aviso-tinta' },
+    CERRADO: { texto: 'Cerrado', clase: 'border-bien-borde bg-bien-fondo text-bien-tinta' },
   })
 
 export function WorkItemsOutline({
@@ -465,7 +465,7 @@ function Linea({
             <span
               data-testid={`super-${row.id}`}
               title="En la ruta súper crítica: su atraso no se recupera con más gente"
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-grave"
             />
           ) : null}
           {onRenombrar ? (
@@ -585,7 +585,7 @@ function Linea({
                     type="button"
                     aria-label={`Eliminar ${row.name}`}
                     onClick={() => onDeleteItem(row.id)}
-                    className="rounded p-1 text-tinta-3 hover:bg-rose-900/20 hover:text-rose-300"
+                    className="rounded p-1 text-tinta-3 hover:bg-grave-fondo hover:text-grave-tinta"
                   >
                     🗑
                   </button>
@@ -657,7 +657,7 @@ function Delta({ id, valor }: { id: string; valor: number }) {
     )
   }
   return (
-    <span data-testid={`delta-${id}`} className={valor > 0 ? 'text-green-400' : 'text-grave-tinta'}>
+    <span data-testid={`delta-${id}`} className={valor > 0 ? 'text-bien-tinta' : 'text-grave-tinta'}>
       {valor > 0 ? `+${valor.toFixed(1)}` : valor.toFixed(1)}
     </span>
   )
@@ -769,7 +769,7 @@ function BarraDelCorte({
       />
       {cutoffFrozen ? (
         <React.Fragment>
-          <span className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-300">
+          <span className="rounded-full border border-acento bg-acento-suave px-2 py-0.5 text-xs text-acento-tinta">
             congelado
           </span>
           <button

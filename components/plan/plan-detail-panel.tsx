@@ -170,8 +170,8 @@ export function PlanDetailPanel({
       {row.restriccion ? <Restriccion puesta={row.restriccion} /> : null}
 
       {row.recoverability !== 'RECUPERABLE' ? (
-        <div data-testid="no-se-recupera" className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
-          <p className="text-xs uppercase tracking-wide text-red-300">No se recupera con más gente</p>
+        <div data-testid="no-se-recupera" className="rounded-md border border-grave-borde bg-grave-fondo p-3">
+          <p className="text-xs uppercase tracking-wide text-grave-tinta">No se recupera con más gente</p>
           <p className="mt-1 text-sm text-tinta-2">{POR_QUE[row.recoverability]}</p>
           {row.reason ? <p className="mt-1 text-xs text-tinta-2">{row.reason}</p> : null}
         </div>
@@ -302,7 +302,7 @@ function Esfuerzo({ coherencia }: { coherencia: NonNullable<GanttRow['esfuerzo']
   const sobra = coherencia.diferencia > 0
   return (
     <div className="flex flex-col gap-0.5" data-testid="esfuerzo-descuadra">
-      <p className="text-xs uppercase tracking-wide text-amber-300">Esfuerzo · no cuadra</p>
+      <p className="text-xs uppercase tracking-wide text-aviso-tinta">Esfuerzo · no cuadra</p>
       <p className="text-sm text-tinta">
         {horas(coherencia.capturado)} capturadas, y en estos días con esta gente caben{' '}
         {horas(coherencia.implicado)}.

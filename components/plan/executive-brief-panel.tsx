@@ -19,12 +19,20 @@ export interface ExecutiveBriefPanelProps {
   readonly projectName: string
 }
 
-/** Cómo se ve el margen según su estado. El color dice lo mismo que el texto, no algo distinto. */
+/**
+ * Cómo se ve el margen según su estado. El color dice lo mismo que el texto, no algo distinto.
+ *
+ * Los tonos van por **tríada de token** —tinta, fondo y borde de la misma familia— y no por pasos
+ * crudos de Tailwind. Los pasos crudos se eligieron cuando la aplicación sólo era oscura y no se
+ * enteran del tema: medido en pantalla, el ámbar crudo sobre su propio fondo daba **1,58:1** en
+ * claro. «Sin margen» es la frase que dice si el proyecto llega o no llega a la fecha, y estaba
+ * escrita en un color que no se ve.
+ */
 const MARGIN_TONE: Readonly<Record<MarginState, { label: string; className: string }>> = {
-  HOLGADO: { label: 'Con margen', className: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
-  JUSTO: { label: 'Sin margen', className: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  EN_DEUDA: { label: 'Después de la fecha', className: 'text-grave-tinta border-red-500/30 bg-red-500/10' },
-  SIN_COMPROMISO: { label: 'Sin fecha comprometida', className: 'text-tinta-2 border-borde-fuerte/40 bg-zinc-500/10' },
+  HOLGADO: { label: 'Con margen', className: 'text-bien-tinta border-bien-borde bg-bien-fondo' },
+  JUSTO: { label: 'Sin margen', className: 'text-aviso-tinta border-aviso-borde bg-aviso-fondo' },
+  EN_DEUDA: { label: 'Después de la fecha', className: 'text-grave-tinta border-grave-borde bg-grave-fondo' },
+  SIN_COMPROMISO: { label: 'Sin fecha comprometida', className: 'text-tinta-2 border-borde-fuerte bg-superficie-2' },
 }
 
 export function ExecutiveBriefPanel({ brief, projectName }: ExecutiveBriefPanelProps) {

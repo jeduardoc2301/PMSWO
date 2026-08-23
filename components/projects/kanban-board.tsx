@@ -239,7 +239,7 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
             type="button"
             aria-label={`Eliminar ${workItem.title}`}
             onClick={(e) => { e.stopPropagation(); onDelete(workItem) }}
-            className="p-1 rounded text-tinta-3 hover:text-rose-300 hover:bg-rose-900/20 transition-colors"
+            className="p-1 rounded text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-colors"
           >
             <Trash2 size={12} />
           </button>

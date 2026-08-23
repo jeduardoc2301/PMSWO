@@ -280,32 +280,41 @@ describe('El conmutador 3 del §4.6 en el trazado', () => {
     return render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} {...sobre} />)
   }
 
-  /** Se cuenta por nombre de clase y no con un selector: la barra de `bg-red-500/80` hay que
-   *  escaparla en CSS, y ese escape ya se ha degradado tres veces esta noche. */
-  const conClase = (container: HTMLElement, clase: string) =>
-    [...container.querySelectorAll('div')].filter((e) => e.className.includes(clase)).length
+  /*
+    Se cuenta **sólo entre las barras**, y por nombre de clase, no con un selector de CSS.
 
-  it('con la ruta crítica apagada, ninguna barra de trabajo sale roja ni naranja', () => {
+    Por selector porque una clase con barra inclinada —`bg-acento/80`— hay que escaparla, y ese
+    escape ya se ha degradado tres veces esta noche.
+
+    Y sólo entre las barras porque desde que los tonos van por token, el rombo de un hito lleva
+    `bg-grave` igual que la barra súper crítica: contando todos los `div` de la pantalla, «ninguna
+    barra sale roja» se caía por culpa de un rombo, que no es una barra y no depende de este
+    conmutador.
+  */
+  const barraConClase = (container: HTMLElement, clase: string) =>
+    [...container.querySelectorAll('[data-testid^="barra-"]')].filter((e) => e.className.includes(clase)).length
+
+  it('con la ruta crítica apagada, ninguna barra de trabajo sale roja ni ámbar', () => {
     // En el plan de referencia el 90 % no tiene días de sobra: con todo rojo el color deja de
     // señalar nada, y por eso el §4.6 pide poder apagarlo.
     const { container } = conConmutadores({ rutaCritica: false })
-    expect(conClase(container, 'bg-red-500/80')).toBe(0)
-    expect(conClase(container, 'bg-orange-500/80')).toBe(0)
+    expect(barraConClase(container, 'bg-grave')).toBe(0)
+    expect(barraConClase(container, 'bg-aviso')).toBe(0)
   })
 
   it('encendida, las críticas sí se colorean', () => {
     const { container } = conConmutadores({ rutaCritica: true })
-    expect(conClase(container, 'bg-red-500/80') + conClase(container, 'bg-orange-500/80'))
+    expect(barraConClase(container, 'bg-grave') + barraConClase(container, 'bg-aviso'))
       .toBeGreaterThan(0)
   })
 
   it('apagarla no cambia el gris de los resúmenes', () => {
     // El gris de un resumen no es criticidad: es qué clase de línea es.
     const encendida = conConmutadores({ rutaCritica: true })
-    const grisesAntes = conClase(encendida.container, 'bg-zinc-500')
+    const grisesAntes = barraConClase(encendida.container, 'bg-tinta-3')
     encendida.unmount()
     const apagada = conConmutadores({ rutaCritica: false })
-    expect(conClase(apagada.container, 'bg-zinc-500')).toBe(grisesAntes)
+    expect(barraConClase(apagada.container, 'bg-tinta-3')).toBe(grisesAntes)
   })
 
   it('sin reserva no se dibuja la sombra de holgura', () => {

@@ -443,11 +443,84 @@ describe('Las cajas de aviso se leen en los dos temas', () => {
   }
 })
 
-/** Y que el taller no vuelva a escribir un tono de Tailwind a pelo en esos paneles. */
-it('plan-workspace.tsx no lleva ningún color crudo', () => {
-  const texto = readFileSync(join(process.cwd(), 'components', 'plan', 'plan-workspace.tsx'), 'utf8')
-  for (const familia of ['amber-', 'emerald-', 'rose-', 'red-']) {
-    expect(texto.indexOf(familia)).toBe(-1)
+/**
+ * Que el taller no vuelva a escribir un tono de Tailwind a pelo en las vistas que ya se migraron.
+ *
+ * Esto vigilaba **un solo archivo** y **cuatro familias**, y por eso `gantt-chart.tsx` sobrevivió
+ * entero: llevaba la raya de HOY en `amber-400/70` (1,48:1 en claro), el rombo del hito en
+ * `zinc-300` (1,48:1), las flechas de dependencia en `zinc-600` (2,29:1 en oscuro) y la cinta de
+ * línea base en tres tonos de los que fallaban cuatro de las seis combinaciones de tema. Nada de
+ * eso rompía ninguna prueba: **el color no rompe nada**, sólo deja de verse.
+ *
+ * Se vigilan las familias enteras y también los hexadecimales sueltos. Un `#6366f1` escrito en un
+ * `style` en línea no se entera del tema igual que no se entera un `bg-indigo-500`.
+ */
+const SIN_COLOR_CRUDO = [
+  ['components', 'plan', 'plan-workspace.tsx'],
+  ['components', 'plan', 'gantt-chart.tsx'],
+  ['components', 'plan', 'plan-detail-panel.tsx'],
+  ['components', 'plan', 'executive-brief-panel.tsx'],
+  ['components', 'projects', 'work-items-outline.tsx'],
+  ['components', 'projects', 'work-items-list.tsx'],
+] as const
+
+const FAMILIAS = [
+  'amber', 'emerald', 'rose', 'red', 'zinc', 'orange', 'green', 'indigo',
+  'slate', 'gray', 'yellow', 'violet', 'teal', 'blue', 'purple', 'pink',
+] as const
+
+/** Los prefijos de utilidad que de verdad pintan algo. */
+const PINTAN = [
+  'text', 'bg', 'border', 'ring', 'stroke', 'fill', 'accent', 'outline',
+  'decoration', 'shadow', 'divide', 'caret', 'placeholder', 'from', 'via', 'to',
+] as const
+
+/**
+ * Las clases de color crudo de un archivo, **ancladas a la clase entera**.
+ *
+ * Buscar la familia como subcadena suelta no vale: `-translate-y-1/2` contiene «slate-», y la
+ * primera versión de esta prueba señaló como defecto el icono de la lupa del buscador. Un
+ * instrumento que se inventa un defecto cuesta más que el defecto.
+ */
+function coloresCrudos(texto: string): string[] {
+  const salida: string[] = []
+  for (const bruto of texto.split(/[\s"'`{}()<>,;=]+/)) {
+    // `hover:bg-amber-400/70` -> se queda con `bg-amber-400/70`
+    const clase = bruto.slice(bruto.lastIndexOf(':') + 1)
+    const trozos = clase.split('-')
+    if (trozos.length < 3) continue
+    const prefijo = trozos.slice(0, trozos.length - 2).join('-')
+    const familia = trozos[trozos.length - 2]
+    const paso = trozos[trozos.length - 1].split('/')[0]
+    if (!(PINTAN as readonly string[]).includes(prefijo)) continue
+    if (!(FAMILIAS as readonly string[]).includes(familia)) continue
+    if (paso.length < 2 || paso.length > 3) continue
+    if (![...paso].every((c) => c >= '0' && c <= '9')) continue
+    salida.push(clase)
+  }
+  return salida
+}
+
+describe('Las vistas migradas no vuelven a escribir un color crudo', () => {
+  for (const ruta of SIN_COLOR_CRUDO) {
+    it(ruta[ruta.length - 1], () => {
+      const texto = readFileSync(join(process.cwd(), ...ruta), 'utf8')
+      expect(coloresCrudos(texto)).toEqual([])
+    })
+
+    it(`${ruta[ruta.length - 1]} · tampoco un hexadecimal suelto`, () => {
+      const texto = readFileSync(join(process.cwd(), ...ruta), 'utf8')
+      // Seis dígitos: los de tres se usan en comentarios y en rutas, y no como color.
+      const sueltos: string[] = []
+      for (let i = 0; i < texto.length; i++) {
+        if (texto[i] !== '#') continue
+        const cola = texto.slice(i + 1, i + 7)
+        if (cola.length === 6 && [...cola].every((c) => '0123456789abcdefABCDEF'.includes(c))) {
+          sueltos.push(texto.slice(Math.max(0, i - 30), i + 8))
+        }
+      }
+      expect(sueltos).toEqual([])
+    })
   }
 })
 

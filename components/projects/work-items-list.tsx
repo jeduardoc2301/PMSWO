@@ -110,7 +110,15 @@ const inputStyle: React.CSSProperties = {
   color: 'var(--tinta)',
   borderRadius: 8,
   fontSize: 13,
-  outline: 'none',
+  /*
+    Sin `outline: 'none'`.
+
+    Lo llevaban los cinco controles de la barra —el buscador, Exportar, Campos y los dos filtros— y
+    un `outline` escrito en el atributo `style` gana a cualquier hoja de estilos sin `!important`.
+    `globals.css` no tiene ni una regla de `:focus` en sus novecientas líneas, así que no había nada
+    que repusiera el indicador: quien navega con el teclado no sabía dónde estaba. Eso no es
+    contraste, es WCAG 2.4.7, y no se arregla con ningún color.
+  */
 }
 
 function SortableRow({
@@ -136,8 +144,8 @@ function SortableRow({
   return (
     <tr
       ref={setNodeRef}
-      style={{ ...style, ...(isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid #6366f1' } : {}) }}
-      className="border-b border-borde/60 hover:bg-superficie/30 transition-all"
+      style={{ ...style, ...(isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid var(--acento)' } : {}) }}
+      className="border-b border-borde hover:bg-superficie-3 transition-all"
     >
       <td className="px-2 py-3.5 w-8">
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-tinta-3 hover:text-tinta-2">
@@ -860,7 +868,18 @@ export function WorkItemsList({
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
     background: 'var(--superficie)',
-    borderBottom: '1px solid var(--borde)',
+    /*
+      La rejilla, no el borde tenue.
+
+      Medido: `--borde` da 1,19:1 sobre la superficie en oscuro y 1,28:1 en claro. Con eso una tabla
+      de nueve columnas no tiene rejilla —el ojo no puede seguir una fila de un lado al otro—, que es
+      exactamente para lo que sirve una tabla. `--rejilla` da 3,12:1 y 3,00:1.
+
+      La línea vertical va sólo en la CABECERA: marca dónde empieza cada columna sin convertir mil
+      trescientas filas en una cuadrícula de contabilidad.
+    */
+    borderBottom: '1px solid var(--rejilla)',
+    borderRight: '1px solid var(--borde)',
   }
 
   return (
@@ -932,7 +951,7 @@ export function WorkItemsList({
                               // que no se pueden atribuir a nada.
                               title={c.fija ? 'El nombre no se puede quitar' : undefined}
                               onChange={() => onColumnasCambiadas(alternarColumnaDeLaLista(columnasElegidas, c.id))}
-                              className="h-3.5 w-3.5 accent-[#6366f1]"
+                              className="h-3.5 w-3.5 accent-acento"
                             />
                             <span className="text-xs text-tinta-2">{c.etiqueta}</span>
                           </label>
@@ -1036,8 +1055,8 @@ export function WorkItemsList({
           )}
           <button
             onClick={() => setCreateDialogOpen(true)}
-            style={{ background: 'var(--acento-relleno)', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-            className="hover:bg-indigo-500 transition-all"
+            style={{ background: 'var(--acento-relleno)', border: 'none', color: 'var(--sobre-acento)', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            className="hover:opacity-90 transition-all"
           >
             <Plus className="w-4 h-4" />
             {t('createWorkItem')}
@@ -1239,7 +1258,7 @@ export function WorkItemsList({
                 {/* La fila de totales del §6.2, arriba y no al pie: con mil trescientas líneas,
                     un total al final es un total que nadie ve. Suma lo filtrado. */}
                 {lineasPlanas.length > 0 ? (
-                  <tr data-testid="fila-total" className="border-b border-borde bg-superficie/40">
+                  <tr data-testid="fila-total" className="border-b border-borde bg-superficie-3">
                     <td className="px-6 py-2">
                       <span className="text-xs font-semibold uppercase tracking-wide text-tinta-2">
                         Todas las tareas
@@ -1290,7 +1309,7 @@ export function WorkItemsList({
                           key={'g-' + entrada.clave}
                           data-testid={`grupo-${entrada.clave}`}
                           style={{ height: ALTO_DE_FILA }}
-                          className="border-b border-borde bg-superficie/30"
+                          className="border-b border-borde bg-superficie-3"
                         >
                           {/*
                             `columnasDeLaFila` **ya incluye** la de acciones (`+ 1`), y después de
@@ -1320,10 +1339,10 @@ export function WorkItemsList({
                       <tr
                         key={item.id}
                         style={{
-                          ...(isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid #6366f1' } : {}),
+                          ...(isHighlighted ? { background: 'rgba(99,102,241,0.12)', borderLeft: '3px solid var(--acento)' } : {}),
                           ...(plana ? { height: ALTO_DE_FILA } : {}),
                         }}
-                        className="border-b border-borde/60 hover:bg-superficie/30 transition-all"
+                        className="border-b border-borde hover:bg-superficie-3 transition-all"
                       >
                         <td className={plana ? 'px-6 py-0' : 'px-6 py-4'}>
                           {/* Recortado en el formato plano: con cinco mil filas, una que envuelve
@@ -1375,8 +1394,22 @@ export function WorkItemsList({
                           </td>
                         ) : null}
                         {visible('phase') ? (
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
-                            {fases.faseDe(item.id) ?? '—'}
+                          <td className="px-6 py-4" style={{ fontSize: 14, color: 'var(--tinta-2)' }}>
+                            {/*
+                              Cortado y con el texto entero en el título emergente.
+
+                              Antes cabía: la fase era un campo de texto corto que alguien escribía a
+                              mano. Ahora es el título del nivel 1 del árbol, y en el plan real esos
+                              títulos miden hasta noventa caracteres: con `whitespace-nowrap` y sin
+                              corte, la celda se salía por encima de las dos columnas siguientes y se
+                              leían tres cosas superpuestas. Se vio en la captura, no en las cuentas.
+                            */}
+                            <span
+                              title={fases.faseDe(item.id) ?? undefined}
+                              className="block max-w-[26ch] truncate"
+                            >
+                              {fases.faseDe(item.id) ?? '—'}
+                            </span>
                           </td>
                         ) : null}
                         {visible('progressPct') ? (

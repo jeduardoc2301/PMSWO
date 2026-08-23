@@ -160,7 +160,7 @@ function ValorDeLaFoto({ row, columnaId }: { row: GanttRow; columnaId: string })
       data-foto={columnaId}
       data-corrimiento={corrimiento}
       title={`En la línea base: ${original}`}
-      className={`ml-1.5 shrink-0 tabular-nums ${corrimiento > 0 ? 'text-grave-tinta/80' : 'text-emerald-400/80'}`}
+      className={`ml-1.5 shrink-0 tabular-nums ${corrimiento > 0 ? 'text-grave-tinta/80' : 'text-bien-tinta/80'}`}
     >
       {corrimiento > 0 ? '+' : '−'}
       {Math.abs(corrimiento)} d
@@ -351,13 +351,13 @@ export function GanttChart({
             // `overflow-x-auto` sólo cuando el divisor recorta: con la rejilla entera a la vista una
             // barra de desplazamiento que no desplaza nada es ruido, y en algunos navegadores roba
             // altura a la última fila.
-            className={`sticky left-0 z-20 shrink-0 border-r border-borde bg-superficie ${
+            className={`sticky left-0 z-20 shrink-0 border-r border-rejilla bg-superficie ${
               anchoDeLaRejilla < anchoDeLasColumnas ? 'overflow-x-auto' : ''
             }`}
             style={{ width: anchoDeLaRejilla }}
           >
             <div
-              className="sticky top-0 z-10 flex border-b border-borde bg-superficie text-xs uppercase tracking-wide text-tinta-2"
+              className="sticky top-0 z-10 flex border-b border-rejilla bg-superficie text-xs uppercase tracking-wide text-tinta-2"
               style={{ height: rowHeight, width: anchoDeLasColumnas }}
             >
               {marcadas !== undefined ? <div className="w-8 shrink-0" aria-hidden /> : null}
@@ -426,7 +426,11 @@ export function GanttChart({
                         }
                       : undefined
                   }
-                  className={`absolute left-0 flex ${row.id === selectedId ? 'bg-superficie-3/60' : ''}`}
+                  // `bg-superficie-3/60` sobre `bg-superficie` da 1,09:1 en claro y 1,10:1 en
+                  // oscuro: nueve unidades de 255. Con mil trescientas filas, encontrar la abierta
+                  // era imposible. Lo que la encuentra es el filo de la izquierda, no el fondo: el
+                  // fondo solo no arreglaría nada.
+                  className={`absolute left-0 flex ${row.id === selectedId ? 'bg-acento/15 border-l-2 border-acento' : ''}`}
                   // Las filas miden lo que miden las columnas, no lo que se ve: si midieran la
                   // ventana, al desplazar la rejilla por dentro el fondo de la fila seleccionada se
                   // quedaría corto y la fila parecería partida.
@@ -443,7 +447,7 @@ export function GanttChart({
                         // el evento de cambio no lo trae.
                         onClick={(e) => onMarcar(row.id, e.shiftKey)}
                         onChange={() => {}}
-                        className="h-3.5 w-3.5 cursor-pointer accent-[#6366f1]"
+                        className="h-3.5 w-3.5 cursor-pointer accent-acento"
                       />
                     </div>
                   ) : null}
@@ -528,7 +532,7 @@ export function GanttChart({
                     <div
                       key={`sup-${tick.date}-${tick.x}`}
                       data-tick-superior={tick.date}
-                      className="shrink-0 overflow-hidden border-r border-borde px-2 text-[11px] font-medium text-tinta-2"
+                      className="shrink-0 overflow-hidden border-r border-rejilla px-2 text-[11px] font-medium text-tinta-2"
                       style={{
                         width: tick.width * dayWidth,
                         lineHeight: `${Math.round(rowHeight * 0.7)}px`,
@@ -541,7 +545,7 @@ export function GanttChart({
               ) : null}
               <div
                 data-testid="eje-inferior"
-                className="flex border-b border-borde"
+                className="flex border-b border-rejilla"
                 style={{ height: rowHeight }}
               >
                 {layout.ticks.map((tick) => (
@@ -559,7 +563,7 @@ export function GanttChart({
                     */
                     key={`${tick.date}-${tick.x}`}
                     data-tick={tick.date}
-                    className="shrink-0 overflow-hidden border-r border-borde px-2 text-xs text-tinta-2"
+                    className="shrink-0 overflow-hidden border-r border-rejilla px-2 text-xs text-tinta-2"
                     style={{ width: tick.width * dayWidth, lineHeight: `${rowHeight}px` }}
                   >
                     {tick.label}
@@ -575,7 +579,7 @@ export function GanttChart({
                 data-testid="marca-de-hoy"
                 aria-hidden="true"
                 title="Hoy"
-                className="pointer-events-none absolute top-0 z-0 w-px bg-amber-400/70"
+                className="pointer-events-none absolute top-0 z-0 w-0.5 bg-aviso"
                 style={{ left: layout.hoyX * dayWidth, height }}
               />
             ) : null}
@@ -816,11 +820,11 @@ function Bar({
       title={row.atrasada ? `${row.name} · ${row.start} · venció sin ocurrir` : `${row.name} · ${row.start}`}
       onPointerDown={movible ? alApretar : undefined}
       className={`absolute rotate-45 ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${
-        row.isSuperCritical ? 'bg-red-400' : row.isCritical ? 'bg-orange-400' : 'bg-zinc-300'
+        row.isSuperCritical ? 'bg-grave' : row.isCritical ? 'bg-aviso' : 'bg-tinta-3'
       } ${
         // El anillo va sin `ring-offset`: sobre un rombo girado 45° el hueco del offset se ve como
         // un cuadrado torcido alrededor, y lo que hace falta es que se note que venció.
-        resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400' : ''
+        resaltarAtrasadas && row.atrasada ? 'ring-2 ring-aviso' : ''
       }`}
       style={{ left: row.x * dayWidth - alto / 2, top: y, width: alto, height: alto }}
     />
@@ -845,7 +849,7 @@ function Bar({
           data-desvio={row.baseDrift}
           title={`Línea base: ${row.baseDrift === 0 ? 'sin corrimiento' : row.baseDrift! > 0 ? `${row.baseDrift} días hábiles más tarde de lo previsto` : `${-row.baseDrift!} días hábiles antes de lo previsto`}`}
           className={`absolute rounded-sm ${
-            row.baseDrift === 0 ? 'bg-zinc-600' : row.baseDrift! > 0 ? 'bg-red-400/50' : 'bg-emerald-400/50'
+            row.baseDrift === 0 ? 'bg-tinta-3' : row.baseDrift! > 0 ? 'bg-grave' : 'bg-bien'
           }`}
           style={{
             left: row.baseX * dayWidth,
@@ -870,7 +874,7 @@ function Bar({
         className={`absolute overflow-hidden rounded-sm ${movible ? 'cursor-grab touch-none active:cursor-grabbing' : ''} ${barTone(row, rutaCritica)} ${
           // El resalte va como anillo y no como color de relleno: el relleno ya dice si la línea es
           // crítica, y pisarlo cambiaría una información por otra en vez de sumarla.
-          resaltarAtrasadas && row.atrasada ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-fondo' : ''
+          resaltarAtrasadas && row.atrasada ? 'ring-2 ring-aviso ring-offset-1 ring-offset-fondo' : ''
         }`}
         style={{ left: row.x * dayWidth, top: y, width: Math.max(row.anchoExacto * dayWidth, 2), height: alto }}
       >
@@ -916,7 +920,7 @@ function Bar({
                 e.stopPropagation()
                 onConectar(row.id, extremo, 'SOLTAR')
               }}
-              className="absolute z-10 rounded-full border border-zinc-300 bg-superficie opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100"
+              className="absolute z-10 rounded-full border border-tinta-3 bg-superficie opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100"
               style={{
                 // Un hito mide cero, así que los dos conectores caerían exactamente encima y sólo
                 // uno se podría agarrar. Se abren a las puntas del rombo, que es donde la mano va.
@@ -1053,10 +1057,10 @@ function TiradorDeColumna({
  * es criticidad, es qué clase de línea es.
  */
 function barTone(row: GanttRow, rutaCritica: boolean): string {
-  if (row.isSummary) return 'bg-zinc-500'
+  if (row.isSummary) return 'bg-tinta-3'
   if (!rutaCritica) return 'bg-acento/80'
-  if (row.isSuperCritical) return 'bg-red-500/80'
-  if (row.isCritical) return 'bg-orange-500/80'
+  if (row.isSuperCritical) return 'bg-grave'
+  if (row.isCritical) return 'bg-aviso'
   return 'bg-acento/80'
 }
 
@@ -1092,10 +1096,10 @@ function Links({
     >
       <defs>
         <marker id="punta" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" className="fill-zinc-500" />
+          <path d="M0,0 L6,3 L0,6 Z" className="fill-tinta-3" />
         </marker>
         <marker id="punta-critica" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" className="fill-red-400" />
+          <path d="M0,0 L6,3 L0,6 Z" className="fill-grave" />
         </marker>
       </defs>
       {links.map((link) => {
@@ -1119,7 +1123,7 @@ function Links({
             fill="none"
             strokeWidth={link.isCritical ? 2 : 1}
             strokeDasharray={link.isFolded ? '4 3' : undefined}
-            className={link.isCritical ? 'stroke-red-400' : 'stroke-zinc-600'}
+            className={link.isCritical ? 'stroke-grave' : 'stroke-tinta-3'}
             markerEnd={link.isCritical ? 'url(#punta-critica)' : 'url(#punta)'}
           >
             <title>{`${link.fromRowId} → ${link.toRowId} · ${rotulo}`}</title>
