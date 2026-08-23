@@ -243,7 +243,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-7 py-6"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: '#2a2a30 transparent' }}>
+            style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--borde-fuerte) transparent' }}>
 
             {/* Anatomy */}
             <div className="info-anatomy">

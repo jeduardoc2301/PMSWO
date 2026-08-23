@@ -61,7 +61,7 @@ export function ProjectList({ projects }: ProjectListProps) {
   return (
     <div className="bg-superficie rounded-lg overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-[#27272a]">
+        <table className="min-w-full divide-y divide-borde">
           <thead className="bg-superficie">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-tinta-3 uppercase tracking-wider">
@@ -84,7 +84,7 @@ export function ProjectList({ projects }: ProjectListProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-superficie divide-y divide-[#27272a]">
+          <tbody className="bg-superficie divide-y divide-borde">
             {projects.map((project) => {
               const healthStatus = getHealthStatus(project)
               return (

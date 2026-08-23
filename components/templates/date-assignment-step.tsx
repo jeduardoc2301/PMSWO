@@ -213,7 +213,7 @@ export function DateAssignmentStep({
           </div>
         ) : (
           <div className="border border-borde rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-[#27272a]">
+            <table className="min-w-full divide-y divide-borde">
               <thead style={{ background: 'var(--superficie)' }}>
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-tinta-2 uppercase tracking-wider">
@@ -236,7 +236,7 @@ export function DateAssignmentStep({
                   </th>
                 </tr>
               </thead>
-              <tbody style={{ background: 'var(--superficie)' }} className="divide-y divide-[#27272a]">
+              <tbody style={{ background: 'var(--superficie)' }} className="divide-y divide-borde">
                 {calculatedActivities.map((activity) => (
                   <tr key={activity.id} className="hover:bg-superficie-3/50">
                     <td className="px-4 py-3 text-sm text-tinta">
