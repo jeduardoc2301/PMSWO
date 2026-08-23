@@ -8325,3 +8325,28 @@ aunque el defecto siguiera, porque puse un vínculo que imponía el orden por ot
 `lag`), el rótulo del desfase fuera de jornadas de 8 h, los resúmenes que entran en el orden
 topológico, y seis requisitos de rendimiento que hoy **nadie mide a la escala del spec** — el
 «cumple» de uno de ellos mide 5 000 tareas contra las 10 000 que pide.
+
+### Tanda 105b · Dos hallazgos más, medidos hasta el final
+
+**El desfase se lee en minutos a la ida y en días a la vuelta.** REAL pero **no alcanzable**: el
+editor de vínculos manda días y `lagMinutes` sólo se escribe por API. Señalado donde se bifurca
+(`cpm.ts`) y no arreglado: el pase atrás trabaja en ordinales de día hábil y no puede expresar 120
+minutos, así que hace falta **decidir cómo redondea** un desfase de dos horas. Esa decisión cambia
+números que alguien defiende por teléfono; elegirla a ojo de madrugada, en un camino que nadie
+alcanza, sería peor que dejarla escrita.
+
+**«Los resúmenes se programan como tareas.»** El mecanismo existe —el orden topológico incluye a
+todos y el rollup ocurre después, en la capa de presentación— pero medido en el plan real:
+
+- 125 resúmenes; **18 con vínculo propio**, así que la situación no es hipotética.
+- De los 125, **uno solo** tiene un fin propio distinto del de sus hijas: cuatro días.
+- Ese uno tiene **cero sucesores**. No empuja a nadie.
+
+O sea: mecanismo real, daño nulo hoy, y riesgo latente si alguien enlaza un resumen cuya duración
+propia se quede corta frente a sus hijas. Cambiar cómo entran los resúmenes en el orden tocaría los
+125 para beneficio cero — se queda medido, no arreglado.
+
+**La lección de estos dos:** «existe en el código» y «le pasa a alguien» son preguntas distintas, y
+la segunda se contesta con una consulta a la base, no leyendo. Los dos hallazgos eran ciertos y
+ninguno de los dos había que arreglarlo esta noche; saber cuál es cuál es lo que evita gastar el
+tiempo en lo que no cambia nada.
