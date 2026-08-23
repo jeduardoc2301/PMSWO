@@ -673,6 +673,127 @@ describe('§5.1 · el EDT y «ser resumen» se cuentan sobre el plan entero', ()
 })
 
 /**
+ * La cuarta propiedad del conjunto: **de qué fase cuelga cada tarjeta**.
+ *
+ * Desde que el tablero agrupa por el árbol y no por un campo de texto, saber la fase de una línea es
+ * subir por `parentId` hasta el nivel 1. Ese ascenso también es una propiedad del conjunto, y también
+ * se estaba calculando sobre lo dibujado: con un filtro puesto el antepasado no está en la lista, el
+ * ascenso se corta creyendo que llegó a la raíz, y la tarjeta aparece en «Sin fase» —debajo de un
+ * encabezado gris, lejos de sus hermanas— justo cuando el filtro se puso para no perderla de vista.
+ *
+ * Es la cuarta vez que esta vista confunde «el plan» con «lo que se está viendo del plan».
+ */
+describe('§5.1 · la fase de una tarjeta se busca en el plan entero', () => {
+  const PLAN = [
+    { id: 'etapa', title: 'Etapa Mobilize', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-1', ownerId: 'u1', ownerName: 'Ana' },
+    { id: 'fase', title: 'Ola 1', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-1', ownerId: 'u1', ownerName: 'Ana', parentId: 'etapa' },
+    { id: 'bloque', title: 'Bloque A', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-1', ownerId: 'u1', ownerName: 'Ana', parentId: 'fase' },
+    { id: 'hoja', title: 'Cablear el rack', status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-2', ownerId: 'u1', ownerName: 'Ana', parentId: 'bloque' },
+  ] as never[]
+
+  const COLUMNAS = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: [] },
+    { id: 'col-2', name: 'To Do', order: 1, columnType: KanbanColumnType.TODO, workItemIds: [] },
+  ] as never[]
+
+  it('sin filtro, la hoja cae bajo «Ola 1»', () => {
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={PLAN} lineasDelPlan={PLAN} />)
+    expect(screen.getByText('Ola 1')).toBeInTheDocument()
+    expect(screen.queryByText('noPhase')).not.toBeInTheDocument()
+  })
+
+  it('y con sus tres antepasados filtrados fuera, sigue cayendo bajo «Ola 1»', () => {
+    // Lo que le llega al tablero cuando el filtro deja pasar una sola línea: la propiedad `workItems`
+    // trae la hoja y nada más, y `lineasDelPlan` trae el plan del que cuelga.
+    const soloLaHoja = [PLAN[3]] as never[]
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={soloLaHoja} lineasDelPlan={PLAN} />)
+    expect(screen.getByText('Cablear el rack')).toBeInTheDocument()
+    expect(screen.getByText('Ola 1')).toBeInTheDocument()
+    expect(screen.queryByText('noPhase')).not.toBeInTheDocument()
+  })
+
+  it('y la etapa se sigue leyendo encima de la fase', () => {
+    // La cabecera se lee como un trozo de árbol —etapa arriba, fase abajo—, y esa segunda línea sale
+    // del mismo ascenso: si se corta, la fase queda sin etapa aunque el nombre del grupo salga bien.
+    const soloLaHoja = [PLAN[3]] as never[]
+    render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={soloLaHoja} lineasDelPlan={PLAN} />)
+    expect(screen.getByText('Etapa Mobilize')).toBeInTheDocument()
+  })
+})
+
+/**
+ * Quién manda en cada banda, y de quién no manda nadie.
+ *
+ * Dos casos que el ascenso resolvía mal y que sólo se ven con los resúmenes puestos:
+ *
+ * - **La etapa se colaba en la banda de una nieta.** El ascenso memorizaba el camino entero con una
+ *   sola respuesta, y la raíz iba en ese camino: la primera hoja que preguntara le dejaba pegada su
+ *   fase a la etapa. Dependía del orden de las preguntas, que es la peor clase de fallo: se ve o no
+ *   se ve según por dónde empiece a dibujar.
+ * - **La fase no salía en su propia banda.** Se nombra a sí misma —es lo que hacía el importador—,
+ *   pero sólo si encabeza algo: un nivel 1 sin hijas es una tarea colgada de la etapa, y darle banda
+ *   propia repite la misma frase en la cabecera y en la única tarjeta.
+ */
+describe('§5.1 · quién encabeza cada banda del árbol', () => {
+  const COLUMNAS = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: [] },
+  ] as never[]
+
+  const base = { status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-1', ownerId: 'u1', ownerName: 'Ana' }
+
+  /**
+   * Una rama y nada más. **Sin ninguna hoja colgada de la etapa**, y eso es deliberado.
+   *
+   * La primera versión de esta prueba llevaba una, y la prueba pasaba con el fallo puesto: al
+   * resolver esa hoja, el ascenso volvía a pasar por la etapa y le devolvía el valor bueno por pura
+   * casualidad, justo después de habérselo estropeado. Tapaba lo que venía a enseñar.
+   */
+  const RAMA = [
+    { id: 'etapa', title: 'Etapa Mobilize', ...base },
+    { id: 'fase', title: 'Ola 1', ...base, parentId: 'etapa' },
+    { id: 'hoja', title: 'Cablear el rack', ...base, parentId: 'fase' },
+  ] as never[]
+
+  const conResumenes = async (container: HTMLElement) => {
+    fireEvent.click(screen.getByTestId('conmutador-resumenes'))
+    await waitFor(() => expect(container.querySelector('[data-testid="edt-tarjeta-etapa"]')).not.toBeNull())
+  }
+
+  const bandaDe = (container: HTMLElement, id: string) =>
+    container.querySelector(`[data-testid="edt-tarjeta-${id}"]`)?.closest('[data-fase]')?.getAttribute('data-fase')
+
+  it('la etapa no cae en la banda de su nieta', async () => {
+    const { container } = render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={RAMA} lineasDelPlan={RAMA} />)
+    await conResumenes(container)
+    expect(bandaDe(container, 'etapa')).toBe('__NO_PHASE__')
+  })
+
+  it('ni cuando la nieta se resuelve primero', async () => {
+    // El mismo plan contado al revés. La respuesta no puede depender del orden en que se pregunte.
+    const alReves = [RAMA[2], RAMA[1], RAMA[0]] as never[]
+    const { container } = render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={alReves} lineasDelPlan={alReves} />)
+    await conResumenes(container)
+    expect(bandaDe(container, 'etapa')).toBe('__NO_PHASE__')
+  })
+
+  it('la fase encabeza su banda y su tarjeta está dentro', async () => {
+    const { container } = render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={RAMA} lineasDelPlan={RAMA} />)
+    await conResumenes(container)
+    expect(bandaDe(container, 'fase')).toBe('Ola 1')
+    expect(bandaDe(container, 'hoja')).toBe('Ola 1')
+  })
+
+  it('pero un nivel 1 sin hijas no abre banda propia', async () => {
+    // «Firmar el acta» cuelga derecho de la etapa y no encabeza nada: no es una fase, es una tarea.
+    const conSuelta = [...RAMA, { id: 'suelta', title: 'Firmar el acta', ...base, parentId: 'etapa' }] as never[]
+    const { container } = render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={conSuelta} lineasDelPlan={conSuelta} />)
+    await conResumenes(container)
+    expect(bandaDe(container, 'suelta')).toBe('__NO_PHASE__')
+    expect(container.querySelector('[data-fase="Firmar el acta"]')).toBeNull()
+  })
+})
+
+/**
  * Veinte segundos para todo el bloque, y no los cinco de por omision.
  *
  * Cada prueba de aqui dibuja entre ciento veinte y doscientas tarjetas y las vuelve a dibujar dos o

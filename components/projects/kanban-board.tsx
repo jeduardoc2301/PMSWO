@@ -688,46 +688,61 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
    *
    * Las líneas de nivel 0 no tienen fase —no hay antepasado de nivel 1 sobre ellas— y por eso caen
    * en «Sin fase», igual que antes caían las que no tenían el campo puesto.
+   *
+   * Una línea de nivel 1 **se nombra a sí misma**, que es literalmente lo que hacía el importador
+   * (`plan-import.service.ts`: `if (fila.level === 1) return fila.name`), pero sólo si encabeza algo.
+   * Un nivel 1 sin hijas no es una fase: es una tarea colgada derecho de la etapa, y darle banda
+   * propia repetiría la misma frase en la cabecera y en la única tarjeta —se vio con «Configurar la
+   * red»—. Y «encabezar algo» es *tener hijas*, nunca `kind`.
    */
   const faseDe = useMemo(() => {
-    const padreDe = new Map(localWorkItems.map(w => [w.id, w.parentId ?? null]))
-    const nombreDe = new Map(localWorkItems.map(w => [w.id, w.title]))
+    // Sobre el **plan entero**, no sobre lo dibujado: con un filtro puesto, el antepasado de nivel 1
+    // puede no estar en la lista, el ascenso se corta creyendo que llegó a la raíz y la tarjeta cae
+    // en «Sin fase». Es la misma trampa que ya documentan `esResumen` y el EDT tres pantallas antes.
+    const padreDe = new Map(paraContar.map(w => [w.id, w.parentId ?? null]))
+    const nombreDe = new Map(paraContar.map(w => [w.id, w.title]))
+    const esRaiz = (id: string) => (padreDe.get(id) ?? null) === null
+    /** Qué línea de nivel 1 manda sobre cada una; `null` en los niveles 0 y 1. */
     const memoria = new Map<string, string | null>()
 
-    const buscar = (id: string): string | null => {
-      const yaEsta = memoria.get(id)
-      if (yaEsta !== undefined) return yaEsta
-      // Se sube guardando el camino: en un plan de seis niveles y mil líneas, resolver cada una por
-      // separado repetiría el mismo tramo cientos de veces.
+    /*
+      Se sube guardando el camino, porque en un plan de cinco niveles y mil trescientas líneas
+      resolverlas una a una repetiría el mismo tramo cientos de veces.
+
+      Y sólo se memoriza a los que **de verdad comparten la respuesta**: los del camino están todos
+      a profundidad dos o más —se apilan después de comprobar que tienen abuela— y por eso su
+      antepasado de nivel 1 es el mismo. Guardar también la raíz, como se hacía antes, le pegaba a la
+      etapa la fase de la descendiente que pasó por ahí primero, y entonces la etapa aparecía dentro
+      de la banda de una de sus nietas según en qué orden se hubiera preguntado.
+    */
+    const nivel1De = (id: string): string | null => {
       const camino: string[] = []
       let actual: string | null = id
       let resultado: string | null = null
       const visto = new Set<string>()
       while (actual !== null && !visto.has(actual)) {
+        const yaEsta = memoria.get(actual)
+        if (yaEsta !== undefined) { resultado = yaEsta; break }
+        // Sin madre es de nivel 0; con madre-raíz es de nivel 1 y se manda a sí misma.
+        if (esRaiz(actual)) { resultado = null; break }
+        const padre = padreDe.get(actual) as string
+        if (esRaiz(padre)) { resultado = actual; break }
         visto.add(actual)
         camino.push(actual)
-        const padre: string | null = padreDe.get(actual) ?? null
-        if (padre === null) {
-          /*
-            `actual` es raíz, así que el camino va de la línea hasta ella.
-
-            El de nivel 1 es el penúltimo, y hace falta que haya **al menos tres** eslabones: la
-            línea, su fase y su etapa. Con dos, la propia línea ES la fase, y agruparla bajo su
-            nombre pondría la misma frase en la cabecera y en la tarjeta —se vio en una prueba, con
-            «Configurar la red» dos veces—. Los niveles 0 y 1 no tienen fase: ellos son la etapa y
-            la fase.
-          */
-          resultado = camino.length >= 3 ? nombreDe.get(camino[camino.length - 2]) ?? null : null
-          break
-        }
         actual = padre
       }
+      if (actual !== null) memoria.set(actual, resultado)
       for (const paso of camino) memoria.set(paso, resultado)
       return resultado
     }
 
-    return buscar
-  }, [localWorkItems])
+    return (id: string): string | null => {
+      const n1 = nivel1De(id)
+      if (n1 === null) return null
+      if (n1 === id && !esResumen.has(id)) return null
+      return nombreDe.get(n1) ?? null
+    }
+  }, [paraContar, esResumen])
 
   /**
    * De qué etapa cuelga cada fase, para que la cabecera se lea como un trozo de árbol.
@@ -737,8 +752,8 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
    * tablero mientras arrastra —«¿esto de qué parte del plan es?»— sin abrir otra vista.
    */
   const etapaDeLaFase = useMemo(() => {
-    const padreDe = new Map(localWorkItems.map(w => [w.id, w.parentId ?? null]))
-    const nombreDe = new Map(localWorkItems.map(w => [w.id, w.title]))
+    const padreDe = new Map(paraContar.map(w => [w.id, w.parentId ?? null]))
+    const nombreDe = new Map(paraContar.map(w => [w.id, w.title]))
     const raizDe = (id: string): string | null => {
       let actual = id
       const visto = new Set<string>()
@@ -750,7 +765,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
       }
     }
     const mapa = new Map<string, string>()
-    for (const w of localWorkItems) {
+    for (const w of paraContar) {
       const fase = faseDe(w.id)
       if (fase === null || mapa.has(fase)) continue
       const etapa = raizDe(w.id)
@@ -758,7 +773,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
       if (etapa !== null && etapa !== fase) mapa.set(fase, etapa)
     }
     return mapa
-  }, [localWorkItems, faseDe])
+  }, [paraContar, faseDe])
 
   const groupWorkItemsByPhase = (items: WorkItemSummary[]) => {
     const grouped: Record<string, WorkItemSummary[]> = {}
@@ -1205,7 +1220,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
               const pct = total > 0 ? Math.round((completed / total) * 100) : 0
 
               return (
-                <div key={phaseName} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
+                <div key={phaseName} data-fase={phaseName} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
                   <button
                     onClick={() => togglePhase(phaseName)}
                     className="w-full flex items-center justify-between px-4 py-3 transition-all hover:bg-superficie/40"
