@@ -192,7 +192,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
   return (
     <div className="space-y-4">
       {/* ── Toolbar ── */}
-      <div className="rounded-xl p-4" style={{ background: 'var(--superficie-3)', border: '1px solid #232327' }}>
+      <div className="rounded-xl p-4" style={{ background: 'var(--superficie-3)', border: '1px solid var(--borde)' }}>
         <div className="flex items-center justify-between flex-wrap gap-3">
           {/* Left */}
           <div>
@@ -228,7 +228,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
 
             {/* Segmented control */}
             <div className="flex items-center rounded-lg overflow-hidden text-xs"
-              style={{ background: '#0e0e10', border: '1px solid #232327' }}>
+              style={{ background: '#0e0e10', border: '1px solid var(--borde)' }}>
               {(['week', 'month', 'quarter'] as Granularity[]).map((g) => (
                 <button key={g} onClick={() => setGranularity(g)}
                   className="px-3 py-1.5 font-medium transition-all"
@@ -271,7 +271,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
             { l: 'Próximos hitos',  v: upcoming, c: '#f59e0b', Icon: Flag         },
           ].map(({ l, v, c, Icon }) => (
             <div key={l} className="flex items-center gap-3 p-3 rounded-xl"
-              style={{ background: 'var(--superficie-3)', border: '1px solid #232327' }}>
+              style={{ background: 'var(--superficie-3)', border: '1px solid var(--borde)' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: `${c}1f`, border: `1px solid ${c}40` }}>
                 <Icon size={14} style={{ color: c }} />
@@ -286,7 +286,7 @@ export function TimelineTab({ project, workItems }: TimelineTabProps) {
       </div>
 
       {/* ── Gantt grid ── */}
-      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #232327' }}>
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--borde)' }}>
         <div ref={scrollRef} className="overflow-auto" style={{ maxHeight: 620 }}>
           <div style={{ minWidth: LABEL_W + totalWidth }}>
 

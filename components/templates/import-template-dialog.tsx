@@ -215,7 +215,7 @@ export function ImportTemplateDialog({ open, onOpenChange, onSuccess }: ImportTe
             type="button"
             onClick={() => fileRef.current?.click()}
             className="w-full rounded-xl flex flex-col items-center gap-3 py-8 transition-all hover:border-indigo-500/50"
-            style={{ border: '2px dashed #3f3f46', background: 'var(--superficie)' }}
+            style={{ border: '2px dashed var(--borde-fuerte)', background: 'var(--superficie)' }}
           >
             <div className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>

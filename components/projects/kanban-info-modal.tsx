@@ -165,7 +165,7 @@ export function KanbanInfoModal({ onClose }: KanbanInfoModalProps) {
         className="overflow-hidden"
         style={{
           width: 'min(1080px, 96vw)', height: 'min(720px, 92vh)',
-          background: 'var(--superficie-3)', border: '1px solid #232327', borderRadius: 20,
+          background: 'var(--superficie-3)', border: '1px solid var(--borde)', borderRadius: 20,
           boxShadow: '0 30px 80px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.08)',
           display: 'grid', gridTemplateColumns: '320px 1fr',
           animation: 'modalRise .24s cubic-bezier(.2,.8,.2,1)',

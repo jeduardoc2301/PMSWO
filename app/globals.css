@@ -5,7 +5,7 @@
   --bg:       #09090b;
   --surface:  #18181b;
   --surface2: #1c1c1f;
-  --border:   #27272a;
+  --border:   var(--borde);
   --indigo:   #6366f1;
   --so-red:   #DA291C;
 
@@ -562,13 +562,13 @@ body {
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--superficie-3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
 /* Progress bar utility */
 .pms-progress {
   height: 4px;
-  background: #27272a;
+  background: var(--superficie-3);
   border-radius: 9999px;
   overflow: hidden;
 }
@@ -627,7 +627,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   background: #1c1c1f;
-  border: 1px solid #27272a;
+  border: 1px solid var(--borde);
   border-radius: 12px;
   padding: 10px 16px;
   display: flex;
@@ -646,7 +646,7 @@ body {
 .pms-menu {
   position: absolute;
   background: #1c1c1f;
-  border: 1px solid #27272a;
+  border: 1px solid var(--borde);
   border-radius: 10px;
   padding: 6px;
   min-width: 180px;
@@ -665,7 +665,7 @@ body {
   text-align: left;
   transition: background 0.1s;
 }
-.pms-menu button:hover { background: #27272a; color: #fff; }
+.pms-menu button:hover { background: var(--superficie-3); color: #fff; }
 .pms-menu-label {
   font-size: 10px;
   text-transform: uppercase;
@@ -794,7 +794,7 @@ body {
 .dp-foot-btn {
   flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 7px 10px; border-radius: 8px;
-  background: transparent; border: 1px solid #2a2a30;
+  background: transparent; border: 1px solid var(--borde);
   color: #a1a1aa; font-size: 11px; font-weight: 500;
   cursor: pointer; transition: all .12s; font-family: inherit;
 }
@@ -881,12 +881,12 @@ body {
 /* Info modal */
 .info-anatomy {
   background: radial-gradient(80% 100% at 0% 0%, rgba(167,139,250,0.07), transparent 60%), #101015;
-  border: 1px solid #232327; border-radius: 14px; padding: 22px;
+  border: 1px solid var(--borde); border-radius: 14px; padding: 22px;
   margin-bottom: 18px;
 }
 .info-states { display: flex; flex-direction: column; gap: 12px; }
 .info-state-card {
-  background: #101015; border: 1px solid #232327; border-radius: 14px;
+  background: #101015; border: 1px solid var(--borde); border-radius: 14px;
   overflow: hidden; display: grid; grid-template-columns: 1fr 260px;
 }
 .info-state-card-left { padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }

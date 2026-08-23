@@ -852,7 +852,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: 'rgba(3,3,5,0.72)', backdropFilter: 'blur(10px) saturate(140%)' }}>
           <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
-            style={{ background: 'var(--superficie-3)', border: '1px solid #232327', boxShadow: '0 30px 80px -10px rgba(0,0,0,0.6)' }}>
+            style={{ background: 'var(--superficie-3)', border: '1px solid var(--borde)', boxShadow: '0 30px 80px -10px rgba(0,0,0,0.6)' }}>
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>

@@ -434,7 +434,7 @@ export function UsersManagementClient() {
                   type="button"
                   onClick={() => editAvatarInputRef.current?.click()}
                   className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
-                  style={{ background: 'var(--superficie-2)', border: '2px dashed #3f3f46' }}
+                  style={{ background: 'var(--superficie-2)', border: '2px dashed var(--borde-fuerte)' }}
                 >
                   {(editAvatarPreview || formData.avatar) ? (
                     <>
@@ -543,7 +543,7 @@ export function UsersManagementClient() {
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
                   className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden transition-all group"
-                  style={{ background: 'var(--superficie-2)', border: '2px dashed #3f3f46' }}
+                  style={{ background: 'var(--superficie-2)', border: '2px dashed var(--borde-fuerte)' }}
                 >
                   {(createAvatarPreview || createFormData.avatar) ? (
                     <>

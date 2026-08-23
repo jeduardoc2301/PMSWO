@@ -142,10 +142,10 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
       id="barra-lateral"
       data-barra-lateral
       className="fixed top-0 left-0 z-40 h-screen w-64 flex flex-col"
-      style={{ background: 'var(--superficie)', borderRight: '1px solid #1f1f23' }}>
+      style={{ background: 'var(--superficie)', borderRight: '1px solid var(--borde)' }}>
 
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #1f1f23' }}>
+      <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid var(--borde)' }}>
         <Link href={`/${locale}/dashboard`} className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)' }}>
@@ -235,7 +235,7 @@ export function MainNav({ user, onSignOut, onLocaleChange }: MainNavProps) {
       </div>
 
       {/* Bottom — locale + user */}
-      <div className="px-3 pb-4 space-y-1.5" style={{ borderTop: '1px solid #1f1f23', paddingTop: '12px' }}>
+      <div className="px-3 pb-4 space-y-1.5" style={{ borderTop: '1px solid var(--borde)', paddingTop: '12px' }}>
         {/* Locale switcher */}
         <button
           onClick={() => onLocaleChange(locale === Locale.ES ? Locale.PT : Locale.ES)}

@@ -425,7 +425,7 @@ function KanbanColumn({
         className="rounded-xl overflow-hidden h-full"
         style={{ background: 'var(--superficie)', border: `1px solid ${isDragTarget ? 'var(--acento)' : 'var(--borde)'}`, transition: 'border-color 0.15s' }}
       >
-        <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid #1f1f23' }}>
+        <div className="px-3 py-2.5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--borde)' }}>
           <span className="text-xs font-semibold text-tinta-2 uppercase tracking-wider">{column.name}</span>
           <span className="text-xs text-tinta-3">{workItemsInColumn.length}</span>
         </div>
@@ -507,7 +507,7 @@ function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
 
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-xl overflow-hidden py-1"
-          style={{ background: 'var(--superficie-3)', border: '1px solid #2a2a30', boxShadow: '0 12px 30px -10px rgba(0,0,0,0.5)' }}>
+          style={{ background: 'var(--superficie-3)', border: '1px solid var(--borde)', boxShadow: '0 12px 30px -10px rgba(0,0,0,0.5)' }}>
           {options.map(opt => (
             <button
               key={opt.value}

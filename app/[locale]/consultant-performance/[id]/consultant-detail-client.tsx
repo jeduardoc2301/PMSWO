@@ -161,7 +161,7 @@ function GroupedItemList<T extends { projectName: string }>({
             {projectName}
           </div>
           {groupItems.map((item, idx) => (
-            <div key={idx} style={{ background: 'var(--superficie)', borderTop: idx > 0 ? '1px solid #1f1f23' : undefined }}>
+            <div key={idx} style={{ background: 'var(--superficie)', borderTop: idx > 0 ? '1px solid var(--borde)' : undefined }}>
               {renderItem(item, idx)}
             </div>
           ))}

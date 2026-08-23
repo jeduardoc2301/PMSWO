@@ -101,7 +101,7 @@ export function PhaseManager({ phases, onChange, disabled = false }: PhaseManage
           return (
             <div key={index} className="relative">
               {index < phases.length - 1 && (
-                <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-[#27272a]" />
+                <div className="absolute left-[13px] top-[32px] bottom-[-8px] w-[2px] bg-[var(--superficie-3)]" />
               )}
 
               <div className="flex items-start gap-2">

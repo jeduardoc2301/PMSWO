@@ -291,7 +291,7 @@ export function FinalPreviewStep({
                     <div className="ml-4 mt-3 border-l-2 border-borde pl-4 space-y-3">
                       {activities.map((activity, activityIndex) => (
                         <div key={activity.id} className="relative">
-                          <div className="absolute left-0 top-4 w-4 h-0.5 bg-[#27272a]" />
+                          <div className="absolute left-0 top-4 w-4 h-0.5 bg-[var(--superficie-3)]" />
 
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-700 text-white flex items-center justify-center">
