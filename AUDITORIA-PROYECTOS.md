@@ -8269,3 +8269,59 @@ Lanzada la auditoría del **§3** contra la implementación, criterio a criterio
 instrucción de que ante la duda refute. Después de una noche en que el instrumento se inventó
 defectos tres veces, un hallazgo falso cuesta más que uno que falta — manda a alguien a arreglar algo
 que no está roto y le enseña a desconfiar del resto del informe.
+
+---
+
+## Tanda 105 · El motor, auditado con refutación
+
+**99 requisitos del §3 revisados: 51 cumplen.** El núcleo —CPM, las cuatro reglas de vínculo, las
+ocho restricciones, las holguras, el calendario— está implementado y probado. Los fallos no están en
+el cálculo sino en los bordes.
+
+La fase de refutación cambió **cuatro veredictos**: cuatro «incumplimientos» eran del auditor y no
+del código. Eso ya justifica la fase.
+
+### Cuatro revisados, tres reales y uno falso
+
+**1. Una fecha clavada por contrato aparecía con 38 días de margen.** REAL, arreglado. El pase atrás
+acotaba con el techo débil (`NO_EMPIEZA_DESPUES_DE`) y se dejaba el fuerte (`DEBE_EMPEZAR_EL`), que
+fija el arranque y por tanto implica el mismo techo. **Arrastrar una barra clava con esa
+restricción**, así que la ruta corriente llegaba ahí, y la holgura decide qué sale en la ruta crítica
+y qué se le dice a un cliente. Prueba escrita antes, falló con la cifra exacta.
+
+*No demostrado en pantalla:* no di con la superficie que enseña la holgura de una línea. El panel se
+abre por el nombre y no por la barra, y ni el tooltip ni ningún atributo la llevan. Queda pendiente.
+
+**2. «Catorce hojas clavadas sin poder arrastrarse.» FALSO.** Medido: cero. El «catorce» salía de un
+**comentario del propio código**, que el auditor leyó como dato — el mismo error que cometí yo horas
+antes con un comentario CSS. Y el hallazgo se cae por partida doble: ese comentario explica que las
+dos definiciones se usan **a propósito**. Corregido el comentario y ancladas las tres cifras (125
+con hijas, 121 marcadas, 0 marcadas sin hijas) en el verificador, que es el único sitio que puede
+medirlas.
+
+**3. Tres columnas sin migración.** REAL, arreglado. `duration_minutes` y `lag_minutes` estaban en el
+esquema y en ninguna de las 27 migraciones: un despliegue por migraciones creaba las tablas sin ellas
+y los `select` reventaban. No se nota en local **porque en local nadie despliega por migraciones**.
+Comprobado creando una base desechable, corriendo `migrate deploy` entera y verificando las columnas
+en `information_schema`. Y menos mal: la escribí con `ADD COLUMN IF NOT EXISTS`, que es de MariaDB, y
+se cayó en la primera sentencia.
+
+**4. La foto de la línea base guardaba fechas que nadie vio.** REAL, arreglado. Programaba con
+`schedulePlan` mientras la pantalla usa `programarConALAP` con ausencias. Al comparar días después,
+esa diferencia de origen aparece como **desvío del plan**: la foto respondía «cuánto nos hemos
+movido» contando un movimiento que no ocurrió.
+
+### Lo que enseñó esta tanda
+
+**Uno de cada cuatro hallazgos era falso**, y el falso venía de prosa escrita en el código. La fase
+de refutación no lo filtró porque el refutador tenía delante **la misma frase** que el auditor: un
+revisor que lee la misma prosa no es independiente. Contra eso sólo vale medir el dato.
+
+Y dos tropiezos propios en la misma tanda, los dos del mismo tipo: una prueba que falló por un
+fixture mal armado —no es reproducir un defecto, es romper una prueba— y otra que habría pasado
+aunque el defecto siguiera, porque puse un vínculo que imponía el orden por otra vía.
+
+**Queda del informe:** el desfase en minutos que sólo lee media máquina (adelante usa `lagMin`, atrás
+`lag`), el rótulo del desfase fuera de jornadas de 8 h, los resúmenes que entran en el orden
+topológico, y seis requisitos de rendimiento que hoy **nadie mide a la escala del spec** — el
+«cumple» de uno de ellos mide 5 000 tareas contra las 10 000 que pide.
