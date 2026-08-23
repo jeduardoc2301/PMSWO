@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { WorkItemPriority, Permission, UserRole } from '@/types'
 import { TextPurpose } from '@/types/ai'
 import { hasPermission } from '@/lib/rbac'
-import { Sparkles, Loader2, Info } from 'lucide-react'
-import { Combobox } from '@/components/ui/combobox'
+import { Sparkles, Loader2 } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
 import { ParentPicker, construirOpcionesPadre, type OpcionPadre } from './parent-picker'
 
@@ -98,7 +97,6 @@ export function CreateWorkItemDialog({
   const [submitting, setSubmitting] = useState(false)
   const [suggestingDescription, setSuggestingDescription] = useState(false)
   const [errors, setErrors] = useState<FormErrors>({})
-  const [existingPhases, setExistingPhases] = useState<string[]>([])
   const [parentOptions, setParentOptions] = useState<OpcionPadre[]>([])
   // El tropiezo al leer el tablero se dice en la pantalla, junto al selector: sin fases ni líneas
   // candidatas el formulario se ve vacío sin motivo, y un console.error no lo lee nadie.
@@ -126,7 +124,7 @@ export function CreateWorkItemDialog({
   useEffect(() => {
     if (open) {
       fetchUsers()
-      fetchPhasesAndParents()
+      cargarPosiblesMadres()
       fetchProjectInfo()
       // El padre y las fechas sugeridas se aplican al abrir, no al montar: el mismo diálogo se
       // reutiliza para varias capturas seguidas y quien lo abre puede traer datos distintos cada vez.
@@ -160,45 +158,30 @@ export function CreateWorkItemDialog({
   }
 
   /**
-   * Un solo viaje al tablero para las dos listas: las fases existentes y las líneas que pueden ser
-   * padre. Son el mismo `workItems`, y pedirlo dos veces sería pagar dos veces la misma consulta.
+   * Las líneas que pueden ser madre, sacadas del tablero.
+   *
+   * Traía además la lista de fases existentes, para un campo de texto libre que ya no está: la fase
+   * de una línea es su antepasado de nivel 1 y se elige aquí mismo, en el selector de madre.
    */
-  const fetchPhasesAndParents = async () => {
+  const cargarPosiblesMadres = async () => {
     try {
       const response = await fetch(`/api/v1/projects/${projectId}/kanban`)
       if (!response.ok) {
-        throw new Error('Failed to fetch phases')
+        throw new Error('Failed to fetch parents')
       }
       const data = await response.json()
       const workItems = (data.kanbanBoard?.workItems ?? []) as Array<{
         id: string
         title: string
-        phase?: string | null
         parentId?: string | null
       }>
 
-      // Extract unique phases from work items
-      const phases = new Set<string>()
-      workItems.forEach((item) => {
-        if (item.phase) {
-          phases.add(item.phase)
-        }
-      })
-
-      // Always include "Sin Fase" option at the beginning
-      const phasesList = Array.from(phases).sort()
-      setExistingPhases(phasesList)
-
-      // El tablero hoy no devuelve `parentId`, así que todas las líneas salen en nivel 0 y la lista
-      // se ve plana: se puede elegir padre igual, solo sin sangría. El helper ya lee el campo, de
-      // modo que el día que el tablero lo mande la jerarquía aparece sin tocar este diálogo.
       setParentOptions(construirOpcionesPadre(workItems))
       setBoardError(null)
     } catch (error) {
-      console.error('Error fetching phases:', error)
-      setExistingPhases([])
+      console.error('Error fetching parents:', error)
       setParentOptions([])
-      setBoardError('No se pudieron cargar las fases ni las líneas del proyecto. Puedes capturar sin fase y sin padre, o cerrar y volver a abrir.')
+      setBoardError('No se pudieron cargar las líneas del proyecto. Puedes capturar sin madre, o cerrar y volver a abrir.')
     }
   }
 
@@ -538,25 +521,13 @@ export function CreateWorkItemDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phase">
-              {t('createDialog.phaseLabel', { defaultValue: 'Fase (opcional)' })}
-            </Label>
-            <Combobox
-              value={formData.phase}
-              onValueChange={(value) => handleFieldChange('phase', value)}
-              options={existingPhases}
-              placeholder={t('createDialog.phasePlaceholder', { defaultValue: 'Sin fase o escribir nueva...' })}
-              searchPlaceholder={t('createDialog.phaseSearchPlaceholder', { defaultValue: 'Buscar o crear fase...' })}
-              emptyText={t('createDialog.phaseEmptyText', { defaultValue: 'Presiona Enter para crear' })}
-              disabled={submitting}
-            />
-            <p className="text-xs text-orange-400 font-medium flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5 flex-shrink-0" />
-              {t('createDialog.phaseHint', { defaultValue: 'Selecciona una fase existente o escribe una nueva' })}
-            </p>
-          </div>
+            {/* Donde antes había además un campo «Fase (opcional)» de texto libre.
 
-          <div className="space-y-2">
+                Escribía la columna `phase`, que ninguna vista lee ya para agrupar: la fase de una
+                línea es su antepasado de nivel 1, y eso se elige aquí. Tener las dos cosas dejaba
+                crear una fase que no estaba en el árbol —pasó: una fase llamada «Fase» que no salía
+                en el Tablero— y era la misma pregunta hecha dos veces con respuestas que podían no
+                coincidir. El servidor sigue rellenando la columna a partir del padre. */}
             <ParentPicker
               label="Cuelga de (opcional)"
               options={parentOptions}

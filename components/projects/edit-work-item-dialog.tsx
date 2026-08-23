@@ -16,8 +16,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { WorkItemPriority, type WorkItemSummary } from '@/types'
-import { Combobox } from '@/components/ui/combobox'
-import { Info } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
 import {
   RESTRICCIONES,
@@ -59,7 +57,6 @@ export function EditWorkItemDialog({
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [existingPhases, setExistingPhases] = useState<string[]>([])
   const [parentOptions, setParentOptions] = useState<OpcionPadre[]>([])
   // El tropiezo al leer el tablero se dice en la pantalla: sin él no hay fases ni líneas candidatas
   // y el formulario se ve vacío sin explicación.
@@ -107,7 +104,7 @@ export function EditWorkItemDialog({
       console.log('[EditWorkItemDialog] Fetching users and work item details for:', workItem.id)
       fetchUsers()
       fetchWorkItemDetails()
-      fetchPhasesAndParents()
+      cargarPosiblesMadres()
     }
   }, [open, workItem.id])
 
@@ -128,43 +125,30 @@ export function EditWorkItemDialog({
   }
 
   /**
-   * Un solo viaje al tablero para las dos listas: las fases existentes y las líneas que pueden ser
-   * padre. Son el mismo `workItems`, y pedirlo dos veces sería pagar dos veces la misma consulta.
+   * Las líneas que pueden ser madre, sacadas del tablero.
+   *
+   * Traía además la lista de fases existentes, para un campo de texto libre que ya no está: la fase
+   * de una línea es su antepasado de nivel 1 y se cambia moviéndola de sitio.
    */
-  const fetchPhasesAndParents = async () => {
+  const cargarPosiblesMadres = async () => {
     try {
       const response = await fetch(`/api/v1/projects/${projectId}/kanban`)
       if (!response.ok) {
-        throw new Error('Failed to fetch phases')
+        throw new Error('Failed to fetch parents')
       }
       const data = await response.json()
       const workItems = (data.kanbanBoard?.workItems ?? []) as Array<{
         id: string
         title: string
-        phase?: string | null
         parentId?: string | null
       }>
 
-      // Extract unique phases from work items
-      const phases = new Set<string>()
-      workItems.forEach((item) => {
-        if (item.phase) {
-          phases.add(item.phase)
-        }
-      })
-
-      setExistingPhases(Array.from(phases).sort())
-
-      // El tablero hoy no devuelve `parentId`, así que todas las líneas salen en nivel 0 y la lista
-      // se ve plana. El helper ya lee el campo: el día que el tablero lo mande, aparece la sangría
-      // sin tocar este diálogo.
       setParentOptions(construirOpcionesPadre(workItems))
       setBoardError(null)
     } catch (error) {
-      console.error('Error fetching phases:', error)
-      setExistingPhases([])
+      console.error('Error fetching parents:', error)
       setParentOptions([])
-      setBoardError('No se pudieron cargar las fases ni las líneas del proyecto. Cierra y vuelve a abrir para intentarlo otra vez.')
+      setBoardError('No se pudieron cargar las líneas del proyecto. Cierra y vuelve a abrir para intentarlo otra vez.')
     }
   }
 
@@ -319,24 +303,12 @@ export function EditWorkItemDialog({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phase" className="text-tinta">
-                {t('createDialog.phaseLabel', { defaultValue: 'Fase (opcional)' })}
-              </Label>
-              <Combobox
-                value={formData.phase}
-                onValueChange={(value) => setFormData({ ...formData, phase: value })}
-                options={existingPhases}
-                placeholder={t('createDialog.phasePlaceholder', { defaultValue: 'Sin fase o escribir nueva...' })}
-                searchPlaceholder={t('createDialog.phaseSearchPlaceholder', { defaultValue: 'Buscar o crear fase...' })}
-                emptyText={t('createDialog.phaseEmptyText', { defaultValue: 'Presiona Enter para crear' })}
-                disabled={submitting}
-              />
-              <p className="text-xs text-orange-400 font-medium flex items-center gap-1.5">
-                <Info className="h-3.5 w-3.5 flex-shrink-0" />
-                {t('createDialog.phaseHint', { defaultValue: 'Selecciona una fase existente o escribe una nueva' })}
-              </p>
-            </div>
+            {/* Donde antes había un campo «Fase (opcional)» de texto libre.
+
+                La fase de una línea es su antepasado de nivel 1 y se cambia moviéndola de sitio, no
+                reescribiendo una etiqueta. `formData.phase` sigue viajando en el envío con el valor
+                que llegó del servidor, sin tocarlo: así editar cualquier otra cosa no lo cambia, y
+                deshacer sigue viendo el mismo «antes» que antes. */}
 
             <div className="space-y-2">
               <ParentPicker

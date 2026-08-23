@@ -155,6 +155,77 @@ describe('WorkItemService', () => {
       })
     })
 
+    /**
+     * La columna `phase` la rellena el servidor a partir del árbol, no quien captura.
+     *
+     * Había un campo de texto libre en el alta y en la edición, y con él se podía escribir una fase
+     * que no estaba en ninguna parte del árbol —pasó: una fase llamada «Fase» que no salía en el
+     * Tablero, porque el Tablero agrupa por el nivel 1 y no por el texto—. El campo ya no está; la
+     * columna sigue, porque el informe DOCX la lee, así que hay que mantenerla diciendo la verdad.
+     */
+    describe('la fase la pone el árbol, no quien captura', () => {
+      const PLAN = [
+        { id: 'etapa', title: 'ETAPA MOBILIZE', parentId: null },
+        { id: 'fase', title: 'Ola 1', parentId: 'etapa' },
+        { id: 'bloque', title: 'Bloque A', parentId: 'fase' },
+        { id: 'suelta', title: 'Firmar el acta', parentId: 'etapa' },
+      ]
+
+      const prepararAlta = () => {
+        vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p1', organizationId: 'org-1' } as any)
+        vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'u1', organizationId: 'org-1' } as any)
+        vi.mocked(prisma.kanbanColumn.findFirst).mockResolvedValue({
+          id: 'c1', projectId: 'p1', columnType: KanbanColumnType.BACKLOG, isInitial: true, isDone: false,
+        } as any)
+        vi.mocked(prisma.workItem.create).mockResolvedValue({ id: 'nueva' } as any)
+        vi.mocked(prisma.workItem.aggregate).mockResolvedValue({ _max: { templateOrder: 9 } } as any)
+        // Lo usan dos: la comprobación de ciclos y el ascenso que deduce la fase.
+        vi.mocked(prisma.workItem.findMany).mockResolvedValue(PLAN as any)
+        // El alta pregunta por la madre para comprobar que es del mismo proyecto, y por el ancla
+        // cuando se inserta delante o detrás de algo. Se responde por identificador.
+        vi.mocked(prisma.workItem.findFirst).mockImplementation((async (args: any) => {
+          const id = args?.where?.id
+          return PLAN.find((l) => l.id === id) ?? null
+        }) as never)
+      }
+
+      const crearBajo = async (parentId: string | null) => {
+        prepararAlta()
+        await workItemService.createWorkItem(
+          {
+            projectId: 'p1', ownerId: 'u1', title: 'Línea nueva', description: 'x',
+            priority: WorkItemPriority.MEDIUM,
+            startDate: new Date('2026-08-10'), estimatedEndDate: new Date('2026-08-14'),
+            parentId,
+          },
+          'u1',
+        )
+        return vi.mocked(prisma.workItem.create).mock.calls[0][0].data as { phase?: string | null }
+      }
+
+      it('colgando de un bloque, la fase es la de arriba del bloque', async () => {
+        expect((await crearBajo('bloque')).phase).toBe('Ola 1')
+      })
+
+      it('colgando de la fase misma, la fase es ella', async () => {
+        expect((await crearBajo('fase')).phase).toBe('Ola 1')
+      })
+
+      it('colgando de la etapa, no hay fase: la línea nueva es de nivel 1', async () => {
+        expect((await crearBajo('etapa')).phase).toBeNull()
+      })
+
+      it('y sin madre tampoco', async () => {
+        expect((await crearBajo(null)).phase).toBeNull()
+      })
+
+      it('una madre que hoy no encabeza nada pasa a ser fase justo por esta línea', async () => {
+        // «Firmar el acta» cuelga de la etapa y no tiene hijas, así que hoy no es una fase. En cuanto
+        // se le cuelga algo lo es, y la línea nueva tiene que nacer ya con ese nombre.
+        expect((await crearBajo('suelta')).phase).toBe('Firmar el acta')
+      })
+    })
+
     it('y en un proyecto vacío empieza en 1, no en cero ni en nulo', async () => {
       vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p1', organizationId: 'org-1' } as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'u1', organizationId: 'org-1' } as any)

@@ -4,8 +4,32 @@ import { minutosDeLaLinea } from '@/services/duracion.service'
 import { estadoDeLaColumna, progresoAlMover } from '@/lib/projects/status-progress'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import { validarPadre } from '@/services/hierarchy'
+import { construirFases, type LineaDelArbol } from '@/lib/projects/fase-del-arbol'
 import { WorkItemStatus, WorkItemPriority, KanbanColumnType } from '@/types'
 import { z } from 'zod'
+
+/**
+ * El título del antepasado de **nivel 1** de una línea nueva, que es lo que la columna `phase`
+ * guarda desde siempre.
+ *
+ * No reimplementa la regla: le pasa el plan a `construirFases` —el mismo módulo que dibuja las
+ * bandas del Tablero y de la Lista— con la línea nueva metida dentro, y le pregunta por ella. Meterla
+ * dentro no es un detalle: una madre de nivel 1 que hoy no tiene hijas no es una fase, y **pasa a
+ * serlo justo por colgarle esta línea**. Preguntando sólo por la madre saldría «sin fase».
+ */
+async function faseSegunElArbol(projectId: string, parentId: string | null): Promise<string | null> {
+  if (parentId === null) return null
+  const lineas = await prisma.workItem.findMany({
+    where: { projectId },
+    select: { id: true, title: true, parentId: true },
+  })
+  const LA_NUEVA = '__la-que-se-esta-creando__'
+  const { faseDe } = construirFases([
+    ...(lineas as LineaDelArbol[]),
+    { id: LA_NUEVA, title: '', parentId } as LineaDelArbol,
+  ])
+  return faseDe(LA_NUEVA)
+}
 
 // DTOs
 export interface CreateWorkItemDTO {
@@ -284,7 +308,14 @@ export class WorkItemService {
         templateOrder: puesto,
         title: data.title.trim(),
         description: data.description.trim(),
-        phase: data.phase?.trim() || null,
+        // La fase, **deducida del árbol** cuando quien crea no la dice.
+        //
+        // La columna es una copia desnormalizada del nivel 1: el importador la escribe así desde el
+        // principio (`if (fila.level === 1) return fila.name`) y las vistas ya no la leen para
+        // agrupar. Pero el informe DOCX sí, y una línea nueva sin fase salía en el informe bajo «sin
+        // fase» aunque en pantalla estuviera colgada en su sitio. Deducirla mantiene las dos verdades
+        // diciendo lo mismo mientras la columna siga existiendo.
+        phase: data.phase?.trim() || (await faseSegunElArbol(data.projectId, data.parentId ?? null)),
         status,
         priority: data.priority,
         startDate: data.startDate,
