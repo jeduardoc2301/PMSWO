@@ -74,6 +74,7 @@ export function planDeCarga(tareas = 10000, vinculos = 8000): PlanDeCarga {
     La primera versión de este generador emparejaba por índice y creaba justamente eso: el plan no
     llegaba a programarse. El inválido era el generador, no el motor.
   */
+  const TIPOS = ['FS', 'SS', 'FF', 'SF'] as const
   const padreDe = new Map<string, string>()
   for (const t of tasks as unknown as Array<{ id: string; parentId?: string }>) {
     if (t.parentId) padreDe.set(t.id, t.parentId)
@@ -84,9 +85,31 @@ export function planDeCarga(tareas = 10000, vinculos = 8000): PlanDeCarga {
     return false
   }
 
-  const TIPOS = ['FS', 'SS', 'FF', 'SF'] as const
   const dependencies: Dependency[] = []
   const vistos = new Set<string>()
+
+  /*
+    Una espina dorsal: una cadena que atraviesa el plan de punta a punta.
+
+    Sin ella el generador sólo enlaza vecinos cercanos, y eso deja un plan de 10 000 líneas **sin
+    ningún camino largo**: la ruta crítica sale trivial y mover una tarea arrastra a trece. Ningún
+    plan real es así — tiene una secuencia larga que lo gobierna, que es justamente lo que hace caro
+    reprogramar y lo que el §3.8 quiere medir.
+
+    Va primero para que sobreviva al cupo de vínculos, y de 25 en 25 para que la cadena sea larga
+    sin comerse el presupuesto entero.
+  */
+  for (let i = 25; i < tareas && dependencies.length < vinculos; i += 25) {
+    const llave = `${i - 25}>${i}`
+    if (emparentadas(`t${i - 25}`, `t${i}`)) continue
+    vistos.add(llave)
+    dependencies.push({
+      predecessorId: `t${i - 25}`,
+      successorId: `t${i}`,
+      type: 'FS',
+      lag: 0,
+    } as unknown as Dependency)
+  }
   let intentos = 0
   while (dependencies.length < vinculos && intentos < vinculos * 20) {
     intentos++
