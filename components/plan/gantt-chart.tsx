@@ -1046,8 +1046,14 @@ function TiradorDelDivisor({
         tirador.addEventListener('pointerup', alSoltar)
         tirador.addEventListener('pointercancel', alSoltar)
       }}
-      className="sticky right-0 top-0 z-30 float-right h-full w-2 cursor-col-resize touch-none bg-transparent hover:bg-acento/70"
-    />
+      className="group sticky right-0 top-0 z-30 float-right h-full w-2 cursor-col-resize touch-none transition-colors hover:bg-acento/15"
+    >
+      {/* La misma señal que los tiradores de columna, para que los dos se lean igual. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 w-px bg-rejilla transition-all group-hover:w-0.5 group-hover:bg-acento group-active:w-0.5 group-active:bg-acento"
+      />
+    </div>
   )
 }
 
@@ -1092,8 +1098,26 @@ function TiradorDeColumna({
         tirador.addEventListener('pointerup', alSoltar)
         tirador.addEventListener('pointercancel', alSoltar)
       }}
-      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize touch-none bg-transparent hover:bg-acento/60"
-    />
+      title={`Arrastra para cambiar el ancho de «${columna.etiqueta}»`}
+      className="group absolute right-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none transition-colors hover:bg-acento/15"
+    >
+      {/*
+        La raya, **siempre puesta**.
+
+        El tirador era transparente hasta pasarle el ratón por encima, así que había que saber que
+        estaba para llegar a descubrirlo: una columna que se puede ensanchar y no lo parece es una
+        columna que nadie ensancha. Ahora la raya dibuja la separación entre columnas —que además es
+        lo que le faltaba a la cabecera para leerse como una tabla— y al acercarse se enciende en
+        acento y engorda: primero se ve que hay algo, y luego que ese algo se agarra.
+
+        Sale exactamente donde se puede arrastrar: si la vista no admite cambiar anchos, este
+        componente no se dibuja y no hay raya que prometa algo que no se puede hacer.
+      */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 w-px bg-rejilla transition-all group-hover:w-0.5 group-hover:bg-acento group-active:w-0.5 group-active:bg-acento"
+      />
+    </div>
   )
 }
 

@@ -131,7 +131,7 @@ export function TemplateFilters({ onFilterChange }: TemplateFiltersProps) {
               <button key={c.id} onClick={() => handleCategory(c.id)}
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3 hover:text-tinta transition-all">
                 {c.name}
-                {categoryFilter === c.id && <Check size={12} className="ml-auto text-indigo-400" />}
+                {categoryFilter === c.id && <Check size={12} className="ml-auto text-acento-tinta" />}
               </button>
             ))}
           </div>
@@ -140,19 +140,38 @@ export function TemplateFilters({ onFilterChange }: TemplateFiltersProps) {
 
       {/* Sort dropdown */}
       <div ref={sortRef} className="relative">
-        <button
-          onClick={() => setSortOpen((o) => !o)}
-          className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm transition-all hover:border-borde-fuerte"
+        {/*
+          Dos botones **hermanos**, no uno dentro de otro.
+
+          El conmutador de sentido vivía dentro del botón que abre el desplegable, y un `<button>`
+          dentro de otro `<button>` no es HTML válido: el navegador reacomoda el árbol al analizarlo,
+          lo que React pinta en el servidor deja de coincidir con lo que hay en el cliente, y salta
+          el error de hidratación. Se sostenía con un `stopPropagation`, que tapa el síntoma —que no
+          se abriera el menú al pulsar la flecha— y no la causa.
+
+          Son dos acciones distintas y ahora se ven como dos: la pastilla abre el menú, la flecha
+          cambia el sentido. La flecha lleva además nombre accesible, que siendo un glifo suelto no
+          tenía ninguno.
+        */}
+        <div
+          className="h-9 flex items-center rounded-lg text-sm"
           style={{ background: 'var(--superficie)', border: '1px solid var(--borde)', color: 'var(--tinta-2)' }}>
-          <span className="text-xs text-tinta-3">Ordenar:</span>
-          <span className="text-tinta-2">{sortLabel}</span>
           <button
-            onClick={(e) => { e.stopPropagation(); const n = sortOrder === 'asc' ? 'desc' : 'asc'; setSortOrder(n); updateFilters({ sortOrder: n }) }}
-            className="ml-0.5 text-tinta-3 hover:text-tinta">
+            onClick={() => setSortOpen((o) => !o)}
+            aria-expanded={sortOpen}
+            className="flex h-full items-center gap-2 rounded-l-lg pl-3 pr-2 transition-all hover:text-tinta">
+            <span className="text-xs text-tinta-3">Ordenar:</span>
+            <span className="text-tinta-2">{sortLabel}</span>
+            <ChevronDown size={12} />
+          </button>
+          <button
+            onClick={() => { const n = sortOrder === 'asc' ? 'desc' : 'asc'; setSortOrder(n); updateFilters({ sortOrder: n }) }}
+            aria-label={sortOrder === 'asc' ? 'Ordenar de mayor a menor' : 'Ordenar de menor a mayor'}
+            title={sortOrder === 'asc' ? 'Ascendente · pulsa para invertir' : 'Descendente · pulsa para invertir'}
+            className="flex h-full items-center rounded-r-lg border-l border-borde px-2 text-tinta-3 transition-all hover:text-tinta">
             {sortOrder === 'asc' ? '↑' : '↓'}
           </button>
-          <ChevronDown size={12} />
-        </button>
+        </div>
         {sortOpen && (
           <div className="absolute top-full left-0 mt-1 rounded-xl py-1.5 z-50"
             style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', minWidth: 160 }}>
@@ -160,7 +179,7 @@ export function TemplateFilters({ onFilterChange }: TemplateFiltersProps) {
               <button key={v} onClick={() => handleSort(v)}
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-tinta-2 hover:bg-superficie-3 hover:text-tinta transition-all">
                 {l}
-                {sortBy === v && <Check size={12} className="ml-auto text-indigo-400" />}
+                {sortBy === v && <Check size={12} className="ml-auto text-acento-tinta" />}
               </button>
             ))}
           </div>

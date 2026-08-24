@@ -146,4 +146,37 @@ describe('TemplateFilters', () => {
     expect(screen.getByPlaceholderText('Buscar plantillas...')).toBeInTheDocument()
     expect(screen.getByText('Todas las categorías')).toBeInTheDocument()
   })
+
+  /**
+   * Ningún botón dentro de otro botón.
+   *
+   * El conmutador de sentido del orden vivía **dentro** del botón que abre el desplegable. Eso no es
+   * HTML válido: el navegador reacomoda el árbol al analizarlo, lo que se pinta en el servidor deja
+   * de coincidir con lo que hay en el cliente, y salta el error de hidratación —que es lo que se vio
+   * navegando, no lo que avisó ninguna prueba—.
+   *
+   * Se sostenía con un `stopPropagation`, que tapa el síntoma (que se abriera el menú al pulsar la
+   * flecha) y deja la causa entera.
+   */
+  it('ningún botón cuelga de otro botón', async () => {
+    const { container } = render(<TemplateFilters />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+
+    // Con los dos menús abiertos, que es cuando hay más botones puestos a la vez.
+    fireEvent.click(screen.getByText('Todas las categorías'))
+    fireEvent.click(screen.getByText('Ordenar:'))
+
+    const anidados = [...container.querySelectorAll('button button')].map((e) => e.textContent)
+    expect(anidados).toEqual([])
+    // Y que de verdad haya botones que mirar: si el componente dejara de dibujarlos, esto pasaría
+    // vacío para siempre sin comprobar nada.
+    expect(container.querySelectorAll('button').length).toBeGreaterThan(3)
+  })
+
+  /** La flecha de sentido tiene nombre: era un glifo suelto, sin nada que leer en voz alta. */
+  it('la flecha del sentido del orden se puede nombrar', async () => {
+    render(<TemplateFilters />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    expect(screen.getByRole('button', { name: /ordenar de/i })).toBeInTheDocument()
+  })
 })
