@@ -30,6 +30,7 @@
 import prisma from '@/lib/prisma'
 import { loadProjectCalendar } from '@/services/project-calendar.service'
 import { toDayNumber } from '@/lib/scheduling/date'
+import { correoDelResponsable, esPapelSinPersona } from '@/lib/plan/responsables-del-plan'
 
 export const JORNADA_POR_OMISION_MIN = 480
 export const UNIDADES_COMPLETAS = 10_000
@@ -63,6 +64,14 @@ export function unidadesDeLaLinea(
 export interface ResultadoDelRelleno {
   readonly recursosCreados: number
   readonly asignacionesCreadas: number
+  /**
+   * Los nombres del plan a los que no se les pudo poner cuenta, con el motivo.
+   *
+   * Se devuelven en vez de tragarse: un nombre nuevo en el Excel es una decisión de quien lleva el
+   * proyecto —a quién corresponde—, y si esto no lo dijera, ese trabajo aparecería en la carga bajo
+   * un recurso suelto que nadie sabría de dónde salió.
+   */
+  readonly sinCuenta: readonly string[]
 }
 
 /**
@@ -89,7 +98,7 @@ export async function sembrarRecursosDelProyecto(
       owner: { select: { id: true, name: true } },
     },
   })
-  if (lineas.length === 0) return { recursosCreados: 0, asignacionesCreadas: 0 }
+  if (lineas.length === 0) return { recursosCreados: 0, asignacionesCreadas: 0, sinCuenta: [] }
 
   const existentes = await prisma.resource.findMany({
     where: { organizationId },
@@ -99,20 +108,45 @@ export async function sembrarRecursosDelProyecto(
   // Los recursos sin cuenta se identifican por nombre: es lo único que hay de ellos.
   const porNombre = new Map(existentes.filter((r) => !r.userId).map((r) => [r.name, r.id]))
 
+  /*
+    El directorio, por correo.
+
+    El nombre que escribe el plan y el nombre que tiene la cuenta no coinciden —«Bryan Hernández»
+    contra «Bryan H»—, así que el puente es el correo y la tabla que lo dice está en
+    `lib/plan/responsables-del-plan`. Sin ese puente, sembrar creaba una persona nueva al lado de la
+    que ya existía y la misma gente salía dos veces en la carga, cada una con la mitad de su trabajo.
+  */
+  const cuentas = await prisma.user.findMany({
+    where: { organizationId },
+    select: { id: true, email: true, name: true },
+  })
+  const porCorreo = new Map(cuentas.map((u) => [u.email.toLowerCase(), u]))
+
   let recursosCreados = 0
 
-  // ── Un recurso por cada persona del equipo que aparezca como dueña de alguna línea ───────────
-  const usuarios = new Map<string, string>()
-  for (const linea of lineas) if (linea.owner) usuarios.set(linea.owner.id, linea.owner.name)
+  /*
+    ── El recurso de una cuenta, creado sólo cuando de verdad se usa ─────────────────────────────
 
-  for (const [userId, nombre] of usuarios) {
-    if (porUsuario.has(userId)) continue
+    Antes se creaba uno por cada persona que fuera dueña de alguna línea, de golpe y antes de saber
+    si le tocaría trabajo. En un plan importado eso significa **un recurso para la cuenta que hizo la
+    importación**, que no ejecuta nada: una fila vacía en la carga con el nombre de alguien que no
+    tiene ni una tarea. Ahora se crea al pedirlo, así que sólo existe quien acaba llevando algo.
+  */
+  const nombreDeLaCuenta = new Map<string, string>()
+  for (const linea of lineas) if (linea.owner) nombreDeLaCuenta.set(linea.owner.id, linea.owner.name)
+
+  const recursoParaCuenta = async (userId: string): Promise<string | null> => {
+    const ya = porUsuario.get(userId)
+    if (ya) return ya
+    const nombre = nombreDeLaCuenta.get(userId)
+    if (nombre === undefined) return null
     const creado = await prisma.resource.create({
       data: { organizationId, name: nombre, kind: 'PERSONA', userId, dailyMinutes: JORNADA_POR_OMISION_MIN },
       select: { id: true },
     })
     porUsuario.set(userId, creado.id)
     recursosCreados += 1
+    return creado.id
   }
 
   /*
@@ -143,14 +177,81 @@ export async function sembrarRecursosDelProyecto(
     }
   }
 
-  for (const nombre of nombrados) {
-    if (porNombre.has(nombre)) continue
+  /*
+    De un nombre del plan al recurso que le toca, **sin duplicar a nadie**.
+
+      1. ¿Es un papel sin nombrar («por designar»)? Recurso sin cuenta, y ya está: es trabajo real
+         que todavía no tiene dueño, y verlo sin dueño es lo que hace que alguien lo asigne.
+      2. ¿La tabla dice de quién es ese nombre? Se busca **su cuenta** y el recurso queda atado a
+         ella. Si esa cuenta ya tenía recurso —de este proyecto o de otro— se reutiliza.
+      3. ¿No hay tabla que lo diga, o la cuenta no está en el directorio? **No se inventa nadie.**
+         Se anota el nombre y esas líneas se quedan sin asignar.
+
+    El tres es la decisión importante y va contra la tentación. Crear un recurso suelto con el
+    nombre del plan parece amable —«al menos sale algo»— y es justo el duplicado que esta tabla
+    existe para impedir: el día que la cuenta aparezca, la misma persona estará dos veces y cada
+    mitad de su trabajo en una fila distinta. Sin asignar es visible y se arregla; duplicado no se
+    ve y se arregla a mano, línea por línea.
+  */
+  const sinCuentaConocida: string[] = []
+
+  const recursoParaNombre = async (nombre: string): Promise<string | null> => {
+    // 1 · Un papel sin nombrar no busca cuenta: es trabajo real sin dueño todavía, y verlo sin
+    //     dueño en la carga es justo lo que hace que alguien lo asigne.
+    if (esPapelSinPersona(nombre)) {
+      const ya = porNombre.get(nombre)
+      if (ya) return ya
+      const creado = await prisma.resource.create({
+        data: { organizationId, name: nombre, kind: 'EQUIPO', dailyMinutes: JORNADA_POR_OMISION_MIN },
+        select: { id: true },
+      })
+      porNombre.set(nombre, creado.id)
+      recursosCreados += 1
+      return creado.id
+    }
+
+    const correo = correoDelResponsable(nombre)
+    if (correo === null) {
+      // 3 · Nadie ha dicho de quién es este nombre. No se inventa: se avisa y esas líneas se quedan
+      //     sin asignar, que es visible y se arregla añadiéndolo a la tabla y volviendo a sembrar.
+      sinCuentaConocida.push(nombre + ' · nadie ha dicho de quién es este nombre')
+      return null
+    }
+
+    const cuenta = porCorreo.get(correo.toLowerCase())
+    if (!cuenta) {
+      // 3 bis · La tabla lo nombra y la cuenta no está en el directorio. Tampoco se inventa.
+      sinCuentaConocida.push(nombre + ' · falta la cuenta ' + correo)
+      return null
+    }
+
+    // 2 · La cuenta existe. Si ya tenía recurso —de este proyecto o de otro— se REUTILIZA: crear
+    //     otro es exactamente el duplicado que esta tabla existe para impedir.
+    const ya = porUsuario.get(cuenta.id)
+    if (ya) return ya
+
     const creado = await prisma.resource.create({
-      data: { organizationId, name: nombre, kind: 'PERSONA', dailyMinutes: JORNADA_POR_OMISION_MIN },
+      data: {
+        organizationId,
+        // El nombre de la CUENTA, no el del plan: el directorio manda sobre cómo se llama cada uno,
+        // y así la carga dice lo mismo que el resto de la aplicación.
+        name: cuenta.name,
+        kind: 'PERSONA',
+        userId: cuenta.id,
+        dailyMinutes: JORNADA_POR_OMISION_MIN,
+      },
       select: { id: true },
     })
-    porNombre.set(nombre, creado.id)
+    porUsuario.set(cuenta.id, creado.id)
     recursosCreados += 1
+    return creado.id
+  }
+
+  /** El recurso de cada nombre del plan, resuelto una sola vez. Sin entrada, sin asignación. */
+  const recursoDe = new Map<string, string>()
+  for (const nombre of nombrados) {
+    const recurso = await recursoParaNombre(nombre)
+    if (recurso !== null) recursoDe.set(nombre, recurso)
   }
 
   // ── Una asignación por cada pareja línea-responsable que no la tuviera ───────────────────────
@@ -191,14 +292,27 @@ export async function sembrarRecursosDelProyecto(
         todas las líneas. El respaldo sólo entra cuando la línea no dice quién responde, que es el
         caso de una tarea capturada a mano desde la propia aplicación.
       */
+      /*
+        El respaldo entra **sólo si la línea no dice quién responde**, no si lo dice y no se pudo
+        resolver.
+
+        Es una diferencia que parece de matiz y no lo es. Si el plan dice «Bryan Hernández» y su
+        cuenta no está en el directorio, caer a la cuenta que importó le apunta el trabajo de Bryan
+        a otra persona — que es exactamente la mala atribución que todo esto viene a arreglar, sólo
+        que ahora en silencio y en menos líneas. Sin resolver, la línea se queda sin asignar: se ve,
+        y `sinCuenta` dice por qué.
+      */
       const nombre = linea.responsibleName?.trim()
-      const recurso = (nombre ? porNombre.get(nombre) : undefined) ?? porUsuario.get(linea.ownerId)
+      const recurso = nombre ? recursoDe.get(nombre) : await recursoParaCuenta(linea.ownerId)
       if (recurso) candidatos.push(recurso)
     }
 
     const nombreDelCliente = linea.clientOwner?.trim()
     if (nombreDelCliente) {
-      const recurso = porNombre.get(nombreDelCliente)
+      // Por el mismo camino que el del proveedor: en este plan `clientOwner` trae a las MISMAS
+      // cuatro personas, así que resolverlo aparte las duplicaría —una vez como proveedor y otra
+      // como cliente— y cada mitad de su trabajo saldría en una fila distinta.
+      const recurso = recursoDe.get(nombreDelCliente)
       if (recurso) candidatos.push(recurso)
     }
 
@@ -215,5 +329,10 @@ export async function sembrarRecursosDelProyecto(
     await prisma.assignment.createMany({ data: porCrear, skipDuplicates: true })
   }
 
-  return { recursosCreados, asignacionesCreadas: porCrear.length }
+  // Sin repetidos y en orden: la lista se lee, no se cuenta.
+  return {
+    recursosCreados,
+    asignacionesCreadas: porCrear.length,
+    sinCuenta: [...new Set(sinCuentaConocida)].sort(),
+  }
 }

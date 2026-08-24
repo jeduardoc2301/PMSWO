@@ -8,6 +8,7 @@ vi.mock('@/lib/prisma', () => ({
     workItem: { findMany: vi.fn() },
     resource: { findMany: vi.fn(), create: vi.fn() },
     assignment: { findMany: vi.fn(), createMany: vi.fn() },
+    user: { findMany: vi.fn() },
   },
 }))
 
@@ -50,11 +51,30 @@ const linea = (sobre: Record<string, unknown>) => ({
   ...sobre,
 })
 
+/**
+ * El directorio de producción, con los nombres tal como están escritos en las cuentas.
+ *
+ * «Bryan H» y no «Bryan Hernández» a propósito: es el caso que ninguna comparación de nombres
+ * resuelve y el que obliga a que haya una tabla.
+ */
+const CUENTAS = [
+  { id: 'u-rafael', email: 'Rafael.Oliva@softwareone.com', name: 'Rafael Oliva' },
+  { id: 'u-salomon', email: 'salomon.suarez@softwareone.com', name: 'Salomon Suarez' },
+  { id: 'u-jose', email: 'Jose.Cruz3@softwareone.com', name: 'Jose Cruz' },
+  { id: 'u-bryan', email: 'bryan.hernandez@softwareone.com', name: 'Bryan H' },
+  { id: 'cuenta-que-importo', email: 'admin@test.com', name: 'Admin User' },
+]
+
 /** Devuelve, por nombre de recurso, cuántas líneas se le asignaron. */
-async function repartir(lineas: ReturnType<typeof linea>[]) {
+async function repartir(
+  lineas: ReturnType<typeof linea>[],
+  opciones: { cuentas?: typeof CUENTAS; recursosYaHechos?: Array<{ id: string; name: string; userId: string | null }> } = {},
+) {
   const creados = new Map<string, string>()
+  for (const r of opciones.recursosYaHechos ?? []) creados.set(r.id, r.name)
   vi.mocked(prisma.workItem.findMany).mockResolvedValue(lineas as never)
-  vi.mocked(prisma.resource.findMany).mockResolvedValue([] as never)
+  vi.mocked(prisma.user.findMany).mockResolvedValue((opciones.cuentas ?? CUENTAS) as never)
+  vi.mocked(prisma.resource.findMany).mockResolvedValue((opciones.recursosYaHechos ?? []) as never)
   vi.mocked(prisma.resource.create).mockImplementation((async ({ data }: { data: { name: string } }) => {
     const id = 'r-' + data.name
     creados.set(id, data.name)
@@ -68,14 +88,14 @@ async function repartir(lineas: ReturnType<typeof linea>[]) {
     return { count: (data as unknown[]).length }
   }) as never)
 
-  await sembrarRecursosDelProyecto(PROY, ORG)
+  const resultado = await sembrarRecursosDelProyecto(PROY, ORG)
 
   const porNombre = new Map<string, number>()
   for (const a of creadas) {
     const nombre = creados.get(a.resourceId) ?? a.resourceId
     porNombre.set(nombre, (porNombre.get(nombre) ?? 0) + 1)
   }
-  return porNombre
+  return Object.assign(porNombre, { resultado })
 }
 
 describe('§8.6 · el reparto sigue al responsable del plan, no a la cuenta que importó', () => {
@@ -89,9 +109,10 @@ describe('§8.6 · el reparto sigue al responsable del plan, no a la cuenta que 
     ]
     const reparto = await repartir(plan)
 
+    // Con el nombre de LA CUENTA, no el del plan: «Salomon Suarez» y «Jose Cruz» sin tilde.
     expect(reparto.get('Rafael Oliva')).toBe(3)
-    expect(reparto.get('Salomón Suárez')).toBe(2)
-    expect(reparto.get('José Cruz')).toBe(1)
+    expect(reparto.get('Salomon Suarez')).toBe(2)
+    expect(reparto.get('Jose Cruz')).toBe(1)
     // Y NADA sobre la cuenta que importó, que es lo que se llevaba el 85 % del plan.
     expect(reparto.get('Admin User')).toBeUndefined()
   })
@@ -106,9 +127,12 @@ describe('§8.6 · el reparto sigue al responsable del plan, no a la cuenta que 
     const reparto = await repartir([
       linea({ party: 'CLIENTE', responsibleName: 'Rafael Oliva', clientOwner: 'Operaciones del banco' }),
     ])
-    expect(reparto.get('Operaciones del banco')).toBe(1)
+    // El nombre del cliente no está en la tabla, así que no se inventa nadie: queda sin asignar y
+    // se avisa. Y a la persona del proveedor no se le carga trabajo que no ejecuta.
+    expect(reparto.get('Operaciones del banco')).toBeUndefined()
     expect(reparto.get('Rafael Oliva')).toBeUndefined()
     expect(reparto.get('Admin User')).toBeUndefined()
+    expect(reparto.resultado.sinCuenta.join(' ')).toContain('Operaciones del banco')
   })
 
   it('un mismo nombre no crea dos recursos', async () => {
@@ -118,5 +142,59 @@ describe('§8.6 · el reparto sigue al responsable del plan, no a la cuenta que 
     ])
     expect([...reparto.keys()]).toEqual(['Rafael Oliva'])
     expect(reparto.get('Rafael Oliva')).toBe(2)
+  })
+})
+
+/**
+ * Nadie se crea dos veces.
+ *
+ * Es lo que se pidió con estas palabras: «no se pueden crear usuarios nuevos si ya existen». El
+ * riesgo es concreto y silencioso — el plan escribe «Bryan Hernández» y la cuenta se llama «Bryan
+ * H», así que sin una tabla que lo diga nacería un segundo Bryan, y a partir de ahí la misma
+ * persona saldría en dos filas de la carga con la mitad de su trabajo en cada una. Nada avisaría.
+ */
+describe('§8.6 · el mapeo no duplica a nadie', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('el nombre del plan se resuelve a la cuenta que ya existe, aunque se escriba distinto', async () => {
+    const reparto = await repartir([linea({ responsibleName: 'Bryan Hernández' })])
+    // «Bryan H» es como se llama la cuenta. Ninguna comparación de nombres llega ahí.
+    expect(reparto.get('Bryan H')).toBe(1)
+    expect(reparto.get('Bryan Hernández')).toBeUndefined()
+  })
+
+  it('si esa cuenta ya tenía recurso, se reutiliza en vez de crear otro', async () => {
+    const reparto = await repartir([linea({ responsibleName: 'Salomón Suárez' })], {
+      recursosYaHechos: [{ id: 'r-existente', name: 'Salomon Suarez', userId: 'u-salomon' }],
+    })
+    expect(reparto.get('Salomon Suarez')).toBe(1)
+    expect(reparto.resultado.recursosCreados).toBe(0)
+  })
+
+  it('la misma persona en los dos lados del plan es un solo recurso', async () => {
+    // En este plan `clientOwner` trae a las MISMAS personas que `responsibleName`: resolverlo por
+    // otro camino las duplicaría, una vez como proveedor y otra como cliente.
+    const reparto = await repartir([
+      linea({ party: 'CLIENTE', responsibleName: 'José Cruz', clientOwner: 'José Cruz' }),
+    ])
+    expect([...reparto.keys()]).toEqual(['Jose Cruz'])
+    expect(reparto.resultado.recursosCreados).toBe(1)
+  })
+
+  it('si la tabla lo nombra y la cuenta no está, NO se inventa: se avisa', async () => {
+    const sinBryan = CUENTAS.filter((c) => c.id !== 'u-bryan')
+    const reparto = await repartir([linea({ responsibleName: 'Bryan Hernández' })], { cuentas: sinBryan })
+
+    expect(reparto.resultado.recursosCreados).toBe(0)
+    expect([...reparto.keys()]).toEqual([])
+    expect(reparto.resultado.sinCuenta.join(' ')).toContain('bryan.hernandez@softwareone.com')
+  })
+
+  it('un papel sin nombrar sí lleva recurso, y sin cuenta', async () => {
+    // «por designar» es trabajo real que aún no tiene dueño: verlo sin dueño es lo que hace que
+    // alguien lo asigne. Lo que no merece es una cuenta.
+    const reparto = await repartir([linea({ responsibleName: 'Gestión del Cambio · por designar' })])
+    expect(reparto.get('Gestión del Cambio · por designar')).toBe(1)
+    expect(reparto.resultado.sinCuenta).toEqual([])
   })
 })
