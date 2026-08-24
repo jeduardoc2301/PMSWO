@@ -218,22 +218,48 @@ export async function importPlanAsProject(input: ImportPlanInput): Promise<Impor
         await tx.workItem.createMany({ data: filasParaInsertar.slice(i, i + LOTE) })
       }
 
-      // Segunda pasada: la jerarquía, ahora que todas las filas existen.
-      for (let i = 0; i < padres.length; i += LOTE) {
-        await Promise.all(
-          padres
-            .slice(i, i + LOTE)
-            .map((par) => tx.workItem.update({ where: { id: par.id }, data: { parentId: par.parentId } })),
-        )
+      /*
+        Segunda pasada: la jerarquía, ahora que todas las filas existen.
+
+        **Agrupadas por madre**, no una por una. Eran 1 368 actualizaciones sueltas, y contra una
+        base local eso no se nota; contra una base al otro lado de internet cada una cuesta su ida y
+        su vuelta, y la transacción se pasó de los tres minutos y revirtió el plan entero. Agrupando
+        por madre son 125 sentencias en vez de 1 368: las hijas de una misma madre reciben el mismo
+        valor, así que caben todas en un `updateMany`.
+
+        No es una optimización de las de perseguir milisegundos: es la diferencia entre que el plan
+        suba y que no suba.
+      */
+      const hijasPorMadre = new Map<string, string[]>()
+      for (const par of padres) {
+        const ya = hijasPorMadre.get(par.parentId)
+        if (ya) ya.push(par.id)
+        else hijasPorMadre.set(par.parentId, [par.id])
+      }
+      for (const [madre, hijas] of hijasPorMadre) {
+        for (let i = 0; i < hijas.length; i += LOTE) {
+          await tx.workItem.updateMany({
+            where: { id: { in: hijas.slice(i, i + LOTE) } },
+            data: { parentId: madre },
+          })
+        }
       }
 
       for (let i = 0; i < vinculos.length; i += LOTE) {
         await tx.taskDependency.createMany({ data: vinculos.slice(i, i + LOTE) })
       }
     },
-    // 1 368 elementos + 1 368 jerarquías + 1 665 vínculos no caben en los cinco segundos por
-    // omisión. Tres minutos sobran incluso en una máquina lenta; si algo tarda más, está trabado.
-    { timeout: 180_000 },
+    /*
+      1 368 elementos + 1 368 jerarquías + 1 665 vínculos no caben en los cinco segundos por
+      omisión.
+
+      Y tres minutos tampoco: contra la base de producción —al otro lado de internet, no en el
+      mismo equipo— la importación se pasó por cuarenta milisegundos y revirtió entera. El plazo no
+      mide trabajo, mide trabajo **más** las idas y vueltas por la red, y eso depende de dónde esté
+      la base. Quince minutos es holgura suficiente para una base remota sin dejar de ser un plazo:
+      si algo tarda más que eso, está trabado de verdad.
+    */
+    { timeout: 900_000, maxWait: 30_000 },
   )
 
   return {

@@ -30,8 +30,18 @@ async function main(): Promise<void> {
     process.exitCode = 1
     return
   }
-  if (/rds\.amazonaws\.com|amazonaws/i.test(url)) {
-    console.error('DATABASE_URL apunta a un host de Amazon RDS. Este guion no corre contra producción.')
+  /*
+    El candado de producción, ahora con llave en vez de con soldadura.
+
+    Seguía siendo una negativa seca, y hubo que abrirlo el día que el plan tuvo que subir de verdad.
+    Un candado que se quita editando el archivo se queda quitado; uno que pide una variable escrita a
+    propósito se vuelve a cerrar solo en cuanto termina el comando. Es la misma llave que usa el
+    resto del proyecto (`lib/guardia-de-base.ts`), así que no hay dos maneras de decir lo mismo.
+  */
+  if (/rds\.amazonaws\.com|amazonaws/i.test(url) && process.env.PERMITIR_BASE_DE_PRODUCCION !== '1') {
+    console.error('DATABASE_URL apunta a un host de Amazon RDS.')
+    console.error('Si es a propósito, dilo a propósito:')
+    console.error('  PERMITIR_BASE_DE_PRODUCCION=1 DATABASE_URL="..." npx tsx scripts/import-plan-db.ts')
     process.exitCode = 1
     return
   }
