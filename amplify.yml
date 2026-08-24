@@ -6,6 +6,18 @@ applications:
           commands:
             - npm install
             - npx prisma generate
+            # Las migraciones, ANTES de construir.
+            #
+            # No estaban, y por eso la base de produccion se quedo dieciseis migraciones por detras
+            # sin que nada avisara: cada despliegue subia codigo nuevo contra un esquema viejo, y lo
+            # unico que lo delataba era la pantalla reventando en el primer clic. Se descubrio el dia
+            # que hubo que subir 458 commits de golpe.
+            #
+            # Va en preBuild y no despues a proposito: si una migracion falla, la construccion se cae
+            # y no se despliega nada. Es lo que se quiere — mejor no desplegar que desplegar codigo
+            # contra un esquema que no le corresponde. `migrate deploy` no toca las ya aplicadas, asi
+            # que un despliegue sin cambios de esquema no hace nada aqui.
+            - npx prisma migrate deploy
         build:
           commands:
             - npm run build
