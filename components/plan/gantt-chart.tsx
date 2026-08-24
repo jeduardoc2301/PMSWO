@@ -328,6 +328,8 @@ export function GanttChart({
    */
   const caja = useRef<HTMLDivElement | null>(null)
   const [desplazamiento, setDesplazamiento] = useState(0)
+  /** Cuánto se ha corrido el cuerpo de la rejilla a lo ancho, para llevar la cabecera con él. */
+  const [desplazamientoDeColumnas, setDesplazamientoDeColumnas] = useState(0)
 
   const primera = Math.max(0, Math.floor(desplazamiento / rowHeight) - MARGEN_DE_FILAS)
   const ultima = Math.min(
@@ -362,21 +364,40 @@ export function GanttChart({
         <div className="flex" style={{ width: anchoDeLaRejilla + width }}>
           {/* La rejilla, pegada a la izquierda: antes se iba con el desplazamiento horizontal y a
               mitad del plan las barras quedaban sin nombre. */}
+          {/*
+            La rejilla **no** puede tener desbordamiento propio.
+
+            Un ancestro con `overflow` distinto de `visible` se convierte en el bloque contenedor de
+            todo lo pegajoso que lleve dentro. Y en CSS, `overflow-x: auto` obliga a `overflow-y` a
+            valer `auto` también: no existe «desplaza a lo ancho pero deja pasar el pegado a lo
+            alto». Con `overflow-x-auto` aquí, la cabecera de la rejilla se pegaba a ESTA caja —que
+            no se desplaza en vertical— en vez de a la caja de fuera, y al bajar se iba con las
+            filas mientras la escala de tiempo se quedaba arriba: medido, a los 1500 de
+            desplazamiento la cabecera estaba a −1499 y la escala seguía a 21.
+
+            Así que el recorte se hace un nivel más adentro, en el cuerpo, y la cabecera se corre a
+            mano con el mismo desplazamiento. La cabecera queda fuera de la caja que desborda, se
+            pega donde tiene que pegarse, y las columnas recortadas se siguen pudiendo alcanzar.
+          */}
           <div
             data-testid="gantt-rejilla"
-            // `overflow-x-auto` sólo cuando el divisor recorta: con la rejilla entera a la vista una
-            // barra de desplazamiento que no desplaza nada es ruido, y en algunos navegadores roba
-            // altura a la última fila.
-            className={`sticky left-0 z-20 shrink-0 border-r border-rejilla bg-superficie ${
-              anchoDeLaRejilla < anchoDeLasColumnas ? 'overflow-x-auto' : ''
-            }`}
+            className="sticky left-0 z-20 shrink-0 border-r border-rejilla bg-superficie"
             style={{ width: anchoDeLaRejilla }}
           >
             <div
+              data-testid="cabecera-pegada"
+              className="sticky top-0 z-10 overflow-hidden border-b border-rejilla bg-superficie"
+              style={{ height: altoDeLaCabecera, width: anchoDeLaRejilla }}
+            >
+            <div
               data-testid="cabecera-de-la-rejilla"
-              className="sticky top-0 z-10 flex border-b border-rejilla bg-superficie text-xs uppercase tracking-wide text-tinta-2"
+              className="flex text-xs uppercase tracking-wide text-tinta-2"
               // Lo mismo que mide la cabecera de la escala, o las barras no cuadran con sus filas.
-              style={{ height: altoDeLaCabecera, width: anchoDeLasColumnas }}
+              style={{
+                height: altoDeLaCabecera,
+                width: anchoDeLasColumnas,
+                transform: `translateX(${-desplazamientoDeColumnas}px)`,
+              }}
             >
               {marcadas !== undefined ? <div className="w-8 shrink-0" aria-hidden /> : null}
               {columnas.map((columna, i) => (
@@ -397,9 +418,18 @@ export function GanttChart({
                 </div>
               ))}
             </div>
+            </div>
             {onDivisorCambiado ? (
               <TiradorDelDivisor ancho={anchoDeLaRejilla} onSoltar={onDivisorCambiado} />
             ) : null}
+            <div
+              data-testid="cuerpo-de-la-rejilla"
+              onScroll={(e) => setDesplazamientoDeColumnas(e.currentTarget.scrollLeft)}
+              // Sólo cuando el divisor recorta: con la rejilla entera a la vista, una barra de
+              // desplazamiento que no desplaza nada es ruido, y en algunos navegadores roba altura
+              // a la última fila.
+              className={anchoDeLaRejilla < anchoDeLasColumnas ? 'overflow-x-auto' : ''}
+            >
             <div className="relative" style={{ height, width: anchoDeLasColumnas }}>
               {visibles.map((row, k) => (
                 <div
@@ -530,6 +560,7 @@ export function GanttChart({
                   ))}
                 </div>
               ))}
+            </div>
             </div>
           </div>
 

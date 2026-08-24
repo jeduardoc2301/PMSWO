@@ -326,6 +326,67 @@ describe('§4.1 · la cabecera de la rejilla mide lo que la de la escala', () =>
   })
 })
 
+/**
+ * La cabecera de la rejilla se queda arriba al bajar, como la escala de tiempo.
+ *
+ * No se puede comprobar el pegado en sí —aquí no hay maquetación de verdad—, así que se comprueba
+ * **la regla que lo rompía**, que además es la que nadie recuerda:
+ *
+ *   un ancestro con `overflow` distinto de `visible` se convierte en el bloque contenedor de todo
+ *   lo pegajoso que lleve dentro, y en CSS `overflow-x: auto` obliga a `overflow-y` a valer `auto`
+ *   también. No existe «desplaza a lo ancho pero deja pasar el pegado a lo alto».
+ *
+ * La rejilla llevaba `overflow-x-auto` para poder alcanzar las columnas que el divisor recorta, y
+ * con eso su cabecera se pegaba a esa caja —que no se desplaza en vertical— en vez de a la de
+ * fuera: medido en pantalla, a los 1500 de desplazamiento la cabecera estaba a −1499 y la escala
+ * seguía a 21. Las columnas se quedaban sin nombre en cuanto uno bajaba.
+ */
+describe('§4.1 · la cabecera de la rejilla no cuelga de nada que desborde', () => {
+  /*
+    **Con el divisor puesto**, que es cuando la rejilla recorta y por tanto cuando desbordaba.
+
+    La primera versión de estas pruebas dibujaba sin divisor y pasaba con el defecto puesto: sin
+    recorte no se añadía `overflow-x-auto` y no había nada que encontrar. El plan de prueba tapando
+    lo que venía a enseñar, por segunda vez esta noche.
+  */
+  const conDivisor = () =>
+    render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} divisor={160} onDivisorCambiado={() => {}} />)
+
+  it('la caja que desborda no contiene la cabecera', () => {
+    const { container } = conDivisor()
+    const cuerpo = container.querySelector('[data-testid="cuerpo-de-la-rejilla"]')
+    const cabecera = container.querySelector('[data-testid="cabecera-de-la-rejilla"]')
+
+    expect(cuerpo).not.toBeNull()
+    expect(cabecera).not.toBeNull()
+    expect(cuerpo!.contains(cabecera)).toBe(false)
+    // Y que el recorte esté de verdad puesto: si no, no se está comprobando nada.
+    expect(cuerpo!.className).toContain('overflow-x-auto')
+  })
+
+  it('y entre lo pegado y la caja de fuera no hay ningún desbordamiento', () => {
+    /*
+      Se recorren los ANTEPASADOS del elemento pegado, no los suyos propios: que la cabecera recorte
+      lo que le sobra a lo ancho está bien y es justo lo que hace falta para que el corrimiento de
+      columnas no se salga. Lo que no puede haber es un desbordamiento **por encima** de ella.
+    */
+    const { container } = conDivisor()
+    const fuera = container.querySelector('[data-testid="gantt-desplazable"]') as HTMLElement
+    const pegada = container.querySelector('[data-testid="cabecera-pegada"]') as HTMLElement
+
+    expect(pegada.className).toContain('sticky')
+    const culpables: string[] = []
+    for (let e = pegada.parentElement; e && e !== fuera; e = e.parentElement) {
+      const clases = e.className.toString()
+      // Se mira la clase y no el estilo calculado: aquí no hay hoja de estilos que aplicar.
+      if (clases.includes('overflow-') && !clases.includes('overflow-visible')) {
+        culpables.push(clases.slice(0, 60))
+      }
+    }
+    expect(culpables).toEqual([])
+  })
+})
+
 describe('El conmutador 3 del §4.6 en el trazado', () => {
   function conConmutadores(sobre: { rutaCritica?: boolean; reserva?: boolean }) {
     return render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} {...sobre} />)
