@@ -292,6 +292,22 @@ export function GanttChart({
   const width = Math.max(layout.span, 1) * dayWidth
   const height = layout.rows.length * rowHeight
 
+  /*
+    Lo que mide la cabecera, que **no es una fila**.
+
+    La escala de tiempo trae dos bandas cuando hay algo más grueso que la unidad —el año encima de
+    los meses, el mes encima de los días—, y la cabecera de la rejilla de la izquierda medía una
+    sola. Como las barras se colocan debajo de la cabecera de la escala y las filas debajo de la de
+    la rejilla, cada barra caía **veinte píxeles por debajo de su línea**: con la fila de 28, eso es
+    siete décimas de fila, o sea que la barra se lee pegada a la línea de abajo. En un plan de mil
+    trescientas líneas, eso es leer mal el plan.
+
+    Se veía en las seis escalas menos en «Año», que es la única sin banda superior, y ahí cuadraba
+    exactamente. Esa coincidencia es lo que señala la causa.
+  */
+  const altoDeLaBandaSuperior = layout.ticksSuperiores.length > 0 ? Math.round(rowHeight * 0.7) : 0
+  const altoDeLaCabecera = rowHeight + altoDeLaBandaSuperior
+
   const anchoPorColumna = columnas.map((columna) => anchoDe(columna, anchos))
   // Lo que ocupan las columnas y lo que se ve de ellas son dos cosas distintas: la primera la
   // deciden las columnas, la segunda el divisor. Sin divisor puesto coinciden, que es como se
@@ -341,7 +357,7 @@ export function GanttChart({
         data-testid="gantt-desplazable"
         onScroll={(e) => setDesplazamiento(e.currentTarget.scrollTop)}
         className="relative overflow-auto rounded-lg border border-borde bg-superficie"
-        style={{ maxHeight: ALTO_VISIBLE + rowHeight }}
+        style={{ maxHeight: ALTO_VISIBLE + altoDeLaCabecera }}
       >
         <div className="flex" style={{ width: anchoDeLaRejilla + width }}>
           {/* La rejilla, pegada a la izquierda: antes se iba con el desplazamiento horizontal y a
@@ -357,8 +373,10 @@ export function GanttChart({
             style={{ width: anchoDeLaRejilla }}
           >
             <div
+              data-testid="cabecera-de-la-rejilla"
               className="sticky top-0 z-10 flex border-b border-rejilla bg-superficie text-xs uppercase tracking-wide text-tinta-2"
-              style={{ height: rowHeight, width: anchoDeLasColumnas }}
+              // Lo mismo que mide la cabecera de la escala, o las barras no cuadran con sus filas.
+              style={{ height: altoDeLaCabecera, width: anchoDeLasColumnas }}
             >
               {marcadas !== undefined ? <div className="w-8 shrink-0" aria-hidden /> : null}
               {columnas.map((columna, i) => (
@@ -526,7 +544,7 @@ export function GanttChart({
                 <div
                   data-testid="eje-superior"
                   className="flex border-b border-borde/60"
-                  style={{ height: Math.round(rowHeight * 0.7) }}
+                  style={{ height: altoDeLaBandaSuperior }}
                 >
                   {layout.ticksSuperiores.map((tick) => (
                     <div
@@ -535,7 +553,7 @@ export function GanttChart({
                       className="shrink-0 overflow-hidden border-r border-rejilla px-2 text-[11px] font-medium text-tinta-2"
                       style={{
                         width: tick.width * dayWidth,
-                        lineHeight: `${Math.round(rowHeight * 0.7)}px`,
+                        lineHeight: `${altoDeLaBandaSuperior}px`,
                       }}
                     >
                       {tick.label}

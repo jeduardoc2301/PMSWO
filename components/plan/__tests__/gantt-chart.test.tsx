@@ -275,6 +275,57 @@ describe('Lo que se está viendo se dice en números', () => {
   })
 })
 
+/**
+ * Las barras cuadran con sus líneas, en las seis escalas.
+ *
+ * La escala de tiempo trae **dos bandas** cuando hay algo más grueso que la unidad —el año encima de
+ * los meses, el mes encima de los días—, y la cabecera de la rejilla de la izquierda medía **una**.
+ * Como las barras se colocan debajo de una cabecera y las filas debajo de la otra, cada barra caía
+ * veinte píxeles por debajo de su línea: siete décimas de fila, o sea leída pegada a la línea de
+ * abajo. En un plan de mil trescientas líneas eso es leer mal el plan.
+ *
+ * Se veía en cinco de las seis escalas y **no** en «Año», la única sin banda superior. Esa
+ * coincidencia es la que señala la causa, y por eso aquí se comprueban las dos clases de escala: una
+ * prueba que sólo mirara «Año» pasaría con el defecto puesto.
+ *
+ * Se comparan los altos declarados y no los medidos: en estas pruebas no hay maquetación de verdad,
+ * y lo que hay que sostener es la regla —las dos cabeceras miden lo mismo—, que es lo que se rompió.
+ */
+describe('§4.1 · la cabecera de la rejilla mide lo que la de la escala', () => {
+  const altoDe = (container: HTMLElement, testid: string) => {
+    const e = container.querySelector(`[data-testid="${testid}"]`) as HTMLElement | null
+    return e === null ? null : e.style.height
+  }
+
+  const enPixeles = (valor: string | null) => (valor === null ? 0 : parseFloat(valor))
+
+  for (const escala of ['HORA', 'DIA', 'SEMANA', 'MES', 'TRIMESTRE', 'ANIO'] as const) {
+    it(`escala ${escala}`, () => {
+      const { container } = render(
+        <GanttChart layout={trazar(PLAN, ENLACES, { scale: escala })} dayWidth={DIA} />,
+      )
+      const cabecera = enPixeles(altoDe(container, 'cabecera-de-la-rejilla'))
+      const superior = enPixeles(altoDe(container, 'eje-superior'))
+      const inferior = enPixeles(altoDe(container, 'eje-inferior'))
+
+      expect(cabecera).toBeGreaterThan(0)
+      expect(inferior).toBeGreaterThan(0)
+      expect({ escala, cabecera }).toEqual({ escala, cabecera: superior + inferior })
+    })
+  }
+
+  it('y hay al menos una escala con banda superior y otra sin ella', () => {
+    // Sin esto, un cambio que dejara todas las escalas con una sola banda haría pasar el bloque
+    // entero sin comprobar nada: es el caso que el defecto necesitaba para esconderse.
+    const conBanda = render(<GanttChart layout={trazar(PLAN, ENLACES, { scale: 'MES' })} dayWidth={DIA} />)
+    expect(enPixeles(altoDe(conBanda.container, 'eje-superior'))).toBeGreaterThan(0)
+    conBanda.unmount()
+
+    const sinBanda = render(<GanttChart layout={trazar(PLAN, ENLACES, { scale: 'ANIO' })} dayWidth={DIA} />)
+    expect(altoDe(sinBanda.container, 'eje-superior')).toBeNull()
+  })
+})
+
 describe('El conmutador 3 del §4.6 en el trazado', () => {
   function conConmutadores(sobre: { rutaCritica?: boolean; reserva?: boolean }) {
     return render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} {...sobre} />)
