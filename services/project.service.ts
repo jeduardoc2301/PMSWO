@@ -687,6 +687,20 @@ export class ProjectService {
         startDate: item.startDate.toISOString().split('T')[0],
         estimatedEndDate: item.estimatedEndDate.toISOString().split('T')[0],
         phase: item.phase,
+        /*
+          Las horas estimadas, que el resumen declaraba y no mandaba.
+
+          El tipo `WorkItemSummary` las lleva, la fila de TOTAL de la Lista las suma y la vista de
+          Carga de trabajo las reparte — y aquí nunca viajaban. Sobre el plan real eso significaba
+          que la fila decía **«sin horas estimadas capturadas»** con 15 552 horas guardadas en 1 243
+          líneas: la pantalla afirmando lo contrario de lo que hay en la base.
+
+          Es la **cuarta** vez que este mismo resumen se deja un campo que alguien lee: antes
+          `createdAt`, `completedAt` y `clientOwner`, y las tres veces con las pruebas de los dos
+          lados en verde, porque cada una da por buena la mitad que no le toca. Por eso ahora hay una
+          prueba que compara lo que el tipo declara con lo que este objeto manda.
+        */
+        estimatedHours: item.estimatedHours,
         templateOrder: item.templateOrder,
         activeBlockers: item.blockers.length,
         lastUpdatedAt: item.updatedAt.toISOString(),
