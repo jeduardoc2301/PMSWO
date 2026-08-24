@@ -79,6 +79,8 @@ export async function sembrarRecursosDelProyecto(
     select: {
       id: true,
       ownerId: true,
+      // Quien de verdad ejecuta la línea, que en un plan importado NO es el dueño de la cuenta.
+      responsibleName: true,
       party: true,
       clientOwner: true,
       estimatedHours: true,
@@ -113,18 +115,38 @@ export async function sembrarRecursosDelProyecto(
     recursosCreados += 1
   }
 
-  // ── Un recurso por cada responsable nombrado del lado del cliente ────────────────────────────
-  // Son los «recursos sin cuenta de usuario» del §8.6: existen en el plan y no en el directorio.
-  const delCliente = new Set<string>()
+  /*
+    ── Un recurso por cada responsable nombrado del plan ────────────────────────────────────────
+
+    Son los «recursos sin cuenta de usuario» del §8.6: existen en el plan y no en el directorio.
+
+    Van los DOS lados. El del cliente ya estaba; el del proveedor faltaba, y sin él la siembra
+    repartía por `ownerId`, que en un plan importado vale lo mismo en todas las líneas —la cuenta
+    que importó—. Medido sobre el plan real: **1 059 de las 1 243 líneas colgando de una persona que
+    no ejecuta ninguna**, mientras los cinco responsables de verdad —Rafael Oliva 450, Salomón
+    Suárez 434, José Cruz 328, Bryan Hernández 152 y una designación pendiente— vivían en
+    `responsibleName` sin que nadie los mirara.
+
+    El Tablero corrigió esto mismo hace una semana y lo dejó escrito (`lib/projects/kanban-group.ts`:
+    «Manda `responsibleName` —la persona real del plan— y la cuenta del sistema queda de respaldo»).
+    Aquí se quedó sin corregir.
+  */
+  const nombrados = new Set<string>()
   for (const linea of lineas) {
-    const nombre = linea.clientOwner?.trim()
-    if (nombre) delCliente.add(nombre)
+    const cliente = linea.clientOwner?.trim()
+    if (cliente) nombrados.add(cliente)
+    // Sólo del lado del proveedor: lo del cliente ya entra por `clientOwner`, y meterlo dos veces
+    // crearía el mismo recurso con dos clases distintas.
+    if (linea.party !== 'CLIENTE') {
+      const responsable = linea.responsibleName?.trim()
+      if (responsable) nombrados.add(responsable)
+    }
   }
 
-  for (const nombre of delCliente) {
+  for (const nombre of nombrados) {
     if (porNombre.has(nombre)) continue
     const creado = await prisma.resource.create({
-      data: { organizationId, name: nombre, kind: 'CLIENTE', dailyMinutes: JORNADA_POR_OMISION_MIN },
+      data: { organizationId, name: nombre, kind: 'PERSONA', dailyMinutes: JORNADA_POR_OMISION_MIN },
       select: { id: true },
     })
     porNombre.set(nombre, creado.id)
@@ -162,7 +184,15 @@ export async function sembrarRecursosDelProyecto(
     // Las líneas que sólo responde el cliente no cargan al equipo del proveedor: apuntarle a la
     // persona del proveedor una línea que no ejecuta inflaría su carga con trabajo ajeno.
     if (linea.party !== 'CLIENTE') {
-      const recurso = porUsuario.get(linea.ownerId)
+      /*
+        Manda el responsable del plan; la cuenta del sistema queda de respaldo.
+
+        Al revés —que es como estaba— la cuenta gana siempre, porque en un plan importado la tienen
+        todas las líneas. El respaldo sólo entra cuando la línea no dice quién responde, que es el
+        caso de una tarea capturada a mano desde la propia aplicación.
+      */
+      const nombre = linea.responsibleName?.trim()
+      const recurso = (nombre ? porNombre.get(nombre) : undefined) ?? porUsuario.get(linea.ownerId)
       if (recurso) candidatos.push(recurso)
     }
 
