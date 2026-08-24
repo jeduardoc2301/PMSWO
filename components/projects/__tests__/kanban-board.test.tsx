@@ -734,6 +734,76 @@ describe('§5.1 · la fase de una tarjeta se busca en el plan entero', () => {
  *   pero sólo si encabeza algo: un nivel 1 sin hijas es una tarea colgada de la etapa, y darle banda
  *   propia repite la misma frase en la cabecera y en la única tarjeta.
  */
+/**
+ * El filtro «Asignado» ofrece lo mismo que dice la tarjeta.
+ *
+ * La tarjeta escribe `responsibleName ?? ownerName`; el desplegable se armaba sólo con las cuentas
+ * del sistema. En un plan importado eso no coincide nunca —el archivo trae el nombre de quien
+ * responde y `ownerId` recibe a quien importó—, así que sobre el plan real había **cinco nombres en
+ * las tarjetas y un solo dueño en el filtro**, el mismo para las 1 368 líneas: elegirlo devolvía el
+ * plan entero. Un filtro que no filtra.
+ */
+describe('§10.2 · el filtro de personas ofrece lo que la tarjeta enseña', () => {
+  const COLUMNAS = [
+    { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: [] },
+  ] as never[]
+  const base = { status: 'TODO', priority: 'MEDIUM', kanbanColumnId: 'col-1' }
+  // Todas comparten dueño —quien importó— y difieren en quien responde, que es el caso real.
+  const PLAN = [
+    { id: 'a', title: 'Cablear', ...base, ownerId: 'u1', ownerName: 'Admin User', responsibleName: 'Rafael Oliva' },
+    { id: 'b', title: 'Migrar', ...base, ownerId: 'u1', ownerName: 'Admin User', responsibleName: 'Rafael Oliva' },
+    { id: 'c', title: 'Cortar', ...base, ownerId: 'u1', ownerName: 'Admin User', responsibleName: 'José Cruz' },
+    { id: 'd', title: 'Firmar', ...base, ownerId: 'u1', ownerName: 'Admin User' },
+  ] as never[]
+
+  /** El desplegable es una lista de botones propia, no un `<select>`: hay que abrirla primero. */
+  const opciones = (container: HTMLElement) => {
+    const disparador = [...container.querySelectorAll('button')].find((b) =>
+      (b.textContent || '').startsWith('Asignado:'),
+    )
+    if (!disparador) return []
+    fireEvent.click(disparador)
+    const caja = disparador.parentElement
+    return caja
+      ? [...caja.querySelectorAll('button')]
+          .map((b) => (b.textContent || '').trim())
+          .filter((t) => !t.startsWith('Asignado:'))
+      : []
+  }
+
+  it('ofrece a quien responde, no sólo a la cuenta que importó', () => {
+    const { container } = render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={PLAN} lineasDelPlan={PLAN} />)
+    const o = opciones(container)
+    expect(o).toContain('Rafael Oliva (2)')
+    expect(o).toContain('José Cruz (1)')
+    // Quien no trae responsable cae en su dueño, que es lo que la tarjeta enseña para esa línea.
+    expect(o).toContain('Admin User (1)')
+  })
+
+  it('y al elegir a uno, se queda con sus líneas', async () => {
+    const { container } = render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={PLAN} lineasDelPlan={PLAN} />)
+    const disparador = [...container.querySelectorAll('button')].find((b) =>
+      (b.textContent || '').startsWith('Asignado:'),
+    )!
+    fireEvent.click(disparador)
+    const opcion = [...disparador.parentElement!.querySelectorAll('button')].find((b) =>
+      (b.textContent || '').startsWith('Rafael Oliva'),
+    )!
+    fireEvent.click(opcion)
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid="edt-tarjeta-a"]')).not.toBeNull()
+      expect(container.querySelector('[data-testid="edt-tarjeta-c"]')).toBeNull()
+    })
+  })
+
+  it('las opciones salen del plan entero, no de lo ya filtrado', () => {
+    // Si salieran de lo filtrado, elegir a alguien vaciaría el desplegable y no habría vuelta atrás.
+    const soloUna = [PLAN[2]] as never[]
+    const { container } = render(<KanbanBoard projectId="p1" columns={COLUMNAS} workItems={soloUna} lineasDelPlan={PLAN} />)
+    expect(opciones(container)).toContain('Rafael Oliva (2)')
+  })
+})
+
 describe('§5.1 · quién encabeza cada banda del árbol', () => {
   const COLUMNAS = [
     { id: 'col-1', name: 'Backlog', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: [] },

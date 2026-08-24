@@ -499,7 +499,7 @@ function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
         }}
       >
         <span className="font-medium text-tinta-2 text-xs">{label}:</span>
-        <span className={isActive ? 'text-indigo-300 font-semibold' : 'text-tinta'}>
+        <span className={isActive ? 'text-acento-tinta font-semibold' : 'text-tinta'}>
           {selected?.label ?? 'Todos'}
         </span>
         <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -512,11 +512,14 @@ function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
             <button
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false) }}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-superficie-3/60"
-              style={{ color: value === opt.value ? 'var(--acento-tinta)' : '#d4d4d8' }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-superficie-2"
+              // `#d4d4d8` era un gris elegido para fondo oscuro y no se enteraba del tema: sobre
+              // `--superficie-3`, que en claro es casi blanco, daba 1,1:1. La opción que no está
+              // elegida era la que no se leía, o sea todas menos una.
+              style={{ color: value === opt.value ? 'var(--acento-tinta)' : 'var(--tinta-2)' }}
             >
               <span>{opt.label}</span>
-              {value === opt.value && <Check size={12} className="text-indigo-400 flex-shrink-0" />}
+              {value === opt.value && <Check size={12} className="text-acento-tinta flex-shrink-0" />}
             </button>
           ))}
         </div>
@@ -653,15 +656,39 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
     blocked: enriched.filter(w => w._urgency === 'blocked').length,
   }), [enriched])
 
+  /**
+   * Por quién se puede filtrar: **lo mismo que la tarjeta enseña**.
+   *
+   * La tarjeta escribe `responsibleName ?? ownerName`, y el filtro se armaba sólo con las cuentas
+   * del sistema (`ownerId`). En un plan importado eso no coincide nunca: el archivo trae el nombre
+   * de quien responde —«Rafael Oliva», «Operaciones del banco»— mientras `ownerId` recibe a quien
+   * importó. Medido sobre el plan real: **cinco responsables en las tarjetas y un solo dueño en el
+   * desplegable**, el mismo para las 1 368 líneas. El filtro decía «Asignado» y no filtraba por
+   * nadie: elegir la única opción devolvía el plan entero.
+   *
+   * Que el nombre del archivo no sea una cuenta es a propósito y está razonado en el importador
+   * —forzar cuentas asignaría trabajo del cliente a gente del proveedor—, así que la clave del
+   * filtro es el nombre, que es lo único que las dos partes comparten.
+   *
+   * Sobre el plan entero, no sobre lo filtrado: si las opciones salieran de lo que ya está
+   * filtrado, elegir a alguien dejaría fuera del desplegable a todos los demás y no habría forma de
+   * volver a cambiar de persona.
+   */
   const uniqueAssignees = useMemo(() => {
-    const map = new Map<string, string>()
-    localWorkItems.forEach(w => { if (w.ownerId && w.ownerName) map.set(w.ownerId, w.ownerName) })
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [localWorkItems])
+    const cuenta = new Map<string, number>()
+    for (const w of paraContar) {
+      const nombre = w.responsibleName ?? w.ownerName
+      if (nombre) cuenta.set(nombre, (cuenta.get(nombre) ?? 0) + 1)
+    }
+    return Array.from(cuenta.entries())
+      .map(([name, lineas]) => ({ id: name, name, lineas }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [paraContar])
 
   const filteredWorkItems = useMemo(() => {
     let items = activeFilter ? enriched.filter(w => w._urgency === activeFilter) : localWorkItems
-    if (filterAssignee !== 'all') items = items.filter(w => w.ownerId === filterAssignee)
+    // Por el nombre que se ve, no por la cuenta: es lo que el desplegable ofrece.
+    if (filterAssignee !== 'all') items = items.filter(w => (w.responsibleName ?? w.ownerName) === filterAssignee)
     if (filterPriority !== 'all') items = items.filter(w => w.priority === filterPriority)
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase()
@@ -1060,7 +1087,9 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
           value={filterAssignee}
           options={[
             { value: 'all', label: 'Todos' },
-            ...uniqueAssignees.map(a => ({ value: a.id, label: a.name })),
+            // Con la cuenta al lado: cinco nombres sobre mil trescientas líneas no dicen nada sin
+            // saber cuánto lleva cada uno.
+            ...uniqueAssignees.map(a => ({ value: a.id, label: `${a.name} (${a.lineas})` })),
           ]}
           onChange={setFilterAssignee}
         />
