@@ -102,3 +102,99 @@ describe('Si guardar falla, se dice', () => {
     )
   })
 })
+
+describe('Meter y sacar gente', () => {
+  const ORG = [
+    { id: 'u1', name: 'Ana Dueña', email: 'ana@example.com' },
+    { id: 'u2', name: 'Beto Cliente', email: 'beto@example.com' },
+    { id: 'u3', name: 'Caro Nueva', email: 'caro@example.com' },
+  ]
+
+  /** Un servidor que además sabe de la organización, que es lo que hace falta para ofrecer a quien falta. */
+  function servidorConOrg() {
+    const llamadas: { url: string; init?: RequestInit }[] = []
+    const fn = vi.fn(async (url: unknown, init?: RequestInit) => {
+      const u = String(url)
+      llamadas.push({ url: u, init })
+      if (init?.method === 'PUT' || init?.method === 'DELETE') {
+        return { ok: true, json: async () => ({ ok: true }) } as unknown as Response
+      }
+      if (u.includes('/api/v1/users')) {
+        return { ok: true, json: async () => ({ users: ORG }) } as unknown as Response
+      }
+      return { ok: true, json: async () => ({ gente: GENTE }) } as unknown as Response
+    })
+    return { fn, llamadas }
+  }
+
+  it('ofrece sólo a quien no está en el proyecto', async () => {
+    const { fn } = servidorConOrg()
+    vi.stubGlobal('fetch', fn)
+    render(<RepartoDePapeles projectId="p1" puedeRepartir />)
+
+    const select = (await screen.findByLabelText('Añadir a alguien')) as HTMLSelectElement
+    const valores = [...select.options].map((o) => o.value).filter(Boolean)
+    // u1 y u2 ya están en GENTE; sólo queda Caro.
+    expect(valores).toEqual(['u3'])
+  })
+
+  it('añadir manda el papel de menor alcance y relee la lista', async () => {
+    const { fn, llamadas } = servidorConOrg()
+    vi.stubGlobal('fetch', fn)
+    render(<RepartoDePapeles projectId="p1" puedeRepartir />)
+
+    const select = (await screen.findByLabelText('Añadir a alguien')) as HTMLSelectElement
+    fireEvent.change(select, { target: { value: 'u3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+
+    await waitFor(() => {
+      const put = llamadas.find((l) => l.init?.method === 'PUT')
+      expect(put).toBeDefined()
+      expect(JSON.parse(String(put!.init!.body))).toEqual({ userId: 'u3', role: 'COLLABORATOR' })
+    })
+    // Se relee: el papel efectivo depende también del cargo de organización, y un eco local diría
+    // lo que se pidió en vez de lo que quedó.
+    await waitFor(() => {
+      expect(llamadas.filter((l) => l.url.includes('/collaborators') && !l.init?.method).length)
+        .toBeGreaterThan(1)
+    })
+  })
+
+  it('a quien lo es por el proyecto no se le ofrece sacarlo', async () => {
+    const { fn } = servidorConOrg()
+    vi.stubGlobal('fetch', fn)
+    render(<RepartoDePapeles projectId="p1" puedeRepartir />)
+    await screen.findByText('Ana Dueña')
+
+    const dueña = document.querySelector('[data-persona="u1"]')!
+    expect(dueña.querySelector('[data-accion="sacar"]')).toBeNull()
+    const cliente = document.querySelector('[data-persona="u2"]')!
+    expect(cliente.querySelector('[data-accion="sacar"]')).not.toBeNull()
+  })
+
+  it('sacar pide el borrado con el userId en la consulta', async () => {
+    const { fn, llamadas } = servidorConOrg()
+    vi.stubGlobal('fetch', fn)
+    render(<RepartoDePapeles projectId="p1" puedeRepartir />)
+    await screen.findByText('Beto Cliente')
+
+    const boton = document
+      .querySelector('[data-persona="u2"]')!
+      .querySelector('[data-accion="sacar"]') as HTMLButtonElement
+    fireEvent.click(boton)
+
+    await waitFor(() => {
+      const del = llamadas.find((l) => l.init?.method === 'DELETE')
+      expect(del).toBeDefined()
+      expect(del!.url).toContain('userId=u2')
+    })
+  })
+
+  it('sin permiso para repartir no aparece el bloque de añadir', async () => {
+    const { fn } = servidorConOrg()
+    vi.stubGlobal('fetch', fn)
+    render(<RepartoDePapeles projectId="p1" />)
+    await screen.findByText('Ana Dueña')
+    expect(screen.queryByTestId('agregar-al-proyecto')).toBeNull()
+  })
+})

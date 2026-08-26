@@ -4,9 +4,12 @@ import { PERMISOS_POR_ROL_DE_PROYECTO, ROLES_DE_PROYECTO } from '../permisos'
 import {
   PAPELES_EN_PANTALLA,
   type PersonaDelProyecto,
+  PAPEL_AL_ENTRAR,
   ordenarParaLaPantalla,
   queCambia,
+  quienesFaltan,
   sePuedeCambiar,
+  sePuedeSacar,
 } from '../reparto-de-papeles'
 
 /**
@@ -107,5 +110,57 @@ describe('El catálogo que se enseña', () => {
   it('van de más a menos permisos', () => {
     const cuantos = PAPELES_EN_PANTALLA.map((p) => PERMISOS_POR_ROL_DE_PROYECTO[p.clave].length)
     expect([...cuantos].sort((a, b) => b - a)).toEqual(cuantos)
+  })
+})
+
+describe('Meter a alguien que no está', () => {
+  const org = [
+    { id: 'u1', nombre: 'Ana Gómez', correo: 'ana@example.com' },
+    { id: 'u2', nombre: 'Beto Ruiz', correo: 'beto@example.com' },
+    { id: 'u3', nombre: 'Carla Díaz', correo: 'carla@example.com' },
+  ]
+
+  it('sólo ofrece a quien todavía no tiene papel', () => {
+    const dentro = [persona({ id: 'u2', papel: 'COLLABORATOR' })]
+    expect(quienesFaltan(dentro, org).map((p) => p.id)).toEqual(['u1', 'u3'])
+  })
+
+  it('no ofrece a quien tiene papel sin fila de colaborador', () => {
+    // El propietario y el gestor lo son por el proyecto, no por una fila. Ofrecerlos invitaría a
+    // añadir a quien ya está, y el servidor responde 409.
+    const dentro = [persona({ id: 'u1', papel: 'OWNER', implicito: true })]
+    expect(quienesFaltan(dentro, org).map((p) => p.id)).not.toContain('u1')
+  })
+
+  it('los ordena por nombre, que es como se busca a alguien en una lista', () => {
+    const desordenada = [org[2], org[0], org[1]]
+    expect(quienesFaltan([], desordenada).map((p) => p.nombre)).toEqual([
+      'Ana Gómez',
+      'Beto Ruiz',
+      'Carla Díaz',
+    ])
+  })
+
+  it('con toda la organización dentro no queda nadie por ofrecer', () => {
+    const dentro = org.map((o) => persona({ id: o.id, papel: 'COLLABORATOR' }))
+    expect(quienesFaltan(dentro, org)).toHaveLength(0)
+  })
+
+  it('se entra con el papel de menor alcance', () => {
+    // Un permiso de más que nadie pidió no se nota hasta que se usa; subirlo después es un gesto.
+    const alcance = (papel: typeof PAPEL_AL_ENTRAR) => PERMISOS_POR_ROL_DE_PROYECTO[papel].length
+    const editables = ROLES_DE_PROYECTO.filter((r) => r !== 'CLIENT')
+    expect(Math.min(...editables.map(alcance))).toBe(alcance(PAPEL_AL_ENTRAR))
+  })
+})
+
+describe('Sacar a alguien', () => {
+  it('a quien está por una fila sí se le puede sacar', () => {
+    expect(sePuedeSacar(persona({ id: 'u2', papel: 'COLLABORATOR' }))).toBe(true)
+  })
+
+  it('a quien lo es por el proyecto no: no hay fila que borrar', () => {
+    expect(sePuedeSacar(persona({ id: 'u1', papel: 'OWNER', implicito: true }))).toBe(false)
+    expect(sePuedeSacar(persona({ id: 'u3', papel: 'MANAGER', implicito: true }))).toBe(false)
   })
 })

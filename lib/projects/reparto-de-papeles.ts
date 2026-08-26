@@ -104,3 +104,49 @@ export function queCambia(desde: RolDeProyecto, hacia: RolDeProyecto): string | 
   }
   return trozos.length > 0 ? trozos.join(' y ') : null
 }
+
+/** Alguien de la organización, como lo devuelve `GET /api/v1/users`. */
+export interface PersonaDeLaOrganizacion {
+  readonly id: string
+  readonly nombre: string
+  readonly correo: string
+}
+
+/**
+ * Quién de la organización todavía no está en el proyecto.
+ *
+ * Es la mitad que faltaba para repartir: la pantalla sabía cambiarle el papel a quien ya estaba,
+ * pero a quien no estaba no había manera de meterlo, y eso obligaba a tocar la base a mano cada vez
+ * que alguien nuevo necesitaba entrar.
+ *
+ * Se excluye a quien ya tiene papel —incluidos propietario y gestor, que lo tienen sin fila— porque
+ * ofrecer añadir a quien ya está no añade nada: lo que se querría en ese caso es cambiarle el papel,
+ * y eso ya se hace en su propia fila.
+ */
+export function quienesFaltan(
+  gente: readonly PersonaDelProyecto[],
+  organizacion: readonly PersonaDeLaOrganizacion[],
+): readonly PersonaDeLaOrganizacion[] {
+  const dentro = new Set(gente.map((p) => p.id))
+  return organizacion
+    .filter((p) => !dentro.has(p.id))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+}
+
+/**
+ * Con qué papel entra alguien por defecto.
+ *
+ * `COLLABORATOR` y no algo más generoso: quien reparte puede subirlo en el mismo gesto si hace
+ * falta, mientras que un permiso de más que nadie pidió no se nota hasta que se usa.
+ */
+export const PAPEL_AL_ENTRAR: RolDeProyecto = 'COLLABORATOR'
+
+/**
+ * ¿Se le puede sacar del proyecto desde aquí?
+ *
+ * A quien tiene su papel por ser dueño o gestor del proyecto no: no hay fila que borrar, y el botón
+ * prometería algo que el servidor no puede cumplir.
+ */
+export function sePuedeSacar(persona: PersonaDelProyecto): boolean {
+  return !persona.implicito
+}
