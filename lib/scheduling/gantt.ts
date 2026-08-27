@@ -295,6 +295,20 @@ export interface GanttFilter {
    * respecto de las demás, y cuáles son— y por eso conviven en vez de sustituirse.
    */
   readonly onlyOverdue?: boolean
+  /**
+   * Deja solo lo que hay que trabajar para llegar a esta fecha.
+   *
+   * No es «lo que termina antes del corte»: una línea que arranca el 1 y acaba el 30 hay que
+   * tocarla para llegar al 15, aunque cierre después. Se queda toda línea pendiente cuyo trabajo
+   * **arranca en o antes** del corte, y por eso entra también lo atrasado —una tarea que venció la
+   * semana pasada y sigue abierta es trabajo pendiente para cualquier fecha futura—.
+   *
+   * Que entre lo atrasado no es un detalle: en el plan de referencia, con corte al 15-sep, pedir
+   * «lo que solapa de hoy al corte» dejaba fuera las 65 atrasadas. Y no se arregla combinando con
+   * «solo atrasadas», porque los ejes del filtro se cruzan, no se suman: la intersección de las dos
+   * preguntas no es ninguna de las dos.
+   */
+  readonly hasta?: IsoDate
 }
 
 export interface GanttInput {
@@ -401,6 +415,16 @@ export interface GanttLayout {
    * dibujar nada.
    */
   readonly hoyX: number | null
+  /**
+   * Dónde cae la fecha de corte en el eje, o `null` si no hay corte puesto o queda fuera del plan.
+   *
+   * Se dibuja para que la distinción se lea sola: la barra que termina antes de la raya tiene que
+   * cerrar para esa fecha; la que la cruza sólo necesita ir avanzada. Es la misma pregunta que
+   * contestaría una columna nueva, contestada sin gastar ancho de tabla.
+   */
+  readonly corteX: number | null
+  /** Cuántas líneas de trabajo caen dentro del corte. Cero cuando no hay corte puesto. */
+  readonly enElCorte: number
   readonly start: IsoDate
   readonly finish: IsoDate
   /** Cuántas filas quedaron ocultas por el plegado o por el filtro. */
@@ -470,6 +494,10 @@ export function ganttLayout(input: GanttInput): GanttLayout {
    * separarse, el botón diría «(65)» y dejaría otra cantidad de filas.
    */
   const atrasadas = lineasAtrasadas(tasks, children, schedule, input.hoy)
+  // El corte se decide aquí por lo mismo: la raya que se dibuja y las filas que quedan tienen que
+  // salir de la misma cuenta, o el diagrama enseñaría una vertical en una fecha que el filtro no
+  // está usando.
+  const enElCorte = lineasHastaElCorte(tasks, children, schedule, input.filter?.hasta)
 
   const level = depthOf(tasks, byId)
   const origin = toDayNumber(schedule.start)
@@ -549,7 +577,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     }
   }
 
-  const passesFilter = filterPredicate(input.filter, analysis, atrasadas)
+  const passesFilter = filterPredicate(input.filter, analysis, atrasadas, enElCorte)
   const kept = keepWithAncestors(tasks, byId, passesFilter)
 
   /*
@@ -831,6 +859,18 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       // la mañana, «hoy» sigue estando después de lo que se cerró el viernes.
       return calendar.ordinalOf(calendar.next(dia)) - calendar.ordinalOf(toDayNumber(schedule.start))
     })(),
+    corteX: (() => {
+      const hasta = input.filter?.hasta
+      if (!hasta) return null
+      if (hasta < schedule.start || hasta > schedule.finish) return null
+      // En ordinales hábiles y con el mismo desplazamiento que `hoyX`: las dos rayas miden sobre el
+      // mismo eje, y media jornada de diferencia entre ellas se leería como un error del plan.
+      return (
+        calendar.ordinalOf(calendar.next(toDayNumber(hasta))) -
+        calendar.ordinalOf(toDayNumber(schedule.start))
+      )
+    })(),
+    enElCorte: enElCorte.size,
     ticksSuperiores: Object.freeze(
       (() => {
         const arriba = escalaSuperior(input.scale ?? 'MES')
@@ -995,6 +1035,50 @@ function keepWithAncestors(
 }
 
 /**
+ * ¿Esta línea sigue pidiendo trabajo?
+ *
+ * Aparte porque lo preguntan las dos reglas de abajo, y con la condición escrita en cada una
+ * bastaba con tocar una para que «atrasada» y «hasta el corte» dejaran de entender lo mismo por
+ * «terminada» — que es exactamente el defecto que el §9.3 pide que no vuelva a pasar.
+ */
+function sigueAbierta(task: PlanTask): boolean {
+  return clamp(task.progress ?? 0) < 1 && !estaTerminada(task.status ?? '')
+}
+
+/**
+ * Lo que hay que trabajar para llegar a una fecha.
+ *
+ * Toda hoja pendiente cuyo trabajo arranca en o antes del corte. Lo que arranca después no hace
+ * falta tocarlo para llegar ahí, y lo ya terminado tampoco.
+ *
+ * Los resúmenes quedan fuera por lo mismo que en `lineasAtrasadas`: no tienen trabajo propio, y
+ * contarlos sumaría el mismo esfuerzo una vez por antepasado. Se conservan igualmente en el
+ * diagrama —`keepWithAncestors`— porque una hoja suelta sin su grupo no dice dónde cae.
+ */
+export function lineasHastaElCorte(
+  tasks: readonly PlanTask[],
+  children: ReadonlyMap<string, readonly string[]>,
+  schedule: Schedule,
+  hasta: IsoDate | undefined,
+): ReadonlySet<string> {
+  const salida = new Set<string>()
+  // Una fecha vacía es «sin corte», no «un corte imposible»: `IsoDate` es un alias de `string`, así
+  // que la cadena vacía entra por el tipo y, sin esta guarda, ninguna fecha sería menor o igual que
+  // «» y el filtro vaciaría la pantalla sin que nadie lo hubiera pedido.
+  if (!hasta) return salida
+  for (const task of tasks) {
+    if (children.has(task.id)) continue
+    // La misma pregunta que hace `lineasAtrasadas`, y por eso la misma función. Esto miraba sólo el
+    // avance: una línea cerrada al 0 % —estado DONE sin capturar avance— quedaba fuera de
+    // «atrasadas» y dentro de «hasta el corte», y el filtro pedía trabajar algo ya terminado.
+    if (!sigueAbierta(task)) continue
+    const inicio = schedule.byId.get(task.id)?.start ?? schedule.start
+    if (inicio <= hasta) salida.add(task.id)
+  }
+  return salida
+}
+
+/**
  * Las líneas vencidas y sin terminar (§4.6, conmutador 2).
  *
  * Vive aparte porque la preguntan tres sitios —el resaltado, el filtro «solo atrasadas» y la cifra
@@ -1036,8 +1120,7 @@ export function lineasAtrasadas(
     if (children.has(task.id)) continue
     const fin = schedule.byId.get(task.id)?.finish ?? schedule.start
     if (fin >= hoy) continue
-    if (clamp(task.progress ?? 0) >= 1) continue
-    if (estaTerminada(task.status ?? '')) continue
+    if (!sigueAbierta(task)) continue
     salida.add(task.id)
   }
   return salida
@@ -1047,7 +1130,10 @@ function filterPredicate(
   filter: GanttFilter | undefined,
   analysis: ReadonlyMap<string, ClassifiedTask>,
   atrasadas: ReadonlySet<string>,
+  enElCorte: ReadonlySet<string>,
 ): (task: PlanTask) => boolean {
+  // Un filtro «apagado» es el que no lleva nada puesto. `hasta` es un valor y no un interruptor, así
+  // que entra en la misma cuenta: sin fecha no recorta, con fecha sí.
   if (!filter || Object.values(filter).every((value) => value === undefined || value === false)) {
     return () => true
   }
@@ -1058,6 +1144,7 @@ function filterPredicate(
     if (filter.onlyCritical && !(clasificada?.isCritical ?? false)) return false
     if (filter.onlyMilestones && !esClaseDeHito(task.kind, task.duration)) return false
     if (filter.onlyOverdue && !atrasadas.has(task.id)) return false
+    if (filter.hasta && !enElCorte.has(task.id)) return false
     if (filter.party !== undefined && (clasificada?.party ?? task.party ?? 'PROVEEDOR') !== filter.party) {
       return false
     }

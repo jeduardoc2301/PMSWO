@@ -15,6 +15,7 @@
 import React from 'react'
 
 import { type AxisScale, type GanttFilter, type LinkVisibility } from '@/lib/scheduling/gantt'
+import { type IsoDate } from '@/lib/scheduling/date'
 import { type ResponsibleParty } from '@/lib/scheduling/types'
 
 export interface PlanControlsProps {
@@ -36,6 +37,8 @@ export interface PlanControlsProps {
   readonly atrasadas: boolean
   /** Cuántas líneas del plan están atrasadas ahora mismo. */
   readonly cuantasAtrasadas: number
+  /** Cuántas líneas de trabajo caen dentro del corte puesto. Cero si no hay corte. */
+  readonly cuantasEnElCorte: number
   /** Conmutador 3 del §4.6, mitad «ruta crítica»: barras críticas en rojo. */
   readonly rutaCritica: boolean
   readonly onRutaCriticaChange: (valor: boolean) => void
@@ -117,6 +120,7 @@ export function PlanControls({
   onLinksChange,
   atrasadas,
   cuantasAtrasadas,
+  cuantasEnElCorte,
   rutaCritica,
   onRutaCriticaChange,
   reserva,
@@ -136,8 +140,13 @@ export function PlanControls({
   // «Todo» se marca solo cuando de verdad no queda nada filtrado. Se mira también `onlyCritical`,
   // que esta barra no ofrece: marcar «Todo» con un filtro encendido sería mentir sobre lo que se ve.
   const soloAtrasadas = filter.onlyOverdue === true
+  const hasta = filter.hasta ?? null
   const sinFiltro =
-    naturaleza === null && parte === null && !soloAtrasadas && filter.onlyCritical !== true
+    naturaleza === null &&
+    parte === null &&
+    !soloAtrasadas &&
+    hasta === null &&
+    filter.onlyCritical !== true
 
   /**
    * Por qué unos botones del filtro se apagan entre sí.
@@ -156,11 +165,13 @@ export function PlanControls({
    * esta barra — un filtro que no se ve y no se puede apagar es peor que ningún filtro.
    */
   const cambiarNaturaleza = (valor: Naturaleza): void =>
-    onFilterChange(armarFiltro(naturaleza === valor ? null : valor, parte, soloAtrasadas))
+    onFilterChange(armarFiltro(naturaleza === valor ? null : valor, parte, soloAtrasadas, hasta))
   const cambiarParte = (valor: ResponsibleParty): void =>
-    onFilterChange(armarFiltro(naturaleza, parte === valor ? null : valor, soloAtrasadas))
+    onFilterChange(armarFiltro(naturaleza, parte === valor ? null : valor, soloAtrasadas, hasta))
   const cambiarAtrasadas = (): void =>
-    onFilterChange(armarFiltro(naturaleza, parte, !soloAtrasadas))
+    onFilterChange(armarFiltro(naturaleza, parte, !soloAtrasadas, hasta))
+  const cambiarHasta = (valor: IsoDate | null): void =>
+    onFilterChange(armarFiltro(naturaleza, parte, soloAtrasadas, valor))
 
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-4 rounded-lg border border-borde bg-superficie px-4 py-3">
@@ -256,6 +267,38 @@ export function PlanControls({
         </Boton>
       </Grupo>
 
+      {/* El corte: hasta cuándo se está preguntando.
+
+          Va en su propio grupo y no entre los botones del Filtro porque es un **valor**, no un
+          interruptor: un campo metido en una fila de conmutadores se lee como uno más y no se
+          entiende que espera algo escrito.
+
+          Lo que deja no es «lo que termina antes de la fecha» sino «lo que hay que trabajar para
+          llegar a ella»: una línea que arranca antes y cierra después también cuenta, y lo atrasado
+          también, porque sigue siendo trabajo pendiente para cualquier fecha futura.
+
+          La cifra va al lado y no dentro del campo porque el campo ya dice una fecha, y dos números
+          en el mismo control se confunden. */}
+      <Grupo titulo="Hasta" nota="Lo que hay que trabajar para esa fecha.">
+        <input
+          type="date"
+          aria-label="Fecha de corte"
+          value={hasta ?? ''}
+          onChange={(evento) => cambiarHasta(evento.target.value === '' ? null : evento.target.value)}
+          className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
+        />
+        {hasta !== null ? (
+          <>
+            <span data-cuenta-en-el-corte={cuantasEnElCorte} className="text-xs text-tinta-2">
+              {conMiles(cuantasEnElCorte)} {cuantasEnElCorte === 1 ? 'línea' : 'líneas'}
+            </span>
+            <Boton activo={false} onClick={() => cambiarHasta(null)}>
+              Quitar
+            </Boton>
+          </>
+        ) : null}
+      </Grupo>
+
       <Grupo titulo="Escala">
         {ESCALAS.map((opcion) => (
           <Boton key={opcion.value} activo={scale === opcion.value} onClick={() => onScaleChange(opcion.value)}>
@@ -335,22 +378,25 @@ function naturalezaDe(filter: GanttFilter): Naturaleza | null {
   return null
 }
 
-/** Arma el filtro completo con los tres ejes. Lo que no se pone aquí, queda apagado. */
+/** Arma el filtro completo con los cuatro ejes. Lo que no se pone aquí, queda apagado. */
 function armarFiltro(
   naturaleza: Naturaleza | null,
   parte: ResponsibleParty | null,
   soloAtrasadas: boolean,
+  hasta: IsoDate | null,
 ): GanttFilter {
   const filtro: {
     onlySuperCritical?: boolean
     onlyMilestones?: boolean
     party?: ResponsibleParty
     onlyOverdue?: boolean
+    hasta?: IsoDate
   } = {}
   if (naturaleza === 'SUPER') filtro.onlySuperCritical = true
   if (naturaleza === 'HITOS') filtro.onlyMilestones = true
   if (parte !== null) filtro.party = parte
   if (soloAtrasadas) filtro.onlyOverdue = true
+  if (hasta !== null) filtro.hasta = hasta
   return filtro
 }
 

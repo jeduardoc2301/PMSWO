@@ -70,22 +70,25 @@ describe('La vista ejecutiva', () => {
     expect(screen.getByText('122 días de trabajo')).toBeInTheDocument()
   })
 
-  it('escribe el informe en prosa tal como lo calculó el motor', () => {
+  /**
+   * Se quitaron a propósito, no por descuido.
+   *
+   * El informe en prosa y «Qué puede mover la fecha» vivían aquí y no aportaban en esta pantalla:
+   * la prosa repite lo que ya dicen las tarjetas y la lista de bloqueos se lee mejor donde se puede
+   * actuar sobre ella. El motor los sigue calculando —`brief.paragraphs` y `brief.whatCanMoveIt`
+   * siguen ahí— así que esto fija la decisión de no dibujarlos, que si no vuelve sola.
+   */
+  it('no repite el informe en prosa: eso ya lo dicen las tarjetas', () => {
     const brief = informe()
-    render(<ExecutiveBriefPanel brief={brief} projectName="Proyecto" />)
-
+    render(<ExecutiveBriefPanel brief={brief} projectName="Plan" />)
     for (const parrafo of brief.paragraphs) {
-      expect(screen.getByText(parrafo)).toBeInTheDocument()
+      expect(screen.queryByText(parrafo)).toBeNull()
     }
   })
 
-  it('nombra lo que puede mover la fecha, con su dueño y cuánto detiene', () => {
-    render(<ExecutiveBriefPanel brief={informe()} projectName="Proyecto" />)
-
-    const lista = screen.getByRole('list')
-    expect(within(lista).getByText('Entrega del inventario de direcciones')).toBeInTheDocument()
-    expect(within(lista).getByText('Operaciones del banco')).toBeInTheDocument()
-    expect(within(lista).getByText('Detiene 797 tareas')).toBeInTheDocument()
+  it('no dibuja «Qué puede mover la fecha»', () => {
+    render(<ExecutiveBriefPanel brief={informe()} projectName="Plan" />)
+    expect(screen.queryByRole('heading', { name: 'Qué puede mover la fecha' })).toBeNull()
   })
 
   it('reparte entre las dos partes sin adjetivos', () => {
@@ -134,22 +137,3 @@ describe('El margen se dice como lo diría una persona', () => {
   })
 })
 
-describe('Los casos vacíos se dicen, no se dejan en blanco', () => {
-  it('sin riesgos, lo explica', () => {
-    render(<ExecutiveBriefPanel brief={informe({ whatCanMoveIt: [] })} projectName="P" />)
-    expect(
-      screen.getByText('Hoy no hay compromisos pendientes que detengan otras tareas.'),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('list')).not.toBeInTheDocument()
-  })
-
-  it('un riesgo sin responsable nombrado lo dice en vez de dejar el hueco', () => {
-    const brief = informe({
-      whatCanMoveIt: [{ ...informe().whatCanMoveIt[0], owner: null, blocks: 1 }],
-    })
-    render(<ExecutiveBriefPanel brief={brief} projectName="P" />)
-
-    expect(screen.getByText('Sin responsable nombrado')).toBeInTheDocument()
-    expect(screen.getByText('Detiene 1 tarea')).toBeInTheDocument()
-  })
-})

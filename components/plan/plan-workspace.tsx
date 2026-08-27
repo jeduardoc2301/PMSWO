@@ -460,6 +460,10 @@ export function PlanWorkspace({
       hoy: hoyCivil(),
     })
 
+    // `enElCorte` viaja dentro del trazado: es «cuántas líneas caen en el corte», no «cuántas
+    // quedaron tras cruzarlo con los demás ejes». Igual que la cuenta de atrasadas, que tampoco
+    // cambia porque haya otro filtro puesto — si cambiara, el rótulo diría una cosa distinta según
+    // qué más estuviera encendido y dejaría de servir para decidir si vale la pena mirar.
     return { ...trazado, atrasadasEnTodoElPlan: abierto.rows.filter((f) => f.atrasada).length }
   }, [tasks, dependencies, base, level, abiertosAMano, cerradosAMano, links, selectedId, filter, scale, fechasDeLaFoto])
 
@@ -1116,6 +1120,7 @@ export function PlanWorkspace({
           onLinksChange={setLinks}
           atrasadas={atrasadas}
           cuantasAtrasadas={layout.atrasadasEnTodoElPlan}
+          cuantasEnElCorte={layout.enElCorte}
           rutaCritica={preferencia.rutaCritica}
           onRutaCriticaChange={(v) => setPreferencia((p) => ({ ...p, rutaCritica: v }))}
           reserva={preferencia.reserva}

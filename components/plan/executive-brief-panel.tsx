@@ -64,31 +64,6 @@ export function ExecutiveBriefPanel({ brief, projectName }: ExecutiveBriefPanelP
         />
       </div>
 
-      {/* El informe en prosa: es lo que se lee en voz alta en el comité. */}
-      <div className="flex flex-col gap-3 rounded-lg border border-borde bg-superficie p-5">
-        {brief.paragraphs.map((parrafo) => (
-          <p key={parrafo.slice(0, 48)} className="text-sm leading-relaxed text-tinta-2">
-            {parrafo}
-          </p>
-        ))}
-      </div>
-
-      {/* 3 · Qué lo puede mover. */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium text-tinta">Qué puede mover la fecha</h2>
-        {brief.whatCanMoveIt.length === 0 ? (
-          <p className="text-sm text-tinta-2">
-            Hoy no hay compromisos pendientes que detengan otras tareas.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {brief.whatCanMoveIt.map((riesgo) => (
-              <Riesgo key={riesgo.id} riesgo={riesgo} />
-            ))}
-          </ul>
-        )}
-      </div>
-
       {/* 4 · Qué depende del cliente. */}
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-medium text-tinta">Cómo se reparte</h2>

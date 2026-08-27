@@ -1402,3 +1402,194 @@ describe('Filtro «solo atrasadas»', () => {
     expect(trazar('2026-07-01', PLAN, { onlyOverdue: false }).rows).toHaveLength(todas)
   })
 })
+
+describe('Filtro «hasta» · qué hay que trabajar para una fecha', () => {
+  function trazar(hoy: string | undefined, tasks: PlanTask[], filter?: Record<string, unknown>) {
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+      ...(hoy ? { hoy: hoy as never } : {}),
+      ...(filter ? { filter: filter as never } : {}),
+    })
+  }
+
+  const PLAN: PlanTask[] = [
+    { id: 'grupo', name: 'Un resumen', duration: 0 },
+    // Arranca el 1-jun y cierra a los tres días: al 1-jul ya venció.
+    { id: 'atrasada', name: 'Venció y sigue abierta', parentId: 'grupo', duration: 3, progress: 0.4 },
+    { id: 'cerrada', name: 'Venció pero está hecha', parentId: 'grupo', duration: 3, progress: 1 },
+    // Arranca el 1-jun y cierra muy después: cruza cualquier corte cercano.
+    { id: 'larga', name: 'Empieza antes y acaba después', duration: 120, progress: 0.1 },
+  ]
+
+  const CORTE = '2026-07-15'
+
+  it('deja lo que arranca en o antes del corte y sigue pendiente', () => {
+    const ids = trazar('2026-07-01', PLAN, { hasta: CORTE }).rows.map((r) => r.id)
+    expect(ids).toContain('atrasada')
+    expect(ids).toContain('larga')
+  })
+
+  it('deja lo atrasado: sigue siendo trabajo pendiente para cualquier fecha futura', () => {
+    // Es la razón de no usar «solapa [hoy, corte]»: esa lectura tira justo lo más urgente, y
+    // cruzarlo con «solo atrasadas» no lo recupera porque los ejes se cruzan, no se suman.
+    const ids = trazar('2026-07-01', PLAN, { hasta: CORTE }).rows.map((r) => r.id)
+    expect(ids).toContain('atrasada')
+  })
+
+  it('no deja lo ya terminado: no hay nada que trabajar ahí', () => {
+    const ids = trazar('2026-07-01', PLAN, { hasta: CORTE }).rows.map((r) => r.id)
+    expect(ids).not.toContain('cerrada')
+  })
+
+  it('no deja lo que arranca después del corte', () => {
+    const conTardia = [
+      ...PLAN,
+      {
+        id: 'tardia',
+        name: 'Arranca en septiembre',
+        duration: 2,
+        progress: 0,
+        constraint: { type: 'NO_ANTES_DE', date: '2026-09-01' },
+      } as PlanTask,
+    ]
+    const ids = trazar('2026-07-01', conTardia, { hasta: '2026-06-10' }).rows.map((r) => r.id)
+    expect(ids).not.toContain('tardia')
+  })
+
+  it('conserva el resumen que contiene lo que queda', () => {
+    // Una hoja suelta sin su grupo no dice dónde cae.
+    const ids = trazar('2026-07-01', PLAN, { hasta: CORTE }).rows.map((r) => r.id)
+    expect(ids).toContain('grupo')
+  })
+
+  it('los resúmenes no entran en la cuenta: no tienen trabajo propio', () => {
+    // Contarlos sumaría el mismo esfuerzo una vez por antepasado.
+    const layout = trazar('2026-07-01', PLAN, { hasta: CORTE })
+    expect(layout.enElCorte).toBe(2)
+  })
+
+  it('sin corte puesto no recorta nada y la cuenta es cero', () => {
+    const todas = trazar('2026-07-01', PLAN).rows.length
+    expect(trazar('2026-07-01', PLAN).enElCorte).toBe(0)
+    expect(trazar('2026-07-01', PLAN, {}).rows).toHaveLength(todas)
+  })
+
+  it('un corte más lejano no deja menos líneas que uno cercano', () => {
+    // Monótono por construcción: ampliar el horizonte sólo puede añadir trabajo.
+    const cerca = trazar('2026-07-01', PLAN, { hasta: '2026-06-05' }).enElCorte
+    const lejos = trazar('2026-07-01', PLAN, { hasta: '2026-12-31' }).enElCorte
+    expect(lejos).toBeGreaterThanOrEqual(cerca)
+  })
+
+  it('se combina con los otros ejes en vez de excluirlos', () => {
+    const ids = trazar('2026-07-01', PLAN, { hasta: CORTE, onlyOverdue: true }).rows
+      .filter((r) => !r.hasChildren)
+      .map((r) => r.id)
+    // La intersección: lo que hay que trabajar para el corte Y además ya viene atrasado.
+    expect(ids).toEqual(['atrasada'])
+  })
+
+  it('no depende de «hoy»: sin reloj sigue sabiendo qué arranca antes del corte', () => {
+    // A diferencia de «atrasadas», que sin presente no puede decidir nada.
+    expect(trazar(undefined, PLAN, { hasta: CORTE }).enElCorte).toBe(2)
+  })
+
+  describe('la raya del corte', () => {
+    it('cae en el eje cuando la fecha está dentro del plan', () => {
+      expect(trazar('2026-07-01', PLAN, { hasta: CORTE }).corteX).toBeGreaterThan(0)
+    })
+
+    it('no se dibuja sin corte puesto', () => {
+      expect(trazar('2026-07-01', PLAN).corteX).toBeNull()
+    })
+
+    it('fuera del plan no se dibuja, en vez de pegarse al borde', () => {
+      // Una raya pegada al principio diría «el corte es el primer día» en un plan que empieza
+      // después, que es peor que no dibujar nada.
+      expect(trazar('2026-07-01', PLAN, { hasta: '2020-01-01' }).corteX).toBeNull()
+      expect(trazar('2026-07-01', PLAN, { hasta: '2099-01-01' }).corteX).toBeNull()
+    })
+
+    it('se mide en el mismo eje que la raya de hoy', () => {
+      // Si midieran distinto, media jornada de diferencia entre las dos se leería como un error
+      // del plan y no del dibujo.
+      const layout = trazar('2026-07-01', PLAN, { hasta: '2026-07-01' })
+      expect(layout.corteX).toBe(layout.hoyX)
+    })
+  })
+})
+
+describe('Un corte vacío es «sin corte», no «un corte imposible»', () => {
+  function trazar(tasks: PlanTask[], filter?: Record<string, unknown>) {
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+      ...(filter ? { filter: filter as never } : {}),
+    })
+  }
+  const PLAN: PlanTask[] = [{ id: 'a', name: 'Una línea', duration: 3, progress: 0 }]
+
+  it('la cadena vacía no vacía la pantalla', () => {
+    // `IsoDate` es un alias de `string`: la cadena vacía entra por el tipo, pasa el cedazo de
+    // «filtro apagado» y, sin guarda, dejaba fuera todas las líneas porque ninguna fecha es menor
+    // o igual que «».
+    expect(trazar(PLAN, { hasta: '' }).rows).toHaveLength(1)
+    expect(trazar(PLAN, { hasta: '' }).enElCorte).toBe(0)
+    expect(trazar(PLAN, { hasta: '' }).corteX).toBeNull()
+  })
+})
+
+describe('«Pendiente» significa lo mismo en los dos conjuntos', () => {
+  function trazar(tasks: PlanTask[], filter?: Record<string, unknown>) {
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+      hoy: '2026-07-01' as never,
+      ...(filter ? { filter: filter as never } : {}),
+    })
+  }
+
+  // El reactivo: cerrada por estado pero sin avance capturado. Es la línea donde «terminada por
+  // avance» y «terminada por estado» dejan de coincidir, y donde dos definiciones se separan.
+  const CERRADA_SIN_AVANCE: PlanTask[] = [
+    { id: 'cerrada', name: 'Cerrada sin capturar avance', duration: 3, progress: 0, status: 'DONE' },
+  ]
+
+  it('no está atrasada: terminó', () => {
+    expect(trazar(CERRADA_SIN_AVANCE).rows[0]?.atrasada).toBe(false)
+  })
+
+  it('tampoco es trabajo pendiente para un corte futuro', () => {
+    // Antes entraba: «hasta el corte» miraba sólo el avance y pedía trabajar algo ya cerrado.
+    const layout = trazar(CERRADA_SIN_AVANCE, { hasta: '2026-12-31' })
+    expect(layout.enElCorte).toBe(0)
+    expect(layout.rows).toHaveLength(0)
+  })
+
+  it('y al revés: abierta al 100 % no es pendiente para ninguno de los dos', () => {
+    const alCien: PlanTask[] = [
+      { id: 'x', name: 'Al cien pero abierta', duration: 3, progress: 1, status: 'IN_PROGRESS' },
+    ]
+    expect(trazar(alCien).rows[0]?.atrasada).toBe(false)
+    expect(trazar(alCien, { hasta: '2026-12-31' }).enElCorte).toBe(0)
+  })
+})

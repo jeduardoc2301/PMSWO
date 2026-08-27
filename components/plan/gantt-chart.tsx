@@ -633,6 +633,24 @@ export function GanttChart({
               />
             ) : null}
 
+            {/* La raya del corte: hasta dónde se está preguntando.
+
+                Punteada y en gris para que no compita con la de hoy, que es un hecho: ésta la eligió
+                quien mira, y dos rayas macizas del mismo peso se leen como dos presentes.
+
+                Lo que dice es la distinción entre «tener lista» y «tener avanzada» sin gastar una
+                columna: la barra que termina antes de la raya cierra para esa fecha, la que la cruza
+                sólo necesita ir avanzada. */}
+            {layout.corteX !== null ? (
+              <div
+                data-testid="marca-de-corte"
+                aria-hidden="true"
+                title="Corte"
+                className="pointer-events-none absolute top-0 z-0 border-l border-dashed border-tinta-3"
+                style={{ left: layout.corteX * dayWidth, height }}
+              />
+            ) : null}
+
             <div className="relative" style={{ height }}>
               {visibles.map((row, k) => (
                 <Bar

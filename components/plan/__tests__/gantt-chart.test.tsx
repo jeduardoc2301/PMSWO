@@ -740,3 +740,39 @@ describe('El avance capturado con decimales', () => {
     expect(screen.getByText('50 %')).toBeInTheDocument()
   })
 })
+
+describe('La raya del corte', () => {
+  it('se dibuja cuando hay una fecha de corte dentro del plan', () => {
+    render(
+      <GanttChart layout={trazar(PLAN, ENLACES, { filter: { hasta: '2026-06-05' } })} dayWidth={DIA} />,
+    )
+    expect(screen.getByTestId('marca-de-corte')).toBeTruthy()
+  })
+
+  it('sin corte puesto no hay raya', () => {
+    render(<GanttChart layout={trazar(PLAN, ENLACES)} dayWidth={DIA} />)
+    expect(screen.queryByTestId('marca-de-corte')).toBeNull()
+  })
+
+  it('no se confunde con la de hoy: son dos rayas distintas', () => {
+    // Una es un hecho y la otra la eligió quien mira; si compartieran marca no se podrían
+    // distinguir ni en la prueba ni en pantalla.
+    render(
+      <GanttChart
+        layout={trazar(PLAN, ENLACES, { hoy: '2026-06-03' as never, filter: { hasta: '2026-06-10' } })}
+        dayWidth={DIA}
+      />,
+    )
+    const hoy = screen.getByTestId('marca-de-hoy')
+    const corte = screen.getByTestId('marca-de-corte')
+    expect(hoy).not.toBe(corte)
+    expect(corte.getAttribute('title')).toBe('Corte')
+  })
+
+  it('queda debajo de las barras: es una referencia, no un dato', () => {
+    render(
+      <GanttChart layout={trazar(PLAN, ENLACES, { filter: { hasta: '2026-06-05' } })} dayWidth={DIA} />,
+    )
+    expect(screen.getByTestId('marca-de-corte').className).toContain('z-0')
+  })
+})

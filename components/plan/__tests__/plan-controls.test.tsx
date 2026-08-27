@@ -23,6 +23,7 @@ function montar(cambios: Partial<PlanControlsProps> = {}): PlanControlsProps {
     visibleRows: 27,
     atrasadas: false,
     cuantasAtrasadas: 0,
+    cuantasEnElCorte: 0,
     rutaCritica: true,
     onRutaCriticaChange: vi.fn(),
     reserva: false,
@@ -375,5 +376,64 @@ describe('Filtro «solo atrasadas»', () => {
     fireEvent.click(grupo('Atrasadas').getByRole('button', { name: /Resaltar/ }))
     expect(props.onAtrasadasChange).toHaveBeenCalledWith(true)
     expect(props.onFilterChange).not.toHaveBeenCalled()
+  })
+})
+
+describe('El corte «hasta»', () => {
+  const campo = () => grupo('Hasta').getByLabelText('Fecha de corte') as HTMLInputElement
+
+  it('poner una fecha avisa el filtro completo', () => {
+    const props = montar({})
+    fireEvent.change(campo(), { target: { value: '2026-09-15' } })
+    expect(props.onFilterChange).toHaveBeenCalledWith({ hasta: '2026-09-15' })
+  })
+
+  it('el campo enseña la fecha puesta', () => {
+    montar({ filter: { hasta: '2026-09-15' } })
+    expect(campo().value).toBe('2026-09-15')
+  })
+
+  it('dice cuántas líneas caen dentro, que es lo que decide si vale la pena', () => {
+    montar({ filter: { hasta: '2026-09-15' }, cuantasEnElCorte: 381 })
+    expect(grupo('Hasta').getByText('381 líneas')).toBeTruthy()
+  })
+
+  it('concuerda en singular', () => {
+    montar({ filter: { hasta: '2026-09-15' }, cuantasEnElCorte: 1 })
+    expect(grupo('Hasta').getByText('1 línea')).toBeTruthy()
+  })
+
+  it('sin corte puesto no ofrece quitarlo ni promete un número', () => {
+    montar({})
+    expect(grupo('Hasta').queryByRole('button', { name: 'Quitar' })).toBeNull()
+  })
+
+  it('«Quitar» lo apaga y conserva los demás ejes', () => {
+    const props = montar({ filter: { hasta: '2026-09-15', party: 'CLIENTE' } })
+    fireEvent.click(grupo('Hasta').getByRole('button', { name: 'Quitar' }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({ party: 'CLIENTE' })
+  })
+
+  it('vaciar el campo equivale a quitarlo', () => {
+    const props = montar({ filter: { hasta: '2026-09-15' } })
+    fireEvent.change(campo(), { target: { value: '' } })
+    expect(props.onFilterChange).toHaveBeenCalledWith({})
+  })
+
+  it('se combina con los otros ejes en vez de apagarlos', () => {
+    const props = montar({ filter: { hasta: '2026-09-15' } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: /Solo atrasadas/ }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({ hasta: '2026-09-15', onlyOverdue: true })
+  })
+
+  it('con un corte puesto, «Todo» no se marca: diría que no se está filtrando', () => {
+    montar({ filter: { hasta: '2026-09-15' } })
+    expect(grupo('Filtro').getByRole('button', { name: 'Todo' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('«Todo» lo apaga junto con lo demás', () => {
+    const props = montar({ filter: { hasta: '2026-09-15', onlyOverdue: true } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: 'Todo' }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({})
   })
 })
