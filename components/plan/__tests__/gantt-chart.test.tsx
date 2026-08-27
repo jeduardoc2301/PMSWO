@@ -776,3 +776,15 @@ describe('La raya del corte', () => {
     expect(screen.getByTestId('marca-de-corte').className).toContain('z-0')
   })
 })
+
+describe('Dónde se dibuja la raya del corte', () => {
+  it('cae en la coordenada que calculó el motor, no en otra', () => {
+    // Las cuatro pruebas de arriba comprueban que la raya EXISTE. Ninguna miraba su posición, que
+    // es justo donde estuvo el defecto: la raya salía una columna a la izquierda del corte que el
+    // filtro usaba, y la suite pasaba en verde.
+    const layout = trazar(PLAN, ENLACES, { filter: { hasta: '2026-06-05' } })
+    render(<GanttChart layout={layout} dayWidth={DIA} />)
+    const raya = screen.getByTestId('marca-de-corte') as HTMLElement
+    expect(raya.style.left).toBe(`${(layout.corteX ?? 0) * DIA}px`)
+  })
+})

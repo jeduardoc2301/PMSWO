@@ -404,8 +404,11 @@ describe('El corte «hasta»', () => {
   })
 
   it('sin corte puesto no ofrece quitarlo ni promete un número', () => {
-    montar({})
+    // El nombre anuncia dos cosas y el cuerpo comprobaba una: sin el segundo `expect`, dibujar
+    // «0 líneas» con el campo vacío habría pasado en verde.
+    montar({ cuantasEnElCorte: 0 })
     expect(grupo('Hasta').queryByRole('button', { name: 'Quitar' })).toBeNull()
+    expect(grupo('Hasta').queryByText(/línea/)).toBeNull()
   })
 
   it('«Quitar» lo apaga y conserva los demás ejes', () => {

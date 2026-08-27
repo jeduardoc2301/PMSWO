@@ -1517,11 +1517,43 @@ describe('Filtro «hasta» · qué hay que trabajar para una fecha', () => {
       expect(trazar('2026-07-01', PLAN, { hasta: '2099-01-01' }).corteX).toBeNull()
     })
 
-    it('se mide en el mismo eje que la raya de hoy', () => {
-      // Si midieran distinto, media jornada de diferencia entre las dos se leería como un error
-      // del plan y no del dibujo.
+    it('mismo eje que la raya de hoy, pero un borde después', () => {
+      // Comparten eje y no borde, porque sus fronteras son opuestas: «hoy» es un instante y lo
+      // atrasado es estrictamente anterior, mientras que el corte es un vencimiento inclusivo y su
+      // día entra. Esta prueba decía `corteX === hoyX` y fijaba el defecto en vez de detectarlo.
       const layout = trazar('2026-07-01', PLAN, { hasta: '2026-07-01' })
-      expect(layout.corteX).toBe(layout.hoyX)
+      expect(layout.corteX).toBe((layout.hoyX ?? 0) + 1)
+    })
+
+    it('una línea que CIERRA el día del corte termina en la raya, no la cruza', () => {
+      // Es el caso frontera que motiva la raya: si la cruzara, el diagrama diría «sólo hay que
+      // avanzarla» de justo el trabajo que hay que terminar para esa fecha.
+      const unaSemana: PlanTask[] = [{ id: 'cierra', name: 'Cierra el viernes', duration: 5, progress: 0 }]
+      const layout = trazar('2026-06-01', unaSemana, { hasta: '2026-06-05' })
+      const fila = layout.rows.find((r) => r.id === 'cierra')!
+      expect(fila.x + fila.width).toBe(layout.corteX)
+    })
+
+    it('una línea que ARRANCA el día del corte cruza la raya: hay que tenerla empezada', () => {
+      const arranca: PlanTask[] = [
+        { id: 'antes', name: 'Ocupa la semana', duration: 5, progress: 0 },
+        { id: 'arranca', name: 'Arranca el día del corte', duration: 3, progress: 0, constraint: { type: 'NO_ANTES_DE', date: '2026-06-08' } },
+      ]
+      const layout = trazar('2026-06-01', arranca, { hasta: '2026-06-08' })
+      const fila = layout.rows.find((r) => r.id === 'arranca')!
+      expect(fila.x).toBeLessThan(layout.corteX ?? 0)
+      expect(fila.x + fila.width).toBeGreaterThan(layout.corteX ?? 0)
+    })
+
+    it('un corte en fin de semana cae donde el viernes anterior: el sábado no añade trabajo', () => {
+      // Dos semanas, para que el fin de semana caiga DENTRO del plan: fuera de él la raya es
+      // `null` a propósito, y eso lo comprueba otra prueba.
+      const dosSemanas: PlanTask[] = [{ id: 'x', name: 'Dos semanas', duration: 10, progress: 0 }]
+      const viernes = trazar('2026-06-01', dosSemanas, { hasta: '2026-06-05' }).corteX
+      const sabado = trazar('2026-06-01', dosSemanas, { hasta: '2026-06-06' }).corteX
+      const domingo = trazar('2026-06-01', dosSemanas, { hasta: '2026-06-07' }).corteX
+      expect(sabado).toBe(viernes)
+      expect(domingo).toBe(viernes)
     })
   })
 })
@@ -1591,5 +1623,57 @@ describe('«Pendiente» significa lo mismo en los dos conjuntos', () => {
     ]
     expect(trazar(alCien).rows[0]?.atrasada).toBe(false)
     expect(trazar(alCien, { hasta: '2026-12-31' }).enElCorte).toBe(0)
+  })
+})
+
+describe('Los bordes del corte, que es donde se equivoca', () => {
+  function trazar(tasks: PlanTask[], filter?: Record<string, unknown>) {
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+      hoy: '2026-06-15' as never,
+      ...(filter ? { filter: filter as never } : {}),
+    })
+  }
+
+  const PLAN: PlanTask[] = [
+    { id: 'relleno', name: 'Ocupa el calendario', duration: 20, progress: 0 },
+    { id: 'justo', name: 'Arranca el día del corte', duration: 3, progress: 0, constraint: { type: 'NO_ANTES_DE', date: '2026-06-08' } },
+    { id: 'undia', name: 'Arranca un día después', duration: 3, progress: 0, constraint: { type: 'NO_ANTES_DE', date: '2026-06-09' } },
+  ]
+
+  it('«en o antes» incluye el día exacto del corte', () => {
+    // La frase de la semántica es `inicio <= hasta`. Sin esta prueba, cambiarla a `<` pasaría
+    // desapercibido: sólo se nota en la línea que arranca justo ese día.
+    const ids = trazar(PLAN, { hasta: '2026-06-08' }).rows.map((r) => r.id)
+    expect(ids).toContain('justo')
+  })
+
+  it('y excluye el día siguiente', () => {
+    const ids = trazar(PLAN, { hasta: '2026-06-08' }).rows.map((r) => r.id)
+    expect(ids).not.toContain('undia')
+  })
+
+  it('un hito sin terminar entra si su fecha cae dentro del corte', () => {
+    // Un hito es una fecha que hay que hacer ocurrir: si vence dentro del horizonte, es trabajo.
+    const conHito: PlanTask[] = [
+      ...PLAN,
+      { id: 'hito', name: 'Punto de control', duration: 0, progress: 0, kind: 'HITO', constraint: { type: 'NO_ANTES_DE', date: '2026-06-08' } },
+    ]
+    expect(trazar(conHito, { hasta: '2026-06-08' }).rows.map((r) => r.id)).toContain('hito')
+  })
+
+  it('la cuenta es del plan entero, no de lo que sobrevive al cruce con otros ejes', () => {
+    // El rótulo dice «cuántas caen en el corte». Si cambiara al combinar filtros, diría una cosa
+    // distinta según qué más estuviera encendido y dejaría de servir para decidir si mirar.
+    const solo = trazar(PLAN, { hasta: '2026-06-30' }).enElCorte
+    const cruzado = trazar(PLAN, { hasta: '2026-06-30', onlyMilestones: true }).enElCorte
+    expect(cruzado).toBe(solo)
   })
 })

@@ -863,12 +863,23 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       const hasta = input.filter?.hasta
       if (!hasta) return null
       if (hasta < schedule.start || hasta > schedule.finish) return null
-      // En ordinales hábiles y con el mismo desplazamiento que `hoyX`: las dos rayas miden sobre el
-      // mismo eje, y media jornada de diferencia entre ellas se leería como un error del plan.
-      return (
-        calendar.ordinalOf(calendar.next(toDayNumber(hasta))) -
-        calendar.ordinalOf(toDayNumber(schedule.start))
-      )
+      // Al FINAL del día del corte, no a su principio.
+      //
+      // Las dos rayas miden sobre el mismo eje pero no sobre el mismo borde, porque sus fronteras
+      // son opuestas: «hoy» es un instante y lo atrasado es estrictamente anterior (`fin < hoy`),
+      // así que su raya va al borde izquierdo de la columna. El corte es un vencimiento INCLUSIVO
+      // —`inicio <= hasta`— y su día pertenece al horizonte, así que va al borde derecho.
+      //
+      // Copiar la fórmula de `hoyX` dejaba la raya una columna a la izquierda, y ahí la lectura se
+      // invertía justo en el caso frontera: la barra de una línea que CIERRA el día del corte
+      // termina en `ordinalOf(fin) + 1`, así que cruzaba la raya y se leía «sólo hay que avanzarla»
+      // cuando es la que hay que terminar. `calendar.next` no ayudaba a verlo: en día hábil
+      // devuelve el mismo día, así que la expresión se reducía a `ordinalOf(hasta)`.
+      //
+      // Sumar un día natural antes de pasar a ordinales resuelve los dos casos con una sola cuenta:
+      // en día hábil avanza una columna, y en fin de semana cae en el mismo ordinal que el lunes,
+      // que es el borde derecho del viernes — correcto, porque un sábado no añade trabajo.
+      return calendar.ordinalOf(toDayNumber(hasta) + 1) - originOrdinal
     })(),
     enElCorte: enElCorte.size,
     ticksSuperiores: Object.freeze(
