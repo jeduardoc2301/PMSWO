@@ -107,8 +107,3 @@ export function papelDe(linea: LineaParaPapel, mapa: MapaDePapeles | null | unde
 
   return 'trabajo'
 }
-
-/** Los papeles cuyas filas no se capturan: su avance sale de las hijas. */
-export function esContenedor(papel: Papel): boolean {
-  return papel === 'contenedor_raiz' || papel === 'contenedor_mayor' || papel === 'contenedor_medio'
-}

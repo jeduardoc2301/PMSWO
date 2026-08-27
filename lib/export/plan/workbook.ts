@@ -30,7 +30,7 @@ import {
   type Fila,
   type ReglaCondicional,
 } from '../xlsx/writer'
-import { ASPECTO, esContenedor, papelDe, type MapaDePapeles, type Papel } from './roles'
+import { ASPECTO, papelDe, type MapaDePapeles, type Papel } from './roles'
 
 // ── Entrada ──────────────────────────────────────────────────────────────────
 
