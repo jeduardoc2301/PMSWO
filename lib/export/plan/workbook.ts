@@ -67,6 +67,21 @@ export interface ConfiguracionDeExportacion {
   readonly advertencias?: readonly string[] | null
 }
 
+/**
+ * El calendario laboral con el que se calcularon las duraciones.
+ *
+ * Viaja hasta aquí porque la hoja tiene que contar los días hábiles **igual** que los contó el
+ * motor. El atraso es una resta entre lo que debería llevar avanzado a día de corte y lo que
+ * lleva; el primero lo calcula Excel y el segundo sale de la duración, y si cada uno cuenta con un
+ * calendario distinto la resta no significa nada. Ver `diasHabilesEntre`.
+ */
+export interface CalendarioDelPlan {
+  /** Días de la semana que se trabajan: 0 domingo, 1 lunes, … 6 sábado. */
+  readonly diasLaborables: readonly number[]
+  /** Feriados, como números de día del motor. */
+  readonly feriados: readonly number[]
+}
+
 export interface PlanParaExportar {
   readonly nombre: string
   /** En orden de plan: cada madre antes que sus hijas. */
@@ -74,6 +89,8 @@ export interface PlanParaExportar {
   /** En el orden configurado del proyecto. */
   readonly campos: readonly CampoDinamico[]
   readonly configuracion: ConfiguracionDeExportacion
+  /** Ausente significa la semana de lunes a viernes sin feriados, que es lo que asume Excel. */
+  readonly calendario?: CalendarioDelPlan
 }
 
 // ── Constantes compartidas ───────────────────────────────────────────────────
@@ -101,6 +118,25 @@ const ROJO_ATRASO = 'B3141C'
 
 /** El nombre definido que amarra la fecha de corte. Las fórmulas lo usan por nombre, no por celda. */
 export const NOMBRE_FECHA_CORTE = 'FechaCorte'
+
+/** El nombre definido con los feriados del proyecto. Sólo existe si el proyecto tiene alguno. */
+export const NOMBRE_FERIADOS = 'Feriados'
+
+/**
+ * La máscara de fin de semana que entiende `NETWORKDAYS.INTL`.
+ *
+ * Siete caracteres empezando en LUNES, donde `1` es día no laborable. La lista de días laborables
+ * viene en la convención de JavaScript —0 es domingo—, así que la posición 7 de la máscara es el
+ * día 0 y no el 7.
+ */
+export function mascaraDeSemana(diasLaborables: readonly number[]): string {
+  let mascara = ''
+  for (let posicion = 0; posicion < 7; posicion++) {
+    const dia = posicion === 6 ? 0 : posicion + 1
+    mascara += diasLaborables.includes(dia) ? '0' : '1'
+  }
+  return mascara
+}
 
 /**
  * La hoja se llama siempre igual.
@@ -160,6 +196,43 @@ interface FilaResuelta {
   /** Fila de Excel en base 1, ya contando la cabecera del documento. */
   readonly numero: number
   readonly consecutivo: number
+}
+
+/**
+ * El tope de Excel para una fórmula es de 8 192 caracteres, y no avisa: se niega a abrir el libro.
+ *
+ * Se deja margen para el `IFERROR(...)/(...)` que envuelve al avance.
+ */
+const TOPE_DE_FORMULA = 8_000
+
+function cabeEnUnaCelda(formula: string): boolean {
+  return formula.length <= TOPE_DE_FORMULA
+}
+
+/**
+ * Lo que pesa una hoja en el avance de sus madres.
+ *
+ * **Nunca cero**, y esa es la parte que importa. El peso son los días laborables de la línea, y un
+ * hito dura cero por definición: una rama cuyas hijas directas son todas hitos —una compuerta, un
+ * paquete de aprobaciones, un bloque de entregas al cliente— sumaba peso cero, y entonces pasaban
+ * dos cosas a la vez, las dos malas:
+ *
+ * 1. Su propio avance era `0/0`, que el `IFERROR` no convertía en un error visible sino en un
+ *    **cero**. La fila enseñaba 0 % y «No iniciado» con todas sus hijas cumplidas y cerradas.
+ * 2. Su peso era cero para su madre, así que la rama entera **desaparecía** del avance del
+ *    programa. El trabajo existía, estaba hecho, y no contaba en ninguna parte.
+ *
+ * Ponderar sólo por duración es una regla de dominio disfrazada de aritmética: presupone que toda
+ * rama contiene al menos una línea que dura. Es cierto en un plan de migración y falso en un
+ * calendario regulatorio, en un plan de entregas contractuales o en las fechas de un rodaje, donde
+ * ramas enteras son sólo compromisos con fecha. El encargo dice que una regla que sólo vale para
+ * un proyecto concreto no puede vivir en el código del exportador, y ésta vivía aquí.
+ *
+ * El suelo de uno es la reparación mínima que no mete conocimiento de dominio: **una línea que
+ * existe cuenta**. Un hito pesa lo que un día de trabajo, no lo que un mes.
+ */
+function pesoDeUnaHoja(linea: LineaDePlan): number {
+  return Math.max(1, linea.peso ?? linea.duracion ?? 0)
 }
 
 function textoDe(valor: string | number | boolean | null | undefined): string {
@@ -282,6 +355,78 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
 
   const filaDe = new Map(resueltas.map((r) => [r.linea.id, r]))
   const ultimaFila = resueltas.length > 0 ? resueltas[resueltas.length - 1].numero : filaTitulos
+
+  /**
+   * Dónde acaba el subárbol de cada línea.
+   *
+   * El recorrido de `ordenarPorJerarquia` es en profundidad, así que la descendencia de una línea
+   * ocupa filas **contiguas**: van desde la suya hasta la última que siga siendo más honda que
+   * ella. Eso es lo que permite escribir una suma sobre las hijas sin nombrarlas una a una.
+   */
+  const finDeSubarbol = resueltas.map((fila, i) => {
+    let j = i + 1
+    while (j < resueltas.length && resueltas[j].profundidad > fila.profundidad) j++
+    return j - 1
+  })
+
+  /**
+   * La suma ponderada sobre las hijas directas, en forma cerrada.
+   *
+   * El repuesto para cuando nombrarlas una a una no cabe. El numerador y el denominador del avance
+   * llevan un sumando por hija —unos 14 caracteres cada uno—, de modo que a partir de unas 560
+   * hijas bajo una misma madre la fórmula pasaba de los 8 192 caracteres y **Excel se negaba a
+   * abrir el archivo**. No lento ni impreciso: no abría. Un plan plano —un inventario de
+   * servidores, un catálogo de partidas— llega ahí sin ninguna dificultad.
+   *
+   * Aprovecha que la descendencia es contigua: dentro del tramo de una madre, sus hijas directas
+   * son exactamente las filas cuyo Nivel es el suyo más uno. Mide igual con dos hijas que con
+   * cinco mil.
+   *
+   * Sólo se usa cuando hace falta. La forma explícita se queda como principal porque no depende de
+   * ninguna columna de datos: si alguien reescribe la columna Nivel a mano, esta se rompe y
+   * aquélla no.
+   */
+  const sumaSobreLasHijas = (fila: FilaResuelta, factores: readonly number[]): string => {
+    const desde = fila.numero + 1
+    const hasta = resueltas[finDeSubarbol[fila.consecutivo - 1]].numero
+    const nivelDeLasHijas = fila.profundidad + 2 // la columna Nivel enseña la profundidad más uno
+    const rango = (columna: number) =>
+      `$${letraDeColumna(columna)}$${desde}:$${letraDeColumna(columna)}$${hasta}`
+    const extras = factores.map((columna) => `*${rango(columna)}`).join('')
+    return `SUMPRODUCT((${rango(COL.nivel)}=${nivelDeLasHijas})*${rango(columnaPeso)}${extras})`
+  }
+
+  // ── El calendario, para que Excel cuente como el motor ─────────────────────
+  //
+  // `NETWORKDAYS` a secas tiene el fin de semana clavado en sábado y domingo y no sabe de
+  // feriados. La duración, en cambio, la calcula el motor con el calendario del proyecto. Usar
+  // uno para el numerador y otro para el denominador daba un cociente que no era ninguna fracción
+  // de avance: en un plan con feriados el atraso salía con el **signo cambiado** —marcaba rojo una
+  // línea que iba adelantada—, y con una semana de lunes a sábado una tarea terminada nunca
+  // llegaba a cero.
+  //
+  // `NETWORKDAYS.INTL` acepta las dos cosas: una máscara de semana y una lista de feriados. Se
+  // escribe con el prefijo `_xlfn.` porque es de las funciones posteriores a 2007 y así lo pide el
+  // formato; Excel lo quita al abrir.
+  const calendario = plan.calendario
+  const mascara = calendario ? mascaraDeSemana(calendario.diasLaborables) : mascaraDeSemana([1, 2, 3, 4, 5])
+  const feriados = calendario ? [...calendario.feriados].sort((a, b) => a - b) : []
+
+  // Los feriados se guardan en la propia columna de Peso, DEBAJO de la tabla: así la última
+  // columna sigue siendo Peso —y sigue oculta—, y las fechas no le estorban a nadie. Quedan fuera
+  // del autofiltro, que sólo llega hasta la última línea del plan.
+  const primeraFilaDeFeriados = ultimaFila + 2
+  const referenciaDeFeriados =
+    feriados.length > 0
+      ? `${NOMBRE_DE_HOJA}!$${letraDeColumna(columnaPeso)}$${primeraFilaDeFeriados}:$${letraDeColumna(
+          columnaPeso,
+        )}$${primeraFilaDeFeriados + feriados.length - 1}`
+      : null
+
+  const diasHabilesEntre = (desde: string, hasta: string): string =>
+    referenciaDeFeriados
+      ? `_xlfn.NETWORKDAYS.INTL(${desde},${hasta},"${mascara}",${NOMBRE_FERIADOS})`
+      : `_xlfn.NETWORKDAYS.INTL(${desde},${hasta},"${mascara}")`
 
   // ── Estilos ────────────────────────────────────────────────────────────────
   const estiloTitulo = estilos.registrar({
@@ -416,9 +561,13 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
         .map((h) => `${letraPeso}${h.numero}*${letraDeColumna(COL.avance)}${h.numero}`)
         .join('+')
       const denominador = hijasConFila.map((h) => `${letraPeso}${h.numero}`).join('+')
+      const explicita = `IFERROR((${numerador})/(${denominador}),0)`
+
       celdas[COL.avance - 1] = {
         tipo: 'formula',
-        formula: `IFERROR((${numerador})/(${denominador}),0)`,
+        formula: cabeEnUnaCelda(explicita)
+          ? explicita
+          : `IFERROR(${sumaSobreLasHijas(fila, [COL.avance])}/${sumaSobreLasHijas(fila, [])},0)`,
         estilo: estiloAvance,
       }
     } else {
@@ -449,9 +598,9 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
     } else {
       // Un hito no se mide en avance parcial: o llegó o no llegó, y si no llegó el atraso son los
       // días laborables que van desde su fecha hasta el corte.
-      const deHito = `IF(${L.avance}=1,0,IF(${refCorte}<=${L.fin},0,-(NETWORKDAYS(${L.fin},${refCorte})-1)))`
+      const deHito = `IF(${L.avance}=1,0,IF(${refCorte}<=${L.fin},0,-(${diasHabilesEntre(L.fin, refCorte)}-1)))`
       // Para lo demás: lo que debería llevar avanzado a día de corte contra lo que lleva, en días.
-      const esperado = `MIN(1,MAX(0,NETWORKDAYS(${L.inicio},MIN(${refCorte},${L.fin}))/${L.duracion}))`
+      const esperado = `MIN(1,MAX(0,${diasHabilesEntre(L.inicio, `MIN(${refCorte},${L.fin})`)}/${L.duracion}))`
       const deTarea = `ROUND((${L.avance}-${esperado})*${L.duracion},1)`
       celdas[COL.atraso - 1] = {
         tipo: 'formula',
@@ -485,20 +634,33 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
     // ── Peso ─────────────────────────────────────────────────────────────────
     const estiloPeso = estiloCuerpo(papel, { centrado: true })
     if (hijasConFila.length > 0) {
+      const explicita = hijasConFila.map((h) => `${letraPeso}${h.numero}`).join('+')
       celdas[columnaPeso - 1] = {
         tipo: 'formula',
-        formula: hijasConFila.map((h) => `${letraPeso}${h.numero}`).join('+'),
+        formula: cabeEnUnaCelda(explicita) ? explicita : sumaSobreLasHijas(fila, []),
         estilo: estiloPeso,
       }
     } else {
       celdas[columnaPeso - 1] = {
         tipo: 'numero',
-        valor: linea.peso ?? linea.duracion ?? 0,
+        valor: pesoDeUnaHoja(linea),
         estilo: estiloPeso,
       }
     }
 
     filas.push({ celdas, nivel: profundidad })
+  }
+
+  // ── Los feriados, debajo de la tabla y dentro de la columna oculta ─────────
+  if (feriados.length > 0) {
+    // Una fila en blanco los separa de la última línea del plan.
+    filas.push({ celdas: [] })
+    const estiloFeriado = estilos.registrar({ formato: FORMATO_FECHA })
+    for (const dia of feriados) {
+      const celdas: Celda[] = new Array(columnaPeso).fill(null).map(() => ({ tipo: 'vacia' }) as Celda)
+      celdas[columnaPeso - 1] = { tipo: 'fecha', serial: serialDeExcel(dia), estilo: estiloFeriado }
+      filas.push({ celdas })
+    }
   }
 
   // ── Anchos ─────────────────────────────────────────────────────────────────
@@ -571,6 +733,9 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
           nombre: NOMBRE_FECHA_CORTE,
           refiereA: `${NOMBRE_DE_HOJA}!$${letraDeColumna(COL.inicio)}$${filaCorte}`,
         },
+        ...(referenciaDeFeriados
+          ? [{ nombre: NOMBRE_FERIADOS, refiereA: referenciaDeFeriados }]
+          : []),
       ],
     },
     estilos,

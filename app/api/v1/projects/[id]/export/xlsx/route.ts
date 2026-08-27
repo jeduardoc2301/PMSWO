@@ -21,7 +21,8 @@ import prisma from '@/lib/prisma'
 import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import { esClaseDeHito } from '@/lib/scheduling/kinds'
-import { createWorkCalendar } from '@/lib/scheduling/calendar'
+import { DEFAULT_WORKING_WEEKDAYS, createWorkCalendar } from '@/lib/scheduling/calendar'
+import { cabeceraDeNombre } from '@/lib/export/nombre-de-archivo'
 import { esPapel } from '@/lib/export/plan/roles'
 import {
   construirLibroDePlan,
@@ -52,13 +53,6 @@ const NOMBRE_DE_CLASE: Readonly<Record<string, string>> = Object.freeze({
 /** Número de día del motor: días enteros desde el 1 de enero de 1970, en hora civil. */
 function numeroDeDia(fecha: Date): number {
   return Math.floor(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()) / 86_400_000)
-}
-
-function nombreDeArchivo(nombre: string): string {
-  // Se queda con lo que un sistema de archivos acepta en cualquier plataforma. Un plan llamado
-  // «Migración BU 2026/2027» produciría una ruta con un directorio inventado.
-  const limpio = nombre.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80)
-  return `${limpio || 'plan'}.xlsx`
 }
 
 async function handler(
@@ -98,13 +92,15 @@ async function handler(
     return NextResponse.json({ error: 'NOT_FOUND', message: 'Proyecto no encontrado' }, { status: 404 })
   }
 
-  // El mismo calendario con el que el motor programa. Si el libro contara los días laborables por
-  // su cuenta, el «Atraso» de Excel y el del Timeline dirían cosas distintas del mismo plan.
-  const diasHabiles = proyecto.calendar?.workingWeekdays
-  const calendario = createWorkCalendar({
-    workingWeekdays: Array.isArray(diasHabiles) ? (diasHabiles as number[]) : undefined,
-    holidays: (proyecto.calendar?.holidays ?? []).map((h) => h.date.toISOString().slice(0, 10)),
-  })
+  // El mismo calendario con el que el motor programa, y —esto es lo que importa— el mismo que
+  // viaja DENTRO del libro. Aquí se calculan las duraciones; allí, los días transcurridos hasta el
+  // corte. Si los dos no contaran igual, el atraso sería la resta de dos cosas distintas.
+  const diasLaborables = Array.isArray(proyecto.calendar?.workingWeekdays)
+    ? (proyecto.calendar.workingWeekdays as number[])
+    : [...DEFAULT_WORKING_WEEKDAYS]
+  const feriados = (proyecto.calendar?.holidays ?? []).map((h) => h.date.toISOString().slice(0, 10))
+
+  const calendario = createWorkCalendar({ workingWeekdays: diasLaborables, holidays: feriados })
 
   // ── Predecesoras, agrupadas por sucesora ───────────────────────────────────
   const predecesorasDe = new Map<string, string[]>()
@@ -215,6 +211,14 @@ async function handler(
       descripcion: guardada?.headerDescription ?? null,
       advertencias,
     },
+    calendario: {
+      diasLaborables,
+      // Van todos, sin filtrar. Un feriado que cae en fin de semana no descuenta nada, pero
+      // `NETWORKDAYS.INTL` ya lo sabe y no lo cuenta dos veces, así que quitarlo aquí no cambiaría
+      // ningún resultado y sí añadiría una regla que alguien tendría que mantener de acuerdo con
+      // la del motor.
+      feriados: feriados.map((f) => numeroDeDia(new Date(`${f}T00:00:00Z`))),
+    },
   }
 
   const { contenido } = construirLibroDePlan(plan)
@@ -223,7 +227,7 @@ async function handler(
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${nombreDeArchivo(proyecto.name)}"`,
+      'Content-Disposition': cabeceraDeNombre(proyecto.name, 'xlsx'),
       'Content-Length': String(contenido.length),
       // El plan cambia en cuanto alguien mueve una línea; servir una copia guardada haría que el
       // archivo descargado no fuera el plan.

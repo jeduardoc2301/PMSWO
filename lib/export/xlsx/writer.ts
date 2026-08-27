@@ -132,6 +132,9 @@ export function serialDeExcel(dayNumber: number): number {
  */
 const RELLENO_DE_ANCHO = 5 / 7
 
+/** Hasta dónde llega el agrupamiento de filas de Excel. Por encima, el atributo no significa nada. */
+const NIVEL_MAXIMO_DE_ESQUEMA = 7
+
 /** `1` → `A`, `27` → `AA`. En base 1, como las referencias de Excel. */
 export function letraDeColumna(indice: number): string {
   let n = indice
@@ -377,7 +380,13 @@ function xmlDeHoja(hoja: Hoja): string {
       const celdas = fila.celdas
         .map((celda, j) => xmlDeCelda(celda, `${letraDeColumna(j + 1)}${numero}`))
         .join('')
-      const nivel = fila.nivel ? ` outlineLevel="${fila.nivel}"` : ''
+      // El agrupamiento de Excel llega hasta el 7. La cabecera de la hoja ya lo acotaba —abajo, en
+      // `outlineLevelRow`— y la fila no: un plan de diez niveles declaraba filas en el 8 y el 9
+      // mientras la propia hoja decía que el máximo era 7, o sea que el archivo se contradecía.
+      // Se acota aquí también. La sangría del nombre no se toca y sigue marcando la profundidad
+      // real, así que por debajo del séptimo nivel la jerarquía se sigue leyendo aunque ya no se
+      // pueda plegar.
+      const nivel = fila.nivel ? ` outlineLevel="${Math.min(fila.nivel, NIVEL_MAXIMO_DE_ESQUEMA)}"` : ''
       const altura = fila.altura ? ` ht="${fila.altura}" customHeight="1"` : ''
       return `<row r="${numero}"${nivel}${altura}>${celdas}</row>`
     })
@@ -418,7 +427,7 @@ function xmlDeHoja(hoja: Hoja): string {
   // validaciones. Cambiarlo produce un archivo que Excel no abre.
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><outlinePr summaryBelow="0" summaryRight="0"/></sheetPr>${vistas}<sheetFormatPr defaultRowHeight="15"${
-    nivelMaximo > 0 ? ` outlineLevelRow="${Math.min(nivelMaximo, 7)}"` : ''
+    nivelMaximo > 0 ? ` outlineLevelRow="${Math.min(nivelMaximo, NIVEL_MAXIMO_DE_ESQUEMA)}"` : ''
   }/>${cols ? `<cols>${cols}</cols>` : ''}<sheetData>${filas}</sheetData>${
     hoja.autofiltro ? `<autoFilter ref="${hoja.autofiltro}"/>` : ''
   }${condicionales}${xmlValidaciones}</worksheet>`

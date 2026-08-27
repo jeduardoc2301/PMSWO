@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { readWorkbook } from '@/lib/scheduling/xlsx'
 import { leerZip } from '../../xlsx/zip'
 import { letraDeColumna } from '../../xlsx/writer'
-import { ESTADOS, NOMBRE_FECHA_CORTE, construirLibroDePlan, type PlanParaExportar } from '../workbook'
+import {
+  ESTADOS,
+  NOMBRE_FECHA_CORTE,
+  NOMBRE_FERIADOS,
+  construirLibroDePlan,
+  mascaraDeSemana,
+  type PlanParaExportar,
+} from '../workbook'
 import { papelDe } from '../roles'
 
 /**
@@ -256,7 +263,7 @@ describe('libro de plan · la hoja calcula', () => {
     const xml = hojaDe(migracion())
     // El atraso se mide contra el nombre, no contra una celda escrita a mano: mover la cabecera
     // no puede romper mil fórmulas.
-    expect(xml).toMatch(new RegExp(`NETWORKDAYS\\([^)]*${NOMBRE_FECHA_CORTE}`))
+    expect(xml).toMatch(new RegExp(`NETWORKDAYS\\.INTL\\([^)]*${NOMBRE_FECHA_CORTE}`))
     expect(xml).toContain('<f>TODAY()</f>')
   })
 
@@ -455,5 +462,176 @@ describe('libro de plan · los anchos son los que se piden', () => {
     // abrir el archivo de verdad y preguntarle a Excel cuánto medían sus columnas.
     expect(xml).toContain('<col min="1" max="1" width="6.71484375" customWidth="1"/>')
     expect(xml).toContain('<col min="3" max="3" width="92.71484375" customWidth="1"/>')
+  })
+})
+
+/**
+ * Los tres defectos que encontró la revisión adversaria y que sólo se veían ejecutando.
+ * Cada uno tiene aquí la prueba que faltaba cuando se escribió el código.
+ */
+describe('libro de plan · lo que la revisión encontró', () => {
+  /** Una madre y N hijas hito, todas cumplidas. El caso que salía a 0 %. */
+  function ramaDePuroHito(cuantas: number): PlanParaExportar {
+    return {
+      nombre: 'Calendario de campaña',
+      campos: [],
+      configuracion: {},
+      lineas: [
+        { id: 'r', nombre: 'Campaña', tipo: 'Fase', parentId: null, inicio: DIA, fin: DIA + 60, duracion: 44, avance: 0, peso: null, predecesoras: [], personalizados: {} },
+        ...Array.from({ length: cuantas }, (_, i) => ({
+          id: `h${i}`,
+          nombre: `Compromiso ${i}`,
+          tipo: 'Hito',
+          parentId: 'r',
+          inicio: DIA + i,
+          fin: DIA + i,
+          duracion: 0,
+          avance: 1,
+          peso: null,
+          predecesoras: [],
+          personalizados: {},
+        })),
+      ],
+    }
+  }
+
+  it('una rama de puros hitos cumplidos NO sale al 0 %: pesa, y su madre lo nota', () => {
+    const xml = hojaDe(ramaDePuroHito(3))
+    const filas = [...xml.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+
+    // Cada hito pesa 1, no 0: una línea que existe cuenta.
+    const hito = filas.find((f) => f[2].includes('Compromiso 0'))!
+    expect(hito[2]).toMatch(/<c r="[A-Z]+\d+" s="\d+"><v>1<\/v><\/c>/)
+
+    // Y por tanto el denominador de la madre no es cero, que era lo que la mandaba al IFERROR.
+    const madre = filas.find((f) => f[2].includes('Campaña'))!
+    const avance = /<f>(IFERROR[^<]*)<\/f>/.exec(madre[2])![1]
+    expect(avance).toContain('/(')
+    // Tres sumandos en el denominador, uno por hija, y ninguno vale cero.
+    expect(avance.split('/(')[1].split(')')[0].split('+')).toHaveLength(3)
+  })
+
+  it('con más hijas de las que caben en una fórmula, la suma se cierra en vez de reventar', () => {
+    // A partir de unas 560 hijas la forma explícita pasaba de los 8 192 caracteres de Excel y el
+    // archivo NO ABRÍA. Comprobado en Excel 16.0: 560 abría, 580 no.
+    const xml = hojaDe(ramaDePuroHito(600))
+
+    for (const formula of xml.matchAll(/<f>([^<]*)<\/f>/g)) {
+      expect(formula[1].length).toBeLessThanOrEqual(8_192)
+    }
+
+    const filas = [...xml.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const madre = filas.find((f) => f[2].includes('Campaña'))!
+    // Se cae al repuesto cerrado, que mide lo mismo con dos hijas que con cinco mil.
+    expect(madre[2]).toContain('SUMPRODUCT')
+  })
+
+  it('pero con pocas hijas se queda en la forma explícita, que no depende de ninguna columna', () => {
+    const filas = [...hojaDe(ramaDePuroHito(3)).matchAll(/<row r="\d+"[^>]*>(.*?)<\/row>/g)]
+    expect(filas.find((f) => f[1].includes('Campaña'))![1]).not.toContain('SUMPRODUCT')
+  })
+
+  it('un plan más hondo que el esquema de Excel no declara niveles que la hoja niega', () => {
+    // El agrupamiento de Excel llega al 7. La cabecera ya lo acotaba y la fila no: el archivo
+    // declaraba filas en el nivel 8 y el 9 mientras decía que el máximo era 7.
+    const cadena: PlanParaExportar = {
+      nombre: 'Diez niveles',
+      campos: [],
+      configuracion: {},
+      lineas: Array.from({ length: 10 }, (_, i) => ({
+        id: `n${i}`,
+        nombre: `Nivel ${i}`,
+        tipo: 'Actividad',
+        parentId: i === 0 ? null : `n${i - 1}`,
+        inicio: DIA,
+        fin: DIA + 5,
+        duracion: 4,
+        avance: 0,
+        peso: null,
+        predecesoras: [],
+        personalizados: {},
+      })),
+    }
+
+    const xml = hojaDe(cadena)
+    const niveles = [...xml.matchAll(/outlineLevel="(\d+)"/g)].map((m) => Number(m[1]))
+    expect(Math.max(...niveles)).toBe(7)
+
+    const declarado = Number(/outlineLevelRow="(\d+)"/.exec(xml)![1])
+    // Lo que dice la cabecera y lo que dicen las filas tienen que ser la misma cosa.
+    expect(Math.max(...niveles)).toBeLessThanOrEqual(declarado)
+
+    // La sangría sí llega a cualquier profundidad: por debajo del séptimo nivel la jerarquía se
+    // sigue leyendo aunque ya no se pueda plegar.
+    expect(estilosDe(cadena)).toContain('indent="18"')
+  })
+})
+
+describe('libro de plan · Excel cuenta los días como el motor', () => {
+  it('la máscara de semana empieza en lunes y pone el domingo al final', () => {
+    // La lista de días viene en la convención de JavaScript (0 = domingo) y la máscara empieza en
+    // lunes: la posición 7 es el día 0, no el 7. Equivocarse ahí desplaza la semana entera.
+    expect(mascaraDeSemana([1, 2, 3, 4, 5])).toBe('0000011') // lun-vie
+    expect(mascaraDeSemana([1, 2, 3, 4, 5, 6])).toBe('0000001') // lun-sáb
+    expect(mascaraDeSemana([0, 1, 2, 3, 4, 5, 6])).toBe('0000000') // todos
+    expect(mascaraDeSemana([0])).toBe('1111110') // sólo domingo
+  })
+
+  function conCalendario(diasLaborables: number[], feriados: number[]): PlanParaExportar {
+    return {
+      nombre: 'Con calendario',
+      campos: [],
+      configuracion: {},
+      calendario: { diasLaborables, feriados },
+      lineas: [
+        { id: 'a', nombre: 'Tarea', tipo: 'Actividad', parentId: null, inicio: DIA, fin: DIA + 18,
+          duracion: 12, avance: 0.8, peso: null, predecesoras: [], personalizados: {} },
+      ],
+    }
+  }
+
+  it('el atraso cuenta con el calendario del proyecto, no con el que Excel supone', () => {
+    // `NETWORKDAYS` a secas tiene sábado y domingo clavados y no sabe de feriados, mientras que la
+    // duración la calcula el motor con el calendario real. Numerador y denominador salían de
+    // calendarios distintos, y el atraso llegaba a cambiar de SIGNO: marcaba en rojo una línea que
+    // iba adelantada. Comprobado en Excel: -1,4 antes, +1,6 después.
+    const xml = hojaDe(conCalendario([1, 2, 3, 4, 5], [DIA + 2, DIA + 3]))
+    expect(xml).toContain('NETWORKDAYS.INTL')
+    expect(xml).not.toMatch(/[^.]NETWORKDAYS\(/)
+  })
+
+  it('los feriados viajan dentro del libro, bajo la columna oculta', () => {
+    const plan = conCalendario([1, 2, 3, 4, 5], [DIA + 2, DIA + 3])
+    expect(libroDe(plan)).toContain(`<definedName name="${NOMBRE_FERIADOS}">`)
+
+    // Van en la propia columna de Peso y por debajo de la tabla: así la última columna sigue
+    // siendo Peso, sigue oculta, y las fechas no le estorban a nadie.
+    const columnas = construirLibroDePlan(plan).columnas
+    expect(libroDe(plan)).toContain(`${letraDeColumna(columnas)}$`)
+  })
+
+  it('sin feriados no se declara el nombre: una referencia a un rango vacío no vale', () => {
+    const plan = conCalendario([1, 2, 3, 4, 5], [])
+    expect(libroDe(plan)).not.toContain(`name="${NOMBRE_FERIADOS}"`)
+    expect(hojaDe(plan)).toContain('&quot;0000011&quot;')
+  })
+
+  it('una semana de lunes a sábado se dice en la máscara, no se ignora', () => {
+    expect(hojaDe(conCalendario([1, 2, 3, 4, 5, 6], []))).toContain('&quot;0000001&quot;')
+  })
+
+  it('un plan sin calendario asume lunes a viernes, que es lo que asumía antes', () => {
+    // No es una regresión silenciosa: es el mismo comportamiento de siempre, ahora dicho.
+    expect(hojaDe(migracion())).toContain('&quot;0000011&quot;')
+  })
+
+  it('el autofiltro no se traga las filas de feriados', () => {
+    const plan = conCalendario([1, 2, 3, 4, 5], [DIA + 2, DIA + 3])
+    const xml = hojaDe(plan)
+    const filtro = /<autoFilter ref="A\d+:[A-Z]+(\d+)"\/>/.exec(xml)!
+    const ultimaFilaDeDatos = Number(filtro[1])
+    const filasDeFeriado = [...xml.matchAll(/<row r="(\d+)"/g)].map((m) => Number(m[1]))
+    // Las dos últimas filas del documento son feriados y quedan por debajo del filtro.
+    expect(Math.max(...filasDeFeriado)).toBeGreaterThan(ultimaFilaDeDatos)
   })
 })
