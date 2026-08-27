@@ -440,3 +440,41 @@ describe('El corte «hasta»', () => {
     expect(props.onFilterChange).toHaveBeenCalledWith({})
   })
 })
+
+describe('El botón de exportar a Excel', () => {
+  it('aparece cuando hay un proyecto que descargar', () => {
+    montar({ idDelProyecto: 'p-1' })
+    expect(screen.getByTestId('exportar-plan-excel')).toBeInTheDocument()
+  })
+
+  /**
+   * Esta barra también se monta sobre planes que aún no existen en la base —una plantilla en vista
+   * previa—. Ahí no hay nada que descargar, y un botón que da 404 es peor que no ofrecerlo.
+   */
+  it('y no aparece cuando no lo hay', () => {
+    montar()
+    expect(screen.queryByTestId('exportar-plan-excel')).toBeNull()
+  })
+
+  it('pide el plan del proyecto que se está mirando, y si falla lo dice', async () => {
+    const pedidas: string[] = []
+    const avisar = vi.fn()
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      pedidas.push(url)
+      return { ok: false, json: async () => ({ message: 'El plan no está disponible.' }) } as unknown as Response
+    }))
+    vi.stubGlobal('alert', avisar)
+
+    try {
+      montar({ idDelProyecto: 'p-42' })
+      fireEvent.click(screen.getByTestId('exportar-plan-excel'))
+
+      // Se espera al aviso y no a la petición: la petición se registra a mitad de vuelo, y cortar
+      // ahí dejaba la promesa corriendo sin su `alert` —que para entonces ya estaba desmontado—.
+      await vi.waitFor(() => expect(avisar).toHaveBeenCalledWith('El plan no está disponible.'))
+      expect(pedidas).toEqual(['/api/v1/projects/p-42/export/xlsx'])
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
