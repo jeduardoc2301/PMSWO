@@ -135,7 +135,9 @@ export function PlanControls({
   const parte = filter.party ?? null
   // «Todo» se marca solo cuando de verdad no queda nada filtrado. Se mira también `onlyCritical`,
   // que esta barra no ofrece: marcar «Todo» con un filtro encendido sería mentir sobre lo que se ve.
-  const sinFiltro = naturaleza === null && parte === null && filter.onlyCritical !== true
+  const soloAtrasadas = filter.onlyOverdue === true
+  const sinFiltro =
+    naturaleza === null && parte === null && !soloAtrasadas && filter.onlyCritical !== true
 
   /**
    * Por qué unos botones del filtro se apagan entre sí.
@@ -154,9 +156,11 @@ export function PlanControls({
    * esta barra — un filtro que no se ve y no se puede apagar es peor que ningún filtro.
    */
   const cambiarNaturaleza = (valor: Naturaleza): void =>
-    onFilterChange(armarFiltro(naturaleza === valor ? null : valor, parte))
+    onFilterChange(armarFiltro(naturaleza === valor ? null : valor, parte, soloAtrasadas))
   const cambiarParte = (valor: ResponsibleParty): void =>
-    onFilterChange(armarFiltro(naturaleza, parte === valor ? null : valor))
+    onFilterChange(armarFiltro(naturaleza, parte === valor ? null : valor, soloAtrasadas))
+  const cambiarAtrasadas = (): void =>
+    onFilterChange(armarFiltro(naturaleza, parte, !soloAtrasadas))
 
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-4 rounded-lg border border-borde bg-superficie px-4 py-3">
@@ -237,6 +241,18 @@ export function PlanControls({
         </Boton>
         <Boton activo={parte === 'PROVEEDOR'} onClick={() => cambiarParte('PROVEEDOR')}>
           Nuestro
+        </Boton>
+        {/* Tercer eje, independiente de los otros dos: «qué de la ruta súper crítica está atrasado»
+            es una pregunta que se hace, y excluirlo de los demás la dejaría sin contestar.
+
+            Va aquí y no en el grupo «Atrasadas» para que «Todo» siga diciendo la verdad: un filtro
+            encendido fuera de este grupo se vería igual que un plan corto. El conmutador de allá
+            sigue resaltando, que contesta otra pregunta —dónde caen respecto de las demás— y por eso
+            los dos conviven en vez de sustituirse. */}
+        <Boton activo={soloAtrasadas} onClick={cambiarAtrasadas}>
+          <span data-cuenta-atrasadas-filtro={cuantasAtrasadas}>
+            Solo atrasadas{cuantasAtrasadas > 0 ? ` (${cuantasAtrasadas})` : ''}
+          </span>
         </Boton>
       </Grupo>
 
@@ -319,16 +335,22 @@ function naturalezaDe(filter: GanttFilter): Naturaleza | null {
   return null
 }
 
-/** Arma el filtro completo con los dos ejes. Lo que no se pone aquí, queda apagado. */
-function armarFiltro(naturaleza: Naturaleza | null, parte: ResponsibleParty | null): GanttFilter {
+/** Arma el filtro completo con los tres ejes. Lo que no se pone aquí, queda apagado. */
+function armarFiltro(
+  naturaleza: Naturaleza | null,
+  parte: ResponsibleParty | null,
+  soloAtrasadas: boolean,
+): GanttFilter {
   const filtro: {
     onlySuperCritical?: boolean
     onlyMilestones?: boolean
     party?: ResponsibleParty
+    onlyOverdue?: boolean
   } = {}
   if (naturaleza === 'SUPER') filtro.onlySuperCritical = true
   if (naturaleza === 'HITOS') filtro.onlyMilestones = true
   if (parte !== null) filtro.party = parte
+  if (soloAtrasadas) filtro.onlyOverdue = true
   return filtro
 }
 

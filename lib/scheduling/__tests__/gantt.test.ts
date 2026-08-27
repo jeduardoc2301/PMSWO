@@ -1341,3 +1341,64 @@ describe('§6.1 · las filas van donde dice su número, no donde se crearon', ()
     expect(orden.slice(9, 12)).toEqual(['h9', 'h10', 'h11'])
   })
 })
+
+describe('Filtro «solo atrasadas»', () => {
+  function trazar(hoy: string | undefined, tasks: PlanTask[], filter?: Record<string, unknown>) {
+    const calendar = createWorkCalendar()
+    const schedule = schedulePlan({ tasks, dependencies: [], calendar, start: '2026-06-01' })
+    const analysis = analyzeCriticalPath(schedule)
+    return ganttLayout({
+      tasks,
+      dependencies: [],
+      schedule,
+      classified: classifySuperCritical(analysis, tasks).tasks,
+      calendar,
+      ...(hoy ? { hoy: hoy as never } : {}),
+      ...(filter ? { filter: filter as never } : {}),
+    })
+  }
+
+  const PLAN: PlanTask[] = [
+    { id: 'grupo', name: 'Un resumen', duration: 0 },
+    { id: 'vencida', name: 'Vencida a medias', parentId: 'grupo', duration: 3, progress: 0.4 },
+    { id: 'cumplida', name: 'Vencida pero hecha', parentId: 'grupo', duration: 3, progress: 1 },
+    { id: 'futura', name: 'Aún no vence', duration: 60, progress: 0 },
+  ]
+
+  it('deja solo lo atrasado, más los resúmenes que lo contienen', () => {
+    // Los antepasados se conservan a propósito: una hoja suelta sin su grupo no dice dónde cae.
+    const filas = trazar('2026-07-01', PLAN, { onlyOverdue: true }).rows
+    const ids = filas.map((r) => r.id)
+    expect(ids).toContain('vencida')
+    expect(ids).not.toContain('cumplida')
+    expect(ids).not.toContain('futura')
+  })
+
+  it('lo que el filtro deja y lo que el conmutador resalta son el mismo conjunto', () => {
+    // Es la invariante que sostiene el diseño: si se separaran, el botón diría una cifra y dejaría
+    // otra cantidad de filas. Toda fila que quede sin estar atrasada tiene que ser un antepasado.
+    const filas = trazar('2026-07-01', PLAN, { onlyOverdue: true }).rows
+    for (const fila of filas) {
+      if (!fila.atrasada) expect(fila.hasChildren).toBe(true)
+    }
+    const resaltadas = trazar('2026-07-01', PLAN).rows.filter((r) => r.atrasada).map((r) => r.id)
+    expect(filas.filter((f) => f.atrasada).map((f) => f.id)).toEqual(resaltadas)
+  })
+
+  it('sin «hoy» no deja nada, en vez de dejarlo todo', () => {
+    // No se inventa un presente: sin fecha de corte no hay nada vencido, y enseñar el plan entero
+    // bajo un filtro encendido diría que todo está atrasado.
+    expect(trazar(undefined, PLAN, { onlyOverdue: true }).rows).toHaveLength(0)
+  })
+
+  it('se combina con los otros ejes en vez de excluirlos', () => {
+    // «Qué de esto está atrasado» es una pregunta que se hace sobre un plan ya recortado.
+    const soloHitos = trazar('2026-07-01', PLAN, { onlyOverdue: true, onlyMilestones: true }).rows
+    expect(soloHitos.every((r) => r.atrasada || r.hasChildren)).toBe(true)
+  })
+
+  it('apagado, no recorta nada', () => {
+    const todas = trazar('2026-07-01', PLAN).rows.length
+    expect(trazar('2026-07-01', PLAN, { onlyOverdue: false }).rows).toHaveLength(todas)
+  })
+})

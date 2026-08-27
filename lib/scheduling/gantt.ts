@@ -287,6 +287,14 @@ export interface GanttFilter {
   readonly onlyMilestones?: boolean
   /** Deja solo lo que responde una de las partes. */
   readonly party?: ResponsibleParty
+  /**
+   * Deja solo lo vencido y sin terminar.
+   *
+   * Es el mismo conjunto que resalta el conmutador de «Atrasadas», no una segunda definición: las
+   * dos leen `lineasAtrasadas`. Resaltar y filtrar contestan preguntas distintas —dónde caen
+   * respecto de las demás, y cuáles son— y por eso conviven en vez de sustituirse.
+   */
+  readonly onlyOverdue?: boolean
 }
 
 export interface GanttInput {
@@ -452,6 +460,17 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     else children.set(task.parentId, [task.id])
   }
 
+  /**
+   * Qué líneas están atrasadas, decidido **una sola vez**.
+   *
+   * Antes esto vivía dentro del armado de la fila y el filtro no podía preguntarlo, así que añadir
+   * «solo atrasadas» habría significado escribir la regla por segunda vez. Dos definiciones de la
+   * misma palabra en el mismo módulo ya costaron un defecto aquí, y el §9.3 pide que esta cifra
+   * coincida exactamente con la del Panel de control: si el filtro y el resaltado pudieran
+   * separarse, el botón diría «(65)» y dejaría otra cantidad de filas.
+   */
+  const atrasadas = lineasAtrasadas(tasks, children, schedule, input.hoy)
+
   const level = depthOf(tasks, byId)
   const origin = toDayNumber(schedule.start)
   const originOrdinal = calendar.ordinalOf(origin)
@@ -530,7 +549,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
     }
   }
 
-  const passesFilter = filterPredicate(input.filter, analysis)
+  const passesFilter = filterPredicate(input.filter, analysis, atrasadas)
   const kept = keepWithAncestors(tasks, byId, passesFilter)
 
   /*
@@ -703,31 +722,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       // secas coincidían por casualidad —en el plan de referencia dan las mismas 127— pero se
       // separarían en cuanto existiera una línea cerrada al 50 %. Dos definiciones de «terminada»
       // en el mismo módulo ya costaron un defecto en este proyecto.
-      atrasada:
-        input.hoy !== undefined &&
-        // Un resumen no se atrasa: no tiene trabajo propio, y su retraso es el de sus hijas. Con
-        // los resúmenes dentro, el mismo atraso se contaría dos veces —una en la hoja y otra en
-        // cada antepasado suyo— y en un plan de siete niveles eso multiplica la cifra.
-        //
-        // «Resumen» aquí es **tener hijas**, y no la clase declarada, que es lo que usa `isSummary`
-        // para pintarlo gris. No son lo mismo, y la diferencia se mide: en el plan de referencia hay
-        // 125 líneas con hijas y 121 marcadas RESUMEN. Las cuatro de diferencia son COMPUERTA con
-        // hijas — el reactivo que separa las dos reglas—. Al revés no hay ninguna hoy: cero líneas
-        // marcadas RESUMEN de las que no cuelgue nadie.
-        //
-        // Aquí manda la estructura porque una línea sin hijas no hereda nada de nadie: sus fechas
-        // son suyas y su atraso es real, así que descartarla por la clase la borraría de la cuenta.
-        // El Panel ya cuenta así —sus «hojas» son las que nadie nombra como madre— y dos
-        // definiciones de la misma palabra en la misma pantalla es lo que el §9.3 pide que no pase.
-        //
-        // Este comentario decía «catorce líneas marcadas RESUMEN de las que no cuelga nadie». Era
-        // falso, y una auditoría se lo creyó y lo reportó como defecto: un comentario que afirma una
-        // cifra medible se lee como dato. Las cifras de arriba están ancladas en `gantt.test.ts`
-        // para que, si el plan cambia, se entere una prueba y no un lector confiado.
-        !children.has(task.id) &&
-        (tramo?.finish ?? scheduled?.finish ?? schedule.start) < input.hoy &&
-        clamp(task.progress ?? 0) < 1 &&
-        !estaTerminada(task.status ?? ''),
+      atrasada: atrasadas.has(task.id),
       ...(task.dueDate ? { deadline: task.dueDate } : {}),
       /**
        * La restricción **elegida**, no el ancla.
@@ -999,9 +994,59 @@ function keepWithAncestors(
   return kept
 }
 
+/**
+ * Las líneas vencidas y sin terminar (§4.6, conmutador 2).
+ *
+ * Vive aparte porque la preguntan tres sitios —el resaltado, el filtro «solo atrasadas» y la cifra
+ * que el §9.3 obliga a cuadrar con el Panel de control— y con la regla escrita en cada uno bastaba
+ * con tocar una para que las tres dejaran de decir lo mismo.
+ *
+ * El spec pide además que el estado sea «Abierto» o «En progreso». El plan que llega al trazado no
+ * trae estado sino avance, así que eso se dice con «avance por debajo del 100 %», que es la misma
+ * frontera dicha con lo que hay. Una línea al 100 % no está atrasada aunque su estado siga abierto:
+ * terminó. «Terminada» se pregunta con `estaTerminada`, la **misma** función que usa el Panel.
+ *
+ * Un hito vencido cuenta: es una fecha que pasó sin ocurrir, que es peor que una tarea a medias.
+ *
+ * Un resumen no se atrasa: no tiene trabajo propio, y su retraso es el de sus hijas. Con los
+ * resúmenes dentro, el mismo atraso se contaría dos veces —una en la hoja y otra en cada antepasado
+ * suyo— y en un plan de siete niveles eso multiplica la cifra. «Resumen» aquí es **tener hijas**, y
+ * no la clase declarada, que es lo que usa `isSummary` para pintarlo gris. No son lo mismo, y la
+ * diferencia se mide: en el plan de referencia hay 125 líneas con hijas y 121 marcadas RESUMEN. Las
+ * cuatro de diferencia son COMPUERTA con hijas. Aquí manda la estructura porque una línea sin hijas
+ * no hereda nada de nadie: sus fechas son suyas y su atraso es real. El Panel cuenta así —sus
+ * «hojas» son las que nadie nombra como madre— y dos definiciones de la misma palabra en la misma
+ * pantalla es lo que el §9.3 pide que no pase.
+ *
+ * La fecha de fin sale de `schedule.byId`. La fila la leía como `tramo?.finish ?? scheduled?.finish`,
+ * donde `tramo` viene de `fechasDeResumen`; para una hoja esa función devuelve su propio tramo
+ * programado, así que las dos ramas dan lo mismo — y sólo las hojas pueden estar atrasadas.
+ *
+ * Sin `hoy` no hay nada atrasado: no se inventa un presente para poder pintar de rojo.
+ */
+export function lineasAtrasadas(
+  tasks: readonly PlanTask[],
+  children: ReadonlyMap<string, readonly string[]>,
+  schedule: Schedule,
+  hoy: IsoDate | undefined,
+): ReadonlySet<string> {
+  const salida = new Set<string>()
+  if (hoy === undefined) return salida
+  for (const task of tasks) {
+    if (children.has(task.id)) continue
+    const fin = schedule.byId.get(task.id)?.finish ?? schedule.start
+    if (fin >= hoy) continue
+    if (clamp(task.progress ?? 0) >= 1) continue
+    if (estaTerminada(task.status ?? '')) continue
+    salida.add(task.id)
+  }
+  return salida
+}
+
 function filterPredicate(
   filter: GanttFilter | undefined,
   analysis: ReadonlyMap<string, ClassifiedTask>,
+  atrasadas: ReadonlySet<string>,
 ): (task: PlanTask) => boolean {
   if (!filter || Object.values(filter).every((value) => value === undefined || value === false)) {
     return () => true
@@ -1012,6 +1057,7 @@ function filterPredicate(
     if (filter.onlySuperCritical && !(clasificada?.isSuperCritical ?? false)) return false
     if (filter.onlyCritical && !(clasificada?.isCritical ?? false)) return false
     if (filter.onlyMilestones && !esClaseDeHito(task.kind, task.duration)) return false
+    if (filter.onlyOverdue && !atrasadas.has(task.id)) return false
     if (filter.party !== undefined && (clasificada?.party ?? task.party ?? 'PROVEEDOR') !== filter.party) {
       return false
     }

@@ -320,3 +320,60 @@ describe('El conmutador 3 del §4.6: dos casillas independientes', () => {
     expect(grupo3.getByText('Con reserva')).toBeInTheDocument()
   })
 })
+
+describe('Filtro «solo atrasadas»', () => {
+  it('lo enciende y avisa el filtro completo', () => {
+    const props = montar({ cuantasAtrasadas: 65 })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: /Solo atrasadas/ }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({ onlyOverdue: true })
+  })
+
+  it('lleva la cifra, que es lo que decide si vale la pena mirarlas', () => {
+    montar({ cuantasAtrasadas: 65 })
+    expect(grupo('Filtro').getByRole('button', { name: 'Solo atrasadas (65)' })).toBeTruthy()
+  })
+
+  it('sin atrasadas no promete un número', () => {
+    montar({ cuantasAtrasadas: 0 })
+    expect(grupo('Filtro').getByRole('button', { name: 'Solo atrasadas' })).toBeTruthy()
+  })
+
+  it('tocarlo estando encendido lo apaga', () => {
+    // Un filtro que solo se cambia por otro filtro obliga a adivinar cuál era el estado sin filtro.
+    const props = montar({ filter: { onlyOverdue: true } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: /Solo atrasadas/ }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({})
+  })
+
+  it('se combina con los otros ejes en vez de apagarlos', () => {
+    const props = montar({ filter: { onlyOverdue: true } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: 'Del cliente' }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({ party: 'CLIENTE', onlyOverdue: true })
+  })
+
+  it('conserva las atrasadas al cambiar de naturaleza', () => {
+    const props = montar({ filter: { onlyOverdue: true } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: 'Solo hitos' }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({ onlyMilestones: true, onlyOverdue: true })
+  })
+
+  it('con el filtro encendido, «Todo» no se marca: diría que no se está filtrando', () => {
+    montar({ filter: { onlyOverdue: true } })
+    const todo = grupo('Filtro').getByRole('button', { name: 'Todo' })
+    expect(todo.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('«Todo» lo apaga junto con lo demás', () => {
+    const props = montar({ filter: { onlyOverdue: true, party: 'CLIENTE' } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: 'Todo' }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({})
+  })
+
+  it('el conmutador de resaltar sigue siendo otra cosa', () => {
+    // Resaltar y filtrar contestan preguntas distintas y por eso conviven.
+    const props = montar({ filter: { onlyOverdue: true }, atrasadas: false })
+    fireEvent.click(grupo('Atrasadas').getByRole('button', { name: /Resaltar/ }))
+    expect(props.onAtrasadasChange).toHaveBeenCalledWith(true)
+    expect(props.onFilterChange).not.toHaveBeenCalled()
+  })
+})
