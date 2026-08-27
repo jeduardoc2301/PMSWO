@@ -39,6 +39,14 @@ export interface PlanControlsProps {
   readonly cuantasAtrasadas: number
   /** Cuántas líneas de trabajo caen dentro del corte puesto. Cero si no hay corte. */
   readonly cuantasEnElCorte: number
+  /**
+   * El proyecto que se está mirando, para poder descargar su plan.
+   *
+   * Opcional porque esta barra también se monta sobre planes que aún no existen en la base —una
+   * plantilla en vista previa, por ejemplo—, y ahí no hay nada que descargar. Sin él, el grupo de
+   * exportar sencillamente no aparece; ofrecer un botón que da 404 es peor que no ofrecerlo.
+   */
+  readonly idDelProyecto?: string
   /** Conmutador 3 del §4.6, mitad «ruta crítica»: barras críticas en rojo. */
   readonly rutaCritica: boolean
   readonly onRutaCriticaChange: (valor: boolean) => void
@@ -121,6 +129,7 @@ export function PlanControls({
   atrasadas,
   cuantasAtrasadas,
   cuantasEnElCorte,
+  idDelProyecto,
   rutaCritica,
   onRutaCriticaChange,
   reserva,
@@ -307,6 +316,12 @@ export function PlanControls({
         ))}
       </Grupo>
 
+      {idDelProyecto ? (
+        <Grupo titulo="Exportar" nota="El plan entero, con su jerarquía.">
+          <BotonDeExcel idDelProyecto={idDelProyecto} />
+        </Grupo>
+      ) : null}
+
       {/* Sin este rótulo, un filtro encendido se ve igual que un plan corto. */}
       <p className="ml-auto text-xs text-tinta-2">{rotuloDeConteo(visibleRows, totalRows)}</p>
     </div>
@@ -346,6 +361,58 @@ function Grupo({
  * hacia arriba en cuanto se toca, y así el activo se anuncia igual para quien lee la pantalla y para
  * quien la escucha.
  */
+/**
+ * Descarga el plan como libro de Excel.
+ *
+ * Vive aquí —en el Timeline— y no en la lista de Elementos de trabajo porque lo que baja es **el
+ * plan**: la jerarquía completa, con sus niveles plegables y sus fórmulas. La lista exportaba lo
+ * que la tabla dibujaba, que es otra cosa y se quedaba plana.
+ *
+ * La descarga se hace con `fetch` y no con un enlace directo porque la ruta va autenticada y hay
+ * que poder enseñar el error: un `<a href>` que recibe un 403 deja al navegador enseñando una
+ * página de JSON, y quien lo ve no sabe si el archivo salió mal o no salió.
+ */
+function BotonDeExcel({ idDelProyecto }: { idDelProyecto: string }) {
+  const [bajando, setBajando] = React.useState(false)
+
+  const bajar = async (): Promise<void> => {
+    setBajando(true)
+    try {
+      const respuesta = await fetch(`/api/v1/projects/${idDelProyecto}/export/xlsx`)
+      if (!respuesta.ok) {
+        const detalle = await respuesta.json().catch(() => null)
+        throw new Error(detalle?.message ?? 'No se pudo generar el archivo.')
+      }
+
+      const nombre = /filename="([^"]+)"/.exec(respuesta.headers.get('Content-Disposition') ?? '')?.[1]
+      const url = URL.createObjectURL(await respuesta.blob())
+      const enlace = document.createElement('a')
+      enlace.href = url
+      enlace.download = nombre ?? 'plan.xlsx'
+      enlace.click()
+      // Sin esto el archivo se queda retenido en memoria hasta recargar la página.
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo generar el archivo.')
+    } finally {
+      setBajando(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      data-testid="exportar-plan-excel"
+      onClick={() => void bajar()}
+      disabled={bajando}
+      title="Descarga el plan completo en Excel, con jerarquía plegable y avance que se recalcula"
+      className="rounded-md border border-borde bg-superficie px-3 py-1.5 text-sm text-tinta-2 transition-colors hover:border-acento hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:ring-offset-superficie disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {bajando ? 'Generando…' : 'Excel'}
+    </button>
+  )
+}
+
 function Boton({
   activo,
   onClick,

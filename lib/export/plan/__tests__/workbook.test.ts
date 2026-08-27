@@ -1,0 +1,441 @@
+import { describe, expect, it } from 'vitest'
+
+import { readWorkbook } from '@/lib/scheduling/xlsx'
+import { leerZip } from '../../xlsx/zip'
+import { letraDeColumna } from '../../xlsx/writer'
+import { ESTADOS, NOMBRE_FECHA_CORTE, construirLibroDePlan, type PlanParaExportar } from '../workbook'
+import { papelDe } from '../roles'
+
+/**
+ * Dos planes de dominios distintos, con conjuntos de tipos y campos personalizados distintos.
+ *
+ * No son decoración: son el criterio de aceptación. El exportador tiene que dar lo mismo para una
+ * migración a la nube y para una obra civil, y la única forma de que eso no se degrade con el
+ * tiempo es que las dos estén aquí y las dos se comprueben.
+ */
+
+const DIA = 20_000 // número de día del motor; el valor concreto da igual, la aritmética no
+
+function migracion(): PlanParaExportar {
+  return {
+    nombre: 'Migración BU · Plan integrado',
+    campos: [
+      { id: 'cf-ola', etiqueta: 'Ola' },
+      { id: 'cf-riesgo', etiqueta: 'Riesgo' },
+    ],
+    configuracion: {
+      papeles: { Ola: 'contenedor_mayor', 'Prerrequisito Cliente': 'dependencia_externa' },
+      descripcion: 'Plan integrado de migración.',
+      advertencias: ['El avance se captura sólo en las hojas.'],
+    },
+    lineas: [
+      {
+        id: 'raiz',
+        nombre: 'Programa de migración',
+        tipo: 'Programa',
+        parentId: null,
+        inicio: DIA,
+        fin: DIA + 30,
+        duracion: 22,
+        avance: 0,
+        peso: null,
+        predecesoras: [],
+        personalizados: {},
+      },
+      {
+        id: 'ola1',
+        nombre: 'Ola 1',
+        tipo: 'Ola',
+        parentId: 'raiz',
+        inicio: DIA,
+        fin: DIA + 10,
+        duracion: 8,
+        avance: 0,
+        peso: null,
+        predecesoras: [],
+        personalizados: { 'cf-ola': 'Ola 1' },
+      },
+      {
+        id: 'a1',
+        nombre: 'Inventario de servidores',
+        tipo: 'Actividad',
+        parentId: 'ola1',
+        inicio: DIA,
+        fin: DIA + 4,
+        duracion: 5,
+        avance: 0.5,
+        peso: null,
+        predecesoras: [],
+        personalizados: { 'cf-ola': 'Ola 1', 'cf-riesgo': 'Medio' },
+      },
+      {
+        id: 'a2',
+        nombre: 'Corte de producción',
+        tipo: 'Hito',
+        parentId: 'ola1',
+        inicio: DIA + 10,
+        fin: DIA + 10,
+        duracion: 0,
+        avance: 0,
+        peso: null,
+        predecesoras: ['a1'],
+        personalizados: {},
+      },
+      {
+        id: 'dep',
+        nombre: 'Accesos VPN del cliente',
+        tipo: 'Prerrequisito Cliente',
+        parentId: 'raiz',
+        inicio: DIA + 2,
+        fin: DIA + 3,
+        duracion: 2,
+        avance: 1,
+        peso: null,
+        predecesoras: [],
+        personalizados: {},
+      },
+    ],
+  }
+}
+
+/** Otro dominio, otros tipos, otros campos — y **sin ninguna configuración de papeles**. */
+function obraCivil(): PlanParaExportar {
+  return {
+    nombre: 'Puente vehicular km 14',
+    campos: [{ id: 'cf-frente', etiqueta: 'Frente de obra' }],
+    configuracion: {},
+    lineas: [
+      {
+        id: 'obra',
+        nombre: 'Obra completa',
+        tipo: 'Proyecto',
+        parentId: null,
+        inicio: DIA,
+        fin: DIA + 40,
+        duracion: 30,
+        avance: 0,
+        peso: null,
+        predecesoras: [],
+        personalizados: {},
+      },
+      {
+        id: 'cim',
+        nombre: 'Cimentación',
+        tipo: 'Frente',
+        parentId: 'obra',
+        inicio: DIA,
+        fin: DIA + 20,
+        duracion: 15,
+        avance: 0,
+        peso: null,
+        predecesoras: [],
+        personalizados: { 'cf-frente': 'Norte' },
+      },
+      {
+        id: 'exc',
+        nombre: 'Excavación',
+        tipo: 'Partida',
+        parentId: 'cim',
+        inicio: DIA,
+        fin: DIA + 9,
+        duracion: 8,
+        avance: 0.25,
+        peso: null,
+        predecesoras: [],
+        personalizados: { 'cf-frente': 'Norte' },
+      },
+      {
+        id: 'sin-fecha',
+        nombre: 'Partida sin programar',
+        tipo: 'Partida',
+        parentId: 'cim',
+        inicio: null,
+        fin: null,
+        duracion: null,
+        avance: 0,
+        peso: null,
+        predecesoras: [],
+        personalizados: {},
+      },
+    ],
+  }
+}
+
+function hojaDe(plan: PlanParaExportar): string {
+  const { contenido } = construirLibroDePlan(plan)
+  return leerZip(contenido).get('xl/worksheets/sheet1.xml')!.toString('utf8')
+}
+
+function libroDe(plan: PlanParaExportar): string {
+  const { contenido } = construirLibroDePlan(plan)
+  return leerZip(contenido).get('xl/workbook.xml')!.toString('utf8')
+}
+
+/**
+ * El color y la sangría NO están en la hoja: la hoja sólo guarda el número de estilo de cada
+ * celda, y la definición vive en `styles.xml`. Buscarlos en el XML de la hoja da siempre negativo
+ * —lo comprobé de la forma cara— y una prueba que busca donde no está sólo sirve para dar una
+ * sensación de cobertura.
+ */
+function estilosDe(plan: PlanParaExportar): string {
+  const { contenido } = construirLibroDePlan(plan)
+  return leerZip(contenido).get('xl/styles.xml')!.toString('utf8')
+}
+
+describe('libro de plan · el archivo es válido y se puede volver a leer', () => {
+  it.each([
+    ['migración', migracion()],
+    ['obra civil', obraCivil()],
+  ])('%s: el lector de xlsx del sistema abre lo que este escritor produce', (_, plan) => {
+    const { contenido } = construirLibroDePlan(plan)
+
+    // La prueba más fuerte que se puede hacer sin abrir Excel: el lector que ya existe en
+    // `lib/scheduling` —escrito contra archivos reales de herramienta— entiende el resultado.
+    const libro = readWorkbook(contenido)
+    expect(libro.sheetNames).toEqual(['Plan'])
+
+    const hoja = libro.sheet('Plan')
+    const titulo = hoja.rows.get(1)?.get('A')?.text
+    expect(titulo).toBe(plan.nombre)
+  })
+
+  it.each([
+    ['migración', migracion()],
+    ['obra civil', obraCivil()],
+  ])('%s: ninguna fórmula apunta fuera del libro', (_, plan) => {
+    const xml = hojaDe(plan)
+    const columnas = construirLibroDePlan(plan).columnas
+    const ultimaLetra = letraDeColumna(columnas)
+
+    for (const formula of xml.matchAll(/<f>([^<]*)<\/f>/g)) {
+      // Nada de referencias sin resolver ni errores literales incrustados.
+      expect(formula[1]).not.toMatch(/#REF!|#VALOR!|#NOMBRE\?|#N\/A|undefined|NaN/)
+      // Y ninguna letra de columna más allá de la última que existe.
+      for (const ref of formula[1].matchAll(/\b([A-Z]{1,2})\d+\b/g)) {
+        expect(ref[1].length <= ultimaLetra.length).toBe(true)
+      }
+    }
+  })
+})
+
+describe('libro de plan · jerarquía', () => {
+  it('agrupa por la relación madre-hija real, no por un campo de texto', () => {
+    const xml = hojaDe(migracion())
+
+    // «Inventario de servidores» cuelga de «Ola 1», que cuelga de la raíz: nivel 2.
+    expect(xml).toMatch(/<row r="\d+" outlineLevel="2">/)
+    expect(xml).toContain('outlineLevelRow="2"')
+  })
+
+  it('pone los controles de agrupar junto a la fila madre, que va arriba', () => {
+    // El valor por omisión de Excel es el contrario. Sin esto, el control de cada grupo aparece
+    // pegado a la fila siguiente al grupo, que es de otra rama.
+    expect(hojaDe(migracion())).toContain('<outlinePr summaryBelow="0" summaryRight="0"/>')
+  })
+
+  it('sangra el nombre según la profundidad', () => {
+    const estilos = estilosDe(migracion())
+    expect(estilos).toContain('indent="2"') // primer nivel
+    expect(estilos).toContain('indent="4"') // segundo
+  })
+
+  it('no pierde una línea cuya madre no está en el conjunto', () => {
+    const plan = migracion()
+    const huerfana: PlanParaExportar = {
+      ...plan,
+      lineas: [...plan.lineas, { ...plan.lineas[2], id: 'suelta', parentId: 'no-existe' }],
+    }
+    expect(construirLibroDePlan(huerfana).lineas).toBe(plan.lineas.length + 1)
+  })
+})
+
+describe('libro de plan · la hoja calcula', () => {
+  it('declara la fecha de corte como nombre y la fórmula la usa por nombre', () => {
+    expect(libroDe(migracion())).toContain(`<definedName name="${NOMBRE_FECHA_CORTE}">Plan!$E$`)
+
+    const xml = hojaDe(migracion())
+    // El atraso se mide contra el nombre, no contra una celda escrita a mano: mover la cabecera
+    // no puede romper mil fórmulas.
+    expect(xml).toMatch(new RegExp(`NETWORKDAYS\\([^)]*${NOMBRE_FECHA_CORTE}`))
+    expect(xml).toContain('<f>TODAY()</f>')
+  })
+
+  it('el estado sale de la fórmula, no del valor de exportar', () => {
+    const xml = hojaDe(migracion())
+    expect(xml).toContain(`&quot;${ESTADOS.cerrado}&quot;`)
+    expect(xml).toContain(`&quot;${ESTADOS.enCurso}&quot;`)
+    expect(xml).toContain(`&quot;${ESTADOS.noIniciado}&quot;`)
+  })
+
+  it('el formato condicional busca exactamente los mismos textos que escribe la fórmula', () => {
+    const xml = hojaDe(migracion())
+    // Es la invariante que evita el fallo silencioso: la regla se aplicaría a nada y la hoja
+    // seguiría pareciendo correcta.
+    for (const estado of Object.values(ESTADOS)) {
+      expect(xml).toContain(`<formula>&quot;${estado}&quot;</formula>`)
+    }
+  })
+
+  it('una línea sin fechas deja el atraso en blanco en vez de dar #¡VALOR!', () => {
+    const xml = hojaDe(obraCivil())
+    const filas = [...xml.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const sinProgramar = filas.find((f) => f[2].includes('Partida sin programar'))!
+    expect(sinProgramar[2]).not.toContain('NETWORKDAYS')
+  })
+})
+
+describe('libro de plan · avance ponderado por Peso', () => {
+  it('una madre promedia el avance de sus hijas DIRECTAS pesado por Peso', () => {
+    const plan = migracion()
+    const xml = hojaDe(plan)
+
+    // La raíz está en la primera fila de datos; sus hijas directas son «Ola 1» y el
+    // prerrequisito, no las nietas.
+    const filas = [...xml.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const raiz = filas.find((f) => f[2].includes('Programa de migración'))!
+    const formula = /<f>(IFERROR[^<]*)<\/f>/.exec(raiz[2])![1]
+
+    // Dos sumandos, uno por hija directa. Si contara las nietas habría cuatro, y los días
+    // compartidos se contarían dos veces.
+    expect(formula.match(/\*/g)).toHaveLength(2)
+    expect(formula).toMatch(/^IFERROR\(\(.+\)\/\(.+\),0\)$/)
+  })
+
+  it('el Peso de una madre es la suma del de sus hijas directas', () => {
+    const xml = hojaDe(migracion())
+    const filas = [...xml.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const ola = filas.find((f) => f[2].includes('Ola 1'))!
+    // La columna de Peso es la última; su fórmula suma, no promedia.
+    expect(ola[2]).toMatch(/<f>[A-Z]+\d+\+[A-Z]+\d+<\/f>/)
+  })
+
+  it('el Peso va oculto: es maquinaria, no información', () => {
+    const xml = hojaDe(migracion())
+    const columnas = construirLibroDePlan(migracion()).columnas
+    expect(xml).toContain(`<col min="${columnas}" max="${columnas}" width="10" customWidth="1" hidden="1"/>`)
+  })
+
+  it('el avance de una hoja es un valor capturable, no una fórmula', () => {
+    const xml = hojaDe(migracion())
+    const filas = [...xml.matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const hoja = filas.find((f) => f[2].includes('Inventario de servidores'))!
+    expect(hoja[2]).toContain('<v>0.5</v>')
+  })
+})
+
+describe('libro de plan · el tema no decide el contenido', () => {
+  it('un plan SIN mapa de papeles exporta bien: contenedores por jerarquía, lo demás trabajo', () => {
+    // Éste es el criterio que prueba que ninguna regla de un proyecto concreto se coló en el
+    // código del exportador.
+    const plan = obraCivil()
+    expect(plan.configuracion.papeles).toBeUndefined()
+
+    const { contenido, lineas } = construirLibroDePlan(plan)
+    expect(lineas).toBe(4)
+
+    const xml = leerZip(contenido).get('xl/worksheets/sheet1.xml')!.toString('utf8')
+    expect(xml).toContain('outlineLevel="2"')
+
+    // La raíz se pinta como contenedor raíz aunque nadie lo haya configurado.
+    const estilos = leerZip(contenido).get('xl/styles.xml')!.toString('utf8')
+    expect(estilos).toContain('<fgColor rgb="FF1F2937"/>')
+  })
+
+  it('el mapa manda sobre la jerarquía cuando existe', () => {
+    // «Ola 1» está a profundidad 1 y tiene hijas: por jerarquía sería contenedor mayor de todos
+    // modos. Lo que se comprueba es que el mapa se consulta primero y con qué resultado.
+    expect(papelDe({ tipo: 'Ola', profundidad: 3, tieneHijas: false, duracion: 5 }, { Ola: 'contenedor_mayor' }))
+      .toBe('contenedor_mayor')
+  })
+
+  it('el mapa no distingue mayúsculas ni espacios de sobra: lo escribe una persona', () => {
+    expect(papelDe({ tipo: 'ola', profundidad: 0, tieneHijas: false, duracion: 5 }, { '  Ola  ': 'hito' }))
+      .toBe('hito')
+  })
+
+  it('un tipo mapeado a algo que no es un papel se ignora en vez de romper', () => {
+    expect(papelDe({ tipo: 'Ola', profundidad: 0, tieneHijas: false, duracion: 5 }, { Ola: 'inventado' }))
+      .toBe('trabajo')
+  })
+
+  it('una línea con hijas es contenedor aunque dure cero', () => {
+    // El respaldo por duración va DESPUÉS del de jerarquía a propósito: una ola de corte cuyas
+    // hijas caen todas el mismo día perdería su cabecera y su control de agrupar.
+    expect(papelDe({ tipo: null, profundidad: 1, tieneHijas: true, duracion: 0 }, null))
+      .toBe('contenedor_mayor')
+  })
+
+  it('sin hijas y sin duración es hito', () => {
+    expect(papelDe({ tipo: null, profundidad: 2, tieneHijas: false, duracion: 0 }, null)).toBe('hito')
+  })
+})
+
+describe('libro de plan · bloque núcleo y bloque dinámico', () => {
+  it('el bloque núcleo va completo y en el mismo orden en los dos planes', () => {
+    const nucleo = [
+      'ID', 'Nivel', 'Nombre de la tarea', 'Tipo', 'Inicio', 'Fin',
+      'Duración', '% avance', 'Estado', 'Atraso / Ventaja', 'Predecesoras',
+    ]
+
+    for (const plan of [migracion(), obraCivil()]) {
+      const libro = readWorkbook(construirLibroDePlan(plan).contenido)
+      const hoja = libro.sheet('Plan')
+      // Los títulos van en la fila que toque según cuánta cabecera lleve el plan; se busca por
+      // contenido a propósito, para que la prueba no fije la geometría de la cabecera.
+      let filaTitulos = -1
+      for (const [numero, celdas] of hoja.rows) {
+        if (celdas.get('A')?.text === 'ID') filaTitulos = numero
+      }
+      expect(filaTitulos).toBeGreaterThan(0)
+
+      const titulos = nucleo.map((_, i) => hoja.rows.get(filaTitulos)!.get(letraDeColumna(i + 1))?.text)
+      expect(titulos).toEqual(nucleo)
+    }
+  })
+
+  it('los campos personalizados de un plan no descuadran el núcleo del otro', () => {
+    const conDos = construirLibroDePlan(migracion())
+    const conUno = construirLibroDePlan(obraCivil())
+
+    // Once del núcleo + los suyos + Peso. El núcleo ocupa las mismas letras en ambos.
+    expect(conDos.columnas).toBe(11 + 2 + 1)
+    expect(conUno.columnas).toBe(11 + 1 + 1)
+  })
+
+  it('las predecesoras se citan por el consecutivo que se ve, no por el id interno', () => {
+    const libro = readWorkbook(construirLibroDePlan(migracion()).contenido)
+    const hoja = libro.sheet('Plan')
+    let encontrada: string | null = null
+    for (const [, celdas] of hoja.rows) {
+      if (celdas.get('C')?.text === 'Corte de producción') encontrada = celdas.get('K')?.text ?? null
+    }
+    // «Inventario de servidores» es el consecutivo 3 del plan.
+    expect(encontrada).toBe('3')
+  })
+
+  it('la cabecera se encoge cuando el proyecto no configura descripción ni advertencias', () => {
+    const conTexto = readWorkbook(construirLibroDePlan(migracion()).contenido).sheet('Plan')
+    const sinTexto = readWorkbook(construirLibroDePlan(obraCivil()).contenido).sheet('Plan')
+
+    const filaDe = (hoja: typeof conTexto, texto: string): number => {
+      for (const [numero, celdas] of hoja.rows) {
+        if (celdas.get('A')?.text === texto) return numero
+      }
+      return -1
+    }
+
+    // Migración lleva descripción y advertencia; la obra civil, ninguna de las dos.
+    expect(filaDe(conTexto, 'ID')).toBe(6)
+    expect(filaDe(sinTexto, 'ID')).toBe(4)
+  })
+})
+
+describe('libro de plan · el archivo es reproducible', () => {
+  it('exportar dos veces el mismo plan da los mismos bytes', () => {
+    // Sin esto no se puede comparar una versión con otra, ni cachear, ni probar de verdad. Es la
+    // razón de que la fecha del ZIP sea una constante y no la hora de generar.
+    const a = construirLibroDePlan(migracion()).contenido
+    const b = construirLibroDePlan(migracion()).contenido
+    expect(a.equals(b)).toBe(true)
+  })
+})

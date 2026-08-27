@@ -73,11 +73,11 @@ model Project {
   startDate        DateTime @map("start_date") @db.Date
   estimatedEndDate DateTime @map("estimated_end_date") @db.Date
 
-  status           String   @default("PLANNING")
-  archived         Boolean  @default(false)
-  plannedHours     Int?     @map("planned_hours")
+  status             String    @default("PLANNING")
+  archived           Boolean   @default(false)
+  plannedHours       Int?      @map("planned_hours")
   progressCutoffDate DateTime? @map("progress_cutoff_date") @db.Date
-  actualHours      Int?     @map("actual_hours")
+  actualHours        Int?      @map("actual_hours")
 
   // Cómo se acumula el avance de un resumen desde sus hijas (§2, §3.6).
   //
@@ -88,15 +88,15 @@ model Project {
   // Ninguno es «el correcto»: son dos verdades sobre cosas distintas, y por eso es un ajuste del
   // proyecto y no una decisión del motor. Por omisión el ponderado, que es lo que la aplicación ha
   // calculado siempre.
-  progressRollup   String   @default("DURACION") @map("progress_rollup") @db.VarChar(20)
+  progressRollup    String   @default("DURACION") @map("progress_rollup") @db.VarChar(20)
   /// Minutos de jornada del proyecto (§2). Ocho horas son 480, que es la jornada del §3.5.
   ///
   /// Va en el proyecto y no en cada línea porque es la unidad con la que se leen TODAS: cambiarla
   /// no mueve ninguna fecha, cambia cómo se escriben las duraciones que ya existen. Ver
   /// `lib/scheduling/unidades.ts`, donde vive la conversión y el porqué.
-  minutosPorJornada Int     @default(480) @map("minutos_por_jornada")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  minutosPorJornada Int      @default(480) @map("minutos_por_jornada")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   organization     Organization          @relation(fields: [organizationId], references: [id])
   owner            User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
@@ -115,6 +115,7 @@ model Project {
   templateUsage    TemplateUsage[]
   taskDependencies TaskDependency[]
   calendar         ProjectCalendar?
+  exportConfig     ProjectExportConfig?
   gates            Gate[]
 
   @@index([organizationId])
@@ -155,9 +156,9 @@ model KanbanColumn {
   ///
   /// No se añadió una tabla nueva porque las columnas de este tablero **ya son** una tabla por
   /// proyecto. Dos tablas para «qué estados tiene este proyecto» serían dos verdades.
-  isInitial  Boolean @default(false) @map("is_initial")
+  isInitial Boolean @default(false) @map("is_initial")
   /// Verdadero en las columnas que significan que la línea ya no está en juego.
-  isDone     Boolean @default(false) @map("is_done")
+  isDone    Boolean @default(false) @map("is_done")
 
   project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   workItems WorkItem[]
@@ -168,17 +169,17 @@ model KanbanColumn {
 }
 
 model WorkItem {
-  id               String    @id @default(uuid()) @db.Char(36)
-  organizationId   String    @map("organization_id") @db.Char(36)
-  projectId        String    @map("project_id") @db.Char(36)
-  ownerId          String    @map("owner_id") @db.Char(36)
+  id               String   @id @default(uuid()) @db.Char(36)
+  organizationId   String   @map("organization_id") @db.Char(36)
+  projectId        String   @map("project_id") @db.Char(36)
+  ownerId          String   @map("owner_id") @db.Char(36)
   title            String
-  description      String    @db.Text
+  description      String   @db.Text
   phase            String?
   status           String
   priority         String
-  startDate        DateTime  @map("start_date") @db.Date
-  estimatedEndDate DateTime  @map("estimated_end_date") @db.Date
+  startDate        DateTime @map("start_date") @db.Date
+  estimatedEndDate DateTime @map("estimated_end_date") @db.Date
 
   // A qué hora empieza, en minutos desde la medianoche (§2.1). Nulo significa «cuando abra la
   // jornada», que es lo que han hecho siempre las 1 368 líneas del plan importado.
@@ -186,31 +187,31 @@ model WorkItem {
   // Va al lado de la fecha y no dentro porque la columna es `DATE` y cambiarla a `DATETIME` obliga
   // a revisar cada sitio que la lee, la compara o la escribe. El dato que falta es la hora, y es la
   // hora lo que se añade.
-  startMinute Int? @map("start_minute")
-  completedAt      DateTime? @map("completed_at")
-  estimatedHours   Int?      @map("estimated_hours")
+  startMinute     Int?      @map("start_minute")
+  completedAt     DateTime? @map("completed_at")
+  estimatedHours  Int?      @map("estimated_hours")
   /// Duración en minutos LABORABLES (§2). `null` mientras la línea siga contándose en días.
   ///
   /// Se añade al lado de lo que hay en vez de sustituirlo: la migración del §2 es de las que no se
   /// pueden hacer de un tirón —toca el modelo, el motor y las seis vistas— y una columna nueva que
   /// nadie lee todavía no rompe nada, mientras que cambiar la vieja de unidad sí.
-  durationMinutes  Int?      @map("duration_minutes")
-  templateOrder    Int?      @map("template_order")
+  durationMinutes Int?      @map("duration_minutes")
+  templateOrder   Int?      @map("template_order")
 
   // ── PLANEACIÓN · Responsabilidad del cliente (C6) ──────────────────────────
   // Clase de línea: "ACTIVIDAD", "HITO", "PUNTO_DE_CONTROL", "APROBACION_CLIENTE",
   // "ENTREGA_CLIENTE", "COMPUERTA", "RESUMEN".
-  kind        String    @default("ACTIVIDAD") @db.VarChar(20)
+  kind            String    @default("ACTIVIDAD") @db.VarChar(20)
   // Quién responde: "PROVEEDOR", "CLIENTE" o "AMBOS".
-  party       String    @default("PROVEEDOR") @db.VarChar(10)
+  party           String    @default("PROVEEDOR") @db.VarChar(10)
   // Nombre de quien responde del lado del cliente. Es un nombre, no una cuenta: quien entrega del
   // lado del cliente casi nunca tiene usuario en la herramienta del proveedor, y exigirle uno es la
   // forma más rápida de que esas líneas terminen asignadas a alguien que no las controla.
-  clientOwner String?   @map("client_owner")
-  recoverability String? @db.VarChar(20)
-  responsibleName String? @map("responsible_name")
+  clientOwner     String?   @map("client_owner")
+  recoverability  String?   @db.VarChar(20)
+  responsibleName String?   @map("responsible_name")
   // Fecha límite comprometida, cuando es distinta de la que calcula el plan.
-  dueDate     DateTime? @map("due_date") @db.Date
+  dueDate         DateTime? @map("due_date") @db.Date
 
   /// Restricción de fecha (§3.4). Nula significa «lo antes posible», que es lo normal.
   ///
@@ -235,7 +236,7 @@ model WorkItem {
   // El mismo avance en puntos base 0–10 000 (§2.1): un tercio son 3 333, un entero exacto donde
   // 0.3333333333333333 es una aproximación que no sobrevive a una suma. Manda sobre `progressPct`,
   // que se mantiene al día en la misma escritura para que nada de lo que ya existe se entere.
-  progressBp  Int     @default(0) @map("progress_bp")
+  progressBp Int @default(0) @map("progress_bp")
 
   // ── PLANEACIÓN · Trazabilidad por línea (C9) ───────────────────────────────
   // De dónde salió esta línea. Cuando un plan integra varias fuentes es lo único que permite
@@ -256,26 +257,26 @@ model WorkItem {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization  Organization        @relation(fields: [organizationId], references: [id])
-  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  owner         User                @relation("WorkItemOwner", fields: [ownerId], references: [id])
-  kanbanColumn  KanbanColumn        @relation(fields: [kanbanColumnId], references: [id])
-  blockers      Blocker[]
-  changes       WorkItemChange[]
-  agreements    AgreementWorkItem[]
+  organization      Organization        @relation(fields: [organizationId], references: [id])
+  project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner             User                @relation("WorkItemOwner", fields: [ownerId], references: [id])
+  kanbanColumn      KanbanColumn        @relation(fields: [kanbanColumnId], references: [id])
+  blockers          Blocker[]
+  changes           WorkItemChange[]
+  agreements        AgreementWorkItem[]
   // Vínculos en los que esta tarea es la sucesora, es decir, los que la pueden retrasar.
-  incomingLinks TaskDependency[]    @relation("DependencySuccessor")
+  incomingLinks     TaskDependency[]    @relation("DependencySuccessor")
   // Vínculos en los que esta tarea es la predecesora.
-  outgoingLinks TaskDependency[]    @relation("DependencyPredecessor")
+  outgoingLinks     TaskDependency[]    @relation("DependencyPredecessor")
   // Compuertas que habilitan a esta tarea.
-  assignments   Assignment[]
-  baselineItems BaselineItem[]
-  parent        WorkItem?           @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  children      WorkItem[]          @relation("WorkItemHierarchy")
+  assignments       Assignment[]
+  baselineItems     BaselineItem[]
+  parent            WorkItem?           @relation("WorkItemHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children          WorkItem[]          @relation("WorkItemHierarchy")
   customFieldValues CustomFieldValue[]
-  gateUnlocks   GateUnlock[]
+  gateUnlocks       GateUnlock[]
   // Compuertas cuyo hito de cierre es esta línea.
-  closesGates   Gate[]              @relation("GateClosingMilestone")
+  closesGates       Gate[]              @relation("GateClosingMilestone")
 
   @@index([organizationId, projectId])
   @@index([ownerId])
@@ -748,7 +749,6 @@ model GateUnlock {
   @@map("gate_unlocks")
 }
 
-
 /// Cómo tiene configurada cada persona cada vista de cada proyecto (§10.4).
 ///
 /// Por usuario × proyecto × vista, no por usuario a secas: quien lleva ocho proyectos no quiere las
@@ -777,7 +777,6 @@ model ViewPreference {
   @@index([organizationId, projectId])
   @@map("view_preferences")
 }
-
 
 /// Quién —o qué— puede tener trabajo asignado (§8.2).
 ///
@@ -859,7 +858,6 @@ model ResourceAbsence {
   @@map("resource_absences")
 }
 
-
 /// Una foto del plan en un momento dado (§3, §4.6).
 ///
 /// El spec la pide como *snapshot directo* y no como historial completo, y es la decisión correcta:
@@ -889,27 +887,27 @@ model Baseline {
 /// `budget` no está: el spec lo incluye, pero este modelo todavía no lleva dinero por línea, y una
 /// columna siempre en cero mentiría al compararla. Entra el día que entre el presupuesto.
 model BaselineItem {
-  id         String   @id @default(uuid()) @db.Char(36)
-  baselineId String   @map("baseline_id") @db.Char(36)
-  workItemId String   @map("work_item_id") @db.Char(36)
-  startDate  DateTime @map("start_date") @db.Date
-  endDate    DateTime @map("end_date") @db.Date
+  id              String   @id @default(uuid()) @db.Char(36)
+  baselineId      String   @map("baseline_id") @db.Char(36)
+  workItemId      String   @map("work_item_id") @db.Char(36)
+  startDate       DateTime @map("start_date") @db.Date
+  endDate         DateTime @map("end_date") @db.Date
   /// Duración en días hábiles al tomar la foto, contando los dos extremos.
   ///
   /// Se guarda además de las fechas porque el calendario laborable puede cambiar —un festivo nuevo,
   /// un cambio de jornada— y entonces recalcularla desde las fechas daría un número que nunca fue
   /// verdad. La foto guarda lo que se prometió, no lo que hoy se deduciría.
-  durationDays   Int  @map("duration_days")
+  durationDays    Int      @map("duration_days")
   /// Duración en minutos laborables al tomar la foto (§2).
   ///
   /// Va además de los días por la misma razón que ellos van además de las fechas: una tarea de
   /// cuatro horas retratada como «un día» promete algo que nadie prometió, y desde la foto no hay
   /// forma de recuperar la hora. Nula en las fotos tomadas antes de que esto existiera, que es
   /// distinto de cero: significa «esta foto no lo miró».
-  durationMinutes Int? @map("duration_minutes")
-  estimatedHours Int? @map("estimated_hours")
+  durationMinutes Int?     @map("duration_minutes")
+  estimatedHours  Int?     @map("estimated_hours")
   /// Avance en puntos base: 10000 es el cien por cien.
-  progressBp     Int  @map("progress_bp")
+  progressBp      Int      @map("progress_bp")
 
   baseline Baseline @relation(fields: [baselineId], references: [id], onDelete: Cascade)
   workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
@@ -918,7 +916,6 @@ model BaselineItem {
   @@index([workItemId])
   @@map("baseline_items")
 }
-
 
 /// Un filtro guardado con nombre (§10.2).
 ///
@@ -1001,4 +998,38 @@ model CustomFieldValue {
   @@unique([fieldId, workItemId])
   @@index([workItemId])
   @@map("custom_field_values")
+}
+
+/// Configuración de la exportación a Excel, por proyecto.
+///
+/// Existe por el principio que gobierna el exportador: **el tema define presentación y
+/// comportamiento, nunca contenido**. Toda regla que sólo tenga sentido para un proyecto concreto
+/// —que sus «Olas» se pinten como contenedores mayores, que sus «Prerrequisitos Cliente» sean
+/// dependencias externas— vive aquí y no en el código, porque el mismo exportador tiene que servir
+/// para una migración a la nube, una obra civil y un lanzamiento de producto.
+///
+/// La fila es OPCIONAL y su ausencia es el caso normal, no un error: un proyecto sin configurar
+/// exporta bien —los contenedores salen de la jerarquía real y todo lo demás es trabajo—, y eso es
+/// precisamente lo que demuestra que ninguna regla de un plan concreto se coló en el exportador.
+model ProjectExportConfig {
+  id        String @id @default(uuid()) @db.Char(36)
+  projectId String @unique @map("project_id") @db.Char(36)
+
+  /// Tipo del plan → papel semántico: `{ "Ola": "contenedor_mayor" }`. Las claves son los nombres
+  /// que usa ese plan, no una lista cerrada; los valores sí lo son, y un valor desconocido se
+  /// ignora en vez de romper la exportación.
+  roleMap Json? @map("role_map")
+
+  /// Segunda fila de la cabecera. Nula significa que no se escribe y la tabla sube un renglón.
+  headerDescription String? @map("header_description") @db.Text
+
+  /// Advertencias de lectura, terceras en la cabecera. Lista de textos.
+  headerWarnings Json? @map("header_warnings")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_export_configs")
 }

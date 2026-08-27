@@ -37,7 +37,6 @@ import {
   alternarColumnaDeLaLista,
   columnasVisiblesDeLaLista,
 } from '@/lib/projects/list-columns'
-import { csvDeLaLista, nombreDelArchivo } from '@/lib/projects/list-csv'
 import { DeleteWorkItemDialog } from './delete-work-item-dialog'
 import {
   DndContext,
@@ -675,81 +674,6 @@ export function WorkItemsList({
 
 
   /**
-   * Exportar lo que se está viendo (§6.2).
-   *
-   * Las filas son **las que la tabla dibuja**, `lineasPlanas`: el filtro ya aplicado, los resúmenes
-   * fuera en el formato plano, y en el orden que esté puesto. Exportar el plan entero cuando en
-   * pantalla hay ochocientas veintidós sería un informe de otra cosa: quien lo abre no podría
-   * contrastarlo con lo que estaba mirando, y ese contraste es para lo que se exporta.
-   *
-   * Esto salía de `filteredWorkItems`, que es un paso anterior: **incluía los resúmenes** que la
-   * tabla no enseña en el formato plano y venía **sin ordenar**. El botón decía «Exportar (1368)»
-   * mientras la tabla dibujaba 1243 líneas, y el número estaba a la vista en la cabecera del propio
-   * CSV — lo miré y no lo cuestioné.
-   *
-   * **Y las columnas son las que la tabla dibuja**, no el catálogo entero. Este comentario ya decía
-   * «las que esta tabla dibuja» y el código de debajo llevaba las nueve escritas a mano: quien apagaba
-   * cuatro columnas para poder leer la tabla se encontraba las nueve en el CSV. La frase era la
-   * correcta; lo que fallaba era que nadie la volvió a leer cuando el panel de Campos llegó después.
-   *
-   * Se exporta lo que se ve también en el sentido literal: `columnasDeLaTabla` sale de la misma
-   * preferencia que dibuja las cabeceras, así que el CSV y la pantalla no pueden divergir.
-   *
-   * **Y el agrupado también se ve.** Las filas salían de `lineasPlanas`, que no depende de
-   * `agruparPor`: en formato Agrupada el archivo era byte a byte el de la Lista —el orden del plan,
-   * sin cabeceras y sin subtotales—, justo lo contrario de la frase que encabeza este comentario.
-   * Ahora salen de `filasConGrupos`, que es lo que la tabla dibuja en los dos formatos.
-   */
-  const exportar = (): void => {
-    const columnas = columnasDeLaTabla.map((c) => ({ id: c.id, etiqueta: c.etiqueta }))
-
-    const filas = filasConGrupos.map((entrada) =>
-      entrada.tipo === 'grupo'
-        ? ({ __grupo: entrada.clave, __subtotal: entrada.subtotal } as unknown as Record<string, unknown>)
-        : (entrada.linea as unknown as Record<string, unknown>),
-    )
-    const grupos = filas.length - lineasPlanas.length
-
-    const texto = csvDeLaLista({
-      columnas,
-      filas,
-      cabeceraDe: (fila) => {
-        const clave = fila.__grupo
-        if (typeof clave !== 'string') return null
-        const s = fila.__subtotal as Totales
-        // Lo mismo que dice la cabecera en pantalla, en el mismo orden en que se lee.
-        return [
-          etiquetaDeGrupo(clave),
-          `${s.lineas} ${s.lineas === 1 ? 'línea' : 'líneas'}${s.horas > 0 ? ` · ${s.horas} h` : ''}`,
-          `${Math.round(s.avance * 100)} %`,
-        ]
-      },
-      contexto: `${lineasPlanas.length} de ${workItems.length} líneas${grupos > 0 ? ` en ${grupos} ${grupos === 1 ? 'grupo' : 'grupos'}` : ''} · ${columnas.length} de ${COLUMNAS_DE_LA_LISTA.length} columnas · ${hoyCivil()}`,
-      valorDe: (fila, id) => {
-        const v = fila[id]
-        if (v === undefined || v === null || v === '') return null
-        // Las fechas van en formato civil, no en el texto de la tabla: una hoja de cálculo ordena
-        // «2026-06-12» y no sabe qué hacer con «12/06/2026».
-        if (id === 'startDate' || id === 'estimatedEndDate') return fechaIso(String(v))
-        // El avance en enteros: es como se captura y como se suma.
-        if (id === 'progressPct') return `${Math.round(Number(v) * 100)}`
-        if (id === 'status') return getStatusLabel(v as WorkItemStatus)
-        if (id === 'priority') return getPriorityLabel(v as WorkItemPriority)
-        return String(v)
-      },
-    })
-
-    const url = URL.createObjectURL(new Blob([texto], { type: 'text/csv;charset=utf-8' }))
-    const enlace = document.createElement('a')
-    enlace.href = url
-    enlace.download = nombreDelArchivo('plan', hoyCivil())
-    enlace.click()
-    // Sin esto, cada exportación deja el archivo entero retenido en memoria hasta recargar la
-    // página. Con mil trescientas líneas son unos cientos de kilobytes cada vez.
-    URL.revokeObjectURL(url)
-  }
-
-  /**
    * Sólo se dibujan las filas que caen dentro de la caja.
    *
    * Con las 5000 líneas del proyecto de carga, dibujarlas todas daba **13,9 segundos** hasta el
@@ -898,24 +822,8 @@ export function WorkItemsList({
             />
           </div>
 
-          {/* Exportar lo que se está viendo (§6.2). Va junto al filtro a propósito: lo que se
-              exporta es el resultado del filtro, y ponerlo lejos haría creer que exporta todo. */}
-          <button
-            type="button"
-            onClick={exportar}
-            data-testid="exportar-lista"
-            disabled={lineasPlanas.length === 0}
-            title="Descarga las líneas que se están viendo, con las columnas de esta tabla"
-            style={{ ...inputStyle, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', cursor: lineasPlanas.length === 0 ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: lineasPlanas.length === 0 ? 0.5 : 1 }}
-          >
-            <span style={{ color: 'var(--tinta-3)', fontSize: 13 }}>
-              Exportar ({lineasPlanas.length})
-            </span>
-          </button>
-
-          {/* El panel de Campos del §6.2, con preferencia propia. Va junto al de exportar porque
-              las dos preguntas son la misma —qué columnas hay— vista desde la pantalla y desde el
-              archivo. */}
+          {/* El panel de Campos del §6.2, con preferencia propia. Va junto al buscador porque las
+              dos acotan lo mismo: el buscador qué líneas se ven y éste qué columnas. */}
           {onColumnasCambiadas ? (
             <div style={{ position: 'relative' }}>
               <button

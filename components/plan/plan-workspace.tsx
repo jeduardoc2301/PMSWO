@@ -1121,6 +1121,7 @@ export function PlanWorkspace({
           atrasadas={atrasadas}
           cuantasAtrasadas={layout.atrasadasEnTodoElPlan}
           cuantasEnElCorte={layout.enElCorte}
+          idDelProyecto={projectId}
           rutaCritica={preferencia.rutaCritica}
           onRutaCriticaChange={(v) => setPreferencia((p) => ({ ...p, rutaCritica: v }))}
           reserva={preferencia.reserva}
