@@ -82,7 +82,6 @@ async function handler(
     where: { id, organizationId: authContext.organizationId },
     include: {
       calendar: { include: { holidays: true } },
-      exportConfig: true,
       customFields: {
         where: { archivedAt: null },
         orderBy: { orderIndex: 'asc' },
@@ -175,7 +174,25 @@ async function handler(
   })
 
   // ── Configuración del proyecto ─────────────────────────────────────────────
-  const guardada = proyecto.exportConfig
+  //
+  // Va en su propia consulta y no en el `include` de arriba a propósito. La configuración es
+  // OPCIONAL por diseño —un plan sin configurar exporta bien, y ese es justo el caso que demuestra
+  // que ningún tema se coló en el exportador—, así que hacer que la exportación entera dependa de
+  // que su tabla exista contradice la promesa del propio exportador.
+  //
+  // En la práctica esto es lo que separa el despliegue del código del de la migración: con el
+  // `include`, subir la aplicación antes de migrar daba 500 en cada descarga. Ahora el orden da
+  // igual, y mientras la tabla no exista simplemente no hay configuración, que es un estado
+  // válido.
+  //
+  // El fallo se registra en vez de tragarse: degradar en silencio es cómodo hasta el día en que
+  // alguien configura sus papeles, no ve el color, y nada en ninguna parte dice por qué.
+  const guardada = await prisma.projectExportConfig
+    .findUnique({ where: { projectId: id } })
+    .catch((error: unknown) => {
+      console.warn('[export/xlsx] Sin configuración de exportación para %s: %s', id, error)
+      return null
+    })
   const papeles: Record<string, string> = {}
   if (guardada?.roleMap && typeof guardada.roleMap === 'object' && !Array.isArray(guardada.roleMap)) {
     for (const [clave, valor] of Object.entries(guardada.roleMap as Record<string, unknown>)) {

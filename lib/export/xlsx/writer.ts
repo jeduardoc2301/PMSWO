@@ -67,7 +67,7 @@ export interface Fila {
 }
 
 export interface Columna {
-  /** Ancho en caracteres, como lo mide Excel. */
+  /** Ancho en caracteres, el que Excel enseña en la interfaz. */
   readonly ancho: number
   readonly oculta?: boolean
 }
@@ -118,6 +118,19 @@ const EPOCA_EXCEL = 25_569
 export function serialDeExcel(dayNumber: number): number {
   return dayNumber + EPOCA_EXCEL
 }
+
+/**
+ * El relleno que Excel lleva incorporado en el ancho de columna.
+ *
+ * El atributo `width` del archivo NO es el número de caracteres que la interfaz enseña: la fórmula
+ * del formato es `(caracteres × anchoDeDígito + 5 píxeles) / anchoDeDígito`, y para la fuente por
+ * omisión —Calibri 11, dígito de 7 píxeles— eso son 5/7 de carácter de más.
+ *
+ * Escribir el número pedido en crudo encoge cada columna esa fracción: pedir 6 para la columna de
+ * ID daba 5,29 en pantalla, y pedir 92 para el nombre daba 91,29. Sólo se ve abriendo el archivo,
+ * que es exactamente donde apareció.
+ */
+const RELLENO_DE_ANCHO = 5 / 7
 
 /** `1` → `A`, `27` → `AA`. En base 1, como las referencias de Excel. */
 export function letraDeColumna(indice: number): string {
@@ -353,7 +366,8 @@ function xmlDeHoja(hoja: Hoja): string {
     .map((columna, i) => {
       const n = i + 1
       const oculta = columna.oculta ? ' hidden="1"' : ''
-      return `<col min="${n}" max="${n}" width="${columna.ancho}" customWidth="1"${oculta}/>`
+      const ancho = Math.round((columna.ancho + RELLENO_DE_ANCHO) * 256) / 256
+      return `<col min="${n}" max="${n}" width="${ancho}" customWidth="1"${oculta}/>`
     })
     .join('')
 

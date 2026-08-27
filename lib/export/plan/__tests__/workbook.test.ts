@@ -312,7 +312,9 @@ describe('libro de plan · avance ponderado por Peso', () => {
   it('el Peso va oculto: es maquinaria, no información', () => {
     const xml = hojaDe(migracion())
     const columnas = construirLibroDePlan(migracion()).columnas
-    expect(xml).toContain(`<col min="${columnas}" max="${columnas}" width="10" customWidth="1" hidden="1"/>`)
+    // 10 de ancho pedido más los 5/7 de carácter que Excel lleva incorporados: sin ese relleno,
+    // la columna sale más estrecha de lo que se pidió. Se comprobó abriendo el archivo real.
+    expect(xml).toContain(`<col min="${columnas}" max="${columnas}" width="10.71484375" customWidth="1" hidden="1"/>`)
   })
 
   it('el avance de una hoja es un valor capturable, no una fórmula', () => {
@@ -437,5 +439,21 @@ describe('libro de plan · el archivo es reproducible', () => {
     const a = construirLibroDePlan(migracion()).contenido
     const b = construirLibroDePlan(migracion()).contenido
     expect(a.equals(b)).toBe(true)
+  })
+})
+
+describe('libro de plan · los anchos son los que se piden', () => {
+  it('el ancho del archivo lleva el relleno que Excel descuenta al enseñarlo', () => {
+    const xml = hojaDe(migracion())
+
+    // El atributo `width` no es el número de caracteres que la interfaz enseña: la fórmula del
+    // formato incluye 5 píxeles de relleno, que en Calibri 11 son 5/7 de carácter.
+    //
+    // Escribir el número en crudo encogía TODAS las columnas esa fracción: la de ID pedía 6 y
+    // Excel enseñaba 5,29; la del nombre pedía 92 y enseñaba 91,29. No lo detectó ninguna prueba
+    // ni ninguna lectura del XML —el número estaba ahí, tal como se había escrito—; apareció al
+    // abrir el archivo de verdad y preguntarle a Excel cuánto medían sus columnas.
+    expect(xml).toContain('<col min="1" max="1" width="6.71484375" customWidth="1"/>')
+    expect(xml).toContain('<col min="3" max="3" width="92.71484375" customWidth="1"/>')
   })
 })
