@@ -102,10 +102,25 @@ function cuerpoDe(fuente: string, metodo: string): string | null {
   return corte < 0 ? resto : resto.slice(0, corte)
 }
 
-/** Pregunta por un permiso de proyecto, aquí o en el manejador al que delega dentro del archivo. */
+/**
+ * Pregunta por un permiso de proyecto, aquí o en el manejador al que delega dentro del archivo.
+ *
+ * Se sigue la delegación por DOS caminos, y el segundo se añadió porque el primero era una trampa
+ * de nombres: sólo miraba funciones acabadas en `Handler`, así que una ruta perfectamente guardada
+ * cuyo manejador se llamara `handler`, `leer` o `guardar` salía señalada. Tres rutas cayeron ahí y
+ * dejaron esta prueba en rojo sin que ninguna tuviera un agujero de permisos.
+ *
+ * Falla cerrado por los dos caminos: lo que no se puede verificar se señala, nunca se aprueba. Por
+ * eso añadir una forma de resolver la delegación no debilita el censo — sólo le quita falsos
+ * positivos, que son los que hacen que una prueba en rojo se acabe ignorando.
+ */
 function pregunta(fuente: string, cuerpo: string): boolean {
   if (cuerpo.includes('await authorize(') || cuerpo.includes('await exigirPermiso(')) return true
-  for (const nombre of cuerpo.match(/\w+Handler\b/g) ?? []) {
+  // Lo que de verdad se delega: el primer argumento de `withAuth(...)`, se llame como se llame.
+  const delegados = (cuerpo.match(/withAuth\(\s*(\w+)/g) ?? []).map((m) =>
+    m.replace(/withAuth\(\s*/, ''),
+  )
+  for (const nombre of [...delegados, ...(cuerpo.match(/\w+Handler\b/g) ?? [])]) {
     const k = fuente.indexOf('function ' + nombre)
     if (k < 0) continue
     const trozo = fuente.slice(k, k + 5000)
