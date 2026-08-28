@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { PlanControls, type PlanControlsProps } from '../plan-controls'
@@ -527,51 +527,80 @@ describe('El botón de exportar a Excel', () => {
   })
 })
 
-
 describe('El filtro por responsable', () => {
   const GENTE = [
     { nombre: 'Rafael Oliva', clave: 'Rafael Oliva', cuantas: 450 },
     { nombre: 'Bryan Hernández', clave: 'Bryan Hernández', cuantas: 152 },
+    { nombre: 'José Cruz', clave: 'José Cruz', cuantas: 328 },
   ]
 
+  const abrir = () => fireEvent.click(screen.getByTestId('boton-responsables'))
+
   it('no aparece cuando el plan no tiene a nadie con nombre', () => {
-    // Un grupo con una sola opción —«Todos»— es un control que no hace nada.
     montar()
-    expect(screen.queryByLabelText('Responsable')).toBeNull()
+    expect(screen.queryByTestId('boton-responsables')).toBeNull()
+  })
+
+  it('el botón dice a quién hay puesto sin tener que abrirlo', () => {
+    // Un control que sólo dice «Responsable» obliga a abrirlo para saber si está filtrando.
+    montar({ responsables: GENTE })
+    expect(screen.getByTestId('boton-responsables')).toHaveTextContent('Todos')
+
+    cleanup()
+    montar({ responsables: GENTE, filter: { responsables: ['Bryan Hernández'] } })
+    expect(screen.getByTestId('boton-responsables')).toHaveTextContent('Bryan Hernández')
+
+    cleanup()
+    montar({ responsables: GENTE, filter: { responsables: ['Bryan Hernández', 'José Cruz'] } })
+    expect(screen.getByTestId('boton-responsables')).toHaveTextContent('2 personas')
   })
 
   it('ofrece a cada persona con su carga', () => {
     montar({ responsables: GENTE })
-    const select = screen.getByLabelText('Responsable')
-    // «Bryan (152)» dice algo que «Bryan» no dice: cuánto trabajo hay detrás de elegirlo.
-    expect(within(select).getByRole('option', { name: 'Rafael Oliva (450)' })).toBeInTheDocument()
-    expect(within(select).getByRole('option', { name: 'Bryan Hernández (152)' })).toBeInTheDocument()
-    expect(within(select).getByRole('option', { name: 'Todos' })).toBeInTheDocument()
+    abrir()
+    const panel = within(screen.getByTestId('panel-responsables'))
+    expect(panel.getByText('Rafael Oliva')).toBeInTheDocument()
+    expect(panel.getByText('450')).toBeInTheDocument()
   })
 
-  it('elegir a alguien lo pone en el filtro sin tirar los demás ejes', () => {
-    // Los ejes se cruzan, no se sustituyen: pedir a Bryan no puede borrar el corte que ya había.
+  it('marcar a alguien lo añade sin tirar los demás ejes', () => {
     const props = montar({ responsables: GENTE, filter: { hasta: '2026-09-15' } })
-    fireEvent.change(screen.getByLabelText('Responsable'), { target: { value: 'Bryan Hernández' } })
+    abrir()
+    fireEvent.click(within(screen.getByTestId('panel-responsables')).getByText('Bryan Hernández'))
     expect(props.onFilterChange).toHaveBeenCalledWith({
       hasta: '2026-09-15',
-      responsable: 'Bryan Hernández',
+      responsables: ['Bryan Hernández'],
     })
   })
 
-  it('«Quitar» lo saca y deja el resto en pie', () => {
+  it('marcar a un segundo los acumula, no lo sustituye', () => {
+    const props = montar({ responsables: GENTE, filter: { responsables: ['Bryan Hernández'] } })
+    abrir()
+    fireEvent.click(within(screen.getByTestId('panel-responsables')).getByText('José Cruz'))
+    // En el orden de la lista, no en el de los clics: dos personas dan el mismo filtro se marquen
+    // como se marquen, y así el archivo exportado sale igual.
+    expect(props.onFilterChange).toHaveBeenCalledWith({ responsables: ['Bryan Hernández', 'José Cruz'] })
+  })
+
+  it('desmarcar al último deja el filtro sin poner, no una lista vacía', () => {
+    // Una lista vacía se contaría como filtro puesto y el rótulo diría que recorta algo.
+    const props = montar({ responsables: GENTE, filter: { responsables: ['Bryan Hernández'] } })
+    abrir()
+    fireEvent.click(within(screen.getByTestId('panel-responsables')).getByText('Bryan Hernández'))
+    expect(props.onFilterChange).toHaveBeenCalledWith({ responsables: undefined })
+  })
+
+  it('«Quitar» los saca todos y deja el resto en pie', () => {
     const props = montar({
       responsables: GENTE,
-      filter: { responsable: 'Bryan Hernández', onlyOverdue: true },
+      filter: { responsables: ['Bryan Hernández', 'José Cruz'], onlyOverdue: true },
     })
     fireEvent.click(within(screen.getByRole('group', { name: 'Responsable' })).getByText('Quitar'))
-    expect(props.onFilterChange).toHaveBeenCalledWith({ onlyOverdue: true, responsable: undefined })
+    expect(props.onFilterChange).toHaveBeenCalledWith({ onlyOverdue: true, responsables: undefined })
   })
 
-  it('con un responsable puesto, «Todo» no puede decir que no hay filtro', () => {
-    // La invariante de esta barra: un filtro encendido fuera del grupo «Filtro» se vería igual que
-    // un plan corto si «Todo» siguiera marcado.
-    montar({ responsables: GENTE, filter: { responsable: 'Bryan Hernández' } })
+  it('con alguien puesto, «Todo» no puede decir que no hay filtro', () => {
+    montar({ responsables: GENTE, filter: { responsables: ['Bryan Hernández'] } })
     expect(grupo('Filtro').getByText('Todo')).toHaveAttribute('aria-pressed', 'false')
   })
 })

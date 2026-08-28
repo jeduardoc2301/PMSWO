@@ -172,7 +172,7 @@ export function PlanControls({
     parte === null &&
     !soloAtrasadas &&
     hasta === null &&
-    filter.responsable === undefined &&
+    (filter.responsables ?? []).length === 0 &&
     filter.onlyCritical !== true
 
   /**
@@ -337,29 +337,13 @@ export function PlanControls({
           «Bryan (152)» dice algo que «Bryan» no dice. */}
       {responsables && responsables.length > 0 ? (
         <Grupo titulo="Responsable" nota="Quién lleva cada línea.">
-          <select
-            aria-label="Responsable"
-            value={filter.responsable ?? ''}
-            onChange={(evento) =>
-              onFilterChange({
-                ...filter,
-                responsable: evento.target.value === '' ? undefined : evento.target.value,
-              })
+          <PanelDeResponsables
+            gente={responsables}
+            elegidos={filter.responsables ?? []}
+            onCambio={(claves) =>
+              onFilterChange({ ...filter, responsables: claves.length === 0 ? undefined : claves })
             }
-            className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
-          >
-            <option value="">Todos</option>
-            {responsables.map((r) => (
-              <option key={r.clave} value={r.clave}>
-                {r.nombre} ({conMiles(r.cuantas)})
-              </option>
-            ))}
-          </select>
-          {filter.responsable !== undefined ? (
-            <Boton activo={false} onClick={() => onFilterChange({ ...filter, responsable: undefined })}>
-              Quitar
-            </Boton>
-          ) : null}
+          />
         </Grupo>
       ) : null}
 
@@ -488,6 +472,104 @@ function BotonDeExcel({
     >
       {bajando ? 'Generando…' : 'Excel'}
     </button>
+  )
+}
+
+/**
+ * Elegir a una o varias personas.
+ *
+ * Un panel de casillas y no un desplegable: elegir a dos personas en un `select` obliga a
+ * arrastrar con la tecla puesta, que casi nadie descubre. Y no botones sueltos en la barra,
+ * porque cinco caben y treinta no.
+ *
+ * El botón dice a quién hay puesto sin abrirlo: con uno, su nombre; con varios, cuántos. Un
+ * control que sólo dice «Responsable» obliga a abrirlo para saber si está filtrando.
+ */
+function PanelDeResponsables({
+  gente,
+  elegidos,
+  onCambio,
+}: {
+  gente: readonly { readonly nombre: string; readonly clave: string; readonly cuantas: number }[]
+  elegidos: readonly string[]
+  onCambio: (claves: string[]) => void
+}) {
+  const [abierto, setAbierto] = React.useState(false)
+  const caja = React.useRef<HTMLDivElement | null>(null)
+
+  // Cerrar al pinchar fuera, como el panel de Campos: un menú que tapa el plan y sólo se cierra
+  // por su propio botón obliga a apuntar de vuelta a un sitio concreto para seguir leyendo.
+  React.useEffect(() => {
+    if (!abierto) return
+    const alPinchar = (e: MouseEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false)
+    }
+    document.addEventListener('mousedown', alPinchar)
+    return () => document.removeEventListener('mousedown', alPinchar)
+  }, [abierto])
+
+  const puestos = new Set(elegidos)
+  const alternar = (clave: string) => {
+    const siguiente = new Set(puestos)
+    if (siguiente.has(clave)) siguiente.delete(clave)
+    else siguiente.add(clave)
+    // En el orden de la lista, no en el de los clics: así dos personas dan el mismo filtro se
+    // marquen como se marquen, y el archivo exportado sale igual.
+    onCambio(gente.filter((g) => siguiente.has(g.clave)).map((g) => g.clave))
+  }
+
+  const rotulo =
+    elegidos.length === 0
+      ? 'Todos'
+      : elegidos.length === 1
+        ? (gente.find((g) => g.clave === elegidos[0])?.nombre ?? '1')
+        : `${elegidos.length} personas`
+
+  return (
+    <div ref={caja} className="relative flex items-center gap-2">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        data-testid="boton-responsables"
+        onClick={() => setAbierto((v) => !v)}
+        className="max-w-[14rem] truncate rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta-2 hover:bg-superficie-3"
+      >
+        {rotulo} ▾
+      </button>
+
+      {elegidos.length > 0 ? (
+        <Boton activo={false} onClick={() => onCambio([])}>
+          Quitar
+        </Boton>
+      ) : null}
+
+      {abierto ? (
+        <div
+          role="menu"
+          aria-label="Responsables"
+          data-testid="panel-responsables"
+          className="absolute left-0 top-full z-40 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-borde bg-superficie p-2 shadow-xl"
+        >
+          {gente.map((g) => (
+            <label
+              key={g.clave}
+              className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-superficie-3"
+            >
+              <input
+                type="checkbox"
+                checked={puestos.has(g.clave)}
+                onChange={() => alternar(g.clave)}
+                className="h-3.5 w-3.5 accent-[#6366f1]"
+              />
+              <span className="flex-1 truncate text-xs text-tinta-2">{g.nombre}</span>
+              {/* La carga de cada uno: «Bryan (152)» dice algo que «Bryan» no dice. */}
+              <span className="shrink-0 text-[11px] text-tinta-3">{conMiles(g.cuantas)}</span>
+            </label>
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 

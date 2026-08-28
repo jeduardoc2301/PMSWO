@@ -84,7 +84,7 @@ import {
   type GanttFilter,
   type LinkVisibility,
   collapseToLevel,
-  ganttLayout, anchoDeDiaPara, hayFiltroPuesto, responsablesDelPlan } from '@/lib/scheduling/gantt'
+  ganttLayout, anchoDeDiaPara, responsablesDelPlan } from '@/lib/scheduling/gantt'
 import { summarizePlan } from '@/lib/scheduling/plan-summary'
 import { rollUpProgress } from '@/lib/scheduling/progress'
 import { restriccion } from '@/lib/scheduling/restricciones'
@@ -536,57 +536,26 @@ export function PlanWorkspace({
   const idsVisiblesEnPantalla = useMemo(() => layoutFiltrado.rows.map((r) => r.id), [layoutFiltrado])
 
   /**
-   * Qué líneas se lleva la exportación a Excel.
+   * Qué líneas se lleva la exportación a Excel: **exactamente las que se están viendo**.
    *
-   * Se recalcula con `ganttLayout` **sin plegar** en vez de reutilizar `layoutFiltrado.rows`, y la
-   * diferencia es deliberada: en esta barra conviven dos cosas que se parecen y no son lo mismo.
+   * Sale de `idsVisiblesEnPantalla`, que es la misma lista que dibuja la rejilla, así que el
+   * número del rótulo, el del pie de la barra y el del archivo son el mismo por construcción y no
+   * por coincidencia.
    *
-   * - **Filtro** —«Solo hitos», «Del cliente», «Hasta»— dice qué líneas importan. El archivo tiene
-   *   que respetarlo: para eso se puso el filtro.
-   * - **Nivel de detalle** dice hasta qué profundidad se dibuja. Eso no quita líneas del plan, las
-   *   dobla; y Excel las dobla solo, con su propio esquema y mejor que nosotros. Exportar lo
-   *   plegado tiraría a la basura justo lo que el esquema del libro existe para enseñar.
+   * Antes recalculaba el trazado **sin plegar**, para llevarse todos los niveles de lo que el
+   * filtro dejaba y que fuera Excel quien doblara. Era defendible M el esquema del libro pliega
+   * solo M pero rompe la promesa más simple que puede hacer un botón de exportar: que baje lo
+   * que hay delante. Con el nivel en «Fases» la pantalla decía 127 líneas y el archivo traía
+   * 1 368.
    *
-   * Y se recalcula con el MISMO motor, no con una segunda copia de las reglas del filtro: si
-   * hubiera dos implementaciones, cualquier cambio en una dejaría a la otra mintiendo en silencio.
-   * Sólo se paga el cálculo cuando hay filtro puesto; sin él se manda `null`, que en el servidor
-   * significa «el plan entero» y ni siquiera necesita la lista.
+   * `null` significa «el plan entero», y el servidor lo entiende sin necesidad de la lista.
    */
   const paraExportar = useMemo((): { ids: string[] | null; cuantas: number } => {
-    if (!hayFiltroPuesto(filter) && !idsVisibles) return { ids: null, cuantas: tasks.length }
-
-    const sinPlegar = ganttLayout({
-      tasks,
-      dependencies,
-      schedule: base.schedule,
-      classified: base.classified,
-      calendar: base.calendar,
-      jornada,
-      filter,
-      hoy: hoyCivil(),
-    })
-
-    let ids = sinPlegar.rows.map((f) => f.id)
-    if (idsVisibles) {
-      // El recorte de fuera —el buscador de la pantalla— se cruza igual que en `layoutFiltrado`,
-      // conservando los antepasados: una actividad sin su fase deja de ser un esquema.
-      const porId = new Map(tasks.map((t) => [t.id, t]))
-      const conservar = new Set<string>()
-      for (const id of ids) {
-        if (!idsVisibles.has(id)) continue
-        conservar.add(id)
-        const visto = new Set<string>([id])
-        for (let padre = porId.get(id)?.parentId; padre !== undefined; padre = porId.get(padre)?.parentId) {
-          if (visto.has(padre)) break
-          visto.add(padre)
-          conservar.add(padre)
-        }
-      }
-      ids = ids.filter((id) => conservar.has(id))
-    }
-
-    return { ids, cuantas: ids.length }
-  }, [tasks, dependencies, base, jornada, filter, idsVisibles])
+    const ids = idsVisiblesEnPantalla
+    return ids.length === tasks.length
+      ? { ids: null, cuantas: tasks.length }
+      : { ids, cuantas: ids.length }
+  }, [idsVisiblesEnPantalla, tasks.length])
   const alcance = useMemo(
     () => alcanceDe(seleccion, idsVisiblesEnPantalla),
     [seleccion, idsVisiblesEnPantalla],

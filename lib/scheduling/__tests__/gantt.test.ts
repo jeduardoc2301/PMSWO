@@ -1695,7 +1695,7 @@ describe('El filtro por responsable', () => {
   const idsDe = (layout: GanttLayout) => layout.rows.map((f) => f.id)
 
   it('deja las líneas de esa persona y sus ancestros, nada más', () => {
-    const filas = idsDe(trazar(conResponsables(), [], { filter: { responsable: 'Bryan Hernández' } }))
+    const filas = idsDe(trazar(conResponsables(), [], { filter: { responsables: ['Bryan Hernández'] } }))
     // La fase entra por ser ancestro: una actividad sin su fase deja de ser un esquema.
     expect(filas).toEqual(['fase', 'a', 'c'])
   })
@@ -1706,13 +1706,13 @@ describe('El filtro por responsable', () => {
 
   it('un nombre que no está en el plan deja solo lo que sea ancestro de nada', () => {
     // No es un error: es una lista vacía, y el rótulo de la barra lo dirá.
-    expect(idsDe(trazar(conResponsables(), [], { filter: { responsable: 'Nadie Aquí' } }))).toEqual([])
+    expect(idsDe(trazar(conResponsables(), [], { filter: { responsables: ['Nadie Aquí'] } }))).toEqual([])
   })
 
   it('«sin responsable» selecciona las que no llevan a nadie, incluidas las de nombre en blanco', () => {
     // Un `owner` con solo espacios no es un responsable. Si contara como uno, aparecería en la
     // lista de la barra como una opción sin texto que nadie podría entender.
-    const filas = idsDe(trazar(conResponsables(), [], { filter: { responsable: SIN_RESPONSABLE } }))
+    const filas = idsDe(trazar(conResponsables(), [], { filter: { responsables: [SIN_RESPONSABLE] } }))
     expect(filas).toEqual(['fase', 'd', 'e'])
   })
 
@@ -1725,7 +1725,7 @@ describe('El filtro por responsable', () => {
       { id: 'o', name: 'Hito de otra', duration: 0, parentId: 'fase', kind: 'HITO', owner: 'José Cruz' },
     ]
     const filas = idsDe(
-      trazar(tareas, [], { filter: { responsable: 'Bryan Hernández', onlyMilestones: true } }),
+      trazar(tareas, [], { filter: { responsables: ['Bryan Hernández'], onlyMilestones: true } }),
     )
     expect(filas).toEqual(['fase', 'h'])
   })
@@ -1773,7 +1773,7 @@ describe('Quién aparece en el plan', () => {
       { id: 'c', name: 'c', duration: 1 },
     ]
     for (const { clave, cuantas } of responsablesDelPlan(tareas)) {
-      const filas = trazar(tareas, [], { filter: { responsable: clave } }).rows
+      const filas = trazar(tareas, [], { filter: { responsables: [clave] } }).rows
       expect(filas.length).toBe(cuantas)
     }
   })
@@ -1786,8 +1786,55 @@ describe('Si el filtro está puesto', () => {
     expect(hayFiltroPuesto(undefined)).toBe(false)
     expect(hayFiltroPuesto({})).toBe(false)
     expect(hayFiltroPuesto({ onlyOverdue: false })).toBe(false)
-    expect(hayFiltroPuesto({ responsable: 'Ana' })).toBe(true)
+    expect(hayFiltroPuesto({ responsables: ['Ana'] })).toBe(true)
     expect(hayFiltroPuesto({ hasta: '2026-09-15' })).toBe(true)
     expect(hayFiltroPuesto({ onlyOverdue: true })).toBe(true)
+  })
+})
+
+describe('El filtro por responsable, con varias personas', () => {
+  const plan = (): PlanTask[] => [
+    { id: 'fase', name: 'Fase', duration: 0 },
+    { id: 'a', name: 'De Bryan', duration: 3, parentId: 'fase', owner: 'Bryan Hernández' },
+    { id: 'b', name: 'De José', duration: 3, parentId: 'fase', owner: 'José Cruz' },
+    { id: 'c', name: 'De Rafael', duration: 3, parentId: 'fase', owner: 'Rafael Oliva' },
+  ]
+  const idsDe = (f: object) => trazar(plan(), [], { filter: f }).rows.map((r) => r.id)
+
+  it('pedir a dos da la unión de las suyas', () => {
+    // Entre personas se suma: «quién lleva la línea» admite varias respuestas a la vez.
+    expect(idsDe({ responsables: ['Bryan Hernández', 'José Cruz'] })).toEqual(['fase', 'a', 'b'])
+  })
+
+  it('pero frente a los demás ejes sigue cruzándose', () => {
+    // Dos personas MÁS «solo hitos» da los hitos de esas dos, no las tres listas juntas.
+    const conHito: PlanTask[] = [
+      ...plan(),
+      { id: 'h', name: 'Hito de José', duration: 0, parentId: 'fase', kind: 'HITO', owner: 'José Cruz' },
+    ]
+    const filas = trazar(conHito, [], {
+      filter: { responsables: ['Bryan Hernández', 'José Cruz'], onlyMilestones: true },
+    }).rows.map((r) => r.id)
+    expect(filas).toEqual(['fase', 'h'])
+  })
+
+  it('una lista vacía no recorta nada', () => {
+    // Quitar la última marca no puede dejar la pantalla en blanco: se leería como un plan vacío.
+    expect(idsDe({ responsables: [] })).toHaveLength(4)
+  })
+
+  it('el orden de la lista no cambia el resultado', () => {
+    // Importa porque de aquí sale el archivo exportado: marcar en otro orden no puede dar otro Excel.
+    expect(idsDe({ responsables: ['José Cruz', 'Bryan Hernández'] })).toEqual(
+      idsDe({ responsables: ['Bryan Hernández', 'José Cruz'] }),
+    )
+  })
+
+  it('mezcla personas con «sin responsable»', () => {
+    const conHuerfana: PlanTask[] = [...plan(), { id: 'x', name: 'De nadie', duration: 3, parentId: 'fase' }]
+    const filas = trazar(conHuerfana, [], {
+      filter: { responsables: ['Bryan Hernández', SIN_RESPONSABLE] },
+    }).rows.map((r) => r.id)
+    expect(filas).toEqual(['fase', 'a', 'x'])
   })
 })

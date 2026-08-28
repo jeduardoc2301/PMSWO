@@ -326,9 +326,17 @@ export interface GanttFilter {
    * atrasado de Bryan, no la unión de las dos listas. Y conserva los ancestros como cualquier otro
    * filtro: una actividad sin su fase deja de ser un esquema.
    *
+   * Es una **lista**: pedir a dos personas da la unión de las suyas, porque «quién lleva la
+   * línea» admite varias respuestas a la vez y un plan se reparte entre equipos. Frente a los
+   * otros ejes sigue cruzándose: «Bryan y José» más «solo atrasadas» da lo atrasado de los dos.
+   *
+   * Una lista vacía no recorta nada. La barra pone `undefined` al desmarcar el último, pero el
+   * motor lo contempla igual: un filtro que dejara la pantalla en blanco por haber quitado la
+   * última marca se leería como un plan vacío.
+   *
    * `SIN_RESPONSABLE` selecciona las líneas que no llevan a nadie con nombre.
    */
-  readonly responsable?: string
+  readonly responsables?: readonly string[]
 }
 
 /**
@@ -1231,11 +1239,10 @@ function filterPredicate(
     if (filter.party !== undefined && (clasificada?.party ?? task.party ?? 'PROVEEDOR') !== filter.party) {
       return false
     }
-    if (filter.responsable !== undefined) {
+    if (filter.responsables !== undefined && filter.responsables.length > 0) {
       const suyo = responsableDe(task)
-      if (filter.responsable === SIN_RESPONSABLE ? suyo !== null : suyo !== filter.responsable) {
-        return false
-      }
+      const clave = suyo ?? SIN_RESPONSABLE
+      if (!filter.responsables.includes(clave)) return false
     }
     return true
   }
