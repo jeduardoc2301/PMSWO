@@ -305,7 +305,9 @@ describe('libro de plan · avance ponderado por Peso', () => {
     // Dos sumandos, uno por hija directa. Si contara las nietas habría cuatro, y los días
     // compartidos se contarían dos veces.
     expect(formula.match(/\*/g)).toHaveLength(2)
-    expect(formula).toMatch(/^IFERROR\(\(.+\)\/\(.+\),0\)$/)
+    // Y el repuesto es media simple, no cero: es lo que hace `avanceDelResumen` en el motor
+    // cuando el peso total es cero, y el libro no puede tener su propia regla.
+    expect(formula).toMatch(/^IFERROR\(\(.+\)\/\(.+\),AVERAGE\(.+\)\)$/)
   })
 
   it('el Peso de una madre es la suma del de sus hijas directas', () => {
@@ -637,7 +639,7 @@ describe('libro de plan · Excel cuenta los días como el motor', () => {
 })
 
 describe('libro de plan · un archivo filtrado lo dice', () => {
-  const AVISO = 'Vista filtrada: 3 de 1368 líneas del plan.'
+  const AVISO = 'Vista parcial: 3 de 1368 líneas del plan.'
 
   it('el aviso va en la cabecera, antes que la descripción del proyecto', () => {
     const libro = readWorkbook(construirLibroDePlan({ ...migracion(), alcance: AVISO }).contenido)
@@ -698,7 +700,7 @@ describe('libro de plan · un resumen al que el filtro le quitó las hijas', () 
       nombre: 'Vista filtrada',
       campos: [],
       configuracion: {},
-      alcance: 'Vista filtrada: 2 de 400 líneas del plan.',
+      alcance: 'Vista parcial: 2 de 400 líneas del plan.',
       lineas: [
         { id: 'r', nombre: 'Programa', tipo: 'Resumen', parentId: null, inicio: DIA, fin: DIA + 90,
           duracion: 64, avance: 0, peso: 494, predecesoras: [], personalizados: {} },
@@ -734,14 +736,90 @@ describe('libro de plan · un resumen al que el filtro le quitó las hijas', () 
     expect(celdaDePeso![1]).toBe('<v>290</v>')
   })
 
-  it('el suelo de uno no pisa un peso que llega de fuera', () => {
-    // `pesoDeUnaHoja` sube a 1 lo que valga cero, pero no toca lo que ya trae un número.
+  it('el peso que llega de fuera se respeta tal cual, sin suelos ni ajustes', () => {
+    // Aquí hubo un suelo de uno, y lo quité: el motor ya resuelve el 0/0 con media simple, y tener
+    // dos remedios distintos para el mismo problema daba dos pesos distintos para la misma línea
+    // —177 de las 1 368 del plan de referencia— y hacía que una rama valiera distinto según
+    // estuviera plegada o no.
     const plan = resumenSuelto()
     const conCero: PlanParaExportar = {
       ...plan,
       lineas: [plan.lineas[0], { ...plan.lineas[1], peso: 0, duracion: 0 }],
     }
-    const filas = [...hojaDe(conCero).matchAll(/<row r="\d+"[^>]*>(.*?)<\/row>/g)]
-    expect(filas.find((f) => f[1].includes('Planificación'))![1]).toContain('<v>1</v>')
+    const columnaPeso = letraDeColumna(construirLibroDePlan(conCero).columnas)
+    const filas = [...hojaDe(conCero).matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const fila = filas.find((f) => f[2].includes('Planificación'))!
+    const celda = new RegExp(`<c r="${columnaPeso}${fila[1]}"[^>]*>(.*?)</c>`).exec(fila[2])
+    expect(celda![1]).toBe('<v>0</v>')
+  })
+})
+
+describe('libro de plan · el libro pesa como el motor', () => {
+  /**
+   * La invariante que costó 177 líneas descuadradas: **el libro no puede tener su propio modelo de
+   * avance**. Aquí hubo un suelo de uno por hoja, que resolvía el 0/0 de otra manera que el motor
+   * —éste cae a media simple— y el resultado era que la misma rama pesaba distinto en el Excel que
+   * en la pantalla, y distinto según estuviera plegada o no.
+   */
+  function ramaDeHitos(): PlanParaExportar {
+    return {
+      nombre: 'Compuerta',
+      campos: [],
+      configuracion: {},
+      lineas: [
+        { id: 'r', nombre: 'Programa', tipo: 'Fase', parentId: null, inicio: DIA, fin: DIA + 30,
+          duracion: 22, avance: 0, peso: 0, predecesoras: [], personalizados: {} },
+        { id: 'h1', nombre: 'Hito uno', tipo: 'Hito', parentId: 'r', inicio: DIA, fin: DIA,
+          duracion: 0, avance: 1, peso: 0, predecesoras: [], personalizados: {} },
+        { id: 'h2', nombre: 'Hito dos', tipo: 'Hito', parentId: 'r', inicio: DIA + 3, fin: DIA + 3,
+          duracion: 0, avance: 1, peso: 0, predecesoras: [], personalizados: {} },
+      ],
+    }
+  }
+
+  it('una rama de puros hitos cae a media simple, igual que `avanceDelResumen`', () => {
+    // Sin esto la división es 0/0 y la madre salía al 0 % con las dos hijas cumplidas. El motor lo
+    // resuelve así desde antes que existiera este exportador; el libro se limita a hacer lo mismo.
+    const filas = [...hojaDe(ramaDeHitos()).matchAll(/<row r="\d+"[^>]*>(.*?)<\/row>/g)]
+    const madre = filas.find((f) => f[1].includes('Programa'))!
+    expect(/<f>(IFERROR[^<]*)<\/f>/.exec(madre[1])![1]).toMatch(/,AVERAGE\([^)]+\)\)$/)
+  })
+
+  it('los hitos siguen pesando cero, que es lo que pesan en el motor', () => {
+    const plan = ramaDeHitos()
+    const columnaPeso = letraDeColumna(construirLibroDePlan(plan).columnas)
+    const filas = [...hojaDe(plan).matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const hito = filas.find((f) => f[2].includes('Hito uno'))!
+    const celda = new RegExp(`<c r="${columnaPeso}${hito[1]}"[^>]*>(.*?)</c>`).exec(hito[2])
+    expect(celda![1]).toBe('<v>0</v>')
+  })
+
+  it('una rama pesa lo mismo esté plegada o desplegada', () => {
+    // Plegada llega con el peso que trae del motor; desplegada se suma de sus hijas. Los dos
+    // caminos tienen que dar el número idéntico, o la media ponderada de la madre cambia según el
+    // nivel de detalle que tuviera puesto quien exportó.
+    const desplegado: PlanParaExportar = {
+      nombre: 'x', campos: [], configuracion: {},
+      lineas: [
+        { id: 'r', nombre: 'Raíz', tipo: 'Fase', parentId: null, inicio: DIA, fin: DIA + 30, duracion: 22, avance: 0, peso: 12, predecesoras: [], personalizados: {} },
+        { id: 'a', nombre: 'Rama', tipo: 'Fase', parentId: 'r', inicio: DIA, fin: DIA + 20, duracion: 15, avance: 0, peso: 12, predecesoras: [], personalizados: {} },
+        { id: 'a1', nombre: 'Hoja larga', tipo: 'Actividad', parentId: 'a', inicio: DIA, fin: DIA + 11, duracion: 12, avance: 0, peso: 12, predecesoras: [], personalizados: {} },
+        { id: 'a2', nombre: 'Hito suelto', tipo: 'Hito', parentId: 'a', inicio: DIA + 20, fin: DIA + 20, duracion: 0, avance: 0, peso: 0, predecesoras: [], personalizados: {} },
+      ],
+    }
+    const plegado: PlanParaExportar = { ...desplegado, lineas: desplegado.lineas.slice(0, 2) }
+
+    const pesoDe = (plan: PlanParaExportar, nombre: string): string => {
+      const col = letraDeColumna(construirLibroDePlan(plan).columnas)
+      const filas = [...hojaDe(plan).matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+      const fila = filas.find((f) => f[2].includes(nombre))!
+      return new RegExp(`<c r="${col}${fila[1]}"[^>]*>(.*?)</c>`).exec(fila[2])![1]
+    }
+
+    // Plegada: el valor que trae del motor. Desplegada: la suma de sus hijas, 12 + 0 = 12.
+    expect(pesoDe(plegado, 'Rama')).toBe('<v>12</v>')
+    expect(pesoDe(desplegado, 'Rama')).toMatch(/<f>[A-Z]+\d+\+[A-Z]+\d+<\/f>/)
+    expect(pesoDe(desplegado, 'Hoja larga')).toBe('<v>12</v>')
+    expect(pesoDe(desplegado, 'Hito suelto')).toBe('<v>0</v>')
   })
 })

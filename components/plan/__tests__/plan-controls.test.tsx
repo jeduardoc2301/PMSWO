@@ -518,7 +518,7 @@ describe('El botón de exportar a Excel', () => {
     // Si el rótulo dijera siempre «el plan entero», quien filtra y exporta creería que se lleva
     // todo. El número sale del mismo cálculo que la lista, así que no pueden discrepar.
     montar({ idDelProyecto: 'p-1', paraExportar: { ids: ['a', 'b'], cuantas: 2 } })
-    expect(screen.getByRole('group', { name: 'Exportar' })).toHaveTextContent('Las 2 líneas del filtro')
+    expect(screen.getByRole('group', { name: 'Exportar' })).toHaveTextContent('Las 2 líneas que se están viendo')
   })
 
   it('y sin filtro sigue diciendo que se lleva el plan entero', () => {
@@ -657,5 +657,31 @@ describe('Los ejes del filtro no se pisan entre sí', () => {
     const props = montar({ responsables: GENTE, filter: { responsables: ELEGIDOS, onlyOverdue: true } })
     fireEvent.click(grupo('Filtro').getByRole('button', { name: 'Todo' }))
     expect(props.onFilterChange).toHaveBeenCalledWith({})
+  })
+})
+
+describe('El rótulo de exportar dice lo que de verdad baja', () => {
+  it('sin filtro pero con el árbol plegado, no dice «del filtro»', () => {
+    // El rótulo decía «Las 27 líneas del filtro» con el botón «Todo» marcado en el mismo grupo:
+    // dos cosas que se contradicen en la misma captura. Lo que hubo no fue un filtro, fue una
+    // carpeta cerrada.
+    montar({ idDelProyecto: 'p-1', filter: {}, paraExportar: { ids: ['a', 'b'], cuantas: 2 } })
+    const grupoExportar = screen.getByRole('group', { name: 'Exportar' })
+    expect(grupoExportar).toHaveTextContent('Las 2 líneas que se están viendo')
+    expect(grupoExportar).not.toHaveTextContent('filtro')
+  })
+
+  it('con cero líneas lo dice y no invita a pulsar', () => {
+    // Un cruce de ejes que no deja nada bajaba un libro con cabeceras y ninguna fila, llamado
+    // «(parcial)» y con su aviso de alcance, como si el recorte fuera una decisión de quien lo
+    // mandó. Con cero no hay archivo que bajar.
+    montar({ idDelProyecto: 'p-1', paraExportar: { ids: [], cuantas: 0 } })
+    expect(screen.getByRole('group', { name: 'Exportar' })).toHaveTextContent('No hay ninguna línea que exportar')
+    expect(screen.getByTestId('exportar-plan-excel')).toBeDisabled()
+  })
+
+  it('y con líneas sí invita', () => {
+    montar({ idDelProyecto: 'p-1', paraExportar: { ids: ['a'], cuantas: 1 } })
+    expect(screen.getByTestId('exportar-plan-excel')).not.toBeDisabled()
   })
 })

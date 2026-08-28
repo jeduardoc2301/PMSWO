@@ -360,9 +360,11 @@ export function PlanControls({
         <Grupo
           titulo="Exportar"
           nota={
-            paraExportar?.ids
-              ? `Las ${paraExportar.cuantas} líneas del filtro, con su jerarquía.`
-              : 'El plan entero, con su jerarquía.'
+            !paraExportar?.ids
+              ? 'El plan entero, con su jerarquía.'
+              : paraExportar.cuantas === 0
+                ? 'No hay ninguna línea que exportar.'
+                : `Las ${paraExportar.cuantas} líneas que se están viendo, con su jerarquía.`
           }
         >
           <BotonDeExcel idDelProyecto={idDelProyecto} lineas={paraExportar?.ids ?? null} />
@@ -467,10 +469,12 @@ function BotonDeExcel({
       type="button"
       data-testid="exportar-plan-excel"
       onClick={() => void bajar()}
-      disabled={bajando}
+      // Con cero líneas no hay archivo que bajar: el libro saldría con cabeceras y nada más,
+      // llamado «(filtrado)» y con su aviso de alcance, como si el recorte fuera una decisión.
+      disabled={bajando || lineas?.length === 0}
       title={
         lineas
-          ? 'Descarga en Excel lo que el filtro deja, con su jerarquía y el avance que se recalcula'
+          ? 'Descarga en Excel las líneas que se están viendo, con su jerarquía y el avance que se recalcula'
           : 'Descarga el plan completo en Excel, con jerarquía plegable y avance que se recalcula'
       }
       className="rounded-md border border-borde bg-superficie px-3 py-1.5 text-sm text-tinta-2 transition-colors hover:border-acento hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:ring-offset-superficie disabled:cursor-not-allowed disabled:opacity-50"

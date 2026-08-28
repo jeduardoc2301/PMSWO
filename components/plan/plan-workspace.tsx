@@ -34,6 +34,7 @@ import { GanttChart } from '@/components/plan/gantt-chart'
 import { PlanControls } from '@/components/plan/plan-controls'
 import { PlanDetailPanel } from '@/components/plan/plan-detail-panel'
 import { DependencyEditor } from '@/components/projects/dependency-editor'
+import { queSeExporta } from '@/lib/export/plan/que-se-exporta'
 import { hoyCivil } from '@/lib/formato-fecha'
 import { CreateWorkItemDialog } from '@/components/projects/create-work-item-dialog'
 import { RowContextMenu } from '@/components/plan/row-context-menu'
@@ -550,12 +551,10 @@ export function PlanWorkspace({
    *
    * `null` significa «el plan entero», y el servidor lo entiende sin necesidad de la lista.
    */
-  const paraExportar = useMemo((): { ids: string[] | null; cuantas: number } => {
-    const ids = idsVisiblesEnPantalla
-    return ids.length === tasks.length
-      ? { ids: null, cuantas: tasks.length }
-      : { ids, cuantas: ids.length }
-  }, [idsVisiblesEnPantalla, tasks.length])
+  const paraExportar = useMemo(
+    () => queSeExporta(idsVisiblesEnPantalla, tasks.length),
+    [idsVisiblesEnPantalla, tasks.length],
+  )
   const alcance = useMemo(
     () => alcanceDe(seleccion, idsVisiblesEnPantalla),
     [seleccion, idsVisiblesEnPantalla],

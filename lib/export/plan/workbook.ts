@@ -220,29 +220,25 @@ function cabeEnUnaCelda(formula: string): boolean {
 }
 
 /**
- * Lo que pesa una hoja en el avance de sus madres.
+ * Lo que pesa una hoja en el avance de sus madres: sus días laborables, **igual que el motor**.
  *
- * **Nunca cero**, y esa es la parte que importa. El peso son los días laborables de la línea, y un
- * hito dura cero por definición: una rama cuyas hijas directas son todas hitos —una compuerta, un
- * paquete de aprobaciones, un bloque de entregas al cliente— sumaba peso cero, y entonces pasaban
- * dos cosas a la vez, las dos malas:
+ * Aquí hubo un suelo de uno, y era un error de los que cuesta ver. El problema que resolvía es
+ * real — una rama cuyas hijas son todas hitos suma peso cero, la división es 0/0, y el libro
+ * enseñaba 0 % con todo cumplido — pero el motor YA lo tenía resuelto, de otra manera: cuando el
+ * peso total es cero cae a media simple (`avanceDelResumen`, lib/scheduling/rollup-modos.ts).
  *
- * 1. Su propio avance era `0/0`, que el `IFERROR` no convertía en un error visible sino en un
- *    **cero**. La fila enseñaba 0 % y «No iniciado» con todas sus hijas cumplidas y cerradas.
- * 2. Su peso era cero para su madre, así que la rama entera **desaparecía** del avance del
- *    programa. El trabajo existía, estaba hecho, y no contaba en ninguna parte.
+ * Tener dos remedios distintos para el mismo problema no daba un fallo visible: daba dos pesos
+ * distintos para la misma línea. 177 de las 1 368 del plan de referencia pesaban en el libro lo
+ * que no pesaban en la pantalla, y una rama valía distinto según estuviera plegada o no — porque
+ * plegada llega con el peso crudo del motor y desplegada se suma de hijas ya con suelo. Tres
+ * números para la misma fila el mismo día.
  *
- * Ponderar sólo por duración es una regla de dominio disfrazada de aritmética: presupone que toda
- * rama contiene al menos una línea que dura. Es cierto en un plan de migración y falso en un
- * calendario regulatorio, en un plan de entregas contractuales o en las fechas de un rodaje, donde
- * ramas enteras son sólo compromisos con fecha. El encargo dice que una regla que sólo vale para
- * un proyecto concreto no puede vivir en el código del exportador, y ésta vivía aquí.
- *
- * El suelo de uno es la reparación mínima que no mete conocimiento de dominio: **una línea que
- * existe cuenta**. Un hito pesa lo que un día de trabajo, no lo que un mes.
+ * El libro no puede inventar un modelo de avance distinto del de la aplicación. Si la forma de
+ * ponderar hay que cambiarla, se cambia en el motor y para todos; mientras tanto, el informe dice
+ * lo que dice la pantalla. El 0/0 se resuelve como allí: con media simple.
  */
 function pesoDeUnaHoja(linea: LineaDePlan): number {
-  return Math.max(1, linea.peso ?? linea.duracion ?? 0)
+  return Math.max(0, linea.peso ?? linea.duracion ?? 0)
 }
 
 function textoDe(valor: string | number | boolean | null | undefined): string {
@@ -411,6 +407,25 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
       `$${letraDeColumna(columna)}$${desde}:$${letraDeColumna(columna)}$${hasta}`
     const extras = factores.map((columna) => `*${rango(columna)}`).join('')
     return `SUMPRODUCT((${rango(COL.nivel)}=${nivelDeLasHijas})*${rango(columnaPeso)}${extras})`
+  }
+
+  /**
+   * La media simple sobre las hijas directas, también en forma cerrada.
+   *
+   * El repuesto del repuesto: cuando la suma ponderada divide por cero — una rama de puros
+   * hitos — el motor cae a media simple, y el libro tiene que caer a lo mismo. `AVERAGE` sobre
+   * un rango cuenta sólo las celdas con número, así que hay que restringirlo a las hijas: se hace
+   * dividiendo la suma de sus avances entre cuántas son.
+   */
+  const mediaSobreLasHijas = (fila: FilaResuelta): string => {
+    const desde = fila.numero + 1
+    const hasta = resueltas[finDeSubarbol[fila.consecutivo - 1]].numero
+    const nivelDeLasHijas = fila.profundidad + 2
+    const rango = (columna: number) =>
+      `$${letraDeColumna(columna)}$${desde}:$${letraDeColumna(columna)}$${hasta}`
+    const cuantas = `SUMPRODUCT(--(${rango(COL.nivel)}=${nivelDeLasHijas}))`
+    const suma = `SUMPRODUCT((${rango(COL.nivel)}=${nivelDeLasHijas})*${rango(COL.avance)})`
+    return `IFERROR(${suma}/${cuantas},0)`
   }
 
   // ── El calendario, para que Excel cuente como el motor ─────────────────────
@@ -591,13 +606,18 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
         .map((h) => `${letraPeso}${h.numero}*${letraDeColumna(COL.avance)}${h.numero}`)
         .join('+')
       const denominador = hijasConFila.map((h) => `${letraPeso}${h.numero}`).join('+')
-      const explicita = `IFERROR((${numerador})/(${denominador}),0)`
+      // Y si el peso total es cero — una rama de puros hitos — media simple, que es exactamente lo
+      // que hace `avanceDelResumen` en el motor. Antes iba a `0`, y una rama cumplida salía a 0 %.
+      const media = hijasConFila.map((h) => `${letraDeColumna(COL.avance)}${h.numero}`).join(',')
+      const explicita = `IFERROR((${numerador})/(${denominador}),AVERAGE(${media}))`
 
       celdas[COL.avance - 1] = {
         tipo: 'formula',
         formula: cabeEnUnaCelda(explicita)
           ? explicita
-          : `IFERROR(${sumaSobreLasHijas(fila, [COL.avance])}/${sumaSobreLasHijas(fila, [])},0)`,
+          : `IFERROR(${sumaSobreLasHijas(fila, [COL.avance])}/${sumaSobreLasHijas(fila, [])},${mediaSobreLasHijas(
+              fila,
+            )})`,
         estilo: estiloAvance,
       }
     } else {
