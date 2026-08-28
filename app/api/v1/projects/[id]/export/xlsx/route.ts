@@ -1,5 +1,5 @@
 /**
- * GET /api/v1/projects/[id]/export/xlsx — el plan como libro de Excel.
+ * POST /api/v1/projects/[id]/export/xlsx — el plan como libro de Excel.
  *
  * Este archivo es el **adaptador**: lo único de todo el exportador que sabe cómo guarda las cosas
  * *esta* base de datos. Traduce columnas y relaciones a la forma neutra que pide
@@ -16,11 +16,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 
 import prisma from '@/lib/prisma'
 import { exigirPermiso } from '@/lib/middleware/exigir-permiso'
 import { type AuthContext, withAuth } from '@/lib/middleware/withAuth'
 import { esClaseDeHito } from '@/lib/scheduling/kinds'
+import { rollUpProgress } from '@/lib/scheduling/progress'
 import { DEFAULT_WORKING_WEEKDAYS, createWorkCalendar } from '@/lib/scheduling/calendar'
 import { cabeceraDeNombre } from '@/lib/export/nombre-de-archivo'
 import { esPapel } from '@/lib/export/plan/roles'
@@ -55,12 +57,46 @@ function numeroDeDia(fecha: Date): number {
   return Math.floor(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()) / 86_400_000)
 }
 
+/**
+ * Qué líneas se piden.
+ *
+ * Es POST y no GET por esto: la pantalla exporta **lo que tiene filtrado**, y la lista de líneas
+ * que sobreviven a un filtro sobre mil trescientas puede pasar de los cincuenta mil caracteres.
+ * Eso no cabe en una URL, y trocearlo sería inventarse un protocolo para ahorrar un verbo.
+ *
+ * La lista la calcula el navegador con el MISMO motor que dibuja el Gantt —`ganttLayout` con el
+ * filtro puesto—, no con una segunda copia de las reglas del filtro escrita aquí. Es la única
+ * forma de que lo exportado y lo que se ve no puedan divergir: si hubiera dos implementaciones,
+ * cualquier cambio en una dejaría a la otra mintiendo en silencio.
+ *
+ * Que la lista venga del cliente no abre nada: la consulta sigue acotada por organización y
+ * proyecto, así que un identificador ajeno no casa con ninguna fila y sencillamente no sale.
+ */
+const cuerpo = z.object({
+  /**
+   * Identificadores a exportar. Ausente significa el plan entero.
+   *
+   * El tope no es una regla de negocio, es un cortafuegos: sin él, un cuerpo con un millón de
+   * identificadores se convierte en un `IN (...)` que tumba la base.
+   */
+  lineas: z.array(z.string().min(1)).max(20_000).optional(),
+})
+
 async function handler(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
   authContext: AuthContext,
 ): Promise<NextResponse> {
   const { id } = await context.params
+
+  const pedido = cuerpo.safeParse(await request.json().catch(() => ({})))
+  if (!pedido.success) {
+    return NextResponse.json(
+      { error: 'VALIDATION_ERROR', message: 'Se esperaba «lineas» como lista de identificadores.' },
+      { status: 400 },
+    )
+  }
+  const soloEstas = pedido.data.lineas ?? null
 
   const negado = await exigirPermiso(
     authContext.userId,
@@ -81,6 +117,13 @@ async function handler(
         orderBy: { orderIndex: 'asc' },
       },
       workItems: {
+        // El plan ENTERO, siempre, aunque sólo se vayan a emitir doce líneas.
+        //
+        // Parece derroche y no lo es: el avance de un resumen no está guardado —los 121 resúmenes
+        // del plan de referencia tienen `progress_bp = 0` en la base—, se calcula a partir de sus
+        // hijas al leer. Cargar sólo lo filtrado dejaba a cada resumen sin sus hijas y el libro
+        // salía enseñando 0 % en ramas que iban al 60 %. Un archivo con números equivocados es
+        // peor que uno lento.
         orderBy: [{ templateOrder: 'asc' }, { startDate: 'asc' }],
         include: { customFieldValues: true },
       },
@@ -91,6 +134,9 @@ async function handler(
   if (!proyecto) {
     return NextResponse.json({ error: 'NOT_FOUND', message: 'Proyecto no encontrado' }, { status: 404 })
   }
+
+  // Cuántas líneas tiene el plan entero, para poder decir dentro del archivo qué parte lleva.
+  const totalDelPlan = proyecto.workItems.length
 
   // El mismo calendario con el que el motor programa, y —esto es lo que importa— el mismo que
   // viaja DENTRO del libro. Aquí se calculan las duraciones; allí, los días transcurridos hasta el
@@ -124,15 +170,53 @@ async function handler(
     etiquetasDeOpcion.set(campo.id, new Map(opciones.map((o) => [o.id, o.label])))
   }
 
-  // ── Líneas ─────────────────────────────────────────────────────────────────
-  const lineas: LineaDePlan[] = proyecto.workItems.map((item) => {
-    const inicio = numeroDeDia(item.startDate)
-    const fin = numeroDeDia(item.estimatedEndDate)
-
+  // ── Duración de cada línea ─────────────────────────────────────────────────
+  const duracionDe = new Map<string, number>()
+  for (const item of proyecto.workItems) {
     // Un hito no dura: llega o no llega. Se pregunta por la clase con el mismo predicado que usa
     // el motor —no con un literal escrito aquí— para que las dos vistas no puedan divergir.
-    const esHito = esClaseDeHito(item.kind, undefined)
-    const duracion = esHito ? 0 : calendario.countBetween(inicio, fin)
+    duracionDe.set(
+      item.id,
+      esClaseDeHito(item.kind, undefined)
+        ? 0
+        : calendario.countBetween(numeroDeDia(item.startDate), numeroDeDia(item.estimatedEndDate)),
+    )
+  }
+
+  // ── El avance y el peso de verdad, calculados sobre el plan ENTERO ─────────
+  //
+  // Con el mismo motor que usa la pantalla, y sobre todas las líneas aunque se vayan a emitir
+  // pocas: el avance de un resumen es el de sus hijas ponderado, y si las hijas no están en el
+  // cálculo el resumen sale a cero.
+  //
+  // Si la jerarquía estuviera rota el motor lanza. Aquí eso no puede tumbar una descarga: se cae a
+  // los valores crudos de la base, que es lo que se enseñaba antes, y se deja dicho en el registro.
+  let avanceDe = new Map<string, { avance: number; peso: number }>()
+  try {
+    const rollup = rollUpProgress(
+      proyecto.workItems.map((item) => ({
+        id: item.id,
+        name: item.title,
+        parentId: item.parentId,
+        progress: item.progressBp / 10_000,
+        duration: duracionDe.get(item.id) ?? 0,
+        start: numeroDeDia(item.startDate),
+      })) as never,
+      proyecto.progressRollup as never,
+    )
+    avanceDe = new Map(
+      [...rollup.byId.entries()].map(([id, t]) => [id, { avance: t.progress, peso: t.weight }]),
+    )
+  } catch (error) {
+    console.warn('[export/xlsx] No se pudo calcular el avance del plan %s: %s', id, error)
+  }
+
+  // ── Líneas ─────────────────────────────────────────────────────────────────
+  const todas: LineaDePlan[] = proyecto.workItems.map((item) => {
+    const inicio = numeroDeDia(item.startDate)
+    const fin = numeroDeDia(item.estimatedEndDate)
+    const duracion = duracionDe.get(item.id) ?? 0
+    const calculado = avanceDe.get(item.id)
 
     const personalizados: Record<string, string | number | boolean | null> = {}
     for (const guardado of item.customFieldValues) {
@@ -158,16 +242,25 @@ async function handler(
       inicio,
       fin,
       duracion,
-      // Los puntos base mandan sobre el porcentaje: un tercio son 3 333, que es exacto, y
-      // 0.3333333333333333 no lo es.
-      avance: item.progressBp / 10_000,
-      // Sin campo de esfuerzo, el peso son los días laborables de la línea, que es lo que el
-      // encargo pide. Un hito pesa cero: no aporta trabajo que ponderar.
-      peso: null,
+      // El calculado, no el guardado. Para una hoja son lo mismo; para un resumen, el guardado es
+      // cero y el calculado es el de sus hijas. Cuando el filtro deja al resumen sin hijas dentro
+      // del libro, este número es lo único que impide que salga un 0 % donde hay un 60 %.
+      //
+      // Los puntos base son el respaldo: un tercio son 3 333, que es exacto, y 0.3333333333333333
+      // no lo es.
+      avance: calculado?.avance ?? item.progressBp / 10_000,
+      // El peso del motor: una hoja pesa sus días hábiles y un resumen la suma de los suyos. Así
+      // un resumen que llega al libro sin sus hijas sigue pesando lo que representa, en vez de
+      // pesar el tramo que abarca. El suelo de uno lo pone el libro, no esto.
+      peso: calculado?.peso ?? null,
       predecesoras: predecesorasDe.get(item.id) ?? [],
       personalizados,
     }
   })
+
+  // Y ahora sí, sólo lo que se pidió. El recorte va al final —después de calcular— a propósito.
+  const pedidas = soloEstas ? new Set(soloEstas) : null
+  const lineas = pedidas ? todas.filter((l) => pedidas.has(l.id)) : todas
 
   // ── Configuración del proyecto ─────────────────────────────────────────────
   //
@@ -211,6 +304,13 @@ async function handler(
       descripcion: guardada?.headerDescription ?? null,
       advertencias,
     },
+    // Un archivo filtrado tiene el mismo aspecto que el plan entero, y sus porcentajes están
+    // calculados sólo sobre lo que quedó. Quien lo recibe por correo no vio la pantalla de la que
+    // salió, así que el archivo tiene que decirlo por sí mismo.
+    alcance:
+      lineas.length < totalDelPlan
+        ? `Vista filtrada: ${lineas.length} de ${totalDelPlan} líneas del plan. Los porcentajes y los totales corresponden sólo a lo exportado.`
+        : null,
     calendario: {
       diasLaborables,
       // Van todos, sin filtrar. Un feriado que cae en fin de semana no descuenta nada, pero
@@ -227,7 +327,12 @@ async function handler(
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': cabeceraDeNombre(proyecto.name, 'xlsx'),
+      // El nombre también lo dice: un archivo filtrado y el plan entero no pueden llamarse igual
+      // en la carpeta de descargas de nadie.
+      'Content-Disposition': cabeceraDeNombre(
+        lineas.length < totalDelPlan ? `${proyecto.name} (filtrado)` : proyecto.name,
+        'xlsx',
+      ),
       'Content-Length': String(contenido.length),
       // El plan cambia en cuanto alguien mueve una línea; servir una copia guardada haría que el
       // archivo descargado no fuera el plan.
@@ -236,4 +341,4 @@ async function handler(
   })
 }
 
-export const GET = withAuth(handler, { requiredPermissions: [Permission.EXPORT_PROJECT] })
+export const POST = withAuth(handler, { requiredPermissions: [Permission.EXPORT_PROJECT] })

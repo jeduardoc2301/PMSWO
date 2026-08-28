@@ -91,6 +91,16 @@ export interface PlanParaExportar {
   readonly configuracion: ConfiguracionDeExportacion
   /** Ausente significa la semana de lunes a viernes sin feriados, que es lo que asume Excel. */
   readonly calendario?: CalendarioDelPlan
+  /**
+   * Qué parte del plan lleva este archivo, cuando no las lleva todas.
+   *
+   * Va en la cabecera y **no es decorativo**. Un archivo filtrado tiene el mismo aspecto que el
+   * plan entero: mismas columnas, misma jerarquía, mismos totales con pinta de totales. Quien lo
+   * recibe por correo, sin haber visto la pantalla desde la que salió, no tiene forma de saber que
+   * le falta la mitad — y los porcentajes de los contenedores están calculados sólo sobre lo que
+   * quedó. Decirlo arriba es la diferencia entre un recorte y un informe equivocado.
+   */
+  readonly alcance?: string | null
 }
 
 // ── Constantes compartidas ───────────────────────────────────────────────────
@@ -297,8 +307,15 @@ function ordenarPorJerarquia(lineas: readonly LineaDePlan[]): {
 }
 
 /** Las filas de cabecera del documento, antes de los títulos de columna. */
-function filasDeCabecera(plan: PlanParaExportar): { texto: string; grande: boolean }[] {
-  const filas: { texto: string; grande: boolean }[] = [{ texto: plan.nombre, grande: true }]
+function filasDeCabecera(plan: PlanParaExportar): { texto: string; grande: boolean; aviso?: boolean }[] {
+  const filas: { texto: string; grande: boolean; aviso?: boolean }[] = [
+    { texto: plan.nombre, grande: true },
+  ]
+
+  // El alcance va PRIMERO de las notas, antes que la descripción y las advertencias del proyecto,
+  // porque es lo único que cambia de un archivo a otro del mismo plan.
+  const alcance = plan.alcance?.trim()
+  if (alcance) filas.push({ texto: alcance, grande: false, aviso: true })
 
   const descripcion = plan.configuracion.descripcion?.trim()
   if (descripcion) filas.push({ texto: descripcion, grande: false })
@@ -480,9 +497,22 @@ export function construirLibroDePlan(plan: PlanParaExportar): LibroDePlan {
   // ── Filas de cabecera ──────────────────────────────────────────────────────
   const filas: Fila[] = []
 
+  // El aviso de alcance se pinta como aviso, no como nota al pie: un archivo que lleva media
+  // verdad tiene que decirlo con el mismo énfasis con el que dice su nombre.
+  const estiloAviso = estilos.registrar({
+    fuente: { negrita: true, color: '7C2D12', tamano: 10, nombre: FUENTE },
+    relleno: 'FDF3E3',
+  })
+
   for (const linea of cabecera) {
     filas.push({
-      celdas: [{ tipo: 'texto', valor: linea.texto, estilo: linea.grande ? estiloTitulo : estiloNota }],
+      celdas: [
+        {
+          tipo: 'texto',
+          valor: linea.texto,
+          estilo: linea.grande ? estiloTitulo : linea.aviso ? estiloAviso : estiloNota,
+        },
+      ],
       altura: linea.grande ? 24 : undefined,
     })
   }

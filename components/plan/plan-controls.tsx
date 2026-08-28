@@ -47,6 +47,13 @@ export interface PlanControlsProps {
    * exportar sencillamente no aparece; ofrecer un botón que da 404 es peor que no ofrecerlo.
    */
   readonly idDelProyecto?: string
+  /**
+   * Qué se lleva la exportación: los identificadores del filtro, o `null` para el plan entero.
+   *
+   * Llega ya calculado en vez de resolverse aquí porque quien sabe qué líneas sobreviven al filtro
+   * es el motor que dibuja el Gantt, no esta barra de botones.
+   */
+  readonly paraExportar?: { readonly ids: string[] | null; readonly cuantas: number }
   /** Conmutador 3 del §4.6, mitad «ruta crítica»: barras críticas en rojo. */
   readonly rutaCritica: boolean
   readonly onRutaCriticaChange: (valor: boolean) => void
@@ -130,6 +137,7 @@ export function PlanControls({
   cuantasAtrasadas,
   cuantasEnElCorte,
   idDelProyecto,
+  paraExportar,
   rutaCritica,
   onRutaCriticaChange,
   reserva,
@@ -317,8 +325,15 @@ export function PlanControls({
       </Grupo>
 
       {idDelProyecto ? (
-        <Grupo titulo="Exportar" nota="El plan entero, con su jerarquía.">
-          <BotonDeExcel idDelProyecto={idDelProyecto} />
+        <Grupo
+          titulo="Exportar"
+          nota={
+            paraExportar?.ids
+              ? `Las ${paraExportar.cuantas} líneas del filtro, con su jerarquía.`
+              : 'El plan entero, con su jerarquía.'
+          }
+        >
+          <BotonDeExcel idDelProyecto={idDelProyecto} lineas={paraExportar?.ids ?? null} />
         </Grupo>
       ) : null}
 
@@ -372,13 +387,25 @@ function Grupo({
  * que poder enseñar el error: un `<a href>` que recibe un 403 deja al navegador enseñando una
  * página de JSON, y quien lo ve no sabe si el archivo salió mal o no salió.
  */
-function BotonDeExcel({ idDelProyecto }: { idDelProyecto: string }) {
+function BotonDeExcel({
+  idDelProyecto,
+  lineas,
+}: {
+  idDelProyecto: string
+  lineas: string[] | null
+}) {
   const [bajando, setBajando] = React.useState(false)
 
   const bajar = async (): Promise<void> => {
     setBajando(true)
     try {
-      const respuesta = await fetch(`/api/v1/projects/${idDelProyecto}/export/xlsx`)
+      const respuesta = await fetch(`/api/v1/projects/${idDelProyecto}/export/xlsx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Sin lista, el servidor manda el plan entero. Con ella, exactamente esas líneas: es lo
+        // que hace que el archivo y la pantalla digan lo mismo.
+        body: JSON.stringify(lineas ? { lineas } : {}),
+      })
       if (!respuesta.ok) {
         const detalle = await respuesta.json().catch(() => null)
         throw new Error(detalle?.message ?? 'No se pudo generar el archivo.')
@@ -405,7 +432,11 @@ function BotonDeExcel({ idDelProyecto }: { idDelProyecto: string }) {
       data-testid="exportar-plan-excel"
       onClick={() => void bajar()}
       disabled={bajando}
-      title="Descarga el plan completo en Excel, con jerarquía plegable y avance que se recalcula"
+      title={
+        lineas
+          ? 'Descarga en Excel lo que el filtro deja, con su jerarquía y el avance que se recalcula'
+          : 'Descarga el plan completo en Excel, con jerarquía plegable y avance que se recalcula'
+      }
       className="rounded-md border border-borde bg-superficie px-3 py-1.5 text-sm text-tinta-2 transition-colors hover:border-acento hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1] focus-visible:ring-offset-2 focus-visible:ring-offset-superficie disabled:cursor-not-allowed disabled:opacity-50"
     >
       {bajando ? 'Generando…' : 'Excel'}

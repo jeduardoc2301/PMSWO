@@ -457,10 +457,10 @@ describe('El botón de exportar a Excel', () => {
   })
 
   it('pide el plan del proyecto que se está mirando, y si falla lo dice', async () => {
-    const pedidas: string[] = []
+    const llamadas: [string, RequestInit | undefined][] = []
     const avisar = vi.fn()
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-      pedidas.push(url)
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      llamadas.push([url, init])
       return { ok: false, json: async () => ({ message: 'El plan no está disponible.' }) } as unknown as Response
     }))
     vi.stubGlobal('alert', avisar)
@@ -472,9 +472,58 @@ describe('El botón de exportar a Excel', () => {
       // Se espera al aviso y no a la petición: la petición se registra a mitad de vuelo, y cortar
       // ahí dejaba la promesa corriendo sin su `alert` —que para entonces ya estaba desmontado—.
       await vi.waitFor(() => expect(avisar).toHaveBeenCalledWith('El plan no está disponible.'))
-      expect(pedidas).toEqual(['/api/v1/projects/p-42/export/xlsx'])
+      expect(llamadas.map(([url]) => url)).toEqual(['/api/v1/projects/p-42/export/xlsx'])
     } finally {
       vi.unstubAllGlobals()
     }
   })
+
+  /** Captura la petición que hace el botón, sin dejar promesas colgando. */
+  async function peticionAlPulsar(props: Partial<PlanControlsProps>): Promise<RequestInit> {
+    const capturadas: RequestInit[] = []
+    const avisar = vi.fn()
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init) capturadas.push(init)
+      return { ok: false, json: async () => ({ message: 'no' }) } as unknown as Response
+    }))
+    vi.stubGlobal('alert', avisar)
+    try {
+      montar(props)
+      fireEvent.click(screen.getByTestId('exportar-plan-excel'))
+      await vi.waitFor(() => expect(avisar).toHaveBeenCalled())
+      return capturadas[0]
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  }
+
+  it('sin filtro no manda lista: el servidor entiende que es el plan entero', async () => {
+    const init = await peticionAlPulsar({ idDelProyecto: 'p-1' })
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(String(init.body))).toEqual({})
+  })
+
+  it('con filtro manda exactamente las líneas que el filtro deja', async () => {
+    // Es lo que pidió el encargo: que el archivo salga conforme al filtro que hay puesto. Va en
+    // POST porque la lista de un plan de mil trescientas líneas no cabe en una URL.
+    const init = await peticionAlPulsar({
+      idDelProyecto: 'p-1',
+      paraExportar: { ids: ['a', 'b', 'c'], cuantas: 3 },
+    })
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(String(init.body))).toEqual({ lineas: ['a', 'b', 'c'] })
+  })
+
+  it('el rótulo dice cuántas líneas se va a llevar, no una frase genérica', () => {
+    // Si el rótulo dijera siempre «el plan entero», quien filtra y exporta creería que se lleva
+    // todo. El número sale del mismo cálculo que la lista, así que no pueden discrepar.
+    montar({ idDelProyecto: 'p-1', paraExportar: { ids: ['a', 'b'], cuantas: 2 } })
+    expect(screen.getByRole('group', { name: 'Exportar' })).toHaveTextContent('Las 2 líneas del filtro')
+  })
+
+  it('y sin filtro sigue diciendo que se lleva el plan entero', () => {
+    montar({ idDelProyecto: 'p-1' })
+    expect(screen.getByRole('group', { name: 'Exportar' })).toHaveTextContent('El plan entero')
+  })
 })
+

@@ -525,6 +525,67 @@ export function PlanWorkspace({
   const [resultadoDelLote, setResultadoDelLote] = useState<string | null>(null)
 
   const idsVisiblesEnPantalla = useMemo(() => layoutFiltrado.rows.map((r) => r.id), [layoutFiltrado])
+
+  /**
+   * Qué líneas se lleva la exportación a Excel.
+   *
+   * Se recalcula con `ganttLayout` **sin plegar** en vez de reutilizar `layoutFiltrado.rows`, y la
+   * diferencia es deliberada: en esta barra conviven dos cosas que se parecen y no son lo mismo.
+   *
+   * - **Filtro** —«Solo hitos», «Del cliente», «Hasta»— dice qué líneas importan. El archivo tiene
+   *   que respetarlo: para eso se puso el filtro.
+   * - **Nivel de detalle** dice hasta qué profundidad se dibuja. Eso no quita líneas del plan, las
+   *   dobla; y Excel las dobla solo, con su propio esquema y mejor que nosotros. Exportar lo
+   *   plegado tiraría a la basura justo lo que el esquema del libro existe para enseñar.
+   *
+   * Y se recalcula con el MISMO motor, no con una segunda copia de las reglas del filtro: si
+   * hubiera dos implementaciones, cualquier cambio en una dejaría a la otra mintiendo en silencio.
+   * Sólo se paga el cálculo cuando hay filtro puesto; sin él se manda `null`, que en el servidor
+   * significa «el plan entero» y ni siquiera necesita la lista.
+   */
+  const paraExportar = useMemo((): { ids: string[] | null; cuantas: number } => {
+    const hayFiltro =
+      filter.onlySuperCritical === true ||
+      filter.onlyCritical === true ||
+      filter.onlyMilestones === true ||
+      filter.party !== undefined ||
+      filter.onlyOverdue === true ||
+      filter.hasta !== undefined
+
+    if (!hayFiltro && !idsVisibles) return { ids: null, cuantas: tasks.length }
+
+    const sinPlegar = ganttLayout({
+      tasks,
+      dependencies,
+      schedule: base.schedule,
+      classified: base.classified,
+      calendar: base.calendar,
+      jornada,
+      filter,
+      hoy: hoyCivil(),
+    })
+
+    let ids = sinPlegar.rows.map((f) => f.id)
+    if (idsVisibles) {
+      // El recorte de fuera —el buscador de la pantalla— se cruza igual que en `layoutFiltrado`,
+      // conservando los antepasados: una actividad sin su fase deja de ser un esquema.
+      const porId = new Map(tasks.map((t) => [t.id, t]))
+      const conservar = new Set<string>()
+      for (const id of ids) {
+        if (!idsVisibles.has(id)) continue
+        conservar.add(id)
+        const visto = new Set<string>([id])
+        for (let padre = porId.get(id)?.parentId; padre !== undefined; padre = porId.get(padre)?.parentId) {
+          if (visto.has(padre)) break
+          visto.add(padre)
+          conservar.add(padre)
+        }
+      }
+      ids = ids.filter((id) => conservar.has(id))
+    }
+
+    return { ids, cuantas: ids.length }
+  }, [tasks, dependencies, base, jornada, filter, idsVisibles])
   const alcance = useMemo(
     () => alcanceDe(seleccion, idsVisiblesEnPantalla),
     [seleccion, idsVisiblesEnPantalla],
@@ -1122,6 +1183,7 @@ export function PlanWorkspace({
           cuantasAtrasadas={layout.atrasadasEnTodoElPlan}
           cuantasEnElCorte={layout.enElCorte}
           idDelProyecto={projectId}
+          paraExportar={paraExportar}
           rutaCritica={preferencia.rutaCritica}
           onRutaCriticaChange={(v) => setPreferencia((p) => ({ ...p, rutaCritica: v }))}
           reserva={preferencia.reserva}

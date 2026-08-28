@@ -635,3 +635,113 @@ describe('libro de plan · Excel cuenta los días como el motor', () => {
     expect(Math.max(...filasDeFeriado)).toBeGreaterThan(ultimaFilaDeDatos)
   })
 })
+
+describe('libro de plan · un archivo filtrado lo dice', () => {
+  const AVISO = 'Vista filtrada: 3 de 1368 líneas del plan.'
+
+  it('el aviso va en la cabecera, antes que la descripción del proyecto', () => {
+    const libro = readWorkbook(construirLibroDePlan({ ...migracion(), alcance: AVISO }).contenido)
+    const hoja = libro.sheet('Plan')
+    expect(hoja.rows.get(1)?.get('A')?.text).toBe('Migración BU · Plan integrado')
+    // Lo que cambia de un archivo a otro del mismo plan va primero de las notas.
+    expect(hoja.rows.get(2)?.get('A')?.text).toBe(AVISO)
+    expect(hoja.rows.get(3)?.get('A')?.text).toBe('Plan integrado de migración.')
+  })
+
+  it('se pinta como aviso, no como nota al pie', () => {
+    // Un archivo que lleva media verdad tiene que decirlo con énfasis: sus porcentajes están
+    // calculados sólo sobre lo que quedó, y quien lo recibe no vio la pantalla de la que salió.
+    const estilos = leerZip(construirLibroDePlan({ ...migracion(), alcance: AVISO }).contenido)
+      .get('xl/styles.xml')!
+      .toString('utf8')
+    expect(estilos).toContain('<fgColor rgb="FFFDF3E3"/>')
+  })
+
+  it('sin aviso la cabecera no crece, y la fecha de corte sube con ella', () => {
+    const con = readWorkbook(construirLibroDePlan({ ...migracion(), alcance: AVISO }).contenido)
+    const sin = readWorkbook(construirLibroDePlan(migracion()).contenido)
+
+    const filaDeTitulos = (hoja: ReturnType<typeof con.sheet>): number => {
+      for (const [numero, celdas] of hoja.rows) if (celdas.get('A')?.text === 'ID') return numero
+      return -1
+    }
+    expect(filaDeTitulos(con.sheet('Plan'))).toBe(filaDeTitulos(sin.sheet('Plan')) + 1)
+  })
+
+  it('un alcance en blanco no ocupa un renglón', () => {
+    const vacio = readWorkbook(construirLibroDePlan({ ...migracion(), alcance: '   ' }).contenido)
+    expect(vacio.sheet('Plan').rows.get(2)?.get('A')?.text).toBe('Plan integrado de migración.')
+  })
+
+  it('el nombre definido de la fecha de corte sigue al renglón que se añadió', () => {
+    // Es el sitio donde un renglón de más rompe todas las fórmulas de atraso a la vez.
+    const contenido = construirLibroDePlan({ ...migracion(), alcance: AVISO }).contenido
+    const libro = leerZip(contenido).get('xl/workbook.xml')!.toString('utf8')
+    expect(libro).toContain(`<definedName name="${NOMBRE_FECHA_CORTE}">Plan!$E$5</definedName>`)
+  })
+})
+
+describe('libro de plan · un resumen al que el filtro le quitó las hijas', () => {
+  /**
+   * El caso que hace o rompe una exportación filtrada.
+   *
+   * Cuando el filtro deja fuera a las hijas de un resumen, ese resumen llega al libro como si
+   * fuera una hoja. Si su avance saliera del valor guardado en la base saldría **cero** —los 121
+   * resúmenes del plan de referencia tienen `progress_bp = 0`, porque el avance se calcula al leer
+   * y no se guarda— y el archivo enseñaría 0 % en ramas que van al 60 %.
+   *
+   * Por eso quien llama manda el avance y el peso ya calculados sobre el plan ENTERO, y el libro
+   * los usa tal cual cuando la línea no tiene hijas dentro del propio libro.
+   */
+  function resumenSuelto(): PlanParaExportar {
+    return {
+      nombre: 'Vista filtrada',
+      campos: [],
+      configuracion: {},
+      alcance: 'Vista filtrada: 2 de 400 líneas del plan.',
+      lineas: [
+        { id: 'r', nombre: 'Programa', tipo: 'Resumen', parentId: null, inicio: DIA, fin: DIA + 90,
+          duracion: 64, avance: 0, peso: 494, predecesoras: [], personalizados: {} },
+        // Este es un resumen en el plan real, pero aquí no tiene hijas: sus 290 días de trabajo y
+        // su 10,34 % vienen calculados de fuera.
+        { id: 'p', nombre: 'Planificación', tipo: 'Resumen', parentId: 'r', inicio: DIA, fin: DIA + 60,
+          duracion: 44, avance: 0.1034, peso: 290, predecesoras: [], personalizados: {} },
+      ],
+    }
+  }
+
+  it('conserva el avance calculado en vez de enseñar el cero de la base', () => {
+    const filas = [...hojaDe(resumenSuelto()).matchAll(/<row r="\d+"[^>]*>(.*?)<\/row>/g)]
+    const planificacion = filas.find((f) => f[1].includes('Planificación'))!
+    expect(planificacion[1]).toContain('<v>0.1034</v>')
+  })
+
+  it('y conserva su peso, que es el de sus hijas ausentes y no el tramo que abarca', () => {
+    // Si pesara su duración —44 días de tramo— la madre le daría una voz que no le toca. Su peso
+    // es el trabajo que representa: 290.
+    //
+    // Se mira la CELDA de Peso, no la fila entera: el 44 también aparece —y con razón— en la
+    // columna de Duración, así que una aserción sobre la fila confundiría las dos columnas. Mi
+    // primera versión hacía justo eso y fallaba señalando el dato correcto.
+    const plan = resumenSuelto()
+    const columnaPeso = letraDeColumna(construirLibroDePlan(plan).columnas)
+    const filas = [...hojaDe(plan).matchAll(/<row r="(\d+)"[^>]*>(.*?)<\/row>/g)]
+    const planificacion = filas.find((f) => f[2].includes('Planificación'))!
+
+    const celdaDePeso = new RegExp(`<c r="${columnaPeso}${planificacion[1]}"[^>]*>(.*?)</c>`).exec(
+      planificacion[2],
+    )
+    expect(celdaDePeso![1]).toBe('<v>290</v>')
+  })
+
+  it('el suelo de uno no pisa un peso que llega de fuera', () => {
+    // `pesoDeUnaHoja` sube a 1 lo que valga cero, pero no toca lo que ya trae un número.
+    const plan = resumenSuelto()
+    const conCero: PlanParaExportar = {
+      ...plan,
+      lineas: [plan.lineas[0], { ...plan.lineas[1], peso: 0, duracion: 0 }],
+    }
+    const filas = [...hojaDe(conCero).matchAll(/<row r="\d+"[^>]*>(.*?)<\/row>/g)]
+    expect(filas.find((f) => f[1].includes('Planificación'))![1]).toContain('<v>1</v>')
+  })
+})
