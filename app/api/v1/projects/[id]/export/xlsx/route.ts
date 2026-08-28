@@ -25,6 +25,7 @@ import { esClaseDeHito } from '@/lib/scheduling/kinds'
 import { rollUpProgress } from '@/lib/scheduling/progress'
 import { DEFAULT_WORKING_WEEKDAYS, createWorkCalendar } from '@/lib/scheduling/calendar'
 import { cabeceraDeNombre } from '@/lib/export/nombre-de-archivo'
+import { etiquetaDeClase } from '@/lib/export/plan/clases'
 import { esPapel } from '@/lib/export/plan/roles'
 import {
   construirLibroDePlan,
@@ -35,22 +36,6 @@ import {
 import { esTipoDeCampo, leerValor, type OpcionDeCampo } from '@/lib/projects/campos-personalizados'
 import { Permission } from '@/types'
 
-/**
- * Cómo se llama en pantalla cada clase de línea.
- *
- * Es presentación, no comportamiento: sale en la columna «Tipo» y sirve para buscar el papel en el
- * mapa del proyecto. Nada de lo que decide el exportador depende de estos textos — si mañana se
- * traducen, el libro sale igual de bien.
- */
-const NOMBRE_DE_CLASE: Readonly<Record<string, string>> = Object.freeze({
-  ACTIVIDAD: 'Actividad',
-  HITO: 'Hito',
-  PUNTO_DE_CONTROL: 'Punto de control',
-  APROBACION_CLIENTE: 'Aprobación cliente',
-  ENTREGA_CLIENTE: 'Entrega cliente',
-  COMPUERTA: 'Compuerta',
-  RESUMEN: 'Resumen',
-})
 
 /** Número de día del motor: días enteros desde el 1 de enero de 1970, en hora civil. */
 function numeroDeDia(fecha: Date): number {
@@ -237,7 +222,7 @@ async function handler(
     return {
       id: item.id,
       nombre: item.title,
-      tipo: NOMBRE_DE_CLASE[item.kind] ?? item.kind,
+      tipo: etiquetaDeClase(item.kind),
       parentId: item.parentId,
       inicio,
       fin,

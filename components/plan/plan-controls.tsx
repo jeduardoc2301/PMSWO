@@ -14,6 +14,7 @@
 // `React` en el ámbito porque este archivo usa `React.Fragment` de forma explícita.
 import React from 'react'
 
+import { ConfiguracionDeExportacion } from './configuracion-de-exportacion'
 import { type AxisScale, type GanttFilter, type LinkVisibility } from '@/lib/scheduling/gantt'
 import { type IsoDate } from '@/lib/scheduling/date'
 import { type ResponsibleParty } from '@/lib/scheduling/types'
@@ -192,13 +193,13 @@ export function PlanControls({
    * esta barra — un filtro que no se ve y no se puede apagar es peor que ningún filtro.
    */
   const cambiarNaturaleza = (valor: Naturaleza): void =>
-    onFilterChange(armarFiltro(naturaleza === valor ? null : valor, parte, soloAtrasadas, hasta))
+    onFilterChange(armarFiltro(filter, naturaleza === valor ? null : valor, parte, soloAtrasadas, hasta))
   const cambiarParte = (valor: ResponsibleParty): void =>
-    onFilterChange(armarFiltro(naturaleza, parte === valor ? null : valor, soloAtrasadas, hasta))
+    onFilterChange(armarFiltro(filter, naturaleza, parte === valor ? null : valor, soloAtrasadas, hasta))
   const cambiarAtrasadas = (): void =>
-    onFilterChange(armarFiltro(naturaleza, parte, !soloAtrasadas, hasta))
+    onFilterChange(armarFiltro(filter, naturaleza, parte, !soloAtrasadas, hasta))
   const cambiarHasta = (valor: IsoDate | null): void =>
-    onFilterChange(armarFiltro(naturaleza, parte, soloAtrasadas, valor))
+    onFilterChange(armarFiltro(filter, naturaleza, parte, soloAtrasadas, valor))
 
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-4 rounded-lg border border-borde bg-superficie px-4 py-3">
@@ -365,6 +366,10 @@ export function PlanControls({
           }
         >
           <BotonDeExcel idDelProyecto={idDelProyecto} lineas={paraExportar?.ids ?? null} />
+          {/* Quien no puede cambiarla la ve igual, en sólo lectura: el diálogo lo pregunta a la
+              ruta, que es quién decide. Esconderla dejaría a quien recibe el archivo sin poder
+              averiguar por qué está pintado así. */}
+          <ConfiguracionDeExportacion idDelProyecto={idDelProyecto} />
         </Grupo>
       ) : null}
 
@@ -605,8 +610,24 @@ function naturalezaDe(filter: GanttFilter): Naturaleza | null {
   return null
 }
 
-/** Arma el filtro completo con los cuatro ejes. Lo que no se pone aquí, queda apagado. */
+/**
+ * Arma el filtro con los cuatro ejes que manejan estos botones.
+ *
+ * La regla es: **se conserva lo que esta barra sabe enseñar y apagar; se cae lo demás.**
+ *
+ * Los cuatro que recibe se construyen desde cero porque se apagan entre sí y hace falta poder
+ * dejarlos todos en blanco. Las personas elegidas no llegan por parámetro pero sí tienen su
+ * panel, así que se arrastran: arrancar de un objeto vacío las borraba, y elegir a Bryan y
+ * pulsar después «Solo atrasadas» dejaba el plan entero atrasado y a Bryan fuera — con su
+ * casilla todavía marcada, porque nadie le dijo al panel que había perdido la selección.
+ *
+ * Y lo que la barra NO ofrece — hoy, `onlyCritical` — sigue cayéndose a propósito, y ese es el
+ * motivo de que esto no sea un `{ ...base }` a secas. Un filtro que no se ve y no se puede apagar
+ * deja la pantalla recortada sin explicación; que se caiga al tocar cualquier botón es la única
+ * salida que le queda a quien lo tiene puesto.
+ */
 function armarFiltro(
+  base: GanttFilter,
   naturaleza: Naturaleza | null,
   parte: ResponsibleParty | null,
   soloAtrasadas: boolean,
@@ -618,7 +639,11 @@ function armarFiltro(
     party?: ResponsibleParty
     onlyOverdue?: boolean
     hasta?: IsoDate
+    responsables?: readonly string[]
   } = {}
+  // Lo que la barra ofrece y no llega por parámetro. Al añadir un eje con control propio, su
+  // sitio es esta línea.
+  if (base.responsables !== undefined) filtro.responsables = base.responsables
   if (naturaleza === 'SUPER') filtro.onlySuperCritical = true
   if (naturaleza === 'HITOS') filtro.onlyMilestones = true
   if (parte !== null) filtro.party = parte

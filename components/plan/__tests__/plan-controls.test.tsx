@@ -604,3 +604,58 @@ describe('El filtro por responsable', () => {
     expect(grupo('Filtro').getByText('Todo')).toHaveAttribute('aria-pressed', 'false')
   })
 })
+
+describe('Los ejes del filtro no se pisan entre sí', () => {
+  const GENTE = [
+    { nombre: 'Bryan Hernández', clave: 'Bryan Hernández', cuantas: 152 },
+    { nombre: 'José Cruz', clave: 'José Cruz', cuantas: 328 },
+  ]
+  const ELEGIDOS = ['Bryan Hernández', 'José Cruz']
+
+  /**
+   * Yo probé que elegir a una persona conserva el corte, y me quedé ahí. Faltaba lo contrario:
+   * que tocar cualquier otro botón conserve a las personas.
+   *
+   * `armarFiltro` construía el filtro desde un objeto vacío con los cuatro ejes que conoce, así
+   * que cualquier eje añadido después se borraba al pulsar cualquiera de ellos. Elegir a Bryan y
+   * pulsar «Solo atrasadas» dejaba el plan entero atrasado y a Bryan fuera — y el panel de
+   * personas seguía enseñándolo marcado, porque nadie le dijo que había perdido la selección.
+   */
+  it.each([
+    ['Solo atrasadas', 'Solo atrasadas'],
+    ['Solo hitos', 'Solo hitos'],
+    ['Del cliente', 'Del cliente'],
+    ['Nuestro', 'Nuestro'],
+    ['Ruta súper crítica', 'Ruta súper crítica'],
+  ])('pulsar «%s» conserva a las personas elegidas', (_, rotulo) => {
+    const props = montar({ responsables: GENTE, filter: { responsables: ELEGIDOS } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: rotulo }))
+    const ultimo = (props.onFilterChange as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0]
+    expect(ultimo.responsables).toEqual(ELEGIDOS)
+  })
+
+  it('poner una fecha de corte también las conserva', () => {
+    const props = montar({ responsables: GENTE, filter: { responsables: ELEGIDOS } })
+    fireEvent.change(screen.getByLabelText('Fecha de corte'), { target: { value: '2026-09-15' } })
+    const ultimo = (props.onFilterChange as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0]
+    expect(ultimo).toEqual({ responsables: ELEGIDOS, hasta: '2026-09-15' })
+  })
+
+  it('y apagar un eje no enciende ni apaga los otros', () => {
+    const props = montar({
+      responsables: GENTE,
+      filter: { responsables: ELEGIDOS, onlyOverdue: true, hasta: '2026-09-15' },
+    })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: 'Solo atrasadas' }))
+    const ultimo = (props.onFilterChange as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0]
+    expect(ultimo).toEqual({ responsables: ELEGIDOS, hasta: '2026-09-15' })
+  })
+
+  it('«Todo» sí lo apaga todo, personas incluidas', () => {
+    // Es la única que barre: para eso está, y `sinFiltro` ya cuenta a las personas, así que dejar
+    // a alguien puesto haría que «Todo» quedara marcado mintiendo.
+    const props = montar({ responsables: GENTE, filter: { responsables: ELEGIDOS, onlyOverdue: true } })
+    fireEvent.click(grupo('Filtro').getByRole('button', { name: 'Todo' }))
+    expect(props.onFilterChange).toHaveBeenCalledWith({})
+  })
+})
