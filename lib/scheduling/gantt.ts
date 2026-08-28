@@ -309,6 +309,80 @@ export interface GanttFilter {
    * preguntas no es ninguna de las dos.
    */
   readonly hasta?: IsoDate
+  /**
+   * Deja solo lo que lleva esta persona.
+   *
+   * Se compara contra `PlanTask.owner`, que es el responsable **con nombre** que ya trae el plan
+   * —`responsibleName`, con `clientOwner` de respaldo para las filas importadas antes de que
+   * existiera la columna—.
+   *
+   * No se usa `ownerId` ni las asignaciones de recursos, y no es un descuido: en el plan de
+   * referencia las 1 368 líneas comparten el mismo dueño de sistema —filtrar por él no separa
+   * nada— y 1 184 de las 1 368 asignaciones apuntan a «Admin User», que es un valor por omisión
+   * técnico y no alguien que responda de la línea. El nombre es el único de los tres que dice
+   * quién lleva el trabajo.
+   *
+   * Como los demás ejes, se cruza en vez de sumarse: pedir «Bryan» y «solo atrasadas» da lo
+   * atrasado de Bryan, no la unión de las dos listas. Y conserva los ancestros como cualquier otro
+   * filtro: una actividad sin su fase deja de ser un esquema.
+   *
+   * `SIN_RESPONSABLE` selecciona las líneas que no llevan a nadie con nombre.
+   */
+  readonly responsable?: string
+}
+
+/**
+ * Si el filtro recorta algo o está apagado.
+ *
+ * Se pregunta recorriendo el objeto, no enumerando sus campos a mano. Enumerarlos obliga a
+ * apuntar cada eje nuevo en dos sitios: uno en el motor, que decide qué filas se dibujan, y
+ * otro en la vista, que decide si el Excel sale filtrado. Olvidar el segundo dejaba a la
+ * exportación llevándose el plan entero mientras la pantalla enseñaba un recorte, sin ningún
+ * error a la vista. Recorriendo el objeto, un eje nuevo entra solo.
+ *
+ * `undefined` y `false` son «sin poner». Un valor de texto sí recorta, incluso vacío.
+ */
+export function hayFiltroPuesto(filter: GanttFilter | undefined): filter is GanttFilter {
+  if (!filter) return false
+  return Object.values(filter).some((valor) => valor !== undefined && valor !== false)
+}
+
+/** El valor del filtro que pide «las que no llevan a nadie con nombre». */
+export const SIN_RESPONSABLE = '__sin_responsable__'
+
+/** El responsable con nombre de una línea, o `null` si no lleva ninguno. */
+export function responsableDe(task: PlanTask): string | null {
+  const nombre = task.owner?.trim()
+  return nombre ? nombre : null
+}
+
+/**
+ * Quién aparece en el plan y con cuántas líneas, de más a menos.
+ *
+ * Vive aquí y no en la barra de botones porque es la misma pregunta que contesta el filtro, y una
+ * lista de personas construida aparte podría ofrecer a alguien que el filtro luego no encuentra.
+ * Las líneas sin nadie van al final, y sólo si existen.
+ */
+export function responsablesDelPlan(
+  tasks: readonly PlanTask[],
+): readonly { readonly nombre: string; readonly clave: string; readonly cuantas: number }[] {
+  const cuenta = new Map<string, number>()
+  let sinNadie = 0
+  for (const task of tasks) {
+    const nombre = responsableDe(task)
+    if (nombre === null) sinNadie++
+    else cuenta.set(nombre, (cuenta.get(nombre) ?? 0) + 1)
+  }
+
+  const salida = [...cuenta.entries()]
+    .map(([nombre, cuantas]) => ({ nombre, clave: nombre, cuantas }))
+    // Por carga y, a igualdad, por nombre: el orden tiene que ser estable entre recargas.
+    .sort((a, b) => b.cuantas - a.cuantas || a.nombre.localeCompare(b.nombre, 'es'))
+
+  if (sinNadie > 0) {
+    salida.push({ nombre: 'Sin responsable', clave: SIN_RESPONSABLE, cuantas: sinNadie })
+  }
+  return salida
 }
 
 export interface GanttInput {
@@ -1145,9 +1219,7 @@ function filterPredicate(
 ): (task: PlanTask) => boolean {
   // Un filtro «apagado» es el que no lleva nada puesto. `hasta` es un valor y no un interruptor, así
   // que entra en la misma cuenta: sin fecha no recorta, con fecha sí.
-  if (!filter || Object.values(filter).every((value) => value === undefined || value === false)) {
-    return () => true
-  }
+  if (!hayFiltroPuesto(filter)) return () => true
 
   return (task: PlanTask): boolean => {
     const clasificada = analysis.get(task.id)
@@ -1158,6 +1230,12 @@ function filterPredicate(
     if (filter.hasta && !enElCorte.has(task.id)) return false
     if (filter.party !== undefined && (clasificada?.party ?? task.party ?? 'PROVEEDOR') !== filter.party) {
       return false
+    }
+    if (filter.responsable !== undefined) {
+      const suyo = responsableDe(task)
+      if (filter.responsable === SIN_RESPONSABLE ? suyo !== null : suyo !== filter.responsable) {
+        return false
+      }
     }
     return true
   }

@@ -527,3 +527,51 @@ describe('El botón de exportar a Excel', () => {
   })
 })
 
+
+describe('El filtro por responsable', () => {
+  const GENTE = [
+    { nombre: 'Rafael Oliva', clave: 'Rafael Oliva', cuantas: 450 },
+    { nombre: 'Bryan Hernández', clave: 'Bryan Hernández', cuantas: 152 },
+  ]
+
+  it('no aparece cuando el plan no tiene a nadie con nombre', () => {
+    // Un grupo con una sola opción —«Todos»— es un control que no hace nada.
+    montar()
+    expect(screen.queryByLabelText('Responsable')).toBeNull()
+  })
+
+  it('ofrece a cada persona con su carga', () => {
+    montar({ responsables: GENTE })
+    const select = screen.getByLabelText('Responsable')
+    // «Bryan (152)» dice algo que «Bryan» no dice: cuánto trabajo hay detrás de elegirlo.
+    expect(within(select).getByRole('option', { name: 'Rafael Oliva (450)' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'Bryan Hernández (152)' })).toBeInTheDocument()
+    expect(within(select).getByRole('option', { name: 'Todos' })).toBeInTheDocument()
+  })
+
+  it('elegir a alguien lo pone en el filtro sin tirar los demás ejes', () => {
+    // Los ejes se cruzan, no se sustituyen: pedir a Bryan no puede borrar el corte que ya había.
+    const props = montar({ responsables: GENTE, filter: { hasta: '2026-09-15' } })
+    fireEvent.change(screen.getByLabelText('Responsable'), { target: { value: 'Bryan Hernández' } })
+    expect(props.onFilterChange).toHaveBeenCalledWith({
+      hasta: '2026-09-15',
+      responsable: 'Bryan Hernández',
+    })
+  })
+
+  it('«Quitar» lo saca y deja el resto en pie', () => {
+    const props = montar({
+      responsables: GENTE,
+      filter: { responsable: 'Bryan Hernández', onlyOverdue: true },
+    })
+    fireEvent.click(within(screen.getByRole('group', { name: 'Responsable' })).getByText('Quitar'))
+    expect(props.onFilterChange).toHaveBeenCalledWith({ onlyOverdue: true, responsable: undefined })
+  })
+
+  it('con un responsable puesto, «Todo» no puede decir que no hay filtro', () => {
+    // La invariante de esta barra: un filtro encendido fuera del grupo «Filtro» se vería igual que
+    // un plan corto si «Todo» siguiera marcado.
+    montar({ responsables: GENTE, filter: { responsable: 'Bryan Hernández' } })
+    expect(grupo('Filtro').getByText('Todo')).toHaveAttribute('aria-pressed', 'false')
+  })
+})

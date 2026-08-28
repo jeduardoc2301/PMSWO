@@ -12,8 +12,11 @@ import {
   collapseToLevel,
   escalaSuperior,
   ganttLayout,
+  hayFiltroPuesto,
   lagLabel,
   linkLabel,
+  responsablesDelPlan,
+  SIN_RESPONSABLE,
 } from '../gantt'
 import { crearJornada } from '../reloj'
 import { schedulePlan } from '../schedule'
@@ -1675,5 +1678,116 @@ describe('Los bordes del corte, que es donde se equivoca', () => {
     const solo = trazar(PLAN, { hasta: '2026-06-30' }).enElCorte
     const cruzado = trazar(PLAN, { hasta: '2026-06-30', onlyMilestones: true }).enElCorte
     expect(cruzado).toBe(solo)
+  })
+})
+
+describe('El filtro por responsable', () => {
+  /** Un plan con cuatro personas y una línea sin nadie, colgando todo de una fase. */
+  const conResponsables = (): PlanTask[] => [
+    { id: 'fase', name: 'Fase', duration: 0 },
+    { id: 'a', name: 'Diseño de red', duration: 3, parentId: 'fase', owner: 'Bryan Hernández' },
+    { id: 'b', name: 'Inventario', duration: 3, parentId: 'fase', owner: 'José Cruz' },
+    { id: 'c', name: 'Pruebas', duration: 3, parentId: 'fase', owner: 'Bryan Hernández' },
+    { id: 'd', name: 'Sin dueño', duration: 3, parentId: 'fase' },
+    { id: 'e', name: 'Con espacios', duration: 3, parentId: 'fase', owner: '   ' },
+  ]
+
+  const idsDe = (layout: GanttLayout) => layout.rows.map((f) => f.id)
+
+  it('deja las líneas de esa persona y sus ancestros, nada más', () => {
+    const filas = idsDe(trazar(conResponsables(), [], { filter: { responsable: 'Bryan Hernández' } }))
+    // La fase entra por ser ancestro: una actividad sin su fase deja de ser un esquema.
+    expect(filas).toEqual(['fase', 'a', 'c'])
+  })
+
+  it('sin filtro no recorta nada', () => {
+    expect(idsDe(trazar(conResponsables()))).toHaveLength(6)
+  })
+
+  it('un nombre que no está en el plan deja solo lo que sea ancestro de nada', () => {
+    // No es un error: es una lista vacía, y el rótulo de la barra lo dirá.
+    expect(idsDe(trazar(conResponsables(), [], { filter: { responsable: 'Nadie Aquí' } }))).toEqual([])
+  })
+
+  it('«sin responsable» selecciona las que no llevan a nadie, incluidas las de nombre en blanco', () => {
+    // Un `owner` con solo espacios no es un responsable. Si contara como uno, aparecería en la
+    // lista de la barra como una opción sin texto que nadie podría entender.
+    const filas = idsDe(trazar(conResponsables(), [], { filter: { responsable: SIN_RESPONSABLE } }))
+    expect(filas).toEqual(['fase', 'd', 'e'])
+  })
+
+  it('se cruza con los demás ejes en vez de sumarse', () => {
+    // Pedir «Bryan» y «solo hitos» da los hitos de Bryan, no la unión de las dos listas.
+    const tareas: PlanTask[] = [
+      { id: 'fase', name: 'Fase', duration: 0 },
+      { id: 'h', name: 'Hito de Bryan', duration: 0, parentId: 'fase', kind: 'HITO', owner: 'Bryan Hernández' },
+      { id: 't', name: 'Tarea de Bryan', duration: 3, parentId: 'fase', owner: 'Bryan Hernández' },
+      { id: 'o', name: 'Hito de otra', duration: 0, parentId: 'fase', kind: 'HITO', owner: 'José Cruz' },
+    ]
+    const filas = idsDe(
+      trazar(tareas, [], { filter: { responsable: 'Bryan Hernández', onlyMilestones: true } }),
+    )
+    expect(filas).toEqual(['fase', 'h'])
+  })
+})
+
+describe('Quién aparece en el plan', () => {
+  it('cuenta las líneas de cada uno y los ordena por carga', () => {
+    const reparto = responsablesDelPlan([
+      { id: '1', name: 'a', duration: 1, owner: 'José Cruz' },
+      { id: '2', name: 'b', duration: 1, owner: 'Bryan Hernández' },
+      { id: '3', name: 'c', duration: 1, owner: 'Bryan Hernández' },
+      { id: '4', name: 'd', duration: 1, owner: 'Bryan Hernández' },
+    ])
+    expect(reparto.map((r) => [r.nombre, r.cuantas])).toEqual([
+      ['Bryan Hernández', 3],
+      ['José Cruz', 1],
+    ])
+  })
+
+  it('a igualdad de carga, por nombre: el orden no puede bailar entre recargas', () => {
+    const reparto = responsablesDelPlan([
+      { id: '1', name: 'a', duration: 1, owner: 'Zulema' },
+      { id: '2', name: 'b', duration: 1, owner: 'Álvaro' },
+    ])
+    expect(reparto.map((r) => r.nombre)).toEqual(['Álvaro', 'Zulema'])
+  })
+
+  it('«Sin responsable» va al final y solo si existe', () => {
+    expect(responsablesDelPlan([{ id: '1', name: 'a', duration: 1, owner: 'Ana' }]).map((r) => r.clave))
+      .toEqual(['Ana'])
+
+    const conHuecos = responsablesDelPlan([
+      { id: '1', name: 'a', duration: 1, owner: 'Ana' },
+      { id: '2', name: 'b', duration: 1 },
+    ])
+    expect(conHuecos.map((r) => r.clave)).toEqual(['Ana', SIN_RESPONSABLE])
+    expect(conHuecos[1].nombre).toBe('Sin responsable')
+  })
+
+  it('no ofrece a nadie que el filtro no vaya a encontrar', () => {
+    // Es la invariante que justifica que la lista salga de aquí y no de una consulta aparte.
+    const tareas: PlanTask[] = [
+      { id: 'a', name: 'a', duration: 1, owner: 'Ana' },
+      { id: 'b', name: 'b', duration: 1, owner: '  ' },
+      { id: 'c', name: 'c', duration: 1 },
+    ]
+    for (const { clave, cuantas } of responsablesDelPlan(tareas)) {
+      const filas = trazar(tareas, [], { filter: { responsable: clave } }).rows
+      expect(filas.length).toBe(cuantas)
+    }
+  })
+})
+
+describe('Si el filtro está puesto', () => {
+  it('un eje nuevo entra solo, sin apuntarlo en una segunda lista', () => {
+    // Enumerar los campos a mano obligaba a tocar dos sitios, y olvidar el segundo dejaba a la
+    // exportación llevándose el plan entero mientras la pantalla enseñaba un recorte.
+    expect(hayFiltroPuesto(undefined)).toBe(false)
+    expect(hayFiltroPuesto({})).toBe(false)
+    expect(hayFiltroPuesto({ onlyOverdue: false })).toBe(false)
+    expect(hayFiltroPuesto({ responsable: 'Ana' })).toBe(true)
+    expect(hayFiltroPuesto({ hasta: '2026-09-15' })).toBe(true)
+    expect(hayFiltroPuesto({ onlyOverdue: true })).toBe(true)
   })
 })

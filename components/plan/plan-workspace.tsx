@@ -84,7 +84,7 @@ import {
   type GanttFilter,
   type LinkVisibility,
   collapseToLevel,
-  ganttLayout, anchoDeDiaPara } from '@/lib/scheduling/gantt'
+  ganttLayout, anchoDeDiaPara, hayFiltroPuesto, responsablesDelPlan } from '@/lib/scheduling/gantt'
 import { summarizePlan } from '@/lib/scheduling/plan-summary'
 import { rollUpProgress } from '@/lib/scheduling/progress'
 import { restriccion } from '@/lib/scheduling/restricciones'
@@ -524,6 +524,15 @@ export function PlanWorkspace({
   const [enCurso, setEnCurso] = useState<{ hechas: number; total: number } | null>(null)
   const [resultadoDelLote, setResultadoDelLote] = useState<string | null>(null)
 
+  /**
+   * Quién aparece en el plan, para el filtro por responsable.
+   *
+   * Sale de las tareas y no de una consulta aparte: la lista tiene que ser exactamente la de los
+   * nombres que el filtro va a encontrar. Depende sólo de `tasks`, así que no se recalcula al
+   * mover un filtro ni al plegar una rama.
+   */
+  const responsables = useMemo(() => responsablesDelPlan(tasks), [tasks])
+
   const idsVisiblesEnPantalla = useMemo(() => layoutFiltrado.rows.map((r) => r.id), [layoutFiltrado])
 
   /**
@@ -544,15 +553,7 @@ export function PlanWorkspace({
    * significa «el plan entero» y ni siquiera necesita la lista.
    */
   const paraExportar = useMemo((): { ids: string[] | null; cuantas: number } => {
-    const hayFiltro =
-      filter.onlySuperCritical === true ||
-      filter.onlyCritical === true ||
-      filter.onlyMilestones === true ||
-      filter.party !== undefined ||
-      filter.onlyOverdue === true ||
-      filter.hasta !== undefined
-
-    if (!hayFiltro && !idsVisibles) return { ids: null, cuantas: tasks.length }
+    if (!hayFiltroPuesto(filter) && !idsVisibles) return { ids: null, cuantas: tasks.length }
 
     const sinPlegar = ganttLayout({
       tasks,
@@ -1183,6 +1184,7 @@ export function PlanWorkspace({
           cuantasAtrasadas={layout.atrasadasEnTodoElPlan}
           cuantasEnElCorte={layout.enElCorte}
           idDelProyecto={projectId}
+          responsables={responsables}
           paraExportar={paraExportar}
           rutaCritica={preferencia.rutaCritica}
           onRutaCriticaChange={(v) => setPreferencia((p) => ({ ...p, rutaCritica: v }))}

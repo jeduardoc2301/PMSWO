@@ -40,6 +40,14 @@ export interface PlanControlsProps {
   /** Cuántas líneas de trabajo caen dentro del corte puesto. Cero si no hay corte. */
   readonly cuantasEnElCorte: number
   /**
+   * Quién aparece en el plan y con cuántas líneas cada uno.
+   *
+   * Llega calculado en vez de deducirse aquí de las tareas: esta barra no las tiene, y la lista
+   * tiene que salir de la misma función que después decide el filtro. Una lista construida aparte
+   * podría ofrecer a alguien que el filtro luego no encuentra.
+   */
+  readonly responsables?: readonly { readonly nombre: string; readonly clave: string; readonly cuantas: number }[]
+  /**
    * El proyecto que se está mirando, para poder descargar su plan.
    *
    * Opcional porque esta barra también se monta sobre planes que aún no existen en la base —una
@@ -136,6 +144,7 @@ export function PlanControls({
   atrasadas,
   cuantasAtrasadas,
   cuantasEnElCorte,
+  responsables,
   idDelProyecto,
   paraExportar,
   rutaCritica,
@@ -163,6 +172,7 @@ export function PlanControls({
     parte === null &&
     !soloAtrasadas &&
     hasta === null &&
+    filter.responsable === undefined &&
     filter.onlyCritical !== true
 
   /**
@@ -315,6 +325,43 @@ export function PlanControls({
           </>
         ) : null}
       </Grupo>
+
+      {/* Quién lleva la línea.
+
+          Va aquí por la misma razón que el corte: es un **valor** que se elige de una lista, no un
+          conmutador. Con cinco personas cabrían como botones; con treinta, no, y el plan que las
+          traiga no tiene por qué ser peor de usar.
+
+          Sale de `responsablesDelPlan`, que es la misma función que consulta el filtro: así la lista
+          no puede ofrecer a alguien que luego no aparezca. Y cada nombre lleva su carga, porque
+          «Bryan (152)» dice algo que «Bryan» no dice. */}
+      {responsables && responsables.length > 0 ? (
+        <Grupo titulo="Responsable" nota="Quién lleva cada línea.">
+          <select
+            aria-label="Responsable"
+            value={filter.responsable ?? ''}
+            onChange={(evento) =>
+              onFilterChange({
+                ...filter,
+                responsable: evento.target.value === '' ? undefined : evento.target.value,
+              })
+            }
+            className="rounded border border-borde-fuerte bg-superficie px-2 py-1 text-xs text-tinta"
+          >
+            <option value="">Todos</option>
+            {responsables.map((r) => (
+              <option key={r.clave} value={r.clave}>
+                {r.nombre} ({conMiles(r.cuantas)})
+              </option>
+            ))}
+          </select>
+          {filter.responsable !== undefined ? (
+            <Boton activo={false} onClick={() => onFilterChange({ ...filter, responsable: undefined })}>
+              Quitar
+            </Boton>
+          ) : null}
+        </Grupo>
+      ) : null}
 
       <Grupo titulo="Escala">
         {ESCALAS.map((opcion) => (
