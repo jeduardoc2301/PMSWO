@@ -308,6 +308,17 @@ async function handler(
 
   const { contenido } = construirLibroDePlan(plan)
 
+  // Una línea por descarga. Una ruta que genera un archivo de 180 KB y no deja rastro es
+  // imposible de soportar: cuando alguien diga «me salió mal el Excel» no hay forma de saber
+  // qué pidió, cuánto salió ni si iba filtrado. Sin nombres ni datos del plan: sólo el tamaño.
+  console.info(
+    '[export/xlsx] proyecto=%s lineas=%d/%d filtrado=%s',
+    id,
+    lineas.length,
+    totalDelPlan,
+    soloEstas !== null,
+  )
+
   return new NextResponse(new Uint8Array(contenido), {
     status: 200,
     headers: {
