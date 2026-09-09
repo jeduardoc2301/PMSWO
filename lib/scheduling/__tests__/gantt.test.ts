@@ -12,6 +12,8 @@ import {
   collapseToLevel,
   escalaSuperior,
   ganttLayout,
+  frescuraDelAvance,
+  haceCuanto,
   hayFiltroPuesto,
   lagLabel,
   linkLabel,
@@ -1836,5 +1838,47 @@ describe('El filtro por responsable, con varias personas', () => {
       filter: { responsables: ['Bryan Hernández', SIN_RESPONSABLE] },
     }).rows.map((r) => r.id)
     expect(filas).toEqual(['fase', 'a', 'x'])
+  })
+})
+
+describe('Qué tan reciente es la última captura del avance', () => {
+  const T0 = Date.parse('2026-09-09T12:00:00Z')
+  const h = (n: number) => T0 + n * 60 * 60 * 1000
+  const capturado = '2026-09-09T12:00:00Z'
+
+  it('dentro de las 24 horas es reciente', () => {
+    expect(frescuraDelAvance(capturado, h(0))).toBe('reciente')
+    expect(frescuraDelAvance(capturado, h(23.99))).toBe('reciente')
+  })
+
+  it('a las 24 exactas todavía es reciente: el límite es inclusivo', () => {
+    expect(frescuraDelAvance(capturado, h(24))).toBe('reciente')
+  })
+
+  it('entre 24 y 48 es ayer, y a las 48 exactas también', () => {
+    expect(frescuraDelAvance(capturado, h(24.01))).toBe('ayer')
+    expect(frescuraDelAvance(capturado, h(48))).toBe('ayer')
+  })
+
+  it('pasadas las 48 ya no dice nada', () => {
+    expect(frescuraDelAvance(capturado, h(48.01))).toBeNull()
+    expect(frescuraDelAvance(capturado, h(500))).toBeNull()
+  })
+
+  it('sin captura no dice nada, y una fecha ilegible tampoco', () => {
+    expect(frescuraDelAvance(undefined, T0)).toBeNull()
+    expect(frescuraDelAvance('ayer por la tarde', T0)).toBeNull()
+  })
+
+  it('un instante en el futuro, por dos relojes desacordados, cuenta como reciente', () => {
+    expect(frescuraDelAvance(capturado, h(-2))).toBe('reciente')
+  })
+
+  it('el título dice hace cuánto en horas, y en días a partir de uno', () => {
+    expect(haceCuanto(capturado, h(0.5))).toBe('hace menos de una hora')
+    expect(haceCuanto(capturado, h(3))).toBe('hace 3 h')
+    expect(haceCuanto(capturado, h(24))).toBe('hace 1 día')
+    expect(haceCuanto(capturado, h(29))).toBe('hace 1 día y 5 h')
+    expect(haceCuanto(capturado, h(50))).toBe('hace 2 días y 2 h')
   })
 })

@@ -139,3 +139,18 @@ describe('§2.1 · el acoplamiento escribe el avance en las dos unidades', () =>
     expect(data.progressBp).toBe(Math.round(data.progressPct * 10000))
   })
 })
+
+describe('La fecha de captura del avance al mover una tarjeta', () => {
+  it('se pone cuando el avance cambia de verdad', async () => {
+    const data = await moverA({ isDone: true }, { progressPct: 0.4 }, WorkItemStatus.DONE)
+    expect(data.progressChangedAt).toBeInstanceOf(Date)
+  })
+
+  it('pero no cuando la tarjeta cambia de columna con el mismo porcentaje', async () => {
+    // Mover entre dos columnas intermedias conserva el avance capturado, y eso no es una captura:
+    // si pusiera la fecha, la celda se pondría en verde por un movimiento que no tocó el número.
+    const data = await moverA({}, { progressPct: 0.4 }, WorkItemStatus.IN_PROGRESS)
+    expect(data.progressPct).toBe(0.4)
+    expect(data).not.toHaveProperty('progressChangedAt')
+  })
+})

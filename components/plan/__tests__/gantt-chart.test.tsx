@@ -788,3 +788,51 @@ describe('Dónde se dibuja la raya del corte', () => {
     expect(raya.style.left).toBe(`${(layout.corteX ?? 0) * DIA}px`)
   })
 })
+
+describe('La celda de avance dice cuándo la tocaron', () => {
+  // La columna de avance no está entre las visibles por omisión del Gantt, así que se pide la
+  // lista entera: sin ella la celda no existe y la prueba no probaría nada.
+  const AHORA = Date.parse('2026-06-03T12:00:00Z')
+  const hace = (horas: number) => new Date(AHORA - horas * 60 * 60 * 1000).toISOString()
+  const conCaptura = (avanceCapturadoEn?: string): PlanTask[] => [
+    { id: 'a', name: 'Configurar la red', duration: 3, progress: 0.4, ...(avanceCapturadoEn ? { avanceCapturadoEn } : {}) },
+  ]
+
+  it('en verde si se capturó hace menos de 24 horas', () => {
+    render(<GanttChart layout={trazar(conCaptura(hace(3)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
+    const celda = screen.getByTestId('celda-progress-a')
+    expect(celda).toHaveAttribute('data-frescura', 'reciente')
+    expect(celda.className).toContain('bg-bien-fondo')
+    expect(celda).toHaveAttribute('title', 'Avance capturado hace 3 h')
+  })
+
+  it('en ámbar entre 24 y 48', () => {
+    render(<GanttChart layout={trazar(conCaptura(hace(30)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
+    const celda = screen.getByTestId('celda-progress-a')
+    expect(celda).toHaveAttribute('data-frescura', 'ayer')
+    expect(celda.className).toContain('bg-aviso-fondo')
+    expect(celda).toHaveAttribute('title', 'Avance capturado hace 1 día y 6 h')
+  })
+
+  it('y sin color pasadas las 48, o si nadie lo tocó', () => {
+    render(<GanttChart layout={trazar(conCaptura(hace(60)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
+    const vieja = screen.getByTestId('celda-progress-a')
+    expect(vieja).not.toHaveAttribute('data-frescura')
+    expect(vieja.className).not.toMatch(/bg-(bien|aviso)-fondo/)
+  })
+
+  it('nunca lo tocó nadie: ni sello ni título', () => {
+    render(<GanttChart layout={trazar(conCaptura())} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
+    const celda = screen.getByTestId('celda-progress-a')
+    expect(celda).not.toHaveAttribute('data-frescura')
+    expect(celda).not.toHaveAttribute('title')
+  })
+
+  it('sólo se tiñe la celda de avance, no la fila entera', () => {
+    // Lo que cambió fue ese número. Una fila entera de color se lee como estado de la línea.
+    render(<GanttChart layout={trazar(conCaptura(hace(1)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
+    expect(screen.getByTestId('celda-progress-a').className).toContain('bg-bien-fondo')
+    expect(screen.getByTestId('celda-name-a').className).not.toContain('bg-bien-fondo')
+    expect(screen.getByTestId('celda-name-a')).not.toHaveAttribute('data-frescura')
+  })
+})

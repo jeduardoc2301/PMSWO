@@ -136,6 +136,7 @@ export async function loadProjectPlan(
         parentId: true,
         progressPct: true,
         progressBp: true,
+        progressChangedAt: true,
         status: true,
         constraintType: true,
         constraintDate: true,
@@ -221,6 +222,9 @@ export async function loadProjectPlan(
       // Los puntos base son el dato; el porcentaje en coma flotante es su copia al día. Se lee de
       // los enteros para que un tercio capturado siga siendo un tercio después de la vuelta.
       progress: comoFraccion(item.progressBp),
+      // Cuándo se capturó, para que el Gantt pueda decir «esto lo tocó alguien hoy». Viaja como
+      // instante completo: con sólo la fecha, anoche y esta mañana serían el mismo día.
+      ...(item.progressChangedAt ? { avanceCapturadoEn: item.progressChangedAt.toISOString() } : {}),
       status: item.status,
       ...restriccionDe(item.constraintType, item.constraintDate, start, item.startMinute),
       // La elección original, aparte de lo que el motor consume: es lo único que distingue una

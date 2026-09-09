@@ -238,6 +238,16 @@ model WorkItem {
   // que se mantiene al día en la misma escritura para que nada de lo que ya existe se entere.
   progressBp Int @default(0) @map("progress_bp")
 
+  /// Cuándo se capturó el avance por última vez. Nulo mientras nadie lo haya tocado.
+  ///
+  /// Existe porque las otras dos fuentes no sirven para esta pregunta: `updatedAt` cambia con
+  /// cualquier campo, y la bitácora (`WorkItemChange`) cubría el 1 % de las capturas del plan de
+  /// referencia en producción — la edición en línea del Gantt escribía el avance sin registrar
+  /// nada. Se pone SÓLO donde el valor guardado cambia de verdad, y sólo en los caminos que son
+  /// una captura de alguien: el PATCH de la línea y el movimiento en el tablero. Una importación
+  /// o un restaurado no la tocan, porque no son una persona actualizando un porcentaje.
+  progressChangedAt DateTime? @map("progress_changed_at")
+
   // ── PLANEACIÓN · Trazabilidad por línea (C9) ───────────────────────────────
   // De dónde salió esta línea. Cuando un plan integra varias fuentes es lo único que permite
   // reconciliar después.

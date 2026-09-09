@@ -239,6 +239,14 @@ export interface PlanTask {
   /** Avance de 0 a 1. Uno significa cumplida. */
   readonly progress?: number
   /**
+   * Cuándo se capturó ese avance por última vez, como instante ISO completo.
+   *
+   * Un instante y no una fecha civil, y no es un descuido: la pregunta que contesta es «¿lo tocó
+   * alguien en las últimas 24 horas?», y con sólo la fecha una captura de anoche a las 23:50 y
+   * una de esta mañana se leerían igual. Ausente mientras nadie lo haya tocado.
+   */
+  readonly avanceCapturadoEn?: string
+  /**
    * Estado de seguimiento de la línea.
    *
    * El motor no programa con él —una tarea terminada ocupó los días que ocupó— pero sí hace falta

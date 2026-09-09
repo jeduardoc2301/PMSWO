@@ -265,3 +265,21 @@ describe('§3.4 · la restricción guardada llega al motor', () => {
     expect(plan!.tasks[0]!.constraint!.type).toBe('NO_ANTES_DE')
   })
 })
+
+describe('Cuándo se capturó el avance', () => {
+  it('viaja al motor como instante ISO completo, no como fecha', async () => {
+    // Con sólo la fecha, una captura de anoche a las 23:50 y una de esta mañana serían el mismo
+    // día, y la pregunta que contesta es «¿lo tocó alguien en las últimas 24 horas?».
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([
+      fila({ progressChangedAt: new Date('2026-09-09T10:15:00Z') }),
+    ] as never)
+    const plan = await loadProjectPlan('proy-1', 'org-1')
+    expect(plan!.tasks[0].avanceCapturadoEn).toBe('2026-09-09T10:15:00.000Z')
+  })
+
+  it('y no viaja cuando nadie lo ha tocado', async () => {
+    vi.mocked(prisma.workItem.findMany).mockResolvedValue([fila({ progressChangedAt: null })] as never)
+    const plan = await loadProjectPlan('proy-1', 'org-1')
+    expect(plan!.tasks[0]).not.toHaveProperty('avanceCapturadoEn')
+  })
+})

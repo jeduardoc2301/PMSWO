@@ -34,6 +34,11 @@ vi.mock('@/lib/prisma', () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    // Desde que cambiar el avance deja asiento en la bitácora, la ruta escribe aquí.
+    workItemChange: { create: vi.fn() },
+    // Cambiar el avance dispara el acoplamiento con el estado, que lista las columnas del tablero.
+    // Sin columnas no hay movimiento que hacer, que es lo que estas pruebas dan por hecho.
+    kanbanColumn: { findMany: vi.fn(async () => []) },
     // Las tres que consulta la guardia del §10.1 para saber qué papel tiene quien escribe. Sin
     // ellas, `authorize` no puede decidir y toda escritura queda en 403 — que es exactamente lo que
     // pasó al enchufar la guardia, y por qué estas líneas no son adorno del banco de pruebas.
@@ -314,5 +319,70 @@ describe('PATCH /api/v1/work-items/:id', () => {
     await PATCH(createRequest({ title: 'New Title' }), params as never)
 
     // Debería existir un WorkItemChange con changedById = 'user-123'.
+  })
+})
+
+describe('PATCH · cuándo se capturó el avance, y su asiento en la bitácora', () => {
+  const params = { params: Promise.resolve({ id: 'work-item-123' }) }
+  const peticion = (body: unknown) =>
+    new NextRequest('http://localhost:3000/api/v1/work-items/work-item-123', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(auth).mockResolvedValue(mockSession as never)
+    vi.mocked(prisma.workItem.findFirst).mockResolvedValue({ ...mockWorkItem, progressBp: 2_000 } as never)
+    vi.mocked(prisma.workItem.update).mockResolvedValue({ ...mockWorkItem, progressBp: 5_000 } as never)
+  })
+
+  it('cambiar el avance pone la fecha de captura y deja asiento', async () => {
+    const response = await PATCH(peticion({ progressBp: 5_000 }), params as never)
+    expect(response.status).toBe(200)
+
+    const escrito = vi.mocked(prisma.workItem.update).mock.calls[0][0].data as Record<string, unknown>
+    expect(escrito.progressChangedAt).toBeInstanceOf(Date)
+
+    // El mismo asiento que escribe el servicio al mover una tarjeta: mismo campo, mismas unidades.
+    // Esta ruta no dejaba ninguno, y es por donde captura el Gantt en línea: la bitácora cubría el
+    // 1 % de las capturas del plan de referencia en producción.
+    expect(prisma.workItemChange.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workItemId: 'work-item-123',
+          changedById: 'user-123',
+          field: 'progressPct',
+          oldValue: '0.2',
+          newValue: '0.5',
+        }),
+      }),
+    )
+  })
+
+  it('reenviar el mismo avance no es una captura: ni fecha ni asiento', async () => {
+    // El Gantt reenvía el valor al confirmar una celda aunque no haya cambiado.
+    const response = await PATCH(peticion({ progressBp: 2_000 }), params as never)
+    expect(response.status).toBe(200)
+
+    const escrito = vi.mocked(prisma.workItem.update).mock.calls[0][0].data as Record<string, unknown>
+    expect(escrito).not.toHaveProperty('progressChangedAt')
+    expect(prisma.workItemChange.create).not.toHaveBeenCalled()
+  })
+
+  it('llegar en fracción cuenta igual que llegar en puntos base', async () => {
+    const response = await PATCH(peticion({ progressPct: 0.5 }), params as never)
+    expect(response.status).toBe(200)
+    const escrito = vi.mocked(prisma.workItem.update).mock.calls[0][0].data as Record<string, unknown>
+    expect(escrito.progressChangedAt).toBeInstanceOf(Date)
+  })
+
+  it('un cambio que no toca el avance no lo marca como capturado', async () => {
+    const response = await PATCH(peticion({ title: 'Otro título' }), params as never)
+    expect(response.status).toBe(200)
+    const escrito = vi.mocked(prisma.workItem.update).mock.calls[0][0].data as Record<string, unknown>
+    expect(escrito).not.toHaveProperty('progressChangedAt')
+    expect(prisma.workItemChange.create).not.toHaveBeenCalled()
   })
 })

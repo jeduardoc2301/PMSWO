@@ -872,6 +872,9 @@ export class WorkItemService {
           // tarjeta a «Terminado» dejaba el Tablero diciendo 100 % y el Gantt diciendo 0 % sobre la
           // misma línea: medido en pantalla antes de escribirla.
           progressBp: aPuntosBase(nuevoAvance),
+          // Sólo cuando el avance cambia de verdad: mover una tarjeta entre dos columnas
+          // intermedias conserva el porcentaje, y no es una captura.
+          ...((existing.progressPct ?? 0) !== nuevoAvance ? { progressChangedAt: new Date() } : {}),
           completedAt,
         },
       })

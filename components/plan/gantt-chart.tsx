@@ -23,7 +23,15 @@ import {
 import { CeldaEditable, validarAvance, validarNombre } from '@/components/plan/celda-editable'
 import { aPuntosBase, comoPorcentaje, conSimbolo } from '@/lib/plan/porcentaje'
 import { accionDeTeclado } from '@/lib/plan/atajos'
-import { type GanttLayout, type GanttLink, type GanttRow, linkLabel } from '@/lib/scheduling/gantt'
+import {
+  type Frescura,
+  type GanttLayout,
+  type GanttLink,
+  type GanttRow,
+  frescuraDelAvance,
+  haceCuanto,
+  linkLabel,
+} from '@/lib/scheduling/gantt'
 import { MINUTOS_POR_JORNADA, comoTexto, leerDuracion } from '@/lib/scheduling/unidades'
 
 export interface GanttChartProps {
@@ -79,6 +87,14 @@ export interface GanttChartProps {
    * quien recibe esto puede escribir sin volver a comprobar nada.
    */
   readonly onEditarCelda?: (id: string, campo: 'name' | 'progress' | 'duracionMin', valor: string) => void
+  /**
+   * El instante «ahora», en milisegundos, para decidir qué tan reciente es cada captura de avance.
+   *
+   * Llega de fuera y no se lee del reloj aquí por lo mismo que el motor recibe `hoy`: una vista
+   * que mira la hora por su cuenta no se puede probar en un borde sin esperar a que el borde
+   * llegue. Ausente, se toma el reloj.
+   */
+  readonly ahora?: number
   /**
    * Atajos de teclado sobre una fila (§4.4): sangrar, anular sangría, abrir el detalle.
    *
@@ -264,6 +280,23 @@ const ALTO_VISIBLE = 560
  */
 const MARGEN_DE_FILAS = 8
 
+/** Sólo la celda de avance lleva sello; las demás no tienen nada que decir de cuándo se tocaron. */
+function frescuraDeCelda(row: GanttRow, columnaId: string, ahoraMs: number): Frescura | null {
+  if (columnaId !== 'progress') return null
+  return frescuraDelAvance(row.avanceCapturadoEn, ahoraMs)
+}
+
+function claseDeFrescura(frescura: Frescura | null): string {
+  if (frescura === 'reciente') return 'bg-bien-fondo'
+  if (frescura === 'ayer') return 'bg-aviso-fondo'
+  return ''
+}
+
+function tituloDeCelda(row: GanttRow, columnaId: string, ahoraMs: number): string | undefined {
+  if (columnaId !== 'progress' || row.avanceCapturadoEn === undefined) return undefined
+  return `Avance capturado ${haceCuanto(row.avanceCapturadoEn, ahoraMs)}`
+}
+
 export function GanttChart({
   layout,
   dayWidth = DAY_WIDTH,
@@ -279,6 +312,7 @@ export function GanttChart({
   rutaCritica = true,
   reserva = false,
   onEditarCelda,
+  ahora,
   onAtajo,
   onConectar,
   onCambiarDuracion,
@@ -289,6 +323,7 @@ export function GanttChart({
   divisor,
   onDivisorCambiado,
 }: GanttChartProps) {
+  const ahoraMs = ahora ?? Date.now()
   const width = Math.max(layout.span, 1) * dayWidth
   const height = layout.rows.length * rowHeight
 
@@ -503,7 +538,12 @@ export function GanttChart({
                     <div
                       key={columna.id}
                       data-testid={`celda-${columna.id}-${row.id}`}
-                      className="shrink-0 overflow-hidden border-b border-borde"
+                      // La celda de avance se tiñe según cuándo la tocaron: verde dentro de las 24 h,
+                      // ámbar hasta las 48. Es la celda y no la fila entera, porque lo que cambió fue
+                      // ese número, y una fila entera de color se lee como estado de la línea.
+                      data-frescura={frescuraDeCelda(row, columna.id, ahoraMs) ?? undefined}
+                      title={tituloDeCelda(row, columna.id, ahoraMs)}
+                      className={`shrink-0 overflow-hidden border-b border-borde ${claseDeFrescura(frescuraDeCelda(row, columna.id, ahoraMs))}`}
                       style={{ width: anchoPorColumna[i] }}
                     >
                       {columna.id === 'duracionMin' && onEditarCelda && !row.hasChildren && !row.isMilestone ? (

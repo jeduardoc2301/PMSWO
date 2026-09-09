@@ -277,9 +277,28 @@ async function updateWorkItemHandler(
      * «terminada» con la tarjeta en «Backlog» — la contradicción que ese acoplamiento existe para
      * evitar, reintroducida por la puerta de atrás de una unidad nueva.
      */
-    const avanceQueLlega =
-      updateData.progressBp !== undefined ? updateData.progressBp / 10_000 : updateData.progressPct
-    if (avanceQueLlega !== undefined && avanceQueLlega !== workItem.progressPct) {
+    /**
+     * ¿Cambia el avance de verdad? Una sola respuesta para las tres cosas que dependen de ella:
+     * mover la tarjeta, poner la fecha de captura y dejar asiento en la bitácora.
+     *
+     * Se decide en PUNTOS BASE contra `progressBp`, que es el dato, y no en fracción contra
+     * `progressPct`, que es su copia en coma flotante: un tercio guardado como 3 333 puntos vuelve
+     * como 0.3333 y no es igual a 0.3333333333333333, así que comparar en fracción veía cambios
+     * donde no los había. Y se compara contra lo guardado, no contra «vino en la petición»: el Gantt
+     * reenvía el valor al confirmar una celda aunque sea el mismo, y eso no es una captura.
+     *
+     * Antes esta pregunta se contestaba dos veces en este manejador, con dos comparaciones
+     * distintas, a dos filas de distancia. Es la clase de duplicado que hoy ya costó un defecto.
+     */
+    const avanceNuevoBp =
+      updateData.progressBp !== undefined
+        ? updateData.progressBp
+        : updateData.progressPct !== undefined
+          ? Math.round(updateData.progressPct * 10_000)
+          : undefined
+    const cambiaElAvance = avanceNuevoBp !== undefined && avanceNuevoBp !== workItem.progressBp
+    const avanceQueLlega = avanceNuevoBp === undefined ? undefined : avanceNuevoBp / 10_000
+    if (cambiaElAvance && avanceQueLlega !== undefined) {
       const columnas = await prisma.kanbanColumn.findMany({
         where: { projectId: workItem.projectId },
         orderBy: { order: 'asc' },
@@ -392,6 +411,7 @@ async function updateWorkItemHandler(
     const updatedWorkItem = await prisma.workItem.update({
       where: { id },
       data: {
+        ...(cambiaElAvance && { progressChangedAt: new Date() }),
         ...(updateData.title && { title: updateData.title }),
         ...(updateData.description !== undefined && { description: updateData.description }),
         ...(updateData.status && { status: updateData.status }),
@@ -459,6 +479,21 @@ async function updateWorkItemHandler(
      * escribir, para que un cambio de duración (mover el fin) también empuje lo que dependa de ella.
      * Sólo empuja: una sucesora con holgura se queda donde está.
      */
+    if (cambiaElAvance) {
+      // El mismo asiento que escribe el servicio al mover una tarjeta: mismo campo, mismas
+      // unidades. Si aquí se guardara en puntos base y allí en fracción, la bitácora tendría dos
+      // vocabularios para un solo dato.
+      await prisma.workItemChange.create({
+        data: {
+          workItemId: id,
+          changedById: authContext.userId,
+          field: 'progressPct',
+          oldValue: String(workItem.progressBp / 10_000),
+          newValue: String(avanceNuevoBp! / 10_000),
+        },
+      })
+    }
+
     let empujadas = 0
     if (tocaElCronograma) {
       const resultado = await confirmar(

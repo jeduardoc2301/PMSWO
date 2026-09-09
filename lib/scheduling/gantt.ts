@@ -209,6 +209,8 @@ export interface GanttRow {
    * siga abierto: terminó.
    */
   readonly atrasada: boolean
+  /** Cuándo se capturó el avance por última vez, como instante ISO. Ausente si nadie lo tocó. */
+  readonly avanceCapturadoEn?: string
   readonly isCritical: boolean
   readonly isSuperCritical: boolean
   readonly recoverability: Recoverability
@@ -357,6 +359,43 @@ export function hayFiltroPuesto(filter: GanttFilter | undefined): filter is Gant
 
 /** El valor del filtro que pide «las que no llevan a nadie con nombre». */
 export const SIN_RESPONSABLE = '__sin_responsable__'
+
+/**
+ * Qué tan reciente es la última captura del avance.
+ *
+ * - `reciente`: dentro de las últimas 24 horas.
+ * - `ayer`: entre 24 y 48.
+ * - `null`: más antiguo, o nunca capturado.
+ *
+ * Recibe el «ahora» en vez de leer el reloj, como el resto del motor: un cálculo que mira la hora
+ * por su cuenta no se puede probar en un borde —23 h 59 m contra 24 h— sin esperar a que el
+ * borde llegue. Los dos límites son inclusivos: a las 24 horas exactas todavía es reciente, a las
+ * 48 exactas todavía es ayer. Un instante en el futuro —dos relojes desacordados— cuenta como
+ * reciente, que es lo que menos sorprende.
+ */
+export type Frescura = 'reciente' | 'ayer'
+
+const HORA_MS = 60 * 60 * 1000
+
+export function frescuraDelAvance(capturadoEn: string | undefined, ahoraMs: number): Frescura | null {
+  if (capturadoEn === undefined) return null
+  const instante = Date.parse(capturadoEn)
+  if (Number.isNaN(instante)) return null
+  const horas = (ahoraMs - instante) / HORA_MS
+  if (horas <= 24) return 'reciente'
+  if (horas <= 48) return 'ayer'
+  return null
+}
+
+/** «hace 3 h», «hace 1 día y 5 h»: para el título de la celda. */
+export function haceCuanto(capturadoEn: string, ahoraMs: number): string {
+  const horas = Math.max(0, Math.floor((ahoraMs - Date.parse(capturadoEn)) / HORA_MS))
+  if (horas < 1) return 'hace menos de una hora'
+  if (horas < 24) return `hace ${horas} h`
+  const dias = Math.floor(horas / 24)
+  const resto = horas % 24
+  return resto === 0 ? `hace ${dias} d${dias === 1 ? '' : ''}ía${dias === 1 ? '' : 's'}` : `hace ${dias} día${dias === 1 ? '' : 's'} y ${resto} h`
+}
 
 /** El responsable con nombre de una línea, o `null` si no lleva ninguno. */
 export function responsableDe(task: PlanTask): string | null {
@@ -833,6 +872,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       // separarían en cuanto existiera una línea cerrada al 50 %. Dos definiciones de «terminada»
       // en el mismo módulo ya costaron un defecto en este proyecto.
       atrasada: atrasadas.has(task.id),
+      ...(task.avanceCapturadoEn !== undefined ? { avanceCapturadoEn: task.avanceCapturadoEn } : {}),
       ...(task.dueDate ? { deadline: task.dueDate } : {}),
       /**
        * La restricción **elegida**, no el ancla.

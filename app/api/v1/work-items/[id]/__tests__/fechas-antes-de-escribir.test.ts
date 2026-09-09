@@ -39,6 +39,8 @@ vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 vi.mock('@/lib/prisma', () => ({
   default: {
     workItem: { findFirst: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    // Desde que cambiar el avance deja asiento en la bitácora, la ruta escribe aquí.
+    workItemChange: { create: vi.fn() },
     project: { findUnique: vi.fn() },
     projectCollaborator: { findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
