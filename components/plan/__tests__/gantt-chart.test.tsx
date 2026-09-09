@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { GanttChart, elbow } from '../gantt-chart'
@@ -802,7 +802,7 @@ describe('La celda de avance dice cuándo la tocaron', () => {
     render(<GanttChart layout={trazar(conCaptura(hace(3)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
     const celda = screen.getByTestId('celda-progress-a')
     expect(celda).toHaveAttribute('data-frescura', 'reciente')
-    expect(celda.className).toContain('bg-bien-fondo')
+    expect(celda.className).toContain('bg-captura-hoy-fondo')
     expect(celda).toHaveAttribute('title', 'Avance capturado hace 3 h')
   })
 
@@ -810,7 +810,7 @@ describe('La celda de avance dice cuándo la tocaron', () => {
     render(<GanttChart layout={trazar(conCaptura(hace(30)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
     const celda = screen.getByTestId('celda-progress-a')
     expect(celda).toHaveAttribute('data-frescura', 'ayer')
-    expect(celda.className).toContain('bg-aviso-fondo')
+    expect(celda.className).toContain('bg-captura-ayer-fondo')
     expect(celda).toHaveAttribute('title', 'Avance capturado hace 1 día y 6 h')
   })
 
@@ -818,7 +818,7 @@ describe('La celda de avance dice cuándo la tocaron', () => {
     render(<GanttChart layout={trazar(conCaptura(hace(60)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
     const vieja = screen.getByTestId('celda-progress-a')
     expect(vieja).not.toHaveAttribute('data-frescura')
-    expect(vieja.className).not.toMatch(/bg-(bien|aviso)-fondo/)
+    expect(vieja.className).not.toMatch(/bg-captura-(hoy|ayer)-fondo/)
   })
 
   it('nunca lo tocó nadie: ni sello ni título', () => {
@@ -831,8 +831,44 @@ describe('La celda de avance dice cuándo la tocaron', () => {
   it('sólo se tiñe la celda de avance, no la fila entera', () => {
     // Lo que cambió fue ese número. Una fila entera de color se lee como estado de la línea.
     render(<GanttChart layout={trazar(conCaptura(hace(1)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} />)
-    expect(screen.getByTestId('celda-progress-a').className).toContain('bg-bien-fondo')
-    expect(screen.getByTestId('celda-name-a').className).not.toContain('bg-bien-fondo')
+    expect(screen.getByTestId('celda-progress-a').className).toContain('bg-captura-hoy-fondo')
+    expect(screen.getByTestId('celda-name-a').className).not.toContain('bg-captura-hoy-fondo')
     expect(screen.getByTestId('celda-name-a')).not.toHaveAttribute('data-frescura')
+  })
+})
+
+describe('El color de la captura llega al número, no sólo al fondo', () => {
+  const AHORA = Date.parse('2026-06-03T12:00:00Z')
+  const hace = (horas: number) => new Date(AHORA - horas * 60 * 60 * 1000).toISOString()
+  const plan = (avanceCapturadoEn: string): PlanTask[] => [
+    { id: 'a', name: 'Configurar la red', duration: 3, progress: 0.4, avanceCapturadoEn },
+  ]
+
+  it('con la celda editable, el botón lleva el color y no su gris de siempre', () => {
+    // El botón fija `text-tinta-2` por su cuenta, así que el color del envoltorio no le llegaba: el
+    // fondo se pintaba de azul y la cifra seguía en gris. Se vio en producción.
+    render(
+      <GanttChart layout={trazar(plan(hace(2)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} onEditarCelda={vi.fn()} />,
+    )
+    const boton = within(screen.getByTestId('celda-progress-a')).getByRole('button')
+    expect(boton.className).toContain('text-captura-hoy-tinta')
+    expect(boton.className).not.toContain('text-tinta-2')
+  })
+
+  it('y en ámbar, igual', () => {
+    render(
+      <GanttChart layout={trazar(plan(hace(30)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} onEditarCelda={vi.fn()} />,
+    )
+    const boton = within(screen.getByTestId('celda-progress-a')).getByRole('button')
+    expect(boton.className).toContain('text-captura-ayer-tinta')
+  })
+
+  it('sin captura reciente, el botón conserva su gris', () => {
+    render(
+      <GanttChart layout={trazar(plan(hace(80)))} dayWidth={DIA} columnas={COLUMNAS} ahora={AHORA} onEditarCelda={vi.fn()} />,
+    )
+    const boton = within(screen.getByTestId('celda-progress-a')).getByRole('button')
+    expect(boton.className).toContain('text-tinta-2')
+    expect(boton.className).not.toMatch(/text-captura-/)
   })
 })

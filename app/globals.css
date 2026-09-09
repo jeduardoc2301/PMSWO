@@ -188,6 +188,13 @@
   --bien-fondo:     rgba(2,44,34,0.30);
   --bien-borde:     rgba(6,78,59,0.50);
   --bien-tinta:     #6ee7b7;
+  /* Cuándo se capturó el avance: hoy (azul) y ayer (ámbar). Tintes propios y no `bien`/`aviso`,
+     porque aquellos son fondos de aviso al 12—30 % pensados para paneles grandes, y sobre una
+     celda de 70 px quedaban invisibles: se vio en producción. */
+  --captura-hoy-fondo:   rgba(59,130,246,0.34);
+  --captura-hoy-tinta:   #dbeafe;
+  --captura-ayer-fondo:  rgba(245,158,11,0.34);
+  --captura-ayer-tinta:  #fde68a;
 
   /* ── Los colores de DATO (§9.3 C6) ───────────────────────────────────────────────────────
 
@@ -345,6 +352,13 @@
   --bien-fondo:     rgba(16,185,129,0.12);
   --bien-borde:     rgba(21,128,61,0.35);
   --bien-tinta:     #065f46;
+  /* Cuándo se capturó el avance: hoy (azul) y ayer (ámbar). Tintes propios y no `bien`/`aviso`,
+     porque aquellos son fondos de aviso al 12—30 % pensados para paneles grandes, y sobre una
+     celda de 70 px quedaban invisibles: se vio en producción. */
+  --captura-hoy-fondo:   rgba(59,130,246,0.22);
+  --captura-hoy-tinta:   #1e3a8a;
+  --captura-ayer-fondo:  rgba(245,158,11,0.30);
+  --captura-ayer-tinta:  #78350f;
 
   /*
     La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
@@ -471,6 +485,13 @@
     --bien-fondo:     rgba(16,185,129,0.12);
     --bien-borde:     rgba(21,128,61,0.35);
     --bien-tinta:     #065f46;
+    /* Cuándo se capturó el avance: hoy (azul) y ayer (ámbar). Tintes propios y no `bien`/`aviso`,
+       porque aquellos son fondos de aviso al 12—30 % pensados para paneles grandes, y sobre una
+       celda de 70 px quedaban invisibles: se vio en producción. */
+    --captura-hoy-fondo:   rgba(59,130,246,0.22);
+    --captura-hoy-tinta:   #1e3a8a;
+    --captura-ayer-fondo:  rgba(245,158,11,0.30);
+    --captura-ayer-tinta:  #78350f;
 
     /*
       La rampa, rehecha para el blanco. La de arriba no sirve: su paso más claro da **1.54:1** sobre
@@ -553,6 +574,10 @@
   --color-bien-fondo:     var(--bien-fondo);
   --color-bien-borde:     var(--bien-borde);
   --color-bien-tinta:     var(--bien-tinta);
+  --color-captura-hoy-fondo:  var(--captura-hoy-fondo);
+  --color-captura-hoy-tinta:  var(--captura-hoy-tinta);
+  --color-captura-ayer-fondo: var(--captura-ayer-fondo);
+  --color-captura-ayer-tinta: var(--captura-ayer-tinta);
   --color-acento-tinta:   var(--acento-tinta);
   --color-acento-suave:   var(--acento-suave);
   --color-bien:           var(--bien);

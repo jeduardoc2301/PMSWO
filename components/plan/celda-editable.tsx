@@ -48,6 +48,14 @@ export interface CeldaEditableProps {
   readonly deshabilitada?: boolean
   /** Por qué no se puede editar, cuando no se puede. */
   readonly motivo?: string
+  /**
+   * El color del texto, cuando la celda quiere decir algo con él.
+   *
+   * El botón fija su propio gris (`text-tinta-2`), así que un color puesto en el envoltorio no
+   * llega al número: se vio con el tinte de «avance capturado hoy», que pintaba el fondo y dejaba
+   * la cifra en gris. Ausente, el gris de siempre.
+   */
+  readonly claseDeTexto?: string
 }
 
 export function CeldaEditable({
@@ -60,6 +68,7 @@ export function CeldaEditable({
   alineadoALaDerecha,
   deshabilitada,
   motivo,
+  claseDeTexto,
 }: CeldaEditableProps) {
   const [editando, setEditando] = useState(false)
   const [borrador, setBorrador] = useState(valor)
@@ -118,7 +127,7 @@ export function CeldaEditable({
         }}
         data-editable={deshabilitada ? 'no' : 'sí'}
         title={deshabilitada ? motivo : `${texto} · doble clic para editar`}
-        className={`flex h-full w-full items-center truncate px-2 text-xs text-tinta-2 outline-none focus-visible:ring-1 focus-visible:ring-[#6366f1] ${
+        className={`flex h-full w-full items-center truncate px-2 text-xs ${claseDeTexto ?? 'text-tinta-2'} outline-none focus-visible:ring-1 focus-visible:ring-[#6366f1] ${
           alineadoALaDerecha ? 'justify-end tabular-nums' : ''
         } ${deshabilitada ? '' : 'hover:bg-superficie-3/60'}`}
       >

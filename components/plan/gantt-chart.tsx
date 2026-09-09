@@ -286,10 +286,25 @@ function frescuraDeCelda(row: GanttRow, columnaId: string, ahoraMs: number): Fre
   return frescuraDelAvance(row.avanceCapturadoEn, ahoraMs)
 }
 
+/**
+ * Azul para hoy, ámbar para ayer. Tintes propios (`captura-*`) y no los de aviso: aquellos son fondos
+ * al 12—30 % pensados para paneles grandes, y sobre una celda de 70 px eran invisibles — se vio en
+ * producción con el verde de `bien-fondo`, que había que buscar con lupa.
+ */
 function claseDeFrescura(frescura: Frescura | null): string {
-  if (frescura === 'reciente') return 'bg-bien-fondo'
-  if (frescura === 'ayer') return 'bg-aviso-fondo'
+  if (frescura === 'reciente') return 'bg-captura-hoy-fondo text-captura-hoy-tinta'
+  if (frescura === 'ayer') return 'bg-captura-ayer-fondo text-captura-ayer-tinta'
   return ''
+}
+
+/**
+ * El color del número, aparte del fondo. Va también al botón de la celda editable, que fija su
+ * propio gris y no hereda el del envoltorio.
+ */
+function claseDeTextoDeFrescura(frescura: Frescura | null): string | undefined {
+  if (frescura === 'reciente') return 'text-captura-hoy-tinta'
+  if (frescura === 'ayer') return 'text-captura-ayer-tinta'
+  return undefined
 }
 
 function tituloDeCelda(row: GanttRow, columnaId: string, ahoraMs: number): string | undefined {
@@ -574,6 +589,7 @@ export function GanttChart({
                           // cálculo borra.
                           deshabilitada={row.hasChildren}
                           motivo="Un resumen hereda el avance de sus hijas"
+                          claseDeTexto={claseDeTextoDeFrescura(frescuraDeCelda(row, columna.id, ahoraMs))}
                           onGuardar={(v) => onEditarCelda(row.id, 'progress', v)}
                         />
                       ) : columna.id === 'name' ? (
