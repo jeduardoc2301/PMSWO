@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { Permission } from '@/types'
 import { hasPermission } from '@/lib/rbac'
+import { debeNegarsePorSoloLectura, MOTIVO_SOLO_LECTURA } from '@/lib/solo-lectura'
 
 /**
  * Authentication context passed to protected route handlers
@@ -98,6 +99,29 @@ export function withAuth<T = any>(
             message: 'Invalid session data.',
           },
           { status: 401 }
+        )
+      }
+
+      /**
+       * La puerta del cargo de solo lectura, antes de mirar ningún permiso.
+       *
+       * Va aquí y no en cada ruta porque `withAuth` es el único portón: todas las rutas de datos
+       * pasan por él. El razonamiento entero está en `lib/solo-lectura.ts`.
+       *
+       * Antes de las comprobaciones de permiso a propósito, por el mensaje: quien recibe un
+       * «no tienes permiso» genérico se va a pedir permisos de proyecto, y lo que le falta no está
+       * ahí. Además evita que una ruta sin `requiredPermissions` —hay cuatro— se salte la regla.
+       */
+      // `nextUrl` con red debajo: en el servidor siempre está, pero una prueba que arme la petición
+      // a mano no tiene por qué traerlo, y quedarse sin puerta por eso sería el peor sitio donde
+      // ahorrarse una línea.
+      const ruta = request.nextUrl?.pathname ?? new URL(request.url).pathname
+
+      if (debeNegarsePorSoloLectura(roles as string[], request.method, ruta)) {
+        console.log('[WITHAUTH] Cuenta de solo lectura: se niega', request.method, ruta)
+        return NextResponse.json(
+          { error: 'Forbidden', message: MOTIVO_SOLO_LECTURA },
+          { status: 403 }
         )
       }
 

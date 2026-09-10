@@ -5,6 +5,18 @@ export enum UserRole {
   PROJECT_MANAGER = 'PROJECT_MANAGER',
   INTERNAL_CONSULTANT = 'INTERNAL_CONSULTANT',
   EXTERNAL_CONSULTANT = 'EXTERNAL_CONSULTANT',
+  /**
+   * Mira y no toca, y sólo los proyectos a los que se le invita.
+   *
+   * No es «un consultor externo sin permisos»: la diferencia con todos los demás cargos es que a
+   * éste la aplicación le niega **cualquier** escritura en la puerta (`lib/solo-lectura.ts`), sin
+   * consultar qué papel le hayan dado dentro de un proyecto. Los demás cargos se apoyan en que
+   * ninguna ruta se olvide de guardarse; éste no depende de eso.
+   *
+   * Frente a EXECUTIVE, que también es de lectura: el ejecutivo ve la cartera entera por definición
+   * y éste no ve nada hasta que alguien lo sienta en un proyecto.
+   */
+  VIEWER = 'VIEWER',
 }
 
 export enum ProjectStatus {

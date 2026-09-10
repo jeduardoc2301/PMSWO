@@ -245,3 +245,33 @@ describe('§6.3 · los grupos salen en el orden que tienen, no en el del alfabet
     expect(claves()).toEqual(['Ana Gómez', 'Zoe Ruiz'])
   })
 })
+
+/**
+ * La Lista de quien sólo mira.
+ *
+ * Editar y borrar una línea piden `edit_schedule` en el servidor, el mismo permiso que crearla. La
+ * pantalla ofrecía los dos botones a cualquiera que llegara a la vista, y quien no lo tuviera se
+ * llevaba un 403 al pulsarlos. Ahora las tres cosas se deciden con la misma capacidad, que es la que
+ * el servidor va a comprobar.
+ */
+describe('La Lista de quien sólo mira', () => {
+  it('no ofrece editar ni borrar en la fila', () => {
+    dibujar({ canCreateWorkItems: false })
+    expect(screen.queryByLabelText('Editar «Línea a»')).toBeNull()
+    expect(screen.queryByLabelText('Eliminar «Línea a»')).toBeNull()
+  })
+
+  it('pero sigue enseñando las líneas', () => {
+    dibujar({ canCreateWorkItems: false })
+    expect(screen.getByText('Línea a')).toBeInTheDocument()
+    expect(screen.getByText('Línea c')).toBeInTheDocument()
+  })
+
+  it('y a quien puede editar el plan no se le quita nada', () => {
+    // Esta es la que da valor a las dos de arriba: demuestra que esas etiquetas existen de verdad,
+    // y que su ausencia era por estar escondidas y no porque el texto buscado no exista.
+    dibujar({ canCreateWorkItems: true })
+    expect(screen.getByLabelText('Editar «Línea a»')).toBeInTheDocument()
+    expect(screen.getByLabelText('Eliminar «Línea a»')).toBeInTheDocument()
+  })
+})

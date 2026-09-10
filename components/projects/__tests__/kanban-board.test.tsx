@@ -986,4 +986,74 @@ describe('§5 · las dos clases de hito se tratan igual', () => {
     expect(texto('PUNTO_DE_CONTROL')).toBe(texto('HITO'))
     expect(texto('PUNTO_DE_CONTROL')).not.toBe(texto('ACTIVIDAD'))
   })
+
+})
+
+/**
+ * Lo que la pantalla ofrece a quien no puede escribir.
+ *
+ * Esconde, no deshabilita: un botón gris que no se puede pulsar informa a un cliente externo de que
+ * existe algo que no le enseñan, y eso es peor que no mencionarlo. La seguridad no vive aquí —cada
+ * gesto tiene su guardia en el servidor— pero un gesto ofrecido y después negado se lee como una
+ * avería, no como una decisión.
+ *
+ * Con datos propios y no con los del bloque de arriba: una prueba que depende de dónde está escrita
+ * se rompe la primera vez que alguien la mueve.
+ */
+describe('El tablero de quien sólo mira', () => {
+  const columnas = [
+    { id: 'c-1', name: 'Abierto', order: 0, columnType: KanbanColumnType.BACKLOG, workItemIds: ['w-1'] },
+    { id: 'c-2', name: 'Terminado', order: 1, columnType: KanbanColumnType.DONE, workItemIds: [] },
+  ]
+  const lineas = [
+    {
+      id: 'w-1',
+      title: 'Cimentación',
+      status: WorkItemStatus.BACKLOG,
+      priority: WorkItemPriority.HIGH,
+      kanbanColumnId: 'c-1',
+      ownerId: 'user-1',
+      ownerName: 'Ana Ruiz',
+    },
+  ]
+
+  const dibujar = (puedeEditar: boolean) =>
+    render(
+      <KanbanBoard
+        projectId="project-1"
+        columns={columnas as never}
+        workItems={lineas as never}
+        puedeEditar={puedeEditar}
+      />,
+    )
+
+  it('no ofrece crear una línea', () => {
+    dibujar(false)
+    expect(screen.queryByText('createWorkItem')).toBeNull()
+  })
+
+  it('no ofrece editar ni borrar en la tarjeta', () => {
+    dibujar(false)
+    expect(screen.queryByLabelText('Editar Cimentación')).toBeNull()
+    expect(screen.queryByLabelText('Eliminar Cimentación')).toBeNull()
+  })
+
+  it('y las tarjetas no se arrastran', () => {
+    // Arrastrar una tarjeta cambia su estado: es la escritura más fácil de hacer sin querer.
+    const { container } = dibujar(false)
+    expect(container.querySelectorAll('[draggable="true"]').length).toBe(0)
+  })
+
+  it('pero sigue viendo el plan, que es a lo que vino', () => {
+    dibujar(false)
+    expect(screen.getByText('Cimentación')).toBeInTheDocument()
+  })
+
+  it('y a quien sí puede no se le quita nada', () => {
+    // Por omisión `true`: quien no pase la capacidad ve lo de siempre.
+    dibujar(true)
+    expect(screen.getByText('createWorkItem')).toBeInTheDocument()
+    expect(screen.getByLabelText('Editar Cimentación')).toBeInTheDocument()
+    expect(screen.getByLabelText('Eliminar Cimentación')).toBeInTheDocument()
+  })
 })

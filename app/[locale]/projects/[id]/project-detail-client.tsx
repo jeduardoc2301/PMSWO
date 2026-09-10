@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSession } from 'next-auth/react'
-import { ArrowLeft, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, AlertTriangle, Eye } from 'lucide-react'
 import { KanbanBoard } from '@/components/projects/kanban-board'
 // La pestaña de elementos dejó de montar la lista directamente: monta un contenedor con dos vistas
 // —el esquema del plan, con avance y fecha de corte, y la lista de siempre—. La lista sigue viva un
@@ -242,9 +242,33 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
   const [editDatesData, setEditDatesData] = useState<{ workItemId: string; workItemTitle: string } | null>(null)
   const [riskDataFromAI, setRiskDataFromAI] = useState<{ description: string; probability: number; impact: number } | null>(null)
 
-  const canCreateWorkItems = session?.user?.roles
-    ? hasPermission(session.user.roles as UserRole[], Permission.WORK_ITEM_CREATE)
-    : false
+  /**
+   * Crear líneas es del cargo **y** del proyecto.
+   *
+   * El servidor exige `edit_schedule` para crear —crear cambia el plan— y aquí sólo se miraba el
+   * cargo de la organización. El resultado era un botón que un gerente invitado como cliente veía y
+   * al pulsar recibía un 403: un gesto ofrecido y después negado parece una avería, mientras que uno
+   * que no se ofrece es una decisión.
+   */
+  const canCreateWorkItems =
+    (session?.user?.roles
+      ? hasPermission(session.user.roles as UserRole[], Permission.WORK_ITEM_CREATE)
+      : false) &&
+    (permisosDelProyecto === null || permisosDelProyecto.includes('edit_schedule'))
+
+  /**
+   * ¿Ofrecer los gestos que escriben en las vistas? (§10.1)
+   *
+   * Sale de `edit_tracking` en los permisos **de este proyecto**, no del cargo: el mismo consultor
+   * puede llevar la ejecución de un proyecto y ser invitado de sólo lectura en otro, y una pantalla
+   * que decidiera por el cargo le enseñaría en los dos lo mismo.
+   *
+   * Mientras los permisos no han llegado se supone que sí, igual que hace la barra de pestañas: la
+   * alternativa es un tablero que aparece sin poder tocarse durante medio segundo y luego cambia,
+   * que se lee como una avería.
+   */
+  const puedeEditarSeguimiento =
+    permisosDelProyecto === null || permisosDelProyecto.includes('edit_tracking')
   const canArchive = session?.user?.roles
     ? hasPermission(session.user.roles as UserRole[], Permission.PROJECT_ARCHIVE)
     : false
@@ -995,6 +1019,33 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
             </div>
           </div>
 
+          {/*
+            Que quien sólo mira lo sepa antes de intentarlo.
+
+            Las vistas esconden los gestos que no puede usar, pero esconder no explica: sin esto, un
+            invitado ve un plan sin botones y no sabe si es que no puede o es que la pantalla está a
+            medio cargar. Un aviso dice cuál de las dos cosas es.
+
+            Sale del permiso efectivo, no del cargo: aparece igual para un cliente externo y para una
+            cuenta de solo lectura, que es lo correcto porque lo que les pasa es lo mismo. Y no sale
+            mientras los permisos no han llegado, para no parpadear.
+          */}
+          {permisosDelProyecto !== null &&
+            !permisosDelProyecto.includes('edit_schedule') &&
+            !permisosDelProyecto.includes('edit_tracking') && (
+              <div
+                className="flex items-center gap-2 px-6 py-2.5 text-sm"
+                style={{
+                  background: 'rgba(165,180,252,0.08)',
+                  borderBottom: '1px solid var(--borde)',
+                  color: 'var(--tinta-2)',
+                }}
+              >
+                <Eye size={14} style={{ flexShrink: 0, color: 'var(--pastilla-plan)' }} />
+                <span>Estás viendo este proyecto en modo solo lectura.</span>
+              </div>
+            )}
+
           {/* Tab content */}
           <div className="p-6">
 
@@ -1279,6 +1330,7 @@ export function ProjectDetailClient({ projectId }: ProjectDetailClientProps) {
                       lineasDelPlan={kanbanBoard.workItems}
                       onWorkItemMove={handleWorkItemMove} onWorkItemCreated={handleWorkItemCreated}
                       onApuntarOperacion={undo.apuntar}
+                      puedeEditar={puedeEditarSeguimiento}
                       cutoff={cutoffResuelto(project)} />
                     {/* Las columnas son los estados del proyecto (§5.5), así que se administran
                         desde el propio tablero y no desde un ajuste lejano: quien ve que le falta

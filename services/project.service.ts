@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { COLUMNAS_POR_OMISION } from '@/lib/projects/default-columns'
+import { filtroDeProyectosVisibles } from '@/lib/projects/visibilidad'
 import { NotFoundError, ValidationError } from '@/lib/errors'
 import {
   ProjectStatus,
@@ -200,58 +201,39 @@ export class ProjectService {
       organizationId,
     }
 
-    // ⭐ ROLE-BASED FILTERING
-    try {
-      if (userId && userRoles && userRoles.length > 0) {
-        // Convert roles to strings for comparison (in case they come as enum values)
-        const roleStrings = userRoles.map(r => String(r))
-        
-        console.log('[ProjectService.queryProjects] roleStrings:', roleStrings)
-        
-        const isAdminOrExecutive = roleStrings.some(
-          (role) => role === 'ADMIN' || role === 'EXECUTIVE'
-        )
-
-        console.log('[ProjectService.queryProjects] isAdminOrExecutive:', isAdminOrExecutive)
-
-        if (!isAdminOrExecutive) {
-          const isProjectManager = roleStrings.includes('PROJECT_MANAGER')
-          const isConsultant = roleStrings.includes('INTERNAL_CONSULTANT') || 
-                              roleStrings.includes('EXTERNAL_CONSULTANT')
-
-          console.log('[ProjectService.queryProjects] isProjectManager:', isProjectManager)
-          console.log('[ProjectService.queryProjects] isConsultant:', isConsultant)
-
-          if (isProjectManager) {
-            // PROJECT_MANAGER: See projects where they are owner OR collaborator
-            where.OR = [
-              { ownerId: userId },
-              {
-                collaborators: {
-                  some: { userId },
-                },
-              },
-            ]
-            console.log('[ProjectService.queryProjects] Applied PM filter')
-          } else if (isConsultant) {
-            // CONSULTANTS: See projects where they have assigned work items
-            where.workItems = {
-              some: { ownerId: userId },
-            }
-            console.log('[ProjectService.queryProjects] Applied consultant filter')
-          } else {
-            // Other roles: No projects visible
-            where.id = 'non-existent-id' // Force empty result
-            console.log('[ProjectService.queryProjects] Applied no-access filter')
-          }
-        } else {
-          console.log('[ProjectService.queryProjects] Admin/Executive - no filter applied')
-        }
-        // ADMIN/EXECUTIVE: No additional filtering (see all projects in organization)
-      }
-    } catch (filterError) {
-      console.error('[ProjectService.queryProjects] Error in role filtering:', filterError)
-      throw filterError
+    /**
+     * Qué proyectos ve cada quien.
+     *
+     * ## La regla
+     *
+     * `ADMIN` y `EXECUTIVE` ven la cartera entera de su organización: es su trabajo. Todos los demás
+     * ven **aquellos a los que pertenecen**, y pertenecer es una de cuatro cosas: ser el dueño,
+     * llevar el proyecto, tener fila de colaborador, o tener alguna línea del plan a su nombre.
+     *
+     * ## Por qué dejó de decidirse por el cargo
+     *
+     * Esto repartía por cargo: al gerente le enseñaba dueño-o-colaborador, y al consultor **sólo**
+     * los proyectos donde tuviera tareas asignadas. Su fila de colaborador no contaba.
+     *
+     * El resultado era que se podía sentar a alguien en un proyecto, verlo en la pantalla de
+     * papeles con su papel puesto, y que esa persona entrara y no viera el proyecto por ninguna
+     * parte. Pasó de verdad, con un consultor externo al que se había hecho `MANAGER` del plan.
+     * Y el mismo agujero dejaba fuera a quien figura como `projectManagerId` sin fila de
+     * colaborador, que ningún cargo llegaba a mirar.
+     *
+     * La doctrina de `lib/projects/permisos.ts` dice que sin papel en el proyecto no hay nada, y con
+     * papel sí. Aquí se decía otra cosa. Ahora dicen lo mismo: **la pertenencia manda, el cargo
+     * decide qué se puede hacer una vez dentro** —eso lo resuelve `permisosEfectivos`, no esta
+     * consulta—.
+     *
+     * Es aditivo a propósito: la cláusula de las líneas asignadas se conserva, así que nadie pierde
+     * un proyecto que viera ayer. Sólo aparecen los que ya se le habían concedido y no se le
+     * enseñaban.
+     */
+    if (userId && userRoles && userRoles.length > 0) {
+      // A cadena: pueden llegar como valores de enum o como texto de la base.
+      const filtro = filtroDeProyectosVisibles(userId, userRoles.map((r) => String(r)))
+      if (filtro) where.OR = filtro.OR
     }
 
     // Exclude archived projects by default

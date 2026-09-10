@@ -317,3 +317,109 @@ describe('withAuth middleware', () => {
     })
   })
 })
+
+/**
+ * La puerta del cargo de solo lectura, en el portón.
+ *
+ * `lib/__tests__/solo-lectura.test.ts` prueba la regla; esto prueba que está **enchufada**, que es
+ * otra cosa. Una regla correcta que nadie llama es exactamente igual de segura que no tenerla.
+ */
+describe('withAuth y el cargo de solo lectura', () => {
+  const sesionDeSoloLectura = {
+    user: {
+      id: 'user-mira',
+      organizationId: 'org-1',
+      roles: [UserRole.VIEWER],
+      locale: 'es',
+      email: 'mira@example.com',
+      name: 'Quien Mira',
+    },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Que el 403 no venga de que le falte un permiso: se le conceden todos, y aun así no escribe.
+    vi.mocked(hasPermission).mockReturnValue(true)
+  })
+
+  it('niega una escritura aunque la ruta no pida ningún permiso', async () => {
+    // Éste es el caso que motiva la puerta: hay cuatro rutas así, y la siguiente la escribirá
+    // alguien que no sepa que este cargo existe.
+    vi.mocked(auth).mockResolvedValue(sesionDeSoloLectura as any)
+
+    const handler = vi.fn()
+    const protectedHandler = withAuth(handler)
+
+    const request = new NextRequest('http://localhost:3000/api/v1/templates', { method: 'POST' })
+    const response = await protectedHandler(request, { params: Promise.resolve({}) })
+
+    expect(response.status).toBe(403)
+    expect(handler).not.toHaveBeenCalled()
+    const body = await response.json()
+    expect(body.message).toContain('solo lectura')
+  })
+
+  it('niega también cuando la ruta sí pide permisos y los tiene', async () => {
+    vi.mocked(auth).mockResolvedValue(sesionDeSoloLectura as any)
+
+    const handler = vi.fn()
+    const protectedHandler = withAuth(handler, {
+      requiredPermissions: [Permission.PROJECT_VIEW],
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/v1/projects/p1/filters', {
+      method: 'POST',
+    })
+    const response = await protectedHandler(request, { params: Promise.resolve({}) })
+
+    expect(response.status).toBe(403)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('deja leer', async () => {
+    vi.mocked(auth).mockResolvedValue(sesionDeSoloLectura as any)
+
+    const handler = vi.fn().mockResolvedValue(NextResponse.json({ ok: true }))
+    const protectedHandler = withAuth(handler, {
+      requiredPermissions: [Permission.PROJECT_VIEW],
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/v1/projects')
+    const response = await protectedHandler(request, { params: Promise.resolve({}) })
+
+    expect(response.status).toBe(200)
+    expect(handler).toHaveBeenCalled()
+  })
+
+  it('deja guardar sus preferencias de vista', async () => {
+    vi.mocked(auth).mockResolvedValue(sesionDeSoloLectura as any)
+
+    const handler = vi.fn().mockResolvedValue(NextResponse.json({ ok: true }))
+    const protectedHandler = withAuth(handler, {
+      requiredPermissions: [Permission.PROJECT_VIEW],
+    })
+
+    const request = new NextRequest('http://localhost:3000/api/v1/projects/p1/preferences', {
+      method: 'PUT',
+    })
+    await protectedHandler(request, { params: Promise.resolve({}) })
+
+    expect(handler).toHaveBeenCalled()
+  })
+
+  it('y no estorba a quien además de mirar trabaja', async () => {
+    vi.mocked(auth).mockResolvedValue({
+      user: { ...sesionDeSoloLectura.user, roles: [UserRole.VIEWER, UserRole.PROJECT_MANAGER] },
+    } as any)
+
+    const handler = vi.fn().mockResolvedValue(NextResponse.json({ ok: true }))
+    const protectedHandler = withAuth(handler)
+
+    const request = new NextRequest('http://localhost:3000/api/v1/projects/p1/work-items', {
+      method: 'POST',
+    })
+    await protectedHandler(request, { params: Promise.resolve({}) })
+
+    expect(handler).toHaveBeenCalled()
+  })
+})

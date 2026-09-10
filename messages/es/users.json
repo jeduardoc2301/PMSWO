@@ -31,6 +31,7 @@
     "EXECUTIVE": "Ejecutivo",
     "PROJECT_MANAGER": "Gerente de Proyecto",
     "INTERNAL_CONSULTANT": "Consultor Interno",
-    "EXTERNAL_CONSULTANT": "Consultor Externo"
+    "EXTERNAL_CONSULTANT": "Consultor Externo",
+    "VIEWER": "Solo lectura"
   }
 }

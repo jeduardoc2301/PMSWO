@@ -118,6 +118,27 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permission.AGREEMENT_VIEW,
     Permission.DASHBOARD_PROJECT,
   ],
+
+  /**
+   * Solo lectura. Aquí no hay ni un permiso terminado en CREATE, UPDATE, DELETE, RESOLVE o ARCHIVE,
+   * y eso lo comprueba una prueba, no la vista: esta lista va a crecer con el tiempo y la promesa
+   * tiene que sobrevivir a quien añada la línea siguiente sin leer este comentario.
+   *
+   * Tampoco `AI_USE` —redactar con IA escribe el informe y consume cuota— ni `EXPORT_PROJECT`, que
+   * hoy deja una fila de registro por cada descarga. Ninguna de las dos es mirar.
+   *
+   * `USER_VIEW` sí, y no es un descuido: sin él la pantalla no puede poner nombre a los responsables
+   * de las líneas del plan y la Lista se llena de identificadores.
+   */
+  [UserRole.VIEWER]: [
+    Permission.USER_VIEW,
+    Permission.PROJECT_VIEW,
+    Permission.WORK_ITEM_VIEW,
+    Permission.BLOCKER_VIEW,
+    Permission.RISK_VIEW,
+    Permission.AGREEMENT_VIEW,
+    Permission.DASHBOARD_PROJECT,
+  ],
 }
 
 /**

@@ -251,3 +251,73 @@ describe('RBAC Permission System', () => {
     })
   })
 })
+
+/**
+ * El cargo de solo lectura, en la tabla de la organización.
+ *
+ * La prueba que importa aquí no enumera lo que tiene: enumera lo que **no puede llegar a tener**.
+ * La lista de `VIEWER` va a crecer con el tiempo —alguien querrá que vea una cosa más— y la promesa
+ * tiene que sobrevivir a esa línea futura sin depender de que quien la escriba lea el comentario de
+ * al lado.
+ */
+describe('El cargo de solo lectura no escribe', () => {
+  it('ni un solo permiso suyo es de escritura', () => {
+    // Un permiso vale para este cargo si termina en `:view` —mirar— o es el panel del proyecto, que
+    // es una lectura con nombre propio. Cualquier otra cosa que aparezca aquí rompe la prueba, y esa
+    // es toda la intención: que romperla sea el único modo de quitarle el «solo» a «solo lectura».
+    const permitidos = (permiso: Permission) =>
+      permiso.endsWith(':view') || permiso === Permission.DASHBOARD_PROJECT
+
+    const intrusos = rolePermissions[UserRole.VIEWER].filter((p) => !permitidos(p))
+    expect(intrusos).toEqual([])
+  })
+
+  it('no crea, no actualiza, no borra, no resuelve, no archiva', () => {
+    const suyos = getUserPermissions([UserRole.VIEWER])
+    const escrituras = [
+      Permission.PROJECT_CREATE,
+      Permission.PROJECT_UPDATE,
+      Permission.PROJECT_DELETE,
+      Permission.PROJECT_ARCHIVE,
+      Permission.WORK_ITEM_CREATE,
+      Permission.WORK_ITEM_UPDATE,
+      Permission.WORK_ITEM_UPDATE_OWN,
+      Permission.WORK_ITEM_DELETE,
+      Permission.BLOCKER_CREATE,
+      Permission.BLOCKER_UPDATE,
+      Permission.BLOCKER_RESOLVE,
+      Permission.RISK_CREATE,
+      Permission.RISK_UPDATE,
+      Permission.RISK_DELETE,
+      Permission.AGREEMENT_CREATE,
+      Permission.AGREEMENT_UPDATE,
+      Permission.AGREEMENT_DELETE,
+      Permission.USER_CREATE,
+      Permission.USER_UPDATE,
+      Permission.USER_DELETE,
+      Permission.ORG_MANAGE,
+    ]
+    for (const permiso of escrituras) {
+      expect(suyos).not.toContain(permiso)
+    }
+  })
+
+  it('tampoco redacta con IA ni exporta', () => {
+    // Ninguna de las dos es mirar: la IA escribe el informe y consume cuota, y exportar deja hoy una
+    // fila de registro por cada descarga.
+    expect(hasPermission([UserRole.VIEWER], Permission.AI_USE)).toBe(false)
+    expect(hasPermission([UserRole.VIEWER], Permission.EXPORT_PROJECT)).toBe(false)
+  })
+
+  it('pero sí ve lo que necesita para que la pantalla tenga sentido', () => {
+    const suyos = getUserPermissions([UserRole.VIEWER])
+    expect(suyos).toContain(Permission.PROJECT_VIEW)
+    expect(suyos).toContain(Permission.WORK_ITEM_VIEW)
+    // Sin `USER_VIEW` la Lista no puede poner nombre a los responsables y enseña identificadores.
+    expect(suyos).toContain(Permission.USER_VIEW)
+  })
+
+  it('y no ve la cartera entera: eso es del ejecutivo', () => {
+    expect(hasPermission([UserRole.VIEWER], Permission.DASHBOARD_EXECUTIVE)).toBe(false)
+  })
+})

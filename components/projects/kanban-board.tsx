@@ -73,6 +73,21 @@ interface KanbanBoardProps {
    * tarjeta dice su atraso con la misma fórmula que el esquema; sin ella, la pastilla no se dibuja.
    */
   cutoff?: string
+  /**
+   * ¿Ofrece los gestos que escriben? (§10.1)
+   *
+   * Sale de `edit_tracking` en los permisos efectivos del proyecto, no de un cargo: quien mira un
+   * proyecto como invitado no arrastra tarjetas aunque en otro sí lo haga.
+   *
+   * Esconde, no deshabilita: un botón gris que no se puede pulsar informa a un cliente externo de
+   * que existe algo que no le enseñan, y eso es peor que no mencionarlo. Es la misma decisión que
+   * ya toma la barra de pestañas.
+   *
+   * Por omisión `true` para que quien no lo pase siga viendo lo de antes. La seguridad no vive
+   * aquí: cada gesto sigue pasando por su guardia en el servidor, porque quien quiera saltarse la
+   * pantalla no va a pedirle permiso a la pantalla.
+   */
+  puedeEditar?: boolean
 }
 
 /** El mismo calendario del motor; construirlo por tarjeta sería pagar mil veces lo mismo. */
@@ -133,9 +148,11 @@ interface WorkItemCardProps {
   onDelete: (item: WorkItemSummary) => void
   /** Abrir el panel de detalle compartido (§10.3). */
   onAbrirDetalle?: (id: string) => void
+  /** ¿Ofrece arrastrar, editar y borrar? Ver `KanbanBoardProps.puedeEditar`. */
+  puedeEditar: boolean
 }
 
-function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd, cutoff, onEdit, onDelete, onAbrirDetalle, edt }: WorkItemCardProps) {
+function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDragEnd, cutoff, onEdit, onDelete, onAbrirDetalle, edt, puedeEditar }: WorkItemCardProps) {
   const isSyncing = syncingItems.has(workItem.id)
   const pb = PRIORITY_BADGE[workItem.priority] ?? PRIORITY_BADGE[WorkItemPriority.MEDIUM]
   const { urgency, daysFromDue, daysStale } = computeUrgency(workItem)
@@ -190,10 +207,10 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, workItem.id)}
-      onDragEnd={onDragEnd}
-      className={`rounded-xl p-3 cursor-move transition-all hover:border-borde-fuerte ${urgencyClass}`}
+      draggable={puedeEditar}
+      onDragStart={puedeEditar ? (e) => onDragStart(e, workItem.id) : undefined}
+      onDragEnd={puedeEditar ? onDragEnd : undefined}
+      className={`rounded-xl p-3 ${puedeEditar ? 'cursor-move' : ''} transition-all hover:border-borde-fuerte ${urgencyClass}`}
       style={{
         border: '1px solid var(--borde)',
         borderLeft: `3px solid ${PRIORITY_BAR[workItem.priority] ?? '#3b82f6'}`,
@@ -227,22 +244,26 @@ function WorkItemCard({ workItem, draggedItemId, syncingItems, onDragStart, onDr
           {/* Editar y borrar viven en la tarjeta porque el tablero es donde se trabaja; mandar a
               otra pestaña para corregir un título rompe el flujo. stopPropagation: el clic no es
               un arrastre. */}
-          <button
-            type="button"
-            aria-label={`Editar ${workItem.title}`}
-            onClick={(e) => { e.stopPropagation(); onEdit(workItem) }}
-            className="p-1 rounded text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-colors"
-          >
-            <Pencil size={12} />
-          </button>
-          <button
-            type="button"
-            aria-label={`Eliminar ${workItem.title}`}
-            onClick={(e) => { e.stopPropagation(); onDelete(workItem) }}
-            className="p-1 rounded text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-colors"
-          >
-            <Trash2 size={12} />
-          </button>
+          {puedeEditar && (
+            <>
+              <button
+                type="button"
+                aria-label={`Editar ${workItem.title}`}
+                onClick={(e) => { e.stopPropagation(); onEdit(workItem) }}
+                className="p-1 rounded text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-colors"
+              >
+                <Pencil size={12} />
+              </button>
+              <button
+                type="button"
+                aria-label={`Eliminar ${workItem.title}`}
+                onClick={(e) => { e.stopPropagation(); onDelete(workItem) }}
+                className="p-1 rounded text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-colors"
+              >
+                <Trash2 size={12} />
+              </button>
+            </>
+          )}
         </div>
         {isSyncing && (
           <svg className="animate-spin h-3.5 w-3.5 text-indigo-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -338,6 +359,8 @@ interface KanbanColumnProps {
   onDelete: (item: WorkItemSummary) => void
   /** Abrir el panel de detalle compartido (§10.3). */
   onAbrirDetalle?: (id: string) => void
+  /** ¿Ofrece los gestos que escriben? Ver `KanbanBoardProps.puedeEditar`. */
+  puedeEditar: boolean
   /** El EDT de cada línea, numerado sobre el plan entero (§5.1). */
   edt?: ReadonlyMap<string, string>
   /**
@@ -389,7 +412,7 @@ function KanbanColumn({
   column, workItemsInColumn, isDragTarget, noItemsLabel,
   draggedItemId, syncingItems,
   onDragOver, onDragLeave, onDrop, onDragStart, onDragEnd,
-  cutoff, onEdit, onDelete, onAbrirDetalle, edt, vista,
+  cutoff, onEdit, onDelete, onAbrirDetalle, edt, vista, puedeEditar,
 }: KanbanColumnProps) {
   const [dibujadas, setDibujadas] = useState(TARJETAS_POR_TANDA)
 
@@ -445,6 +468,7 @@ function KanbanColumn({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onAbrirDetalle={onAbrirDetalle}
+                puedeEditar={puedeEditar}
               />
             ))}
 
@@ -571,7 +595,7 @@ function UrgencyChip({ kind, count, active, onClick }: UrgencyChipProps) {
 
 // ─── KanbanBoard ─────────────────────────────────────────────────────────────
 
-export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWorkItemMove, onWorkItemCreated, cutoff, onApuntarOperacion }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWorkItemMove, onWorkItemCreated, cutoff, onApuntarOperacion, puedeEditar = true }: KanbanBoardProps) {
   const t = useTranslations('kanban')
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState<string | null>(null)
@@ -1114,11 +1138,13 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
               {successMessage}
             </div>
           )}
-          <button onClick={() => setCreateDialogOpen(true)}
-            className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
-            style={{ background: 'var(--acento-relleno)' }}>
-            <Plus size={14} /> {t('createWorkItem')}
-          </button>
+          {puedeEditar && (
+            <button onClick={() => setCreateDialogOpen(true)}
+              className="h-9 flex items-center gap-2 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90"
+              style={{ background: 'var(--acento-relleno)' }}>
+              <Plus size={14} /> {t('createWorkItem')}
+            </button>
+          )}
           <button onClick={() => setShowInfo(true)}
             className="h-9 flex items-center gap-2 px-3 rounded-lg text-sm font-medium text-tinta-2 transition-all hover:text-tinta hover:bg-superficie-3"
             style={{ border: '1px solid var(--borde)' }}
@@ -1221,6 +1247,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
                             onDragEnd={handleDragEnd}
                             edt={edt}
                             vista={vista}
+                            puedeEditar={puedeEditar}
                             cutoff={cutoff}
                             onEdit={setEditando}
                             onDelete={setBorrando}
@@ -1264,6 +1291,7 @@ export function KanbanBoard({ projectId, columns, workItems, lineasDelPlan, onWo
               onEdit={setEditando}
               onDelete={setBorrando}
               onAbrirDetalle={setDetalle}
+              puedeEditar={puedeEditar}
             />
           ))}
         </div>

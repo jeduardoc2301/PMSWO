@@ -131,6 +131,18 @@ export const TECHO_POR_ROL_DE_ORGANIZACION: Readonly<
     'edit_tracking',
   ]),
   [UserRole.EXECUTIVE]: Object.freeze<PermisoDeProyecto[]>([...TODAS_LAS_VISTAS, 'view_budget']),
+  /**
+   * Solo lectura: el mismo techo que el ejecutivo, sin `edit_schedule`, `edit_tracking` ni
+   * `manage_project_settings`. Los dos son de mirar; se diferencian en **cuánto** ven, no en lo que
+   * pueden tocar — el ejecutivo la cartera entera, éste sólo los proyectos donde le sienten.
+   *
+   * Que el techo no traiga ninguna escritura es lo que hace inofensivo darle el papel que sea dentro
+   * de un proyecto: nombrarlo `OWNER` de uno no le da `manage_project_settings`, porque la
+   * intersección con esta fila lo deja fuera. Se puede usar el papel de proyecto para decidir qué
+   * ve —`CLIENT` para Lista y Tablero, `MANAGER` si además debe ver el presupuesto— sin miedo a que
+   * el papel le conceda un gesto de escritura por la puerta de atrás.
+   */
+  [UserRole.VIEWER]: Object.freeze<PermisoDeProyecto[]>([...TODAS_LAS_VISTAS, 'view_budget']),
 })
 
 /**

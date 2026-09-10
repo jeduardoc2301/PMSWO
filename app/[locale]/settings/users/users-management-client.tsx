@@ -24,6 +24,7 @@ const ROLE_COLOR: Record<string, { bg: string; color: string; border: string }> 
   PROJECT_MANAGER:     { bg: 'rgba(16,185,129,0.12)',  color: 'var(--pastilla-activo)', border: 'rgba(16,185,129,0.3)'  },
   INTERNAL_CONSULTANT: { bg: 'rgba(245,158,11,0.12)',  color: 'var(--prioridad-media)', border: 'rgba(245,158,11,0.3)'  },
   EXTERNAL_CONSULTANT: { bg: 'rgba(113,113,122,0.12)', color: 'var(--tinta-2)', border: 'rgba(113,113,122,0.3)' },
+  VIEWER:              { bg: 'rgba(165,180,252,0.12)', color: 'var(--pastilla-plan)', border: 'rgba(165,180,252,0.3)' },
 }
 
 export function UsersManagementClient() {

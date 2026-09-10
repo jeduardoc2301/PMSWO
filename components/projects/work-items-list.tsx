@@ -128,6 +128,7 @@ function SortableRow({
   onEdit,
   onDelete,
   onAbrirDetalle,
+  puedeEditarPlan,
 }: {
   item: WorkItemSummary
   isHighlighted: boolean
@@ -136,6 +137,8 @@ function SortableRow({
   onEdit: (item: WorkItemSummary) => void
   onDelete: (item: WorkItemSummary) => void
   onAbrirDetalle?: (id: string) => void
+  /** Editar y borrar una línea piden `edit_schedule` en el servidor, igual que crearla. */
+  puedeEditarPlan: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
@@ -185,22 +188,26 @@ function SortableRow({
         <div className="flex items-center justify-end gap-1">
           {/* Los dos llevaban solo un icono y ningún texto: un lector de pantalla anunciaba
               «botón, botón» y no había forma de saber cuál borra. */}
-          <button
-            onClick={() => onEdit(item)}
-            aria-label={`Editar «${item.title}»`}
-            title="Editar"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => onDelete(item)}
-            aria-label={`Eliminar «${item.title}»`}
-            title="Eliminar"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-all"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          {puedeEditarPlan && (
+            <>
+              <button
+                onClick={() => onEdit(item)}
+                aria-label={`Editar «${item.title}»`}
+                title="Editar"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => onDelete(item)}
+                aria-label={`Eliminar «${item.title}»`}
+                title="Eliminar"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-all"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
         </div>
       </td>
     </tr>
@@ -1070,6 +1077,7 @@ export function WorkItemsList({
                                   onEdit={(i) => { setSelectedWorkItem(i); setEditDialogOpen(true) }}
                                   onAbrirDetalle={onAbrirDetalle}
                                   onDelete={(i) => { setSelectedWorkItem(i); setDeleteDialogOpen(true) }}
+                                  puedeEditarPlan={canCreateWorkItems}
                                 />
                               ))}
                             </tbody>
@@ -1344,22 +1352,26 @@ export function WorkItemsList({
                           <div className="flex items-center justify-end gap-1">
                             {/* Con nombre: los dos llevaban solo un icono, y un lector de pantalla
                                 anunciaba «botón, botón» sin manera de saber cuál borra la línea. */}
-                            <button
-                              onClick={() => { setSelectedWorkItem(item); setEditDialogOpen(true) }}
-                              aria-label={`Editar «${item.title}»`}
-                              title="Editar"
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => { setSelectedWorkItem(item); setDeleteDialogOpen(true) }}
-                              aria-label={`Eliminar «${item.title}»`}
-                              title="Eliminar"
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-all"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            {canCreateWorkItems && (
+                              <>
+                                <button
+                                  onClick={() => { setSelectedWorkItem(item); setEditDialogOpen(true) }}
+                                  aria-label={`Editar «${item.title}»`}
+                                  title="Editar"
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-tinta hover:bg-superficie-3 transition-all"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => { setSelectedWorkItem(item); setDeleteDialogOpen(true) }}
+                                  aria-label={`Eliminar «${item.title}»`}
+                                  title="Eliminar"
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-tinta-3 hover:text-grave-tinta hover:bg-grave-fondo transition-all"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

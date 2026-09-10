@@ -164,3 +164,62 @@ describe('La tabla, por dentro', () => {
     }
   })
 })
+
+/**
+ * El cargo de solo lectura contra el techo.
+ *
+ * Es la prueba que hace seguro repartir papeles de proyecto a una cuenta de este cargo: sea cual sea
+ * el papel —incluso `OWNER`, que es el que todo lo puede— la intersección no le devuelve ni un gesto
+ * de escritura. Sin esto, dar el papel equivocado sería un accidente a un clic de distancia.
+ */
+describe('El cargo de solo lectura', () => {
+  const ESCRITURAS = ['edit_schedule', 'edit_tracking', 'manage_project_settings'] as const
+
+  it('no escribe con ningún papel de proyecto, ni siquiera de propietario', () => {
+    for (const papel of ROLES_DE_PROYECTO) {
+      const efectivos = permisosEfectivos([UserRole.VIEWER], papel)
+      for (const escritura of ESCRITURAS) {
+        expect(efectivos.has(escritura)).toBe(false)
+      }
+    }
+  })
+
+  it('nombrarlo propietario no le da administrar el proyecto', () => {
+    // El techo no se salta nombrando a alguien. Es la misma regla que impide que un ejecutivo edite
+    // por ser dueño, aplicada al cargo que se acaba de añadir.
+    expect(puede([UserRole.VIEWER], 'OWNER', 'manage_project_settings')).toBe(false)
+  })
+
+  it('sin papel en el proyecto no ve nada', () => {
+    // Tener el cargo no es tener acceso: hasta que alguien lo sienta en un proyecto, el conjunto es
+    // vacío. Ésa es la diferencia entre este cargo y el de ejecutivo.
+    expect(permisosEfectivos([UserRole.VIEWER], null).size).toBe(0)
+  })
+
+  it('como invitado ve Lista, Tablero y Panel, y no el Gantt ni el dinero', () => {
+    const invitado = permisosEfectivos([UserRole.VIEWER], 'CLIENT')
+    expect(invitado.has('view_list')).toBe(true)
+    expect(invitado.has('view_board')).toBe(true)
+    expect(invitado.has('view_dashboard')).toBe(true)
+    expect(invitado.has('view_gantt')).toBe(false)
+    expect(invitado.has('view_budget')).toBe(false)
+  })
+
+  it('como gestor ve el plan entero y el presupuesto, y sigue sin poder tocarlos', () => {
+    // El papel de proyecto es el mando de **cuánto ve**; el cargo decide que no toca. Las dos cosas
+    // a la vez son las que dejan usar `MANAGER` sin miedo para un revisor que necesita verlo todo.
+    const revisor = permisosEfectivos([UserRole.VIEWER], 'MANAGER')
+    expect(revisor.has('view_gantt')).toBe(true)
+    expect(revisor.has('view_workload')).toBe(true)
+    expect(revisor.has('view_budget')).toBe(true)
+    expect(revisor.has('edit_schedule')).toBe(false)
+    expect(revisor.has('edit_tracking')).toBe(false)
+  })
+
+  it('y quien además de mirar trabaja conserva lo suyo', () => {
+    // La intersección se hace contra la unión de los techos de sus cargos: añadirle solo-lectura a
+    // un gerente no puede quitarle nada, o el cargo sería un castigo en vez de un perfil.
+    const gerente = permisosEfectivos([UserRole.PROJECT_MANAGER, UserRole.VIEWER], 'MANAGER')
+    expect(gerente.has('edit_schedule')).toBe(true)
+  })
+})
