@@ -28,6 +28,7 @@ model Organization {
   customFields             CustomField[]
   projectCalendars         ProjectCalendar[]
   gates                    Gate[]
+  reportSubscriptions      ReportSubscription[]
 
   @@map("organizations")
 }
@@ -98,25 +99,26 @@ model Project {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
-  organization     Organization          @relation(fields: [organizationId], references: [id])
-  owner            User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
-  projectManager   User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
-  collaborators    ProjectCollaborator[]
-  viewPreferences  ViewPreference[]
-  baselines        Baseline[]
-  savedFilters     SavedFilter[]
-  workItems        WorkItem[]
-  customFields     CustomField[]
-  blockers         Blocker[]
-  risks            Risk[]
-  agreements       Agreement[]
-  kanbanColumns    KanbanColumn[]
-  aiAnalysisCache  AIAnalysisCache?
-  templateUsage    TemplateUsage[]
-  taskDependencies TaskDependency[]
-  calendar         ProjectCalendar?
-  exportConfig     ProjectExportConfig?
-  gates            Gate[]
+  organization        Organization          @relation(fields: [organizationId], references: [id])
+  owner               User                  @relation("ProjectOwner", fields: [ownerId], references: [id])
+  projectManager      User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  collaborators       ProjectCollaborator[]
+  viewPreferences     ViewPreference[]
+  baselines           Baseline[]
+  savedFilters        SavedFilter[]
+  workItems           WorkItem[]
+  customFields        CustomField[]
+  blockers            Blocker[]
+  risks               Risk[]
+  agreements          Agreement[]
+  kanbanColumns       KanbanColumn[]
+  aiAnalysisCache     AIAnalysisCache?
+  templateUsage       TemplateUsage[]
+  taskDependencies    TaskDependency[]
+  calendar            ProjectCalendar?
+  exportConfig        ProjectExportConfig?
+  gates               Gate[]
+  reportSubscriptions ReportSubscription[]
 
   @@index([organizationId])
   @@index([organizationId, archived])
@@ -1042,4 +1044,78 @@ model ProjectExportConfig {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_export_configs")
+}
+
+/// Un reporte que se manda solo, sin que nadie lo pida.
+///
+/// La suscripción dice QUÉ se manda y A QUIÉN; CUÁNDO lo dispara EventBridge Scheduler desde
+/// fuera. Se guardan igual la hora y la zona porque son dos cosas distintas: el scheduler sabe
+/// la hora, pero la app necesita poder mostrarla y decidir a qué día pertenece un envío —y
+/// «el día» en America/Mexico_City no es el mismo corte que en UTC.
+model ReportSubscription {
+  id             String @id @default(uuid()) @db.Char(36)
+  organizationId String @map("organization_id") @db.Char(36)
+  projectId      String @map("project_id") @db.Char(36)
+
+  /// Arreglo de correos. En el sandbox de SES cada destinatario tiene que estar verificado como
+  /// identidad o el envío falla entero, no parcialmente.
+  recipients Json
+
+  /// Hoy solo DIARIO. El campo existe para que añadir SEMANAL sea una fila, no una migración.
+  frequency String @default("DIARIO") @db.VarChar(20)
+
+  sendHour Int    @default(8) @map("send_hour")
+  timezone String @default("America/Mexico_City") @db.VarChar(64)
+
+  locale      String  @default("es") @db.VarChar(5)
+  detailLevel String  @default("EXECUTIVE") @map("detail_level") @db.VarChar(20)
+  active      Boolean @default(true)
+
+  lastSentAt DateTime? @map("last_sent_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliveries   ReportDelivery[]
+
+  @@index([active, frequency])
+  @@index([organizationId])
+  @@index([projectId])
+  @@map("report_subscriptions")
+}
+
+/// Bitácora de envíos: una fila por suscripción y por día cubierto.
+///
+/// No es solo auditoría, es el candado. `@@unique([subscriptionId, scheduledFor])` se reclama
+/// ANTES de hablar con SES, así que un disparo repetido —EventBridge reintenta, alguien le pica
+/// dos veces al botón— choca contra la restricción y no manda un segundo correo. Sin esto, el
+/// reintento automático de cualquier capa se convierte en correo duplicado al director.
+model ReportDelivery {
+  id             String @id @default(uuid()) @db.Char(36)
+  subscriptionId String @map("subscription_id") @db.Char(36)
+
+  /// El día que cubre este envío, ya resuelto en la zona de la suscripción.
+  scheduledFor DateTime @map("scheduled_for") @db.Date
+
+  /// ENVIANDO · ENVIADO · FALLIDO · OMITIDO
+  status String @default("ENVIANDO") @db.VarChar(20)
+
+  /// Lo que devuelve SES. Es lo único con lo que se puede rastrear un correo que sí salió pero
+  /// que el destinatario jura no haber recibido.
+  messageId String? @map("message_id") @db.VarChar(255)
+
+  error      String?   @db.Text
+  attempts   Int       @default(0)
+  recipients Json?
+  sentAt     DateTime? @map("sent_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  subscription ReportSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, scheduledFor])
+  @@index([status])
+  @@index([createdAt])
+  @@map("report_deliveries")
 }

@@ -23,7 +23,11 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "smoke": "tsx scripts/smoke.ts",
     "plan:report": "tsx scripts/plan-report.ts",
-    "dev:webpack": "next dev"
+    "dev:webpack": "next dev",
+    "reporte:ver": "tsx scripts/reporte-diario.ts ver",
+    "reporte:suscribir": "tsx scripts/reporte-diario.ts suscribir",
+    "reporte:probar": "tsx scripts/reporte-diario.ts probar",
+    "reporte:estado": "tsx scripts/reporte-diario.ts estado"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -33,6 +37,7 @@
     "@aws-sdk/client-bedrock-runtime": "^3.1000.0",
     "@aws-sdk/client-cloudwatch": "^3.1000.0",
     "@aws-sdk/client-s3": "^3.1048.0",
+    "@aws-sdk/client-sesv2": "^3.1137.0",
     "@aws-sdk/s3-request-presigner": "^3.1048.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
