@@ -21,6 +21,26 @@ const nextConfig: NextConfig = {
     S3_AVATAR_BUCKET: process.env.S3_AVATAR_BUCKET ?? '',
     S3_AVATAR_REGION: process.env.S3_AVATAR_REGION ?? 'us-east-1',
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME ?? '',
+
+    // Reporte diario por correo.
+    //
+    // Van aquí y no solo en la consola de Amplify porque esta lista ES el mecanismo: Amplify
+    // entrega sus variables al BUILD, no al runtime SSR, y lo que las hace visibles en
+    // producción es que Next las incruste desde aquí. Una variable que no esté en esta lista
+    // llega como `undefined` a un route handler aunque en la consola se vea puesta —que es
+    // exactamente lo que pasó la primera vez: el endpoint contestaba 503 «no configurado» con
+    // `CRON_SECRET` bien puesta en Amplify.
+    //
+    // Solo se leen desde código de servidor, así que no acaban en el bundle del navegador.
+    CRON_SECRET: process.env.CRON_SECRET ?? '',
+    SES_FROM_ADDRESS: process.env.SES_FROM_ADDRESS ?? '',
+    SES_FROM_NAME: process.env.SES_FROM_NAME ?? '',
+    SES_REPLY_TO: process.env.SES_REPLY_TO ?? '',
+    SES_CONFIGURATION_SET: process.env.SES_CONFIGURATION_SET ?? '',
+    SES_REGION: process.env.SES_REGION ?? process.env.APP_AWS_REGION ?? 'us-east-1',
+    ALERT_EMAIL: process.env.ALERT_EMAIL ?? '',
+    APP_PUBLIC_URL: process.env.APP_PUBLIC_URL ?? '',
+    REPORTE_NARRATIVA_TIMEOUT_MS: process.env.REPORTE_NARRATIVA_TIMEOUT_MS ?? '',
   },
   // Optimización de imágenes
   images: {

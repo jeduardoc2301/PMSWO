@@ -56,6 +56,14 @@ Van en Amplify (`node variables-amplify.mjs`) y, para probar en local, en `.env.
 Sin `CRON_SECRET` el endpoint contesta 503 a todo el mundo — falla cerrado a propósito, para que
 un despliegue al que se le olvidó la variable no quede como endpoint abierto.
 
+> **Ponerla en Amplify no basta.** Amplify entrega sus variables al *build*, no al runtime SSR.
+> Lo que las hace visibles en producción es la lista `env` de `next.config.ts`, que es donde Next
+> las incrusta. **Una variable nueva va en los dos lados**: la consola de Amplify (o
+> `variables-amplify.mjs`) y esa lista.
+>
+> El síntoma cuando se olvida es engañoso: la variable se ve perfectamente puesta en la consola
+> de Amplify y el endpoint contesta `503 NOT_CONFIGURED`. Pasó en el primer despliegue de esto.
+
 ## Puesta en marcha
 
 En este orden. Los pasos 1 y 2 tardan (DNS y un correo de confirmación), así que arrancan primero.
