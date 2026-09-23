@@ -33,9 +33,10 @@ let cached: SESv2Client | null = null
 function getClient(): SESv2Client {
   if (cached) return cached
 
-  const region = process.env.SES_REGION ?? process.env.APP_AWS_REGION ?? 'us-east-1'
-  const accessKeyId = process.env.APP_AWS_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID
-  const secretAccessKey = process.env.APP_AWS_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY
+  // `||` y no `??`: la lista `env` de next.config.ts incrusta las variables no puestas como ''.
+  const region = process.env.SES_REGION || process.env.APP_AWS_REGION || 'us-east-1'
+  const accessKeyId = process.env.APP_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID
+  const secretAccessKey = process.env.APP_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
 
   // Sin llaves explícitas se deja que el SDK busque el rol de la instancia: es como debería
   // correr esto en producción el día que las llaves de larga vida se retiren.
@@ -80,7 +81,7 @@ function explain(error: unknown, to: string[]): Error {
       `SES rechazó el envío a ${to.join(', ')}: hay una dirección sin verificar. ` +
         'La cuenta está en sandbox, así que remitente y CADA destinatario tienen que estar ' +
         'verificados como identidad. Verifica con: ' +
-        `aws sesv2 create-email-identity --email-identity <correo> --region ${process.env.SES_REGION ?? process.env.APP_AWS_REGION ?? 'us-east-1'}`
+        `aws sesv2 create-email-identity --email-identity <correo> --region ${process.env.SES_REGION || process.env.APP_AWS_REGION || 'us-east-1'}`
     )
   }
 

@@ -36,7 +36,21 @@ import { reunirExpediente } from '@/services/expediente-del-reporte.service'
  * Si el endpoint se empieza a cortar, esto se baja por variable de entorno sin tocar código: el
  * correo pierde la prosa pero sigue llegando con las cifras, que es la degradación correcta.
  */
-const TIMEOUT_NARRATIVA_MS = Number(process.env.REPORTE_NARRATIVA_TIMEOUT_MS ?? 25_000)
+export const TIMEOUT_NARRATIVA_MS = leerMilisegundos(process.env.REPORTE_NARRATIVA_TIMEOUT_MS, 25_000)
+
+/**
+ * Un número de milisegundos de una variable de entorno, o el valor por omisión.
+ *
+ * NO basta con `Number(x ?? porOmision)`. Las variables viajan a producción por la lista `env` de
+ * `next.config.ts`, que las incrusta con `?? ''`: una variable que nadie puso en Amplify llega como
+ * CADENA VACÍA, no como `undefined`. `'' ?? 25000` es `''` —el `??` solo salta con null o
+ * undefined— y `Number('')` es 0. Así se desplegó la primera vez: corte de cero milisegundos, y la
+ * narrativa se cancelaba antes de empezar en cada envío, sin un solo error que lo delatara.
+ */
+export function leerMilisegundos(valor: string | undefined, porOmision: number): number {
+  const n = Number(valor)
+  return valor !== undefined && valor.trim() !== '' && Number.isFinite(n) && n > 0 ? n : porOmision
+}
 
 export type ResultadoEnvio =
   | { estado: 'ENVIADO'; subscriptionId: string; messageId: string; destinatarios: string[] }
@@ -273,7 +287,8 @@ export async function enviarSuscripcion(
     )
 
     const correo = armarCorreoEjecutivo(expediente, narrativa, {
-      appUrl: process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL,
+      // `||` y no `??`: una variable sin poner en Amplify llega como '' (ver `leerMilisegundos`).
+      appUrl: process.env.APP_PUBLIC_URL || process.env.AUTH_URL || process.env.NEXTAUTH_URL,
     })
 
     const { messageId } = await sendEmail({

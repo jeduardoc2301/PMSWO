@@ -34,7 +34,7 @@ import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/ses'
 import { reunirExpediente } from '@/services/expediente-del-reporte.service'
 import { generarNarrativaEjecutiva } from '@/lib/reports/narrativa-ejecutiva'
-import { diaCivilEnZona, diaEnZona, enviarSuscripcion } from '../reporte-diario.service'
+import { diaCivilEnZona, diaEnZona, enviarSuscripcion, leerMilisegundos } from '../reporte-diario.service'
 
 const SUB = {
   id: 'sub-1',
@@ -115,6 +115,26 @@ describe('el día en la zona de la suscripción', () => {
     expect(diaEnZona(new Date('2026-09-22T07:00:00Z'), 'America/Mexico_City').toISOString()).toBe(
       '2026-09-22T00:00:00.000Z'
     )
+  })
+})
+
+describe('el corte de la narrativa leído del entorno', () => {
+  it('una variable vacía cae al valor por omisión, no a cero', () => {
+    // Así se desplegó la primera vez: next.config.ts incrusta las variables no puestas como '', y
+    // `Number('' ?? 25000)` es 0. La narrativa se cancelaba antes de empezar en cada envío.
+    expect(leerMilisegundos('', 25_000)).toBe(25_000)
+    expect(leerMilisegundos('   ', 25_000)).toBe(25_000)
+  })
+
+  it('una variable ausente, basura, cero o negativa cae al valor por omisión', () => {
+    expect(leerMilisegundos(undefined, 25_000)).toBe(25_000)
+    expect(leerMilisegundos('abc', 25_000)).toBe(25_000)
+    expect(leerMilisegundos('0', 25_000)).toBe(25_000)
+    expect(leerMilisegundos('-5', 25_000)).toBe(25_000)
+  })
+
+  it('una variable válida sí se respeta', () => {
+    expect(leerMilisegundos('18000', 25_000)).toBe(18_000)
   })
 })
 
