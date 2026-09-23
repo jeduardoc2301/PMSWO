@@ -36,7 +36,7 @@ ALARMA="pm-reporte-diario-fallo"
 
 # La zona horaria la entiende EventBridge de forma nativa. Es la razón de usar Scheduler y no una
 # regla de EventBridge a secas: con una regla habría que recalcular el cron dos veces al año.
-CRON="cron(0 8 * * ? *)"
+CRON="cron(0 8 ? * MON-FRI *)"
 ZONA_HORARIA="America/Mexico_City"
 
 AWS="aws --region ${REGION}"

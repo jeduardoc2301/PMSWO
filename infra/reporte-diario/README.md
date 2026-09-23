@@ -6,7 +6,7 @@ cifras, lo vencido, los bloqueos y lo que se pide. Sin adjuntos — el correo **
 ## Cómo está armado
 
 ```
-EventBridge Scheduler          cron(0 8 * * ? *)  ·  America/Mexico_City
+EventBridge Scheduler          cron(0 8 ? * MON-FRI *)  ·  America/Mexico_City
         │
         ▼
 Lambda  pm-reporte-diario      solo toca el timbre; no arma nada
