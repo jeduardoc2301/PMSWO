@@ -121,5 +121,24 @@
   "allPriorities": "Todas as prioridades",
   "clearFilters": "Limpar",
   "showingResults": "Mostrando {count} de {total} itens",
-  "noResultsFound": "Nenhum resultado encontrado com os filtros aplicados"
+  "noResultsFound": "Nenhum resultado encontrado com os filtros aplicados",
+  "selectorDeLinea": {
+    "etiqueta": "Linha do plano",
+    "buscar": "Busque por nome, onda ou fase…",
+    "sugeridas": "Atrasadas, da mais antiga à mais recente",
+    "sinSugerencias": "Não há linhas atrasadas. Digite para buscar entre as {total} linhas do plano.",
+    "sinResultados": "Nenhuma linha corresponde a «{consulta}».",
+    "mostrando": "Mostrando {mostradas} de {total}. Digite mais para refinar.",
+    "coincidencias": "{total, plural, one {# linha corresponde} other {# linhas correspondem}}",
+    "atrasadasTotal": "{total, plural, one {# linha atrasada} other {# linhas atrasadas}} · digite para buscar em todo o plano",
+    "grupo": "Agrupa {hijas, plural, one {# linha} other {# linhas}}",
+    "atrasada": "Atrasada",
+    "terminada": "Concluída",
+    "vence": "Vence {fecha}",
+    "vencio": "Venceu {fecha}",
+    "cambiar": "Trocar",
+    "raiz": "Raiz do plano",
+    "teclado": "↑ ↓ para navegar · Enter para escolher",
+    "falta": "Escolha a linha do plano que está bloqueada."
+  }
 }

@@ -121,5 +121,24 @@
   "allPriorities": "Todas las prioridades",
   "clearFilters": "Limpiar",
   "showingResults": "Mostrando {count} de {total} elementos",
-  "noResultsFound": "No se encontraron resultados con los filtros aplicados"
+  "noResultsFound": "No se encontraron resultados con los filtros aplicados",
+  "selectorDeLinea": {
+    "etiqueta": "Línea del plan",
+    "buscar": "Busca por nombre, ola o fase…",
+    "sugeridas": "Atrasadas, de la más antigua a la más reciente",
+    "sinSugerencias": "No hay líneas atrasadas. Escribe para buscar entre las {total} líneas del plan.",
+    "sinResultados": "Ninguna línea coincide con «{consulta}».",
+    "mostrando": "Mostrando {mostradas} de {total}. Escribe más para afinar.",
+    "coincidencias": "{total, plural, one {# línea coincide} other {# líneas coinciden}}",
+    "atrasadasTotal": "{total, plural, one {# línea atrasada} other {# líneas atrasadas}} · escribe para buscar en todo el plan",
+    "grupo": "Agrupa {hijas, plural, one {# línea} other {# líneas}}",
+    "atrasada": "Atrasada",
+    "terminada": "Terminada",
+    "vence": "Vence {fecha}",
+    "vencio": "Venció {fecha}",
+    "cambiar": "Cambiar",
+    "raiz": "Raíz del plan",
+    "teclado": "↑ ↓ para moverte · Enter para elegir",
+    "falta": "Elige la línea del plan que está bloqueada."
+  }
 }

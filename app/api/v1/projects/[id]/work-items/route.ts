@@ -35,6 +35,12 @@ async function getWorkItemsHandler(
     }
 
     // Get work items for this project
+    //
+    // Más que id y título: los selectores necesitan poder DISTINGUIR líneas. En un plan por olas el
+    // mismo título se repite once veces —una por ola— y con sólo el nombre no hay forma de saber
+    // cuál se está eligiendo. `parentId` deja reconstruir la ruta; el resto deja decir en qué
+    // estado está cada una. Todo lo que había se conserva: quien sólo lea `id` y `title` no nota
+    // la diferencia.
     const workItems = await prisma.workItem.findMany({
       where: {
         projectId: projectId,
@@ -43,6 +49,13 @@ async function getWorkItemsHandler(
         id: true,
         title: true,
         status: true,
+        parentId: true,
+        phase: true,
+        kind: true,
+        progressPct: true,
+        estimatedEndDate: true,
+        responsibleName: true,
+        templateOrder: true,
       },
       orderBy: {
         title: 'asc',

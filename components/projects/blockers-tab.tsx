@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle2, Clock, Plus } from 'lucide-react'
 import { BlockerSeverity } from '@/types'
 import { NotificationDialog } from './notification-dialog'
+import { SelectorDeLinea } from './selector-de-linea'
+import { prepararOpciones, type LineaBuscable } from '@/lib/projects/buscar-linea'
 
 interface Blocker {
   id: string; workItemId: string; workItemTitle?: string; description: string
@@ -36,7 +38,8 @@ const inputStyle: React.CSSProperties = { background: 'var(--superficie)', borde
 export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, onBlockerDataUsed }: BlockersTabProps) {
   const t = useTranslations('blockers')
   const [blockers, setBlockers] = useState<Blocker[]>([])
-  const [workItems, setWorkItems] = useState<Array<{ id: string; title: string }>>([])
+  const [workItems, setWorkItems] = useState<LineaBuscable[]>([])
+  const [cargandoLineas, setCargandoLineas] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -62,10 +65,15 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
 
   const fetchWorkItems = async () => {
     try {
+      setCargandoLineas(true)
       const res = await fetch(`/api/v1/projects/${projectId}/work-items`)
       if (res.ok) { const d = await res.json(); setWorkItems(d.workItems || []) }
-    } catch {}
+    } catch {
+    } finally { setCargandoLineas(false) }
   }
+
+  // Rutas, estado y texto de búsqueda se calculan una vez por carga, no en cada tecla.
+  const opcionesDeLinea = useMemo(() => prepararOpciones(workItems), [workItems])
 
   const fetchBlockers = async () => {
     try {
@@ -92,6 +100,8 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
 
   const handleCreateBlocker = async (e: React.FormEvent) => {
     e.preventDefault()
+    // El `<Select>` de antes dejaba enviar sin línea y el servidor contestaba con un error genérico.
+    if (!formData.workItemId) return
     try {
       setSubmitting(true)
       const res = await fetch(`/api/v1/projects/${projectId}/blockers`, {
@@ -232,7 +242,9 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
 
       {/* Create dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
+        {/* Más ancho que el diálogo por omisión: los resultados llevan título y ruta, y a 512 px la
+            ruta —que es lo que distingue las líneas repetidas— quedaba cortada. */}
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto" style={{ background: 'var(--superficie)', border: '1px solid var(--borde)' }}>
           <form onSubmit={handleCreateBlocker}>
             <DialogHeader>
               <DialogTitle className="text-tinta">{t('createBlocker')}</DialogTitle>
@@ -241,12 +253,15 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
                 <Label className="text-tinta-2 text-xs">{t('workItem')}</Label>
-                <Select value={formData.workItemId} onValueChange={(v) => setFormData({ ...formData, workItemId: v })}>
-                  <SelectTrigger style={inputStyle}><SelectValue placeholder={t('selectWorkItem')} /></SelectTrigger>
-                  <SelectContent style={{ background: 'var(--superficie-2)', border: '1px solid var(--borde)' }}>
-                    {workItems.map(item => <SelectItem key={item.id} value={item.id}>{item.title}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SelectorDeLinea
+                  opciones={opcionesDeLinea}
+                  valor={formData.workItemId}
+                  onCambio={(id) => setFormData({ ...formData, workItemId: id })}
+                  cargando={cargandoLineas}
+                  // Si llega ya elegida —desde una sugerencia del análisis— no se roba el foco a la
+                  // tarjeta; si no, se escribe directo sin tener que hacer clic primero.
+                  autoFocus={!formData.workItemId}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-tinta-2 text-xs">{t('blockerDescription')}</Label>
@@ -277,7 +292,7 @@ export function BlockersTab({ projectId, onMetricsChange, initialBlockerData, on
               <button type="button" onClick={() => setShowCreateDialog(false)}
                 className="h-9 px-4 rounded-lg text-sm text-tinta-2 hover:text-tinta hover:bg-superficie-3 transition-all"
                 style={{ border: '1px solid var(--borde)' }}>{t('cancel')}</button>
-              <button type="submit" disabled={submitting}
+              <button type="submit" disabled={submitting || !formData.workItemId}
                 className="h-9 px-4 rounded-lg text-sm font-medium text-sobre-acento transition-all hover:opacity-90 disabled:opacity-40"
                 style={{ background: 'var(--acento-relleno)' }}>
                 {submitting ? t('creating') : t('createBlocker')}
