@@ -111,12 +111,18 @@ async function conCorte<T>(
   queEs: string
 ): Promise<T | undefined> {
   let temporizador: NodeJS.Timeout | undefined
+  // La promesa también puede resolver `undefined` por sí sola —el modelo respondió algo que no
+  // pasa la validación—; atribuirle eso al corte manda a buscar el problema en el lugar equivocado.
+  let vencio = false
   try {
     const corte = new Promise<undefined>((resolve) => {
-      temporizador = setTimeout(() => resolve(undefined), ms)
+      temporizador = setTimeout(() => {
+        vencio = true
+        resolve(undefined)
+      }, ms)
     })
     const valor = await Promise.race([promesa, corte])
-    if (valor === undefined) {
+    if (valor === undefined && vencio) {
       logWarning(`[Reporte ejecutivo] ${queEs} excedió el corte; el correo sale solo con cifras`, {
         timeoutMs: ms,
       })

@@ -52,6 +52,7 @@
  */
 import type { Expediente } from '@/services/expediente-del-reporte.service'
 import type { NarrativaEjecutiva } from './narrativa-ejecutiva'
+import type { AlertaDeOlas, OlasYFrentes, Semaforo } from './olas-y-frentes'
 import { C, SANS, SERIF, esc, parrafo, seccion, shell } from '@/lib/email/html'
 
 const ANCHO = 528
@@ -190,6 +191,364 @@ function nota(texto: string): string {
 </td></tr>`
 }
 
+/** «4 sep», para tablas donde no cabe la fecha media. */
+function fechaCorta(iso: string): string {
+  const d = deIso(iso)
+  return `${d.getUTCDate()} ${MESES[d.getUTCMonth()].slice(0, 3)}`
+}
+
+/** «olas 0 a 3» si son seguidas; «olas 5, 7, 8 y 10» si no. */
+function listaDeOlas(olas: readonly number[]): string {
+  if (olas.length === 0) return ''
+  if (olas.length === 1) return `ola ${olas[0]}`
+  const seguidas = olas.every((n, i) => i === 0 || n === olas[i - 1] + 1)
+  if (seguidas && olas.length > 2) return `olas ${olas[0]} a ${olas[olas.length - 1]}`
+  return `olas ${olas.slice(0, -1).join(', ')} y ${olas[olas.length - 1]}`
+}
+
+const COLOR_SEMAFORO: Record<Semaforo, string> = {
+  'En tiempo': C.teal,
+  'Atención': '#B45309',
+  'En riesgo': C.crimson,
+}
+
+/**
+ * El semáforo siempre con su etiqueta escrita: el color solo no se lee en un correo impreso, ni lo
+ * distingue quien no ve bien los colores.
+ */
+function etiquetaDeSemaforo(s: Semaforo, dias: number): string {
+  return s === 'En tiempo' ? 'En tiempo' : `${s} · ${dias} d`
+}
+
+interface Columna {
+  readonly titulo: string
+  readonly ancho: number
+  readonly alinear?: 'left' | 'right'
+}
+interface Celda {
+  readonly texto: string
+  readonly sub?: string
+  readonly color?: string
+  readonly negrita?: boolean
+}
+
+/** Una tabla de columnas fijas que suman 528 px. La celda puede traer un renglón secundario. */
+function tablaDeColumnas(columnas: readonly Columna[], filas: readonly (readonly Celda[])[]): string {
+  const relleno = (c: Columna) => (c.alinear === 'right' ? '0' : '8px')
+  const encabezado = columnas
+    .map(
+      (c) =>
+        `<td width="${c.ancho}" align="${c.alinear ?? 'left'}" valign="bottom" style="width:${c.ancho}px; padding:0 ${relleno(c)} 6px 0; border-bottom:1px solid ${C.rule}; font-family:${SANS}; font-size:9px; line-height:12px; letter-spacing:0.8px; text-transform:uppercase; color:${C.grayLight};">${esc(c.titulo)}</td>`
+    )
+    .join('')
+  const cuerpo = filas
+    .map((fila, i) => {
+      const borde = i > 0 ? `border-top:1px solid ${C.rule};` : ''
+      const celdas = fila
+        .map((celda, j) => {
+          const c = columnas[j]
+          const sub = celda.sub
+            ? `<div style="font-family:${SANS}; font-size:11px; line-height:15px; font-weight:normal; color:${C.grayLight}; padding-top:2px;">${esc(celda.sub)}</div>`
+            : ''
+          return `<td width="${c.ancho}" align="${c.alinear ?? 'left'}" valign="top" style="width:${c.ancho}px; padding:8px ${relleno(c)} 8px 0; ${borde} font-family:${SANS}; font-size:12px; line-height:17px; color:${celda.color ?? C.ink};${celda.negrita ? ' font-weight:bold;' : ''}">${esc(celda.texto)}${sub}</td>`
+        })
+        .join('')
+      return `<tr>${celdas}</tr>`
+    })
+    .join('')
+  return `<tr><td class="pad" style="padding:14px 36px 0 36px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${ANCHO}" style="width:${ANCHO}px;"><tr>${encabezado}</tr>${cuerpo}</table>
+</td></tr>`
+}
+
+/** Un aviso que no se puede saltar: borde de color y texto en tinta, no en gris como la nota. */
+function alerta(texto: string, color: string): string {
+  return `<tr><td class="pad" style="padding:12px 36px 0 36px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${ANCHO}" style="width:${ANCHO}px; background-color:#FBF7F8;">
+    <tr><td style="padding:11px 14px; font-family:${SANS}; font-size:12px; line-height:18px; color:${C.ink}; border-left:3px solid ${color};">${esc(texto)}</td></tr>
+  </table>
+</td></tr>`
+}
+
+function textoDeAlerta(a: AlertaDeOlas): string {
+  switch (a.tipo) {
+    case 'encadenadas':
+      return `Las ${a.cuantas} olas pendientes se corren lo mismo, ${a.diasHabiles} días hábiles: en el plan van encadenadas y el atraso de las primeras arrastra a todas. Recuperar las primeras olas recupera el tren completo.`
+    case 'orden':
+      return `La Ola ${a.cortada} aparece cortada y la Ola ${a.pendiente} todavía no${a.avanceDelCortePendiente > 0 ? ` (su corte va al ${Math.round(a.avanceDelCortePendiente * 100)}%)` : ''}. Si el banco cambió el orden, está bien; si el avance se capturó en la ola equivocada, hay que corregirlo.`
+    case 'compuertaDetenida':
+      return `${a.codigo} · ${a.nombre}: ninguna de sus ${a.total} actividades está lista y todas vencieron, la primera el ${fechaMedia(deIso(a.desde))}. Condiciona las ${listaDeOlas(a.olas)}.`
+  }
+}
+
+const pct = (x: number) => `${Math.round(x * 100)}%`
+
+/** Las olas antes que los frentes: primero el efecto que siente el banco, luego la causa. */
+function seccionesDeOlasYFrentes(o: OlasYFrentes): string[] {
+  const partes: string[] = []
+
+  if (o.olas.length > 0) {
+    const cortadas = o.olas.filter((x) => x.cortada).length
+    partes.push(seccion(`Olas de migración · ${cortadas} de ${o.olas.length} cortadas`))
+
+    // La alerta del tren va antes de la tabla: explica de un golpe por qué todas las filas dicen lo
+    // mismo, y la de orden pide revisar una captura antes de que alguien la cite.
+    for (const a of o.alertas) {
+      if (a.tipo === 'encadenadas') partes.push(alerta(textoDeAlerta(a), C.crimson))
+      if (a.tipo === 'orden') partes.push(alerta(textoDeAlerta(a), COLOR_SEMAFORO['Atención']))
+    }
+
+    partes.push(
+      tablaDeColumnas(
+        [
+          { titulo: 'Ola', ancho: 200 },
+          { titulo: 'Corte comprometido → proyectado', ancho: 124 },
+          { titulo: 'Avance real / esperado', ancho: 84 },
+          { titulo: 'Atraso real', ancho: 120, alinear: 'right' },
+        ],
+        o.olas.map((x) => {
+          const comprometido = x.corteComprometido ? fechaCorta(x.corteComprometido) : '—'
+          return [
+            {
+              texto: `Ola ${x.numero}${x.ambiente ? ` · ${x.ambiente}` : ''}`,
+              negrita: true,
+              sub: [x.servidores ? `${x.servidores} servidores` : null, x.fase, x.compuertas.join(', ') || null]
+                .filter(Boolean)
+                .join(' · '),
+            },
+            {
+              texto: x.cortada
+                ? `${comprometido} · cortada`
+                : `${comprometido} → ${x.corteProyectado ? fechaCorta(x.corteProyectado) : '—'}`,
+            },
+            {
+              // Una ola que ni arrancó ni debía haber arrancado no tiene avance que comparar.
+              texto: x.avanceReal === 0 && x.avanceEsperado === 0 ? '—' : `${pct(x.avanceReal)} / ${pct(x.avanceEsperado)}`,
+              color: x.avanceReal + 0.005 < x.avanceEsperado ? C.crimson : C.ink,
+            },
+            x.semaforo && x.atrasoDiasHabiles !== null
+              ? { texto: etiquetaDeSemaforo(x.semaforo, x.atrasoDiasHabiles), color: COLOR_SEMAFORO[x.semaforo], negrita: true }
+              : { texto: 'Cortada', color: C.gray, negrita: true },
+          ]
+        })
+      )
+    )
+
+    if (o.compuertas.length > 0) {
+      partes.push(
+        parrafo(
+          'Las compuertas son lo que la plataforma debe tener listo antes de cada grupo de olas: deciden si una ola puede arrancar.',
+          'padding-top:18px; font-size:14px;'
+        )
+      )
+      for (const a of o.alertas) {
+        if (a.tipo === 'compuertaDetenida') partes.push(alerta(textoDeAlerta(a), C.crimson))
+      }
+      partes.push(
+        tablaDeColumnas(
+          [
+            { titulo: 'Compuerta', ancho: 250 },
+            { titulo: 'Listas', ancho: 70 },
+            { titulo: 'Comprometida → proyectada', ancho: 110 },
+            { titulo: 'Atraso real', ancho: 98, alinear: 'right' },
+          ],
+          o.compuertas.map((c) => [
+            {
+              texto: `${c.codigo} · ${c.nombre}`,
+              negrita: true,
+              sub: c.olas.length ? `Habilita ${c.olas.length === 1 ? 'la' : 'las'} ${listaDeOlas(c.olas)}` : undefined,
+            },
+            {
+              texto: `${c.listas} de ${c.total}`,
+              sub: c.vencidas > 0 ? `${c.vencidas} vencida${c.vencidas === 1 ? '' : 's'}` : undefined,
+              color: c.vencidas > 0 ? C.crimson : C.ink,
+            },
+            {
+              texto: c.terminada ? fechaCorta(c.comprometida) : `${fechaCorta(c.comprometida)} → ${fechaCorta(c.proyectada)}`,
+            },
+            c.terminada
+              ? { texto: 'Lista', color: C.teal, negrita: true }
+              : { texto: etiquetaDeSemaforo(c.semaforo, c.atrasoDiasHabiles), color: COLOR_SEMAFORO[c.semaforo], negrita: true },
+          ])
+        )
+      )
+    }
+  }
+
+  if (o.frentes.length > 0) {
+    const enRiesgo = o.frentes.filter((f) => !f.terminado && f.semaforo === 'En riesgo').length
+    partes.push(seccion(`Frentes de plataforma · ${enRiesgo} en riesgo de ${o.frentes.length}`))
+    partes.push(
+      tablaDeColumnas(
+        [
+          { titulo: 'Frente', ancho: 200 },
+          { titulo: 'Comprometido → proyectado', ancho: 124 },
+          { titulo: 'Avance real / esperado', ancho: 84 },
+          { titulo: 'Atraso real', ancho: 120, alinear: 'right' },
+        ],
+        o.frentes.map((f) => [
+          {
+            texto: f.nombre,
+            negrita: true,
+            sub: `${f.hojas} actividades${f.vencidas > 0 ? ` · ${f.vencidas} vencidas` : ''}`,
+          },
+          {
+            texto: f.terminado ? fechaCorta(f.comprometido) : `${fechaCorta(f.comprometido)} → ${fechaCorta(f.proyectado)}`,
+          },
+          {
+            texto: f.terminado ? '100%' : `${pct(f.avanceReal)} / ${pct(f.avanceEsperado)}`,
+            color: !f.terminado && f.avanceReal + 0.005 < f.avanceEsperado ? C.crimson : C.ink,
+          },
+          f.terminado
+            ? { texto: 'Terminado', color: C.teal, negrita: true }
+            : { texto: etiquetaDeSemaforo(f.semaforo, f.atrasoDiasHabiles), color: COLOR_SEMAFORO[f.semaforo], negrita: true },
+        ])
+      )
+    )
+  }
+
+  partes.push(
+    nota(
+      'Atraso real: días hábiles entre la fecha comprometida en el plan y la proyectada, con el mismo método del cierre proyectado. En tiempo, 0 días; atención, de 1 a 5; en riesgo, más de 5. El avance esperado es el que ya llevaría cada línea si hubiera avanzado parejo entre sus fechas comprometidas.'
+    )
+  )
+  return partes
+}
+
+const SEVERIDAD: Record<string, string> = { LOW: 'Baja', MEDIUM: 'Media', HIGH: 'Alta', CRITICAL: 'Crítica' }
+const ESTADO_RIESGO: Record<string, string> = {
+  IDENTIFIED: 'Identificado',
+  MONITORING: 'En monitoreo',
+  MITIGATING: 'En mitigación',
+  MATERIALIZED: 'Materializado',
+  CLOSED: 'Cerrado',
+}
+const ESTADO_ACUERDO: Record<string, string> = {
+  PENDING: 'Pendiente',
+  IN_PROGRESS: 'En curso',
+  COMPLETED: 'Cumplido',
+  CANCELLED: 'Cancelado',
+}
+const ORDEN_SEVERIDAD: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
+/** Lo más grave primero: con seis renglones de espacio, el que se queda fuera no puede ser el crítico. */
+const porSeveridad = (a: string, b: string) => (ORDEN_SEVERIDAD[a] ?? 9) - (ORDEN_SEVERIDAD[b] ?? 9)
+
+const DIA_MS = 86_400_000
+
+/** El lunes de la semana de una fecha ISO, como milisegundos UTC. */
+function lunesDe(iso: string): number {
+  const d = deIso(iso)
+  const dow = (d.getUTCDay() + 6) % 7
+  return +d - dow * DIA_MS
+}
+
+/**
+ * Cada ola en una línea de tiempo semanal: dónde se comprometió su corte, a dónde lo empuja la
+ * proyección, y la fecha límite atravesando todas.
+ *
+ * Hecha con celdas de tabla y no con imagen ni SVG: Outlook no dibuja SVG, y muchos clientes
+ * bloquean las imágenes hasta que alguien pulsa «mostrar». Una gráfica que el comité no ve no
+ * sirve, por buena que sea.
+ *
+ * Responde de un vistazo la pregunta del reporte: qué olas ya caen después del compromiso.
+ */
+function graficaDeCortes(olas: OlasYFrentes['olas'], limite: string, hoy: string): string[] {
+  const conFecha = olas.filter((o) => o.corteComprometido)
+  if (conFecha.length === 0) return []
+
+  const fechas = conFecha.flatMap((o) => [o.corteComprometido!, ...(o.corteProyectado ? [o.corteProyectado] : [])])
+  const inicio = Math.min(...[...fechas, hoy].map(lunesDe))
+  const fin = Math.max(...[...fechas, limite].map(lunesDe))
+  const semanas = Math.round((fin - inicio) / (7 * DIA_MS)) + 1
+  // Más de ~26 semanas ya no cabe con celdas legibles; en ese caso no se dibuja.
+  if (semanas > 26) return []
+
+  const ROTULO = 58
+  const COLA = 50
+  const ANCHO_SEMANAS = ANCHO - ROTULO - COLA
+  const anchoSemana = Math.floor(ANCHO_SEMANAS / semanas)
+  const sobrante = ANCHO_SEMANAS - anchoSemana * semanas
+  const indice = (iso: string) => Math.round((lunesDe(iso) - inicio) / (7 * DIA_MS))
+  const semanaLimite = indice(limite)
+  const semanaHoy = indice(hoy)
+  const TENUE = '#F2D6E3'
+  const HOY = '#F1EFEC'
+
+  const ancho = (i: number) => anchoSemana + (i === semanas - 1 ? sobrante : 0)
+  /** La línea de la fecha límite: un borde izquierdo en su semana, repetido en cada renglón. */
+  const borde = (i: number) => (i === semanaLimite ? `border-left:2px solid ${C.crimson};` : '')
+  const fondo = (i: number) => (i === semanaHoy ? HOY : '')
+
+  const celdasVacias = (alto: number) =>
+    Array.from({ length: semanas }, (_, i) => {
+      const bg = fondo(i)
+      return `<td width="${ancho(i)}" height="${alto}" style="width:${ancho(i)}px; height:${alto}px; ${bg ? `background-color:${bg};` : ''} ${borde(i)} font-size:0; line-height:0;">&nbsp;</td>`
+    }).join('')
+
+  // Encabezado: el mes en la primera semana que empieza en él.
+  let mesPrevio = -1
+  const encabezado = Array.from({ length: semanas }, (_, i) => {
+    const d = new Date(inicio + i * 7 * DIA_MS)
+    const mes = d.getUTCMonth()
+    const texto = mes !== mesPrevio ? MESES[mes].slice(0, 3) : ''
+    mesPrevio = mes
+    return `<td width="${ancho(i)}" style="width:${ancho(i)}px; ${borde(i)} padding:0 0 4px 3px; font-family:${SANS}; font-size:9px; letter-spacing:0.6px; text-transform:uppercase; color:${C.grayLight}; white-space:nowrap;">${texto}</td>`
+  }).join('')
+
+  const filas = conFecha
+    .map((o) => {
+      const comp = indice(o.corteComprometido!)
+      const proy = o.corteProyectado ? indice(o.corteProyectado) : comp
+      const tarde = !o.cortada && o.corteProyectado !== null && o.corteProyectado > limite
+      const colorProy = o.semaforo ? COLOR_SEMAFORO[o.semaforo] : C.gray
+      const celdas = Array.from({ length: semanas }, (_, i) => {
+        let bg = fondo(i)
+        if (o.cortada && i === comp) bg = C.gray
+        else if (!o.cortada) {
+          if (i === comp && i === proy) bg = colorProy
+          else if (i === comp) bg = '#A8A4A2'
+          else if (i === proy) bg = colorProy
+          else if (i > comp && i < proy) bg = TENUE
+        }
+        return `<td width="${ancho(i)}" height="12" style="width:${ancho(i)}px; height:12px; ${bg ? `background-color:${bg};` : ''} ${borde(i)} font-size:0; line-height:0;">&nbsp;</td>`
+      }).join('')
+      const cola = o.cortada
+        ? `<span style="color:${C.gray};">cortada</span>`
+        : o.atrasoDiasHabiles
+          ? `<span style="color:${tarde ? C.crimson : colorProy}; font-weight:bold;">+${o.atrasoDiasHabiles} d</span>`
+          : `<span style="color:${C.teal};">en fecha</span>`
+      return `<tr>
+  <td width="${ROTULO}" style="width:${ROTULO}px; font-family:${SANS}; font-size:11px; line-height:12px; color:${tarde ? C.crimson : C.ink};${tarde ? ' font-weight:bold;' : ''} white-space:nowrap;">Ola ${o.numero}</td>
+  ${celdas}
+  <td width="${COLA}" align="right" style="width:${COLA}px; font-family:${SANS}; font-size:10px; line-height:12px; white-space:nowrap;">${cola}</td>
+</tr>
+<tr><td width="${ROTULO}" height="7" style="font-size:0; line-height:0;">&nbsp;</td>${celdasVacias(7)}<td width="${COLA}" style="font-size:0; line-height:0;">&nbsp;</td></tr>`
+    })
+    .join('')
+
+  const muestra = (color: string) =>
+    `<span style="display:inline-block; width:10px; height:10px; background-color:${color}; vertical-align:-1px;"></span>`
+  const leyenda = `${muestra('#A8A4A2')} corte comprometido &nbsp; ${muestra(C.crimson)} corte proyectado &nbsp; ${muestra(TENUE)} corrimiento &nbsp; <span style="display:inline-block; width:2px; height:11px; background-color:${C.crimson}; vertical-align:-1px;"></span> ${esc(fechaMedia(deIso(limite)))}, fecha comprometida &nbsp; ${muestra(HOY)} hoy`
+
+  const despues = conFecha.filter((o) => !o.cortada && o.corteProyectado !== null && o.corteProyectado > limite)
+  const lectura =
+    despues.length > 0
+      ? `${despues.length === 1 ? `La Ola ${despues[0].numero} ya queda proyectada` : `Las olas ${despues.slice(0, -1).map((o) => o.numero).join(', ')} y ${despues[despues.length - 1].numero} ya quedan proyectadas`} después del ${fechaMedia(deIso(limite))}: con el ritmo actual, la migración no termina dentro del compromiso.`
+      : `Todas las olas pendientes siguen proyectadas antes del ${fechaMedia(deIso(limite))}.`
+
+  return [
+    `<tr><td class="pad" style="padding:22px 36px 0 36px; font-family:${SANS}; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:${C.grayLight};">Cada ola: corte comprometido contra proyectado</td></tr>`,
+    `<tr><td class="pad" style="padding:10px 36px 0 36px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${ANCHO}" style="width:${ANCHO}px; table-layout:fixed;">
+    <tr><td width="${ROTULO}" style="width:${ROTULO}px;"></td>${encabezado}<td width="${COLA}" style="width:${COLA}px;"></td></tr>
+    ${filas}
+  </table>
+</td></tr>`,
+    `<tr><td class="pad" style="padding:6px 36px 0 36px; font-family:${SANS}; font-size:10px; line-height:16px; color:${C.gray};">${leyenda}</td></tr>`,
+    parrafo(lectura, `padding-top:12px; font-size:14px; color:${despues.length > 0 ? C.crimson : C.ink};`),
+  ]
+}
+
 export interface CorreoArmado {
   readonly subject: string
   readonly html: string
@@ -299,6 +658,11 @@ export function armarCorreoEjecutivo(
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${ANCHO}" style="width:${ANCHO}px;">${renglones}</table>
 </td></tr>`)
 
+    // La gráfica va aquí y no en la sección de olas: es la respuesta visual a esta pregunta.
+    if (e.plan?.olasYFrentes) {
+      partes.push(...graficaDeCortes(e.plan.olasYFrentes.olas, compromiso.toISOString().slice(0, 10), e.corte))
+    }
+
     partes.push(
       nota(
         `Cómo se calcula el cierre proyectado: se toman las ${p.lineasReancladas} actividades abiertas que el plan decía que ya debieron arrancar, se reanclan a hoy descontando el avance que sí tienen, y se reprograma la cadena completa. Es un suelo mecánico —la fecha más temprana posible si desde hoy todo corre según lo planeado y nadie recupera nada—, no un pronóstico ni un compromiso nuevo.`
@@ -312,6 +676,9 @@ export function armarCorreoEjecutivo(
       )
     )
   }
+
+  // ── Olas y frentes: el efecto que siente el banco, y su causa ────────────────────────────
+  if (e.plan?.olasYFrentes) partes.push(...seccionesDeOlasYFrentes(e.plan.olasYFrentes))
 
   // ── 2. Las preguntas del panel ────────────────────────────────────────────────────────────
   partes.push(seccion('Dónde está el proyecto hoy'))
@@ -484,13 +851,13 @@ export function armarCorreoEjecutivo(
     )
   } else {
     if (e.bloqueos.length > 0) {
-      const abiertos = e.bloqueos.filter((b) => !b.resuelto)
+      const abiertos = e.bloqueos.filter((b) => !b.resuelto).sort((x, y) => porSeveridad(x.severidad, y.severidad))
       partes.push(seccion(`Bloqueos · ${abiertos.length} abiertos de ${e.bloqueos.length}`))
       partes.push(
         tablaDeLineas(
           abiertos.slice(0, 6).map((b) => ({
             izq: b.descripcion,
-            sub: `${b.severidad} · bloqueado por ${b.bloqueadoPor}`,
+            sub: `Severidad ${(SEVERIDAD[b.severidad] ?? b.severidad).toLowerCase()} · bloqueado por ${b.bloqueadoPor} · días abierto`,
             der: `${b.diasAbierto} d`,
           })),
           C.crimson
@@ -498,13 +865,13 @@ export function armarCorreoEjecutivo(
       )
     }
     if (e.riesgos.length > 0) {
-      const abiertos = e.riesgos.filter((r) => r.estado !== 'CLOSED')
+      const abiertos = e.riesgos.filter((r) => r.estado !== 'CLOSED').sort((x, y) => porSeveridad(x.nivel, y.nivel))
       partes.push(seccion(`Riesgos · ${abiertos.length} abiertos de ${e.riesgos.length}`))
       partes.push(
         tablaDeLineas(
           abiertos.slice(0, 6).map((r) => ({
             izq: r.descripcion,
-            sub: `${r.nivel} · ${r.estado} · probabilidad ${r.probabilidad}, impacto ${r.impacto}`,
+            sub: `Nivel ${(SEVERIDAD[r.nivel] ?? r.nivel).toLowerCase()} · ${ESTADO_RIESGO[r.estado] ?? r.estado} · probabilidad ${r.probabilidad}, impacto ${r.impacto}`,
             der: `${r.diasAbierto} d`,
           })),
           C.crimson
@@ -517,7 +884,7 @@ export function armarCorreoEjecutivo(
         tablaDeLineas(
           e.acuerdos.slice(0, 6).map((ac) => ({
             izq: ac.titulo,
-            sub: `${ac.estado} · acordado el ${fechaMedia(ac.acordadoEl)}${ac.comprometidoPara ? ` · líneas comprometidas hasta el ${fechaMedia(ac.comprometidoPara)}` : ''}`,
+            sub: `${ESTADO_ACUERDO[ac.estado] ?? ac.estado} · acordado el ${fechaMedia(ac.acordadoEl)}${ac.comprometidoPara ? ` · líneas comprometidas hasta el ${fechaMedia(ac.comprometidoPara)}` : ''}`,
             der: `${ac.diasDesdeQueSeAcordo} d`,
           })),
           C.ink
@@ -618,6 +985,39 @@ function armarTextoPlano(
     L.push('  La proyección no se pudo calcular en esta corrida.', '')
   }
 
+  const oyf = e.plan?.olasYFrentes
+  if (oyf && oyf.olas.length > 0) {
+    L.push('OLAS DE MIGRACIÓN')
+    for (const al of oyf.alertas.filter((x) => x.tipo !== 'compuertaDetenida')) L.push(`  ! ${textoDeAlerta(al)}`)
+    for (const x of oyf.olas) {
+      const fechas = x.cortada
+        ? `corte ${x.corteComprometido ?? '—'} · cortada`
+        : `corte ${x.corteComprometido ?? '—'} → ${x.corteProyectado ?? '—'}`
+      const atraso =
+        x.semaforo && x.atrasoDiasHabiles !== null ? etiquetaDeSemaforo(x.semaforo, x.atrasoDiasHabiles) : 'Cortada'
+      L.push(`  Ola ${x.numero} ${x.ambiente} — ${x.fase} — ${fechas} — ${pct(x.avanceReal)} / ${pct(x.avanceEsperado)} — ${atraso}`)
+    }
+    if (oyf.compuertas.length > 0) {
+      L.push('', 'COMPUERTAS')
+      for (const al of oyf.alertas.filter((x) => x.tipo === 'compuertaDetenida')) L.push(`  ! ${textoDeAlerta(al)}`)
+      for (const c of oyf.compuertas) {
+        L.push(
+          `  ${c.codigo} · ${c.nombre} (${listaDeOlas(c.olas)}) — ${c.listas} de ${c.total} listas, ${c.vencidas} vencidas — ${c.terminada ? 'Lista' : etiquetaDeSemaforo(c.semaforo, c.atrasoDiasHabiles)}`
+        )
+      }
+    }
+    L.push('')
+  }
+  if (oyf && oyf.frentes.length > 0) {
+    L.push('FRENTES DE PLATAFORMA')
+    for (const f of oyf.frentes) {
+      L.push(
+        `  ${f.nombre} — ${f.terminado ? 'Terminado' : `${pct(f.avanceReal)} / ${pct(f.avanceEsperado)} — ${f.comprometido} → ${f.proyectado} — ${etiquetaDeSemaforo(f.semaforo, f.atrasoDiasHabiles)} — ${f.vencidas} vencidas`}`
+      )
+    }
+    L.push('  Atraso real en días hábiles: 0 en tiempo, 1 a 5 atención, más de 5 en riesgo.', '')
+  }
+
   L.push(
     'DÓNDE ESTÁ EL PROYECTO HOY',
     `  Avance real .............. ${(m.proyecto.progresoGlobal * 100).toFixed(1)}%`,
@@ -671,21 +1071,21 @@ function armarTextoPlano(
     if (e.bloqueos.length) {
       L.push(`BLOQUEOS (${e.bloqueos.filter((b) => !b.resuelto).length} abiertos)`)
       for (const b of e.bloqueos.filter((x) => !x.resuelto).slice(0, 6)) {
-        L.push(`  - [${b.severidad}] ${b.descripcion} — ${b.diasAbierto} días`)
+        L.push(`  - [${SEVERIDAD[b.severidad] ?? b.severidad}] ${b.descripcion} — ${b.diasAbierto} días`)
       }
       L.push('')
     }
     if (e.riesgos.length) {
       L.push(`RIESGOS (${e.riesgos.filter((r) => r.estado !== 'CLOSED').length} abiertos)`)
       for (const r of e.riesgos.filter((x) => x.estado !== 'CLOSED').slice(0, 6)) {
-        L.push(`  - [${r.nivel}/${r.estado}] ${r.descripcion} — ${r.diasAbierto} días`)
+        L.push(`  - [${SEVERIDAD[r.nivel] ?? r.nivel} / ${ESTADO_RIESGO[r.estado] ?? r.estado}] ${r.descripcion} — ${r.diasAbierto} días`)
       }
       L.push('')
     }
     if (e.acuerdos.length) {
       L.push(`ACUERDOS (${e.acuerdos.length})`)
       for (const ac of e.acuerdos.slice(0, 6)) {
-        L.push(`  - [${ac.estado}] ${ac.titulo} — acordado hace ${ac.diasDesdeQueSeAcordo} días`)
+        L.push(`  - [${ESTADO_ACUERDO[ac.estado] ?? ac.estado}] ${ac.titulo} — acordado hace ${ac.diasDesdeQueSeAcordo} días`)
       }
       L.push('')
     }

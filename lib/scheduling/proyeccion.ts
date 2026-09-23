@@ -84,6 +84,15 @@ export interface Proyeccion {
   readonly margenProyectadoDiasHabiles: number | null
   /** Verdadero cuando la proyección se pasa del compromiso. */
   readonly enDeuda: boolean
+  /**
+   * El fin proyectado de cada línea, por identificador.
+   *
+   * El cierre del proyecto es una sola fecha; para decir cuándo se corta CADA ola, o cuándo cierra
+   * cada frente, hace falta la fecha de cada línea. Sólo trae las líneas ejecutables: la fecha de un
+   * resumen en el motor no se deriva de sus hijas, así que la de un grupo se calcula como la mayor
+   * de sus hojas, y eso lo hace quien la pide.
+   */
+  readonly finPorLinea: ReadonlyMap<string, IsoDate>
 }
 
 /**
@@ -168,7 +177,15 @@ export function proyectarCierre(entrada: EntradaDeProyeccion): Proyeccion {
       ? null
       : calendar.ordinalOf(calendar.previous(toDayNumber(compromiso))) - ordinalProyectado
 
+  const finPorLinea = new Map<string, IsoDate>()
+  for (const t of tasks) {
+    if (conHijas.has(t.id)) continue
+    const p = proyectado.byId.get(t.id)
+    if (p) finPorLinea.set(t.id, p.finish)
+  }
+
   return Object.freeze({
+    finPorLinea,
     cierreDelPlan: base.finish,
     cierreProyectado: proyectado.finish,
     corrimientoDiasHabiles: corrimiento,

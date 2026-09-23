@@ -31,6 +31,7 @@ import type { WorkCalendar } from '@/lib/scheduling/calendar'
 import { rollUpProgress } from '@/lib/scheduling/progress'
 import { summarizePlan } from '@/lib/scheduling/plan-summary'
 import { proyectarCierre, type Proyeccion } from '@/lib/scheduling/proyeccion'
+import { calcularOlasYFrentes, type OlasYFrentes } from '@/lib/reports/olas-y-frentes'
 import { loadProjectPlan } from '@/services/schedule.service'
 import { logWarning } from '@/lib/logger'
 /**
@@ -60,6 +61,13 @@ export interface InformeDelPlan {
    * motor para programar. Montarlo por separado sería contar unos días aquí y otros allá.
    */
   readonly calendar: WorkCalendar
+  /**
+   * Cada ola, cada compuerta y cada frente, medidos contra la misma proyección.
+   *
+   * Nulo si el cálculo falla: es un detalle del reporte, no su columna vertebral, y no debe
+   * llevarse con él la proyección que sí salió.
+   */
+  readonly olasYFrentes: OlasYFrentes | null
 }
 
 /**
@@ -135,7 +143,24 @@ export async function construirInformeDelPlan(
       noDisponible,
     })
 
+    let olasYFrentes: OlasYFrentes | null = null
+    try {
+      olasYFrentes = calcularOlasYFrentes({
+        tasks: plan.tasks,
+        base: schedule,
+        finProyectado: proyeccion.finPorLinea,
+        calendar,
+        hoy: corte,
+      })
+    } catch (error) {
+      logWarning('[Informe del plan] no se pudieron medir olas y frentes; el correo sale sin ellas', {
+        projectId,
+        error: (error as Error).message,
+      })
+    }
+
     return {
+      olasYFrentes,
       resumen,
       informe: informeDeterminista(resumen, compromisos),
       compromisosDelCliente: compromisos,

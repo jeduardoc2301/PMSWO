@@ -27,28 +27,52 @@ import { AIService } from '@/lib/services/ai-service'
 import { logWarning } from '@/lib/logger'
 import type { Expediente } from '@/services/expediente-del-reporte.service'
 
+/**
+ * Un texto que se pasa del largo se recorta en la última palabra completa, no se rechaza.
+ *
+ * Rechazarlo tiraba la lectura entera —entradilla, secciones y peticiones— porque un rótulo traía
+ * 63 caracteres en vez de 60. El comité se quedaba sin prosa por un detalle de conteo.
+ */
+const recortado = (min: number, max: number) =>
+  z
+    .string()
+    .min(min)
+    .transform((t) => {
+      const limpio = t.trim()
+      if (limpio.length <= max) return limpio
+      const corte = limpio.slice(0, max - 1)
+      // Si el corte cae justo al final de una palabra, esa palabra se queda.
+      const espacio = limpio[max - 1] === ' ' ? corte.length : corte.lastIndexOf(' ')
+      return `${(espacio > max / 2 ? corte.slice(0, espacio) : corte).replace(/[\s,;:·—-]+$/, '')}…`
+    })
+
 const esquema = z.object({
-  entradilla: z.string().min(40).max(700),
+  entradilla: recortado(40, 700),
   secciones: z
     .array(
       z.object({
-        rotulo: z.string().min(3).max(40),
-        afirmacion: z.string().min(10).max(120),
-        parrafos: z.array(z.string().min(20).max(900)).min(1).max(2),
+        rotulo: recortado(3, 60),
+        afirmacion: recortado(10, 160),
+        // Se acepta de más y se recorta: descartar una lectura buena porque trajo un párrafo extra
+        // deja al comité sin prosa por un detalle de conteo. Lo que no cabe simplemente no sale.
+        parrafos: z
+          .array(recortado(20, 900))
+          .min(1)
+          .transform((p) => p.slice(0, 2)),
       })
     )
     .min(1)
-    .max(3),
+    .transform((s) => s.slice(0, 3)),
   peticiones: z
     .array(
       z.object({
-        texto: z.string().min(10).max(220),
-        aQuien: z.string().max(80).optional(),
-        paraCuando: z.string().max(60).optional(),
+        texto: recortado(10, 300),
+        aQuien: recortado(0, 80).optional(),
+        paraCuando: recortado(0, 60).optional(),
       })
     )
     .min(1)
-    .max(5),
+    .transform((p) => p.slice(0, 5)),
 })
 
 export type NarrativaEjecutiva = z.infer<typeof esquema>
@@ -59,6 +83,7 @@ export function hechosDelExpediente(e: Expediente): Record<string, unknown> {
   const a = e.atrasos
   const p = e.plan?.proyeccion
   const cc = e.plan?.informe
+  const oyf = e.plan?.olasYFrentes
 
   return {
     proyecto: e.proyecto.nombre,
@@ -126,11 +151,58 @@ export function hechosDelExpediente(e: Expediente): Record<string, unknown> {
         }
       : null,
 
+    olasDeMigracion: oyf
+      ? {
+          queSignificaAtrasoReal:
+            'Días hábiles entre el corte comprometido en el plan y el corte proyectado con el mismo método que el cierre. Semáforo: 0 en tiempo, 1 a 5 atención, más de 5 en riesgo.',
+          olas: oyf.olas.map((o) => ({
+            ola: o.numero,
+            ambiente: o.ambiente,
+            servidores: o.servidores,
+            fase: o.fase,
+            corteComprometido: o.corteComprometido,
+            corteProyectado: o.corteProyectado,
+            yaSeCorto: o.cortada,
+            atrasoRealEnDiasHabiles: o.atrasoDiasHabiles,
+            avanceReal: Math.round(o.avanceReal * 100),
+            avanceEsperado: Math.round(o.avanceEsperado * 100),
+            condicionadaPor: o.compuertas,
+          })),
+          compuertas: oyf.compuertas.map((c) => ({
+            compuerta: `${c.codigo} · ${c.nombre}`,
+            habilitaOlas: c.olas,
+            listas: c.listas,
+            total: c.total,
+            vencidas: c.vencidas,
+            comprometida: c.comprometida,
+            atrasoRealEnDiasHabiles: c.atrasoDiasHabiles,
+          })),
+          alertas: oyf.alertas,
+        }
+      : null,
+
+    frentesDePlataforma: oyf
+      ? oyf.frentes.map((f) => ({
+          frente: f.nombre,
+          avanceReal: Math.round(f.avanceReal * 100),
+          avanceEsperado: Math.round(f.avanceEsperado * 100),
+          comprometido: f.comprometido,
+          proyectado: f.proyectado,
+          atrasoRealEnDiasHabiles: f.atrasoDiasHabiles,
+          terminado: f.terminado,
+          actividadesVencidas: f.vencidas,
+        }))
+      : null,
+
     registroDeGobierno: {
-      bloqueosRegistrados: e.bloqueos.length,
-      riesgosRegistrados: e.riesgos.length,
-      acuerdosRegistrados: e.acuerdos.length,
       estaVacio: e.gobiernoVacio,
+      bloqueosAbiertos: e.bloqueos
+        .filter((b) => !b.resuelto)
+        .map((b) => ({ bloqueo: b.descripcion, severidad: b.severidad, bloqueadoPor: b.bloqueadoPor, diasAbierto: b.diasAbierto })),
+      riesgos: e.riesgos
+        .filter((r) => r.estado !== 'CLOSED')
+        .map((r) => ({ riesgo: r.descripcion, nivel: r.nivel, estado: r.estado, mitigacion: r.mitigacion })),
+      acuerdos: e.acuerdos.map((a2) => ({ acuerdo: a2.titulo, estado: a2.estado, acordadoEl: a2.acordadoEl.toISOString().slice(0, 10) })),
     },
   }
 }
@@ -151,6 +223,10 @@ REGLAS, en orden de importancia:
 6. NO escribas un veredicto ni una calificación del proyecto: el reporte ya lleva uno calculado de las cifras.
 7. Prosa corrida en español neutro. Sin viñetas, sin markdown, sin negritas.
 8. Si el registro de gobierno está vacío, dilo como lo que es: los riesgos existen, lo que falta es escribirlos. No lo presentes como que no hay riesgos.
+9. Si hay olas de migración, conecta efecto y causa: qué olas se corren y qué frente de plataforma o compuerta las está deteniendo. Si los bloqueos o riesgos registrados explican esa causa, cítalos por su contenido.
+10. Si hay una alerta de orden de corte, no afirmes cuál ola se cortó realmente: pide que se confirme la captura.
+
+11. Como máximo 3 secciones, cada una con 1 o 2 párrafos, y hasta 5 peticiones. El rótulo de cada sección lleva de 2 a 5 palabras (menos de 40 caracteres).
 
 Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 {
