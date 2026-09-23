@@ -151,11 +151,26 @@ export const TECHO_POR_ROL_DE_ORGANIZACION: Readonly<
  * La intersección de lo que su cargo permite y lo que su papel en el proyecto permite. Sin papel en
  * el proyecto no hay nada: pertenecer a la organización no da acceso a un proyecto al que nadie te
  * invitó, y ésa es la diferencia entre una lista de proyectos y una carpeta compartida.
+ *
+ * ## La excepción: el administrador de la organización
+ *
+ * El ADMIN ve y puede todo en los proyectos **de su organización**, esté invitado o no y con el
+ * papel que sea. Es quien administra la casa: que la lista de proyectos le enseñe uno y al abrirlo
+ * reciba «no tienes acceso al Tablero» es una avería, no una política — y nadie más podría darle
+ * permiso de entrar.
+ *
+ * La condición de la organización la pone quien llama (`mismaOrganizacion`), porque esta función no
+ * sabe de quién es cada proyecto. Sin ella —el valor por omisión— no hay excepción: un ADMIN de otra
+ * organización no puede entrar por aquí a un proyecto ajeno.
  */
 export function permisosEfectivos(
   rolesDeOrganizacion: readonly UserRole[],
   rolDeProyecto: RolDeProyecto | null,
+  opciones: { readonly mismaOrganizacion?: boolean } = {},
 ): ReadonlySet<PermisoDeProyecto> {
+  if (opciones.mismaOrganizacion === true && rolesDeOrganizacion.includes(UserRole.ADMIN)) {
+    return new Set(PERMISOS_DE_PROYECTO)
+  }
   if (rolDeProyecto === SIN_ROL_DE_PROYECTO) return new Set()
 
   const delProyecto = new Set(PERMISOS_POR_ROL_DE_PROYECTO[rolDeProyecto] ?? [])

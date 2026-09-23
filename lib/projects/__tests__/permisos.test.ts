@@ -107,6 +107,28 @@ describe('Quien no está invitado no ve nada', () => {
   })
 })
 
+describe('El administrador de la organización', () => {
+  it('ve y puede todo en un proyecto de su organización aunque no esté invitado', () => {
+    const admin = permisosEfectivos([UserRole.ADMIN], null, { mismaOrganizacion: true })
+    expect([...admin].sort()).toEqual([...PERMISOS_DE_PROYECTO].sort())
+  })
+
+  it('tampoco lo recorta el papel con el que lo hayan invitado', () => {
+    const admin = permisosEfectivos([UserRole.ADMIN], 'CLIENT', { mismaOrganizacion: true })
+    expect(admin.has('view_gantt')).toBe(true)
+    expect(admin.has('manage_project_settings')).toBe(true)
+  })
+
+  it('no abre proyectos de otra organización', () => {
+    expect(permisosEfectivos([UserRole.ADMIN], null, { mismaOrganizacion: false }).size).toBe(0)
+  })
+
+  it('la excepción es sólo del ADMIN: otro cargo sin invitación sigue sin ver nada', () => {
+    expect(permisosEfectivos([UserRole.EXECUTIVE], null, { mismaOrganizacion: true }).size).toBe(0)
+    expect(permisosEfectivos([UserRole.PROJECT_MANAGER], null, { mismaOrganizacion: true }).size).toBe(0)
+  })
+})
+
 describe('La barra de vistas', () => {
   // Los identificadores de la barra de verdad, con `gantt` para el Timeline y el guion de
   // `work-items`: si esta lista se escribiera «bonita» la prueba pasaría y la pantalla no recortaría.

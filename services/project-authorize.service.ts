@@ -97,13 +97,32 @@ export async function cargosDe(userId: string): Promise<readonly UserRole[]> {
   return crudos.filter((r): r is UserRole => typeof r === 'string' && conocidos.has(r))
 }
 
-/** Todo lo que esta persona puede hacer en este proyecto. Una consulta por cada mitad. */
+/**
+ * ¿El proyecto es de la misma organización que la persona?
+ *
+ * Es la condición de la excepción del administrador (ver `permisosEfectivos`). Se pregunta aquí y
+ * no se da por hecha: esta guardia no compara organizaciones en ningún otro punto, así que sin esto
+ * un ADMIN de una organización abriría los proyectos de todas.
+ */
+async function esDeSuOrganizacion(userId: string, projectId: string): Promise<boolean> {
+  const [usuario, proyecto] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { organizationId: true } }),
+    prisma.project.findUnique({ where: { id: projectId }, select: { organizationId: true } }),
+  ])
+  return Boolean(usuario && proyecto && usuario.organizationId === proyecto.organizationId)
+}
+
+/** Todo lo que esta persona puede hacer en este proyecto. */
 export async function permisosDeProyecto(
   userId: string,
   projectId: string,
 ): Promise<ReadonlySet<PermisoDeProyecto>> {
   const [cargos, papel] = await Promise.all([cargosDe(userId), papelEnElProyecto(userId, projectId)])
-  return permisosEfectivos(cargos, papel)
+  // La organización sólo se consulta cuando puede cambiar algo: la excepción es para el ADMIN.
+  const mismaOrganizacion = cargos.includes(UserRole.ADMIN)
+    ? await esDeSuOrganizacion(userId, projectId)
+    : false
+  return permisosEfectivos(cargos, papel, { mismaOrganizacion })
 }
 
 /**
