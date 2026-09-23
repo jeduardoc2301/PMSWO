@@ -1,17 +1,18 @@
 /**
- * Herramienta de línea de comandos del reporte diario.
+ * Herramienta de línea de comandos del reporte ejecutivo.
  *
- *   npm run reporte:ver                                  # arma el correo con datos de ejemplo
+ *   npm run reporte:ver -- --proyecto <id> [--sin-narrativa]
  *   npm run reporte:suscribir -- --proyecto <id> --para <correos>
  *   npm run reporte:probar -- [--sub <id>] [--para <correo>]
  *   npm run reporte:estado
  *
- * `ver` no toca la base ni SES: arma el HTML con datos inventados y lo escribe en disco para
- * abrirlo en el navegador. Es la forma de revisar el diseño sin gastar un envío ni esperar a que
- * haya datos reales, y la que se usa cuando se cambia la plantilla.
+ * `ver` arma el correo con datos REALES y lo deja en disco sin mandarlo. No hay modo con datos
+ * inventados: este reporte se sostiene sobre el motor de planificación y sobre la jerarquía del
+ * plan, y un plan de ocho tareas de mentira no ejercita nada de lo que de verdad se rompe —
+ * títulos larguísimos, fases que son frases, mil doscientas hojas, resúmenes que hay que excluir.
  *
- * Los demás sí hablan con la base. Contra producción hay que pasar PERMITIR_BASE_DE_PRODUCCION=1
- * a propósito — ver `lib/guardia-de-base.ts`.
+ * Todos hablan con la base. Contra producción hay que pasar PERMITIR_BASE_DE_PRODUCCION=1 a
+ * propósito — ver `lib/guardia-de-base.ts`.
  */
 import { config } from 'dotenv'
 import { writeFileSync } from 'node:fs'
@@ -28,150 +29,68 @@ function listaDeCorreos(valor: string | undefined): string[] {
   return (valor ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 }
 
-/** Datos de ejemplo con la forma que sí duele: cosas vencidas, bloqueos y un índice malo. */
-function ejemplo() {
-  const hoy = new Date()
-  const dias = (n: number) => new Date(hoy.getTime() + n * 86400000)
-  return {
-    project: {
-      name: 'Migración a AWS — Fase II',
-      client: 'Grupo Industrial del Norte',
-      status: 'IN_PROGRESS',
-      startDate: dias(-62),
-      estimatedEndDate: dias(28),
-    },
-    workItems: [
-      { title: 'Inventario de servidores', status: 'DONE', phase: 'Descubrimiento', estimatedEndDate: dias(-50), completedAt: dias(-52) },
-      { title: 'Análisis de dependencias', status: 'DONE', phase: 'Descubrimiento', estimatedEndDate: dias(-40), completedAt: dias(-38) },
-      { title: 'Diseño de landing zone', status: 'DONE', phase: 'Diseño', estimatedEndDate: dias(-25), completedAt: dias(-20) },
-      { title: 'Configuración de Transit Gateway', status: 'IN_PROGRESS', phase: 'Construcción', estimatedEndDate: dias(-9), completedAt: null },
-      { title: 'Réplica de base de datos productiva', status: 'BLOCKED', phase: 'Construcción', estimatedEndDate: dias(-6), completedAt: null },
-      { title: 'Pruebas de conmutación por error', status: 'TODO', phase: 'Pruebas', estimatedEndDate: dias(-2), completedAt: null },
-      { title: 'Ventana de corte productivo', status: 'TODO', phase: 'Corte', estimatedEndDate: dias(14), completedAt: null },
-      { title: 'Estabilización y entrega', status: 'BACKLOG', phase: 'Cierre', estimatedEndDate: dias(26), completedAt: null },
-    ],
-    blockers: [
-      { description: 'El cliente no ha liberado la ventana de mantenimiento para la réplica', severity: 'CRITICAL', resolvedAt: null },
-      { description: 'Falta el enlace dedicado del proveedor de telecomunicaciones', severity: 'HIGH', resolvedAt: null },
-    ],
-    risks: [
-      { description: 'La ventana de corte cae en cierre de mes contable', riskLevel: 'HIGH', status: 'OPEN' },
-    ],
+async function ver() {
+  const projectId = arg('proyecto')
+  if (!projectId) {
+    console.error('Uso: npm run reporte:ver -- --proyecto <id> [--sin-narrativa]')
+    process.exit(1)
   }
-}
 
-/**
- * Arma el correo de un proyecto REAL y lo deja en disco, sin mandarlo.
- *
- * Es el paso que falta entre «se ve bien con datos inventados» y «se lo mando al director»: los
- * datos de verdad traen títulos larguísimos, fases vacías y cientos de tareas vencidas, y eso es
- * lo que de verdad rompe una plantilla.
- */
-async function verReal(projectId: string) {
-  const { buildProjectSnapshot, toBriefFacts } = await import('../lib/reports/project-snapshot')
-  const { armarCorreoDiario } = await import('../lib/reports/correo-diario')
+  const { reunirExpediente } = await import('../services/expediente-del-reporte.service')
+  const { armarCorreoEjecutivo, veredictoDeLasCifras } = await import('../lib/reports/correo-ejecutivo')
   const { default: prisma } = await import('../lib/prisma')
 
-  const p = await prisma.project.findUnique({
+  const proyecto = await prisma.project.findUnique({
     where: { id: projectId },
-    include: {
-      workItems: { select: { title: true, status: true, phase: true, estimatedEndDate: true, completedAt: true } },
-      blockers: { select: { description: true, severity: true, resolvedAt: true } },
-      risks: { select: { description: true, riskLevel: true, status: true } },
-    },
+    select: { organizationId: true, name: true },
   })
-  if (!p) {
+  if (!proyecto) {
     console.error(`No existe el proyecto ${projectId}.`)
     process.exit(1)
   }
 
-  const datosProyecto = {
-    name: p.name,
-    client: p.client,
-    status: p.status,
-    startDate: p.startDate,
-    estimatedEndDate: p.estimatedEndDate,
+  const t0 = Date.now()
+  // La fecha civil de hoy en la zona por omisión del reporte, igual que la calcula el job.
+  const corte = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+  const expediente = await reunirExpediente(projectId, proyecto.organizationId, corte)
+  if (!expediente) {
+    console.error('No se pudo reunir el expediente.')
+    process.exit(1)
   }
-  const snapshot = buildProjectSnapshot({
-    project: datosProyecto,
-    workItems: p.workItems,
-    blockers: p.blockers,
-    risks: p.risks,
-  })
+  console.log(`Expediente reunido en ${Date.now() - t0} ms`)
 
-  let brief
+  let narrativa
   if (!process.argv.includes('--sin-narrativa')) {
-    const { AIService } = await import('../lib/services/ai-service')
-    console.log('Pidiéndole la narrativa al modelo…')
-    brief = await AIService.generateExecutiveBrief(toBriefFacts(datosProyecto, snapshot)).catch(
-      (e) => {
-        console.warn(`  (la narrativa falló: ${e.message} — se arma solo con cifras)`)
-        return undefined
-      }
-    )
+    const { generarNarrativaEjecutiva } = await import('../lib/reports/narrativa-ejecutiva')
+    console.log('Pidiéndole la lectura al modelo…')
+    const t1 = Date.now()
+    narrativa = await generarNarrativaEjecutiva(expediente)
+    console.log(`  ${narrativa ? 'lista' : 'no se pudo'} (${Date.now() - t1} ms)`)
   }
 
-  const correo = armarCorreoDiario({
-    project: datosProyecto,
-    snapshot,
-    brief: brief as any,
+  const correo = armarCorreoEjecutivo(expediente, narrativa, {
     appUrl: process.env.APP_PUBLIC_URL ?? 'https://master.d3fbgo1omfw37o.amplifyapp.com',
-    projectId: p.id,
   })
 
   const destino = resolve(process.cwd(), 'reporte-diario-ejemplo.html')
   writeFileSync(destino, correo.html, 'utf8')
 
-  console.log(`\nAsunto:  ${correo.subject}`)
-  console.log(`HTML:    ${destino}  (${(correo.html.length / 1024).toFixed(1)} KB)`)
+  const m = expediente.panel.metricas
+  const a = expediente.atrasos
+  console.log(`\nAsunto:    ${correo.subject}`)
+  console.log(`Veredicto: ${veredictoDeLasCifras(expediente)}`)
+  console.log(`HTML:      ${destino}  (${(correo.html.length / 1024).toFixed(1)} KB)`)
   console.log(
-    `Cifras:  ${snapshot.done}/${snapshot.total} cerradas · ${snapshot.overdue.length} vencidas · ` +
-      `alcance ${snapshot.scopePct}% contra calendario ${snapshot.timePct}% · índice ${snapshot.progressIndex}`
+    `Cifras:    avance ${(m.proyecto.progresoGlobal * 100).toFixed(1)}% vs calendario ${(m.avanceTemporal.planificado * 100).toFixed(1)}% · ` +
+      `${a.atrasadas.length} atrasadas (mediana ${a.medianaDiasHabiles} d hábiles, peor ${a.maximoDiasHabiles})` +
+      (expediente.plan ? ` · cierre proyectado ${expediente.plan.proyeccion.cierreProyectado}` : ' · sin proyección')
   )
   await prisma.$disconnect()
-}
-
-async function ver() {
-  const proyecto = arg('proyecto')
-  if (proyecto) return verReal(proyecto)
-
-  const { buildProjectSnapshot } = await import('../lib/reports/project-snapshot')
-  const { armarCorreoDiario } = await import('../lib/reports/correo-diario')
-
-  const datos = ejemplo()
-  const snapshot = buildProjectSnapshot(datos)
-  const correo = armarCorreoDiario({
-    project: datos.project,
-    snapshot,
-    brief: {
-      verdict: 'En riesgo',
-      deck: 'El corte de noviembre no se sostiene sin la ventana de mantenimiento.',
-      lead: 'El proyecto consumió el 69% del calendario y cerró el 38% del alcance. La causa no está repartida: las tres tareas vencidas dependen de una ventana de mantenimiento que el cliente no ha liberado, y mientras no exista esa fecha, ninguna de las tres puede avanzar.',
-      sections: [
-        {
-          eyebrow: 'Resumen ejecutivo',
-          headline: 'La construcción está detenida por una dependencia externa',
-          paragraphs: [
-            'Con 38% de alcance contra 69% de calendario, el índice de avance queda en 0.54. A este ritmo el cierre se recorre tres semanas más allá de la fecha comprometida, y el recorrido no se recupera con horas adicionales porque el cuello de botella no es capacidad: es una autorización.',
-          ],
-        },
-      ],
-      asks: [
-        { text: 'Liberar la ventana de mantenimiento para la réplica productiva', owner: 'Dirección de TI del cliente', due: 'esta semana' },
-        { text: 'Escalar el enlace dedicado con el proveedor', owner: 'Gerencia de infraestructura', due: 'viernes' },
-      ],
-      note: 'Cifras tomadas del plan al corte de hoy. No incluyen trabajo registrado fuera de la herramienta.',
-    },
-    appUrl: 'https://master.d3fbgo1omfw37o.amplifyapp.com',
-    projectId: '00000000-0000-0000-0000-000000000000',
-  })
-
-  const destino = resolve(process.cwd(), 'reporte-diario-ejemplo.html')
-  writeFileSync(destino, correo.html, 'utf8')
-
-  console.log(`Asunto:  ${correo.subject}`)
-  console.log(`HTML:    ${destino}  (${(correo.html.length / 1024).toFixed(1)} KB)`)
-  console.log(`\n--- texto plano ---\n${correo.text}`)
 }
 
 async function suscribir() {
@@ -231,6 +150,27 @@ async function probar() {
   }
 
   const destinatarios = listaDeCorreos(arg('para'))
+
+  // Sin `--para`, la prueba sale a los destinatarios REALES de la suscripción. Hoy esa lista es un
+  // buzón interno, pero el día que incluya a los directivos del cliente, un `reporte:probar` a
+  // secas les manda un correo de verdad — y en modo prueba no queda ni fila en la bitácora. Se
+  // pide confirmación explícita en vez de confiar en que quien lo teclee se acuerde.
+  if (destinatarios.length === 0) {
+    const sub = await prisma.reportSubscription.findUnique({
+      where: { id: subId },
+      select: { recipients: true },
+    })
+    const reales = JSON.stringify(sub?.recipients ?? [])
+    if (!process.argv.includes('--confirmar')) {
+      console.error(`Esto mandaría un correo REAL a los destinatarios de la suscripción: ${reales}`)
+      console.error('Si es lo que quieres, repítelo con --confirmar.')
+      console.error('Para mandártelo solo a ti: --para tu.correo@softwareone.com')
+      await prisma.$disconnect()
+      process.exit(1)
+    }
+    console.log(`Confirmado: sale a los destinatarios reales ${reales}`)
+  }
+
   console.log(`Enviando prueba de la suscripción ${subId}…`)
 
   const r = await enviarSuscripcion(subId, {

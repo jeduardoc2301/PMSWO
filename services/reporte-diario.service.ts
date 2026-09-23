@@ -17,10 +17,9 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { logError, logInfo, logWarning } from '@/lib/logger'
 import { sendEmail } from '@/lib/email/ses'
-import { armarCorreoDiario } from '@/lib/reports/correo-diario'
-import { buildProjectSnapshot, toBriefFacts } from '@/lib/reports/project-snapshot'
-import type { ExecutiveBrief } from '@/lib/reports/project-report-docx'
-import { AIService } from '@/lib/services/ai-service'
+import { armarCorreoEjecutivo } from '@/lib/reports/correo-ejecutivo'
+import { generarNarrativaEjecutiva } from '@/lib/reports/narrativa-ejecutiva'
+import { reunirExpediente } from '@/services/expediente-del-reporte.service'
 
 /**
  * Cuánto se le espera a Bedrock antes de mandar el correo sin narrativa.
@@ -53,15 +52,27 @@ export type ResultadoEnvio =
  * puesto — el reporte del día siguiente nunca saldría.
  */
 export function diaEnZona(fecha: Date, timezone: string): Date {
-  const partes = new Intl.DateTimeFormat('en-CA', {
+  // La columna es DATE, así que se ancla a medianoche UTC para que no se desplace un día al
+  // guardarse.
+  return new Date(`${diaCivilEnZona(fecha, timezone)}T00:00:00.000Z`)
+}
+
+/**
+ * El mismo día, como fecha civil `AAAA-MM-DD`.
+ *
+ * Es lo que reciben el expediente, el motor y el panel. Una cadena y no un `Date` porque un `Date`
+ * obliga a decidir en cada uso si su día es el local o el de UTC —y en esta tubería conviven las
+ * dos convenciones: `isOverdue` mira el día LOCAL y el calendario laborable el civil. En Lambda,
+ * que corre en UTC, coinciden y el defecto no se ve; desde una máquina en UTC−6 a las siete de la
+ * tarde el corte se va un día entero.
+ */
+export function diaCivilEnZona(fecha: Date, timezone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   }).format(fecha)
-  // `en-CA` da YYYY-MM-DD. La columna es DATE, así que se ancla a medianoche UTC para que no se
-  // desplace un día al guardarse.
-  return new Date(`${partes}T00:00:00.000Z`)
 }
 
 function esViolacionDeUnico(error: unknown): boolean {
@@ -74,45 +85,37 @@ function leerDestinatarios(valor: unknown): string[] {
   return []
 }
 
-/** La narrativa es opcional por diseño: si Bedrock falla o se tarda, el correo sale con cifras. */
-async function narrativaConCorte(facts: Record<string, unknown>): Promise<ExecutiveBrief | undefined> {
+/**
+ * Espera a una promesa con corte, y si se pasa devuelve `undefined` en vez de fallar.
+ *
+ * El reporte se sostiene con sus cifras: la prosa lo acompaña. Un correo que no llega porque el
+ * modelo se tardó no sirve para nada, y uno con cifras y sin lectura sirve bastante.
+ */
+async function conCorte<T>(
+  promesa: Promise<T | undefined>,
+  ms: number,
+  queEs: string
+): Promise<T | undefined> {
   let temporizador: NodeJS.Timeout | undefined
   try {
     const corte = new Promise<undefined>((resolve) => {
-      temporizador = setTimeout(() => resolve(undefined), TIMEOUT_NARRATIVA_MS)
+      temporizador = setTimeout(() => resolve(undefined), ms)
     })
-    const brief = await Promise.race([
-      AIService.generateExecutiveBrief(facts) as Promise<ExecutiveBrief>,
-      corte,
-    ])
-    if (!brief) {
-      logWarning('[Reporte diario] la narrativa excedió el corte; se envía solo con cifras', {
-        timeoutMs: TIMEOUT_NARRATIVA_MS,
+    const valor = await Promise.race([promesa, corte])
+    if (valor === undefined) {
+      logWarning(`[Reporte ejecutivo] ${queEs} excedió el corte; el correo sale solo con cifras`, {
+        timeoutMs: ms,
       })
     }
-    return brief ?? undefined
+    return valor
   } catch (error) {
-    logWarning('[Reporte diario] la narrativa falló; se envía solo con cifras', {
+    logWarning(`[Reporte ejecutivo] ${queEs} falló; el correo sale solo con cifras`, {
       error: (error as Error).message,
     })
     return undefined
   } finally {
     if (temporizador) clearTimeout(temporizador)
   }
-}
-
-/**
- * Carga el proyecto con lo que el reporte necesita, siempre acotado a su organización.
- */
-async function cargarProyecto(projectId: string, organizationId: string) {
-  return prisma.project.findFirst({
-    where: { id: projectId, organizationId },
-    include: {
-      workItems: { select: { title: true, status: true, phase: true, estimatedEndDate: true, completedAt: true } },
-      blockers: { select: { description: true, severity: true, resolvedAt: true } },
-      risks: { select: { description: true, riskLevel: true, status: true } },
-    },
-  })
 }
 
 type Reclamo =
@@ -198,21 +201,40 @@ export async function enviarSuscripcion(
 ): Promise<ResultadoEnvio> {
   const ahora = opciones.ahora ?? new Date()
 
-  const sub = await prisma.reportSubscription.findUnique({ where: { id: subscriptionId } })
-  if (!sub) return { estado: 'OMITIDO', subscriptionId, motivo: 'la suscripción no existe' }
-  if (!sub.active && !opciones.prueba) {
-    return { estado: 'OMITIDO', subscriptionId, motivo: 'la suscripción está inactiva' }
+  /**
+   * Todo lo que puede lanzar va dentro de un try, incluido leer la suscripción y resolver su zona
+   * horaria.
+   *
+   * `Intl.DateTimeFormat` lanza `RangeError` ante una zona mal escrita, y `timezone` es una columna
+   * de texto libre que alguien llena a mano. Estas líneas vivían fuera del try: una sola letra de
+   * más en la zona de UNA suscripción reventaba `enviarReportesDiarios` y dejaba sin reporte a
+   * todas las que venían detrás, sin alerta y sin fila en la bitácora.
+   */
+  let sub: Awaited<ReturnType<typeof prisma.reportSubscription.findUnique>>
+  let diaCubierto: Date
+  let corte: string
+  let destinatarios: string[]
+  try {
+    sub = await prisma.reportSubscription.findUnique({ where: { id: subscriptionId } })
+    if (!sub) return { estado: 'OMITIDO', subscriptionId, motivo: 'la suscripción no existe' }
+    if (!sub.active && !opciones.prueba) {
+      return { estado: 'OMITIDO', subscriptionId, motivo: 'la suscripción está inactiva' }
+    }
+
+    destinatarios = opciones.prueba?.destinatarios?.length
+      ? opciones.prueba.destinatarios
+      : leerDestinatarios(sub.recipients)
+
+    if (destinatarios.length === 0) {
+      return { estado: 'OMITIDO', subscriptionId, motivo: 'la suscripción no tiene destinatarios' }
+    }
+
+    diaCubierto = diaEnZona(ahora, sub.timezone)
+    corte = diaCivilEnZona(ahora, sub.timezone)
+  } catch (error) {
+    logError('[Reporte ejecutivo] no se pudo preparar el envío', error as Error, { subscriptionId })
+    return { estado: 'FALLIDO', subscriptionId, error: (error as Error).message }
   }
-
-  const destinatarios = opciones.prueba?.destinatarios?.length
-    ? opciones.prueba.destinatarios
-    : leerDestinatarios(sub.recipients)
-
-  if (destinatarios.length === 0) {
-    return { estado: 'OMITIDO', subscriptionId, motivo: 'la suscripción no tiene destinatarios' }
-  }
-
-  const diaCubierto = diaEnZona(ahora, sub.timezone)
 
   // ── El candado ────────────────────────────────────────────────────────────────────────────
   // Se reclama antes de cualquier trabajo caro y antes de SES. En modo prueba no se reclama
@@ -235,37 +257,23 @@ export async function enviarSuscripcion(
   const deliveryId = reclamo.deliveryId
 
   try {
-    const proyecto = await cargarProyecto(sub.projectId, sub.organizationId)
-    if (!proyecto) {
+    const expediente = await reunirExpediente(sub.projectId, sub.organizationId, corte)
+    if (!expediente) {
       throw new Error(
         `El proyecto ${sub.projectId} no existe o no pertenece a la organización de la suscripción.`
       )
     }
 
-    const datosProyecto = {
-      name: proyecto.name,
-      client: proyecto.client,
-      status: proyecto.status,
-      startDate: proyecto.startDate,
-      estimatedEndDate: proyecto.estimatedEndDate,
-    }
+    // La prosa se pide con corte: si el modelo tarda, el correo sale con las cifras. Las cifras
+    // SON el reporte; la lectura lo acompaña.
+    const narrativa = await conCorte(
+      generarNarrativaEjecutiva(expediente),
+      TIMEOUT_NARRATIVA_MS,
+      'la lectura en prosa'
+    )
 
-    const snapshot = buildProjectSnapshot({
-      project: datosProyecto,
-      workItems: proyecto.workItems,
-      blockers: proyecto.blockers,
-      risks: proyecto.risks,
-      now: ahora,
-    })
-
-    const brief = await narrativaConCorte(toBriefFacts(datosProyecto, snapshot))
-
-    const correo = armarCorreoDiario({
-      project: datosProyecto,
-      snapshot,
-      brief,
+    const correo = armarCorreoEjecutivo(expediente, narrativa, {
       appUrl: process.env.APP_PUBLIC_URL ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL,
-      projectId: proyecto.id,
     })
 
     const { messageId } = await sendEmail({
@@ -286,13 +294,14 @@ export async function enviarSuscripcion(
       })
     }
 
-    logInfo('[Reporte diario] enviado', {
+    logInfo('[Reporte ejecutivo] enviado', {
       subscriptionId,
-      projectId: proyecto.id,
+      projectId: sub.projectId,
       organizationId: sub.organizationId,
       destinatarios,
       messageId,
-      conNarrativa: Boolean(brief),
+      conNarrativa: Boolean(narrativa),
+      conProyeccion: Boolean(expediente.plan),
     })
 
     return { estado: 'ENVIADO', subscriptionId, messageId, destinatarios }

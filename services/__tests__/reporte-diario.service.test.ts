@@ -1,24 +1,40 @@
 import { Prisma } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+/**
+ * Lo que esta suite prueba es el CANDADO y la orquestación: que no salgan dos correos del mismo
+ * día, que la organización viaje explícita, y que una falla devuelva en vez de lanzar.
+ *
+ * Por eso el expediente se simula entero en vez de dejar que llegue hasta Prisma. Lo que hay
+ * dentro del expediente —jerarquía, motor, atrasos— tiene sus propias pruebas; mezclarlo aquí
+ * haría que un cambio en el maquetado del correo pusiera en rojo la prueba del candado.
+ */
 vi.mock('@/lib/prisma', () => ({
   default: {
     reportSubscription: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
     reportDelivery: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-    project: { findFirst: vi.fn() },
   },
 }))
 
 vi.mock('@/lib/email/ses', () => ({ sendEmail: vi.fn() }))
 
-vi.mock('@/lib/services/ai-service', () => ({
-  AIService: { generateExecutiveBrief: vi.fn() },
+vi.mock('@/services/expediente-del-reporte.service', () => ({ reunirExpediente: vi.fn() }))
+
+vi.mock('@/lib/reports/narrativa-ejecutiva', () => ({ generarNarrativaEjecutiva: vi.fn() }))
+
+vi.mock('@/lib/reports/correo-ejecutivo', () => ({
+  armarCorreoEjecutivo: vi.fn(() => ({
+    subject: 'Proyecto · En riesgo · 22 sep',
+    html: '<p>reporte</p>',
+    text: 'reporte',
+  })),
 }))
 
 import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/ses'
-import { AIService } from '@/lib/services/ai-service'
-import { diaEnZona, enviarSuscripcion } from '../reporte-diario.service'
+import { reunirExpediente } from '@/services/expediente-del-reporte.service'
+import { generarNarrativaEjecutiva } from '@/lib/reports/narrativa-ejecutiva'
+import { diaCivilEnZona, diaEnZona, enviarSuscripcion } from '../reporte-diario.service'
 
 const SUB = {
   id: 'sub-1',
@@ -34,16 +50,24 @@ const SUB = {
   lastSentAt: null,
 }
 
-const PROYECTO = {
-  id: 'proj-1',
-  name: 'Migración',
-  client: 'Cliente',
-  status: 'IN_PROGRESS',
-  startDate: new Date('2026-08-01'),
-  estimatedEndDate: new Date('2026-10-30'),
-  workItems: [],
-  blockers: [],
-  risks: [],
+/** Un expediente mínimo: lo justo para que la orquestación tenga qué maquetar. */
+const EXPEDIENTE = {
+  proyecto: {
+    id: 'proj-1',
+    nombre: 'Migración',
+    cliente: 'Cliente',
+    inicio: new Date('2026-08-01'),
+    comprometidoPara: new Date('2026-10-30'),
+    estado: 'ACTIVE',
+  },
+  corte: '2026-09-22',
+  panel: { metricas: { proyecto: { progresoGlobal: 0.3 }, avanceTemporal: { planificado: 0.6, desviacion: -0.3 }, tareas: { hojas: 100, resumenes: 5 }, hitos: { total: 10, atrasados: 3 } } },
+  atrasos: { atrasadas: [], deudaDiasHabiles: 0, compromisos: [], ejecucion: [], cadencia: [], porParte: { CLIENTE: 0, PROVEEDOR: 0 }, sinArrancar: 0, hojasExaminadas: 100 },
+  plan: null,
+  bloqueos: [],
+  riesgos: [],
+  acuerdos: [],
+  gobiernoVacio: true,
 }
 
 function violacionDeUnico() {
@@ -56,12 +80,12 @@ function violacionDeUnico() {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(prisma.reportSubscription.findUnique).mockResolvedValue(SUB as any)
-  vi.mocked(prisma.project.findFirst).mockResolvedValue(PROYECTO as any)
+  vi.mocked(reunirExpediente).mockResolvedValue(EXPEDIENTE as any)
   vi.mocked(prisma.reportDelivery.create).mockResolvedValue({ id: 'del-1' } as any)
   vi.mocked(prisma.reportDelivery.update).mockResolvedValue({} as any)
   vi.mocked(prisma.reportSubscription.update).mockResolvedValue({} as any)
   vi.mocked(sendEmail).mockResolvedValue({ messageId: 'msg-1', to: SUB.recipients })
-  vi.mocked(AIService.generateExecutiveBrief).mockResolvedValue({ verdict: 'En curso' } as any)
+  vi.mocked(generarNarrativaEjecutiva).mockResolvedValue(undefined)
 })
 
 /**
@@ -90,6 +114,23 @@ describe('el día en la zona de la suscripción', () => {
   it('a la 1 de la mañana en México es el día que empieza, no el anterior', () => {
     expect(diaEnZona(new Date('2026-09-22T07:00:00Z'), 'America/Mexico_City').toISOString()).toBe(
       '2026-09-22T00:00:00.000Z'
+    )
+  })
+})
+
+describe('la fecha civil de corte', () => {
+  it('es la del día en la zona de la suscripción, no la de UTC', () => {
+    // A las 19:00 en México ya son las 01:00 del día siguiente en UTC. El expediente, el motor y
+    // el panel reciben ESTA cadena, así que sin la conversión el reporte de la tarde contaría las
+    // actividades de mañana. En Lambda, que corre en UTC, el defecto no se ve nunca.
+    expect(diaCivilEnZona(new Date('2026-09-23T01:00:00Z'), 'America/Mexico_City')).toBe('2026-09-22')
+  })
+
+  it('coincide con el día que reclama el candado', () => {
+    // Si las dos se separaran, el correo cubriría un día y la bitácora lo registraría en otro.
+    const instante = new Date('2026-09-23T01:00:00Z')
+    expect(diaEnZona(instante, 'America/Mexico_City').toISOString().slice(0, 10)).toBe(
+      diaCivilEnZona(instante, 'America/Mexico_City')
     )
   })
 })
@@ -199,15 +240,11 @@ describe('el aislamiento entre organizaciones', () => {
     // una suscripción con un projectId de otra organización mandaría datos ajenos.
     await enviarSuscripcion('sub-1')
 
-    expect(prisma.project.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'proj-1', organizationId: 'org-1' },
-      })
-    )
+    expect(reunirExpediente).toHaveBeenCalledWith('proj-1', 'org-1', expect.any(String))
   })
 
   it('falla, y no manda nada, si el proyecto no es de esa organización', async () => {
-    vi.mocked(prisma.project.findFirst).mockResolvedValue(null)
+    vi.mocked(reunirExpediente).mockResolvedValue(null)
 
     const r = await enviarSuscripcion('sub-1')
 
@@ -218,7 +255,7 @@ describe('el aislamiento entre organizaciones', () => {
 
 describe('cuando la narrativa no llega', () => {
   it('manda el correo igual, con las cifras', async () => {
-    vi.mocked(AIService.generateExecutiveBrief).mockRejectedValue(new Error('Bedrock caído'))
+    vi.mocked(generarNarrativaEjecutiva).mockRejectedValue(new Error('Bedrock caído'))
 
     const r = await enviarSuscripcion('sub-1')
 
