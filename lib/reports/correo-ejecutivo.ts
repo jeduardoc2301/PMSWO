@@ -174,7 +174,7 @@ function tablaDeLineas(
         : ''
       return `<tr>
   <td style="padding:9px 10px 9px 0; ${borde} font-family:${SANS}; font-size:13px; line-height:18px; color:${C.ink};">${esc(f.izq)}${sub}</td>
-  <td align="right" valign="top" nowrap="nowrap" style="padding:9px 0; ${borde} font-family:${SANS}; font-size:13px; font-weight:bold; color:${colorDer}; white-space:nowrap;">${esc(f.der)}</td>
+  <td width="90" align="right" valign="top" nowrap="nowrap" style="width:90px; padding:9px 0; ${borde} font-family:${SANS}; font-size:13px; font-weight:bold; color:${colorDer}; white-space:nowrap;">${esc(f.der).replace(/ /g, '&nbsp;')}</td>
 </tr>`
     })
     .join('')
@@ -250,7 +250,10 @@ function tablaDeColumnas(columnas: readonly Columna[], filas: readonly (readonly
           const sub = celda.sub
             ? `<div style="font-family:${SANS}; font-size:11px; line-height:15px; font-weight:normal; color:${C.grayLight}; padding-top:2px;">${esc(celda.sub)}</div>`
             : ''
-          return `<td width="${c.ancho}" align="${c.alinear ?? 'left'}" valign="top" style="width:${c.ancho}px; padding:8px ${relleno(c)} 8px 0; ${borde} font-family:${SANS}; font-size:12px; line-height:17px; color:${celda.color ?? C.ink};${celda.negrita ? ' font-weight:bold;' : ''}">${esc(celda.texto)}${sub}</td>`
+          // La columna alineada a la derecha es la del dato («En riesgo · 19 d»): nunca se parte en
+          // dos renglones. Outlook ignora `nowrap` si no hay espacios no separables.
+          const texto = c.alinear === 'right' ? esc(celda.texto).replace(/ /g, '&nbsp;') : esc(celda.texto)
+          return `<td width="${c.ancho}" align="${c.alinear ?? 'left'}" valign="top" style="width:${c.ancho}px; padding:8px ${relleno(c)} 8px 0; ${borde} font-family:${SANS}; font-size:12px; line-height:17px; color:${celda.color ?? C.ink};${celda.negrita ? ' font-weight:bold;' : ''}${c.alinear === 'right' ? ' white-space:nowrap;' : ''}">${texto}${sub}</td>`
         })
         .join('')
       return `<tr>${celdas}</tr>`
@@ -515,8 +518,8 @@ function graficaDeCortes(olas: OlasYFrentes['olas'], limite: string, hoy: string
       const cola = o.cortada
         ? `<span style="color:${C.gray};">cortada</span>`
         : o.atrasoDiasHabiles
-          ? `<span style="color:${tarde ? C.crimson : colorProy}; font-weight:bold;">+${o.atrasoDiasHabiles} d</span>`
-          : `<span style="color:${C.teal};">en fecha</span>`
+          ? `<span style="color:${tarde ? C.crimson : colorProy}; font-weight:bold;">+${o.atrasoDiasHabiles}&nbsp;d</span>`
+          : `<span style="color:${C.teal};">en&nbsp;fecha</span>`
       return `<tr>
   <td width="${ROTULO}" style="width:${ROTULO}px; font-family:${SANS}; font-size:11px; line-height:12px; color:${tarde ? C.crimson : C.ink};${tarde ? ' font-weight:bold;' : ''} white-space:nowrap;">Ola ${o.numero}</td>
   ${celdas}
