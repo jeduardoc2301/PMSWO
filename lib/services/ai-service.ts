@@ -140,6 +140,18 @@ export class AIService {
    * 
    * Requirements: 9.3, 16.5
    */
+  /**
+   * Ejecuta un prompt suelto y devuelve el texto tal cual.
+   *
+   * Para quien trae su propio prompt Y su propia validación de la respuesta —por ejemplo el
+   * reporte ejecutivo, cuyo prompt depende de qué secciones traiga el expediente y cuya salida se
+   * valida con Zod antes de llegar al comité de un cliente. No existe para saltarse los métodos de
+   * arriba: si el prompt es reutilizable, va aquí como método propio.
+   */
+  static async runRawPrompt(prompt: string, options: BedrockOptions = {}): Promise<string> {
+    return this.executeBedrockRequest<string>(prompt, options)
+  }
+
   private static async executeBedrockRequest<T>(
     prompt: string,
     options: BedrockOptions = {}
@@ -450,7 +462,9 @@ Usa un tono profesional y sé conciso pero completo.`
       // Call Bedrock
       const analysisText = await this.executeBedrockRequest<string>(prompt, {
         maxTokens: 4096,
-        temperature: 0.7,
+        // Bajada de 0.7: lo que se pide es JSON con una forma fija, no prosa. Menos temperatura,
+        // menos deriva de formato.
+        temperature: 0.3,
       })
 
       // Parse JSON response
@@ -567,7 +581,9 @@ Entre 3 y 5 secciones, y entre 3 y 5 peticiones.`
     // Un plan de cientos de tareas no cabe en el prompt sin agotar el tiempo de
     // la función. El análisis solo necesita lo que requiere acción; el resto va
     // agregado para dar contexto de tamaño y calendario.
-    const RELEVANT_LIMIT = 60
+    // Bajado de 60: el análisis se queda con los cinco hallazgos más urgentes, y para elegirlos no
+    // necesita leer sesenta candidatos. Cada línea de menos es tiempo que la petición no gasta.
+    const RELEVANT_LIMIT = 35
     const relevant: typeof project.workItems = []
     const vistos = new Set<string>()
     for (const grupo of [overdue, blocked, inProgress, dueSoon]) {
@@ -663,6 +679,16 @@ Responde ÚNICAMENTE con un objeto JSON válido (sin markdown, sin texto adicion
   ]
 }
 
+LÍMITES DE LA RESPUESTA (obligatorios):
+- Como MÁXIMO 5 elementos en "suggestions", 3 en "detectedRisks" y 5 en "overdueItems".
+- Ordena cada lista de más urgente a menos y quédate solo con las que de verdad piden una decisión.
+- "description" y "suggestedAction" de una sola frase, menos de 120 caracteres cada una.
+
+Estos límites no son una preferencia de estilo. Lo que tarda esta llamada lo marca cuántos tokens
+ESCRIBE el modelo, y la petición viaja dentro de una función con un plazo que no se puede ampliar:
+sin topes la respuesta llegaba cortada a media cadena a los 38 segundos y el análisis entero se
+perdía. Cinco hallazgos que se puedan leer valen más que veinte que no lleguen.
+
 IMPORTANTE: 
 - En "affectedEntityId" y "workItemId" SIEMPRE usa el ID (UUID) del work item, NO el título.
 - Los IDs están en el formato UUID (ejemplo: "123e4567-e89b-12d3-a456-426614174000")
@@ -700,15 +726,23 @@ Analiza:
         overdueItems: parsed.overdueItems || [],
       }
     } catch (error) {
+      /**
+       * Un JSON que no parsea es un FALLO, no un análisis sin hallazgos.
+       *
+       * Antes se devolvía el análisis vacío. Quien miraba la pantalla veía «ningún riesgo
+       * detectado» en un proyecto con doscientas actividades atrasadas, y —peor— ese vacío se
+       * guardaba en `AIAnalysisCache` durante veinticuatro horas: el primer truncamiento
+       * silenciaba el análisis un día entero, y ningún registro decía por qué.
+       *
+       * Lanzando, `analyzeProject` no llega a la línea que cachea y la pantalla enseña un error
+       * que se puede leer.
+       */
+      const detalle = (error as Error).message
       console.error('[AIService] Failed to parse analysis response:', error)
-      // Return empty analysis if parsing fails
-      return {
-        projectId,
-        analyzedAt: new Date(),
-        suggestions: [],
-        detectedRisks: [],
-        overdueItems: [],
-      }
+      throw new AIServiceError(
+        `El modelo devolvió una respuesta que no se pudo leer (${detalle}). ` +
+          'Suele ser que la respuesta llegó cortada; vuelve a intentarlo.'
+      )
     }
   }
 

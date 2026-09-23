@@ -47,6 +47,41 @@ interface AIAnalysisDialogProps {
   onCreateRisk?: (data: { description: string; probability: number; impact: number }) => void
 }
 
+/**
+ * Qué decirle al usuario cuando la respuesta no trae JSON.
+ *
+ * El código anterior hacía `await response.json()` sobre CUALQUIER respuesta de error. Una
+ * pasarela que corta la petición devuelve cuerpo vacío, así que `json()` lanzaba
+ * «Unexpected end of JSON input» — y ESE era el mensaje que llegaba a la pantalla, tapando por
+ * completo el problema real. Es exactamente lo que se vio: un análisis que tardaba más de lo que
+ * el servidor aguanta, reportado como un error de formato.
+ *
+ * Aquí el cuerpo se lee como texto y solo después se intenta interpretar. Si no es JSON, el
+ * usuario recibe el código de estado, que al menos se puede buscar y escalar.
+ */
+async function mensajeDeError(response: Response, porOmision: string): Promise<string> {
+  let cuerpo = ''
+  try {
+    cuerpo = await response.text()
+  } catch {
+    // Un cuerpo que ni siquiera se puede leer no aporta nada; se sigue con el estado.
+  }
+
+  if (cuerpo) {
+    try {
+      const datos = JSON.parse(cuerpo)
+      if (datos?.message) return datos.message
+    } catch {
+      // No era JSON: una página de error de la pasarela, o nada.
+    }
+  }
+
+  if (response.status === 504 || response.status === 502 || response.status === 0) {
+    return 'El análisis tardó más de lo que el servidor permite y se cortó. Vuelve a intentarlo; si se repite, el proyecto es demasiado grande para analizarlo de una sola vez.'
+  }
+  return `${porOmision} (HTTP ${response.status})`
+}
+
 export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, onAdjustDates, onCreateRisk }: AIAnalysisDialogProps) {
   const t = useTranslations('ai')
   const tCommon = useTranslations('common')
@@ -71,8 +106,7 @@ export function AIAnalysisDialog({ projectId, onActionTaken, onCreateBlocker, on
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || t('errors.analyzeProjectFailed'))
+        throw new Error(await mensajeDeError(response, t('errors.analyzeProjectFailed')))
       }
 
       const data = await response.json()
