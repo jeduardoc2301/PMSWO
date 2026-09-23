@@ -1882,3 +1882,25 @@ describe('Qué tan reciente es la última captura del avance', () => {
     expect(haceCuanto(capturado, h(50))).toBe('hace 2 días y 2 h')
   })
 })
+
+describe('La columna Responsable', () => {
+  it('cada fila lleva el nombre de quien la lleva, el mismo que usa el filtro', () => {
+    // Si la columna y el filtro leyeran campos distintos, filtrar por «Rafael» podría dejar filas
+    // cuya celda dice otro nombre.
+    const { rows } = trazar([
+      { id: 'a', name: 'Solicitar reglas en el firewall', duration: 2, owner: 'Rafael' },
+      { id: 'b', name: 'Configurar la VPN', duration: 2, owner: '  Salomón  ' },
+    ])
+    expect(rows.find((r) => r.id === 'a')?.responsable).toBe('Rafael')
+    // Sin espacios de sobra: es exactamente la clave que ofrece el filtro.
+    expect(rows.find((r) => r.id === 'b')?.responsable).toBe('Salomón')
+    expect(responsablesDelPlan([{ id: 'b', name: 'x', duration: 1, owner: '  Salomón  ' }])[0].nombre).toBe(
+      'Salomón',
+    )
+  })
+
+  it('una línea sin nadie asignado lleva null, no una cadena vacía', () => {
+    const { rows } = trazar([{ id: 'a', name: 'Sin dueño', duration: 1 }])
+    expect(rows[0].responsable).toBeNull()
+  })
+})

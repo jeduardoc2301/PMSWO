@@ -230,6 +230,10 @@ function contenidoDe(
       return row.isSummary ? 'Resumen' : row.isMilestone ? 'Hito' : 'Actividad'
     case 'party':
       return row.party === 'CLIENTE' ? 'Cliente' : 'Nuestro'
+    case 'responsable':
+      // Un resumen no lo ejecuta nadie en particular: su nombre sería el de quien capturó la fila de
+      // agrupación, que no dice nada de quién hace el trabajo de abajo.
+      return row.isSummary ? '' : (row.responsable ?? '—')
     case 'progress':
       // La cifra que hay, no la redondeada: si alguien capturó un tercio, la celda dice «33,33 %».
       // Redondear aquí a un entero no era sólo un detalle de presentación — la celda se **abría**

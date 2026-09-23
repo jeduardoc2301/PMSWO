@@ -21,7 +21,8 @@ describe('§6.2 · las columnas de la Lista contra las del Gantt', () => {
     expect(COLUMNAS.length).toBeGreaterThan(COLUMNAS_DE_LA_LISTA.length)
     // Las cifras del día en que se midió: 14 contra 9. Si alguien cierra la brecha, esta prueba se
     // pone roja y hay que venir a cambiarla — que es exactamente lo que se quiere.
-    expect([COLUMNAS.length, COLUMNAS_DE_LA_LISTA.length]).toEqual([14, 9])
+    // 15 desde que el Gantt enseña «Responsable» (la persona con nombre, `responsibleName`).
+    expect([COLUMNAS.length, COLUMNAS_DE_LA_LISTA.length]).toEqual([15, 9])
   })
 
   it('y lo que la Lista no puede enseñar incluye la duración, en ninguna de sus dos formas', () => {

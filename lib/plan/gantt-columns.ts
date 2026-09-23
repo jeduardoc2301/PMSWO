@@ -46,6 +46,9 @@ export const COLUMNAS: readonly ColumnaDelGantt[] = Object.freeze([
   { id: 'name', etiqueta: 'Línea del plan', grupo: 'Generales', ancho: 320, minimo: 140, fija: true },
   { id: 'kind', etiqueta: 'Clase', grupo: 'Generales', ancho: 96, minimo: 60 },
   { id: 'party', etiqueta: 'Responde', grupo: 'Generales', ancho: 96, minimo: 60 },
+  // Al lado de «Responde» a propósito: esa dice de qué lado está la línea —cliente o nuestro— y
+  // ésta dice quién, con nombre. Juntas se leen como una sola respuesta.
+  { id: 'responsable', etiqueta: 'Responsable', grupo: 'Generales', ancho: 132, minimo: 72 },
   { id: 'progress', etiqueta: 'Avance', grupo: 'Generales', ancho: 72, minimo: 52, numerica: true },
   { id: 'start', etiqueta: 'Inicio', grupo: 'Cronograma', ancho: 100, minimo: 88 },
   { id: 'finish', etiqueta: 'Fin', grupo: 'Cronograma', ancho: 100, minimo: 88 },

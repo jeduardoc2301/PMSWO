@@ -28,6 +28,7 @@ function fila(overrides: Partial<GanttRow> = {}): GanttRow {
     hasChildren: false,
     isCollapsed: false,
     kind: 'ACTIVIDAD',
+    responsable: null,
     party: 'PROVEEDOR',
     start: '2026-06-01',
     finish: '2026-06-05',

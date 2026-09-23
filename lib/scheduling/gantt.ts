@@ -76,6 +76,14 @@ export interface GanttRow {
   readonly isCollapsed: boolean
   readonly kind: TaskKind
   readonly party: ResponsibleParty
+  /**
+   * La persona que lleva la línea, o `null` si no tiene a nadie.
+   *
+   * Sale de `responsableDe`, la misma función que alimenta el filtro de Responsable: si la columna
+   * y el filtro leyeran campos distintos, filtrar por «Rafael» podría dejar filas cuya celda dice
+   * otro nombre.
+   */
+  readonly responsable: string | null
 
   readonly start: IsoDate
   readonly finish: IsoDate
@@ -902,6 +910,7 @@ export function ganttLayout(input: GanttInput): GanttLayout {
       isCollapsed: collapsed.has(task.id),
       kind: task.kind ?? 'ACTIVIDAD',
       party: classifiedTask?.party ?? task.party ?? 'PROVEEDOR',
+      responsable: responsableDe(task),
       start: tramo?.start ?? scheduled?.start ?? schedule.start,
       finish: tramo?.finish ?? scheduled?.finish ?? schedule.start,
       isMilestone: scheduled?.isMilestone ?? task.duration === 0,
