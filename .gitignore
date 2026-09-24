@@ -42,4 +42,4 @@ next-env.d.ts
 alap-resguardo.json
 
 # Salida de `npm run reporte:ver` — se regenera, no se versiona.
-reporte-diario-ejemplo.html
+reporte-diario-ejemplo*.html

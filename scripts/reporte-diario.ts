@@ -32,12 +32,15 @@ function listaDeCorreos(valor: string | undefined): string[] {
 async function ver() {
   const projectId = arg('proyecto')
   if (!projectId) {
-    console.error('Uso: npm run reporte:ver -- --proyecto <id> [--sin-narrativa]')
+    console.error('Uso: npm run reporte:ver -- --proyecto <id> [--sin-narrativa] [--compartible]')
     process.exit(1)
   }
 
   const { reunirExpediente } = await import('../services/expediente-del-reporte.service')
   const { armarCorreoEjecutivo, veredictoDeLasCifras } = await import('../lib/reports/correo-ejecutivo')
+  const { armarCorreoCompartible } = await import('../lib/reports/correo-compartible')
+  // --compartible arma la versión 2: interna, redactada para poder copiarse frente al cliente.
+  const compartible = process.argv.includes('--compartible')
   const { default: prisma } = await import('../lib/prisma')
 
   const proyecto = await prisma.project.findUnique({
@@ -69,15 +72,15 @@ async function ver() {
     const { generarNarrativaEjecutiva } = await import('../lib/reports/narrativa-ejecutiva')
     console.log('Pidiéndole la lectura al modelo…')
     const t1 = Date.now()
-    narrativa = await generarNarrativaEjecutiva(expediente)
+    narrativa = await generarNarrativaEjecutiva(expediente, compartible ? 'COMPARTIBLE' : 'EJECUTIVO')
     console.log(`  ${narrativa ? 'lista' : 'no se pudo'} (${Date.now() - t1} ms)`)
   }
 
-  const correo = armarCorreoEjecutivo(expediente, narrativa, {
+  const correo = (compartible ? armarCorreoCompartible : armarCorreoEjecutivo)(expediente, narrativa, {
     appUrl: process.env.APP_PUBLIC_URL ?? 'https://master.d3fbgo1omfw37o.amplifyapp.com',
   })
 
-  const destino = resolve(process.cwd(), 'reporte-diario-ejemplo.html')
+  const destino = resolve(process.cwd(), compartible ? 'reporte-diario-ejemplo-v2.html' : 'reporte-diario-ejemplo.html')
   writeFileSync(destino, correo.html, 'utf8')
 
   const m = expediente.panel.metricas
@@ -119,7 +122,8 @@ async function suscribir() {
       frequency: 'DIARIO',
       sendHour: Number(arg('hora') ?? 8),
       timezone: arg('zona') ?? 'America/Mexico_City',
-      detailLevel: 'EXECUTIVE',
+      // EXECUTIVE = versión 1; COMPARTIBLE = versión 2.
+      detailLevel: arg('nivel') === 'COMPARTIBLE' ? 'COMPARTIBLE' : 'EXECUTIVE',
       active: true,
     },
   })

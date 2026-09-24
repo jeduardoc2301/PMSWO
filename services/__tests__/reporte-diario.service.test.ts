@@ -30,11 +30,27 @@ vi.mock('@/lib/reports/correo-ejecutivo', () => ({
   })),
 }))
 
+vi.mock('@/lib/reports/correo-compartible', () => ({
+  armarCorreoCompartible: vi.fn(() => ({
+    subject: 'Proyecto · Reporte diario · 22 sep',
+    html: '<p>reporte v2</p>',
+    text: 'reporte v2',
+  })),
+}))
+
 import prisma from '@/lib/prisma'
 import { sendEmail } from '@/lib/email/ses'
 import { reunirExpediente } from '@/services/expediente-del-reporte.service'
 import { generarNarrativaEjecutiva } from '@/lib/reports/narrativa-ejecutiva'
-import { diaCivilEnZona, diaEnZona, enviarSuscripcion, leerMilisegundos } from '../reporte-diario.service'
+import { armarCorreoEjecutivo } from '@/lib/reports/correo-ejecutivo'
+import { armarCorreoCompartible } from '@/lib/reports/correo-compartible'
+import {
+  diaCivilEnZona,
+  diaEnZona,
+  enviarReportesDiarios,
+  enviarSuscripcion,
+  leerMilisegundos,
+} from '../reporte-diario.service'
 
 const SUB = {
   id: 'sub-1',
@@ -233,8 +249,8 @@ describe('el candado contra correos duplicados', () => {
 
 describe('cuando la propia bitácora falla', () => {
   it('devuelve FALLIDO en vez de lanzar, para no tumbar el barrido completo', async () => {
-    // `enviarReportesDiarios` recorre las suscripciones en serie. Una excepción que se escape
-    // de aquí no dejaría esta suscripción en rojo: dejaría sin correo a todas las siguientes.
+    // `enviarReportesDiarios` junta las suscripciones con `Promise.all`. Una excepción que se
+    // escape de aquí no dejaría esta suscripción en rojo: tumbaría el barrido completo.
     vi.mocked(prisma.reportDelivery.create).mockRejectedValue(new Error('la base se cayó'))
 
     const r = await enviarSuscripcion('sub-1')
@@ -309,5 +325,40 @@ describe('las suscripciones sin destinatarios', () => {
 
     expect(r.estado).toBe('OMITIDO')
     expect(prisma.reportDelivery.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('las dos versiones del reporte', () => {
+  it('EXECUTIVE manda la versión 1, con su narrativa', async () => {
+    await enviarSuscripcion('sub-1')
+    expect(armarCorreoEjecutivo).toHaveBeenCalled()
+    expect(armarCorreoCompartible).not.toHaveBeenCalled()
+    expect(vi.mocked(generarNarrativaEjecutiva).mock.calls[0][1]).toBe('EJECUTIVO')
+  })
+
+  it('COMPARTIBLE manda la versión 2, con la narrativa para compartir', async () => {
+    vi.mocked(prisma.reportSubscription.findUnique).mockResolvedValue({ ...SUB, detailLevel: 'COMPARTIBLE' } as any)
+    const r = await enviarSuscripcion('sub-1')
+    expect(r.estado).toBe('ENVIADO')
+    expect(armarCorreoCompartible).toHaveBeenCalled()
+    expect(armarCorreoEjecutivo).not.toHaveBeenCalled()
+    expect(vi.mocked(generarNarrativaEjecutiva).mock.calls[0][1]).toBe('COMPARTIBLE')
+    expect(vi.mocked(sendEmail).mock.calls[0][0].subject).toBe('Proyecto · Reporte diario · 22 sep')
+  })
+
+  it('el barrido arma las suscripciones en paralelo, no una detrás de otra', async () => {
+    vi.mocked(prisma.reportSubscription.findMany).mockResolvedValue([{ id: 'sub-1' }, { id: 'sub-2' }] as any)
+    let abiertos = 0
+    let maximo = 0
+    vi.mocked(reunirExpediente).mockImplementation(async () => {
+      abiertos += 1
+      maximo = Math.max(maximo, abiertos)
+      await new Promise((r) => setTimeout(r, 5))
+      abiertos -= 1
+      return EXPEDIENTE as any
+    })
+    const r = await enviarReportesDiarios()
+    expect(r).toHaveLength(2)
+    expect(maximo).toBe(2)
   })
 })

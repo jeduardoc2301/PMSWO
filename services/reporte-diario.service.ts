@@ -18,6 +18,7 @@ import prisma from '@/lib/prisma'
 import { logError, logInfo, logWarning } from '@/lib/logger'
 import { sendEmail } from '@/lib/email/ses'
 import { armarCorreoEjecutivo } from '@/lib/reports/correo-ejecutivo'
+import { armarCorreoCompartible } from '@/lib/reports/correo-compartible'
 import { generarNarrativaEjecutiva } from '@/lib/reports/narrativa-ejecutiva'
 import { reunirExpediente } from '@/services/expediente-del-reporte.service'
 
@@ -260,9 +261,9 @@ export async function enviarSuscripcion(
   // Se reclama antes de cualquier trabajo caro y antes de SES. En modo prueba no se reclama
   // nada: probar el correo no debe consumir el envío del día.
   //
-  // El resultado se devuelve, nunca se lanza. `enviarReportesDiarios` recorre suscripciones en
-  // serie: una excepción que se escape de aquí no dejaría esta suscripción en rojo, dejaría sin
-  // correo a TODAS las que venían detrás.
+  // El resultado se devuelve, nunca se lanza. `enviarReportesDiarios` junta las suscripciones con
+  // `Promise.all`: una excepción que se escape de aquí no dejaría esta suscripción en rojo,
+  // tumbaría el barrido completo y dejaría sin resultado a todas.
   const reclamo = opciones.prueba
     ? ({ tipo: 'listo', deliveryId: null } as const)
     : await reclamarEnvio(subscriptionId, diaCubierto, destinatarios, ahora)
@@ -286,13 +287,16 @@ export async function enviarSuscripcion(
 
     // La prosa se pide con corte: si el modelo tarda, el correo sale con las cifras. Las cifras
     // SON el reporte; la lectura lo acompaña.
+    // `detailLevel` elige la versión: EXECUTIVE es la versión 1, tal cual; COMPARTIBLE es la
+    // versión 2, interna pero redactada para poder copiarse frente al cliente.
+    const compartible = sub.detailLevel === 'COMPARTIBLE'
     const narrativa = await conCorte(
-      generarNarrativaEjecutiva(expediente),
+      generarNarrativaEjecutiva(expediente, compartible ? 'COMPARTIBLE' : 'EJECUTIVO'),
       TIMEOUT_NARRATIVA_MS,
       'la lectura en prosa'
     )
 
-    const correo = armarCorreoEjecutivo(expediente, narrativa, {
+    const correo = (compartible ? armarCorreoCompartible : armarCorreoEjecutivo)(expediente, narrativa, {
       // `||` y no `??`: una variable sin poner en Amplify llega como '' (ver `leerMilisegundos`).
       appUrl: process.env.APP_PUBLIC_URL || process.env.AUTH_URL || process.env.NEXTAUTH_URL,
     })
@@ -323,6 +327,7 @@ export async function enviarSuscripcion(
       messageId,
       conNarrativa: Boolean(narrativa),
       conProyeccion: Boolean(expediente.plan),
+      version: compartible ? 'COMPARTIBLE' : 'EJECUTIVO',
     })
 
     return { estado: 'ENVIADO', subscriptionId, messageId, destinatarios }
@@ -417,9 +422,9 @@ export async function enviarReportesDiarios(opciones: OpcionesEnvio = {}): Promi
 
   logInfo('[Reporte diario] inicio del barrido', { suscripciones: subs.length })
 
-  const resultados: ResultadoEnvio[] = []
-  for (const sub of subs) {
-    resultados.push(await enviarSuscripcion(sub.id, opciones))
-  }
-  return resultados
+  // En paralelo y no en serie: cada reporte tarda lo que tarda su narrativa (hasta el corte de
+  // ~25 s), y dos en fila se pasaban del tiempo que la Lambda espera a la app. Es seguro porque
+  // cada suscripción tiene su propio candado y `enviarSuscripcion` nunca lanza: devuelve su
+  // resultado, así que una que falle no tumba a las demás.
+  return Promise.all(subs.map((sub) => enviarSuscripcion(sub.id, opciones)))
 }

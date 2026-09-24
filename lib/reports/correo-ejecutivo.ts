@@ -55,32 +55,32 @@ import type { NarrativaEjecutiva } from './narrativa-ejecutiva'
 import type { AlertaDeOlas, OlasYFrentes, Semaforo } from './olas-y-frentes'
 import { C, SANS, SERIF, esc, parrafo, seccion, shell } from '@/lib/email/html'
 
-const ANCHO = 528
+export const ANCHO = 528
 const BARRA = 380
 
-const MESES = [
+export const MESES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ]
 
-function fechaLarga(d: Date): string {
+export function fechaLarga(d: Date): string {
   return `${d.getUTCDate()} de ${MESES[d.getUTCMonth()]} de ${d.getUTCFullYear()}`
 }
-function fechaMedia(d: Date): string {
+export function fechaMedia(d: Date): string {
   return `${d.getUTCDate()} de ${MESES[d.getUTCMonth()]}`
 }
-function deIso(iso: string): Date {
+export function deIso(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`)
 }
 /** Días hábiles a semanas, para que la cifra se pueda pensar. */
-function enSemanas(diasHabiles: number): string {
+export function enSemanas(diasHabiles: number): string {
   const semanas = Math.round(diasHabiles / 5)
   return semanas <= 1 ? 'una semana' : `${semanas} semanas`
 }
 
 export type Veredicto = 'En riesgo' | 'Atención' | 'En curso'
 
-const CHIP: Record<Veredicto, string> = {
+export const CHIP: Record<Veredicto, string> = {
   'En riesgo': C.crimson,
   'Atención': '#B45309',
   'En curso': C.teal,
@@ -113,7 +113,7 @@ export function veredictoDeLasCifras(e: Expediente): Veredicto {
 }
 
 /** Un dato con su rótulo. El tamaño baja con la longitud para que no se encime con el de al lado. */
-function ficha(valor: string, rotulo: string, color: string): string {
+export function ficha(valor: string, rotulo: string, color: string): string {
   const tam = valor.length <= 4 ? 29 : valor.length <= 6 ? 23 : 18
   return `<td class="kpi" width="132" valign="top" style="width:132px; padding:0 8px 0 0;">
   <div style="font-family:${SERIF}; font-size:${tam}px; line-height:33px; color:${color};">${esc(valor)}</div>
@@ -121,7 +121,7 @@ function ficha(valor: string, rotulo: string, color: string): string {
 </td>`
 }
 
-function medida(rotulo: string, pct: number, color: string): string {
+export function medida(rotulo: string, pct: number, color: string): string {
   const acotado = Math.max(0, Math.min(100, pct))
   const relleno = acotado > 0 ? Math.max(3, Math.round((acotado / 100) * BARRA)) : 0
   const hueco = relleno > 0 && relleno < BARRA ? 2 : 0
@@ -146,7 +146,7 @@ function medida(rotulo: string, pct: number, color: string): string {
 }
 
 /** Un renglón de la respuesta al «¿llegamos?»: rótulo, cifra grande y explicación debajo. */
-function renglonDeVeredicto(
+export function renglonDeVeredicto(
   rotulo: string,
   cifra: string,
   explicacion: string,
@@ -162,7 +162,7 @@ function renglonDeVeredicto(
 </tr>`
 }
 
-function tablaDeLineas(
+export function tablaDeLineas(
   filas: readonly { izq: string; sub?: string | null; der: string }[],
   colorDer: string
 ): string {
@@ -183,7 +183,7 @@ function tablaDeLineas(
 </td></tr>`
 }
 
-function nota(texto: string): string {
+export function nota(texto: string): string {
   return `<tr><td class="pad" style="padding:10px 36px 0 36px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${ANCHO}" style="width:${ANCHO}px; background-color:#FAF9F8;">
     <tr><td style="padding:11px 14px; font-family:${SANS}; font-size:11px; line-height:17px; color:${C.gray}; border-left:3px solid ${C.rule};">${esc(texto)}</td></tr>
@@ -192,13 +192,13 @@ function nota(texto: string): string {
 }
 
 /** «4 sep», para tablas donde no cabe la fecha media. */
-function fechaCorta(iso: string): string {
+export function fechaCorta(iso: string): string {
   const d = deIso(iso)
   return `${d.getUTCDate()} ${MESES[d.getUTCMonth()].slice(0, 3)}`
 }
 
 /** «olas 0 a 3» si son seguidas; «olas 5, 7, 8 y 10» si no. */
-function listaDeOlas(olas: readonly number[]): string {
+export function listaDeOlas(olas: readonly number[]): string {
   if (olas.length === 0) return ''
   if (olas.length === 1) return `ola ${olas[0]}`
   const seguidas = olas.every((n, i) => i === 0 || n === olas[i - 1] + 1)
@@ -206,7 +206,7 @@ function listaDeOlas(olas: readonly number[]): string {
   return `olas ${olas.slice(0, -1).join(', ')} y ${olas[olas.length - 1]}`
 }
 
-const COLOR_SEMAFORO: Record<Semaforo, string> = {
+export const COLOR_SEMAFORO: Record<Semaforo, string> = {
   'En tiempo': C.teal,
   'Atención': '#B45309',
   'En riesgo': C.crimson,
@@ -216,7 +216,7 @@ const COLOR_SEMAFORO: Record<Semaforo, string> = {
  * El semáforo siempre con su etiqueta escrita: el color solo no se lee en un correo impreso, ni lo
  * distingue quien no ve bien los colores.
  */
-function etiquetaDeSemaforo(s: Semaforo, dias: number): string {
+export function etiquetaDeSemaforo(s: Semaforo, dias: number): string {
   return s === 'En tiempo' ? 'En tiempo' : `${s} · ${dias} d`
 }
 
@@ -233,7 +233,7 @@ interface Celda {
 }
 
 /** Una tabla de columnas fijas que suman 528 px. La celda puede traer un renglón secundario. */
-function tablaDeColumnas(columnas: readonly Columna[], filas: readonly (readonly Celda[])[]): string {
+export function tablaDeColumnas(columnas: readonly Columna[], filas: readonly (readonly Celda[])[]): string {
   const relleno = (c: Columna) => (c.alinear === 'right' ? '0' : '8px')
   const encabezado = columnas
     .map(
@@ -265,7 +265,7 @@ function tablaDeColumnas(columnas: readonly Columna[], filas: readonly (readonly
 }
 
 /** Un aviso que no se puede saltar: borde de color y texto en tinta, no en gris como la nota. */
-function alerta(texto: string, color: string): string {
+export function alerta(texto: string, color: string): string {
   return `<tr><td class="pad" style="padding:12px 36px 0 36px;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${ANCHO}" style="width:${ANCHO}px; background-color:#FBF7F8;">
     <tr><td style="padding:11px 14px; font-family:${SANS}; font-size:12px; line-height:18px; color:${C.ink}; border-left:3px solid ${color};">${esc(texto)}</td></tr>
@@ -273,7 +273,7 @@ function alerta(texto: string, color: string): string {
 </td></tr>`
 }
 
-function textoDeAlerta(a: AlertaDeOlas): string {
+export function textoDeAlerta(a: AlertaDeOlas): string {
   switch (a.tipo) {
     case 'encadenadas':
       return `Las ${a.cuantas} olas pendientes se corren lo mismo, ${a.diasHabiles} días hábiles: en el plan van encadenadas y el atraso de las primeras arrastra a todas. Recuperar las primeras olas recupera el tren completo.`
@@ -284,7 +284,7 @@ function textoDeAlerta(a: AlertaDeOlas): string {
   }
 }
 
-const pct = (x: number) => `${Math.round(x * 100)}%`
+export const pct = (x: number) => `${Math.round(x * 100)}%`
 
 /** Las olas antes que los frentes: primero el efecto que siente el banco, luego la causa. */
 function seccionesDeOlasYFrentes(o: OlasYFrentes): string[] {
@@ -418,15 +418,15 @@ function seccionesDeOlasYFrentes(o: OlasYFrentes): string[] {
   return partes
 }
 
-const SEVERIDAD: Record<string, string> = { LOW: 'Baja', MEDIUM: 'Media', HIGH: 'Alta', CRITICAL: 'Crítica' }
-const ESTADO_RIESGO: Record<string, string> = {
+export const SEVERIDAD: Record<string, string> = { LOW: 'Baja', MEDIUM: 'Media', HIGH: 'Alta', CRITICAL: 'Crítica' }
+export const ESTADO_RIESGO: Record<string, string> = {
   IDENTIFIED: 'Identificado',
   MONITORING: 'En monitoreo',
   MITIGATING: 'En mitigación',
   MATERIALIZED: 'Materializado',
   CLOSED: 'Cerrado',
 }
-const ESTADO_ACUERDO: Record<string, string> = {
+export const ESTADO_ACUERDO: Record<string, string> = {
   PENDING: 'Pendiente',
   IN_PROGRESS: 'En curso',
   COMPLETED: 'Cumplido',
@@ -434,7 +434,7 @@ const ESTADO_ACUERDO: Record<string, string> = {
 }
 const ORDEN_SEVERIDAD: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
 /** Lo más grave primero: con seis renglones de espacio, el que se queda fuera no puede ser el crítico. */
-const porSeveridad = (a: string, b: string) => (ORDEN_SEVERIDAD[a] ?? 9) - (ORDEN_SEVERIDAD[b] ?? 9)
+export const porSeveridad = (a: string, b: string) => (ORDEN_SEVERIDAD[a] ?? 9) - (ORDEN_SEVERIDAD[b] ?? 9)
 
 const DIA_MS = 86_400_000
 
@@ -455,7 +455,16 @@ function lunesDe(iso: string): number {
  *
  * Responde de un vistazo la pregunta del reporte: qué olas ya caen después del compromiso.
  */
-function graficaDeCortes(olas: OlasYFrentes['olas'], limite: string, hoy: string): string[] {
+export function graficaDeCortes(
+  olas: OlasYFrentes['olas'],
+  limite: string,
+  hoy: string,
+  /**
+   * `limite`: el corte proyectado va en rojo sólo si cae después de la fecha límite, y en ámbar si
+   * no. Es la versión para compartir: el rojo se reserva para lo que de verdad pide una decisión.
+   */
+  colorear: 'semaforo' | 'limite' = 'semaforo'
+): string[] {
   const conFecha = olas.filter((o) => o.corteComprometido)
   if (conFecha.length === 0) return []
 
@@ -474,7 +483,9 @@ function graficaDeCortes(olas: OlasYFrentes['olas'], limite: string, hoy: string
   const indice = (iso: string) => Math.round((lunesDe(iso) - inicio) / (7 * DIA_MS))
   const semanaLimite = indice(limite)
   const semanaHoy = indice(hoy)
-  const TENUE = '#F2D6E3'
+  // En la versión para compartir el corrimiento va en un tono neutro: el rosa de la V1 tiñe de
+  // alarma diez renglones que cuentan un solo problema.
+  const TENUE = colorear === 'limite' ? '#EDE7DF' : '#F2D6E3'
   const HOY = '#F1EFEC'
 
   const ancho = (i: number) => anchoSemana + (i === semanas - 1 ? sobrante : 0)
@@ -503,7 +514,14 @@ function graficaDeCortes(olas: OlasYFrentes['olas'], limite: string, hoy: string
       const comp = indice(o.corteComprometido!)
       const proy = o.corteProyectado ? indice(o.corteProyectado) : comp
       const tarde = !o.cortada && o.corteProyectado !== null && o.corteProyectado > limite
-      const colorProy = o.semaforo ? COLOR_SEMAFORO[o.semaforo] : C.gray
+      const colorProy =
+        colorear === 'limite'
+          ? tarde
+            ? C.crimson
+            : COLOR_SEMAFORO['Atención']
+          : o.semaforo
+            ? COLOR_SEMAFORO[o.semaforo]
+            : C.gray
       const celdas = Array.from({ length: semanas }, (_, i) => {
         let bg = fondo(i)
         if (o.cortada && i === comp) bg = C.gray
@@ -531,7 +549,11 @@ function graficaDeCortes(olas: OlasYFrentes['olas'], limite: string, hoy: string
 
   const muestra = (color: string) =>
     `<span style="display:inline-block; width:10px; height:10px; background-color:${color}; vertical-align:-1px;"></span>`
-  const leyenda = `${muestra('#A8A4A2')} corte comprometido &nbsp; ${muestra(C.crimson)} corte proyectado &nbsp; ${muestra(TENUE)} corrimiento &nbsp; <span style="display:inline-block; width:2px; height:11px; background-color:${C.crimson}; vertical-align:-1px;"></span> ${esc(fechaMedia(deIso(limite)))}, fecha comprometida &nbsp; ${muestra(HOY)} hoy`
+  const proyectados =
+    colorear === 'limite'
+      ? `${muestra(COLOR_SEMAFORO['Atención'])} corte proyectado &nbsp; ${muestra(C.crimson)} proyectado después del límite &nbsp;`
+      : `${muestra(C.crimson)} corte proyectado &nbsp;`
+  const leyenda = `${muestra('#A8A4A2')} corte comprometido &nbsp; ${proyectados} ${muestra(TENUE)} corrimiento &nbsp; <span style="display:inline-block; width:2px; height:11px; background-color:${C.crimson}; vertical-align:-1px;"></span> ${esc(fechaMedia(deIso(limite)))}, fecha comprometida &nbsp; ${muestra(HOY)} hoy`
 
   const despues = conFecha.filter((o) => !o.cortada && o.corteProyectado !== null && o.corteProyectado > limite)
   const lectura =

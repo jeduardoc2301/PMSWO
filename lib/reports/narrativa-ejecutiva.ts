@@ -207,6 +207,138 @@ export function hechosDelExpediente(e: Expediente): Record<string, unknown> {
   }
 }
 
+/** Qué versión del reporte se está redactando. */
+export type VersionDelReporte = 'EJECUTIVO' | 'COMPARTIBLE'
+
+const porcentaje = (parte: number, total: number) => (total > 0 ? Math.round((parte / total) * 100) : 0)
+
+/**
+ * Los hechos de la versión para compartir.
+ *
+ * El reporte es interno, pero se da por hecho que alguien va a copiar y pegar un párrafo en un
+ * correo al banco. Así que el modelo **no ve** lo que no debe salir: las cantidades de actividades
+ * (se publican como porcentaje), quién responde por cada atraso, las líneas que detiene cada
+ * compromiso del cliente y los avisos de calidad de captura. Lo que el modelo no ve, no lo puede
+ * escribir.
+ */
+export function hechosParaCompartir(e: Expediente): Record<string, unknown> {
+  const m = e.panel.metricas
+  const a = e.atrasos
+  const p = e.plan?.proyeccion
+  const cc = e.plan?.informe
+  const oyf = e.plan?.olasYFrentes
+  const limite = e.proyecto.comprometidoPara.toISOString().slice(0, 10)
+
+  return {
+    proyecto: e.proyecto.nombre,
+    cliente: e.proyecto.cliente,
+    fechaComprometida: limite,
+    corte: e.corte,
+    avance: {
+      realPonderadoPorDuracion: Number((m.proyecto.progresoGlobal * 100).toFixed(1)),
+      calendarioLaborableConsumido: Number((m.avanceTemporal.planificado * 100).toFixed(1)),
+      diferenciaEnPuntos: Number((m.avanceTemporal.desviacion * 100).toFixed(1)),
+      porcentajeDeHitosConAtraso: porcentaje(m.hitos.atrasados, m.hitos.total),
+    },
+    atrasos: {
+      porcentajeDeActividadesConAtraso: porcentaje(a.atrasadas.length, m.tareas.hojas),
+      medianaDeAtrasoEnDiasHabiles: a.medianaDiasHabiles,
+      repartoPorTramo: a.reparto.map((t) => ({
+        tramo: t.rotulo,
+        porcentajeDeLasAtrasadas: porcentaje(t.cuantas, a.atrasadas.length),
+      })),
+    },
+    fecha: p
+      ? {
+          cierreProyectadoAlRitmoActual: p.cierreProyectado,
+          diasHabilesPorRecuperar:
+            p.margenProyectadoDiasHabiles != null && p.margenProyectadoDiasHabiles < 0 ? -p.margenProyectadoDiasHabiles : 0,
+          supuesto:
+            'Es la fecha si desde hoy todo corre según lo planeado y no se recupera nada. No es un pronóstico: es lo que hay que revertir.',
+        }
+      : null,
+    olas: oyf
+      ? oyf.olas.map((o) => ({
+          ola: o.numero,
+          ambiente: o.ambiente,
+          fase: o.fase.startsWith('Corte al') ? 'En corte' : o.fase,
+          corteComprometido: o.corteComprometido,
+          corteProyectado: o.corteProyectado,
+          yaSeCorto: o.cortada,
+          desplazamientoEnDiasHabiles: o.atrasoDiasHabiles,
+          quedaDespuesDeLaFechaComprometida: !o.cortada && o.corteProyectado !== null && o.corteProyectado > limite,
+          dependeDe: o.compuertas,
+        }))
+      : null,
+    compuertas: oyf
+      ? oyf.compuertas.map((c) => ({
+          compuerta: `${c.codigo} · ${c.nombre}`,
+          habilitaOlas: c.olas,
+          porcentajeListo: porcentaje(c.listas, c.total),
+          desplazamientoEnDiasHabiles: c.atrasoDiasHabiles,
+        }))
+      : null,
+    frentesDePlataforma: oyf
+      ? oyf.frentes.map((f) => ({
+          frente: f.nombre,
+          avanceReal: Math.round(f.avanceReal * 100),
+          avanceEsperado: Math.round(f.avanceEsperado * 100),
+          desplazamientoEnDiasHabiles: f.atrasoDiasHabiles,
+          terminado: f.terminado,
+        }))
+      : null,
+    decisionesQueNecesitamosDelCliente: cc
+      ? cc.whatCanMoveIt.slice(0, 5).map((r) => ({ decision: r.name, comprometidaPara: r.dueDate }))
+      : null,
+    temasAbiertos: {
+      bloqueos: e.bloqueos.filter((b) => !b.resuelto).map((b) => b.descripcion),
+      riesgos: e.riesgos
+        .filter((r) => r.estado !== 'CLOSED')
+        .map((r) => ({ riesgo: r.descripcion, mitigacion: r.mitigacion })),
+      acuerdosPendientes: e.acuerdos
+        .filter((x) => x.estado === 'PENDING' || x.estado === 'IN_PROGRESS')
+        .map((x) => x.titulo),
+    },
+  }
+}
+
+function construirPromptCompartible(hechos: Record<string, unknown>): string {
+  const cliente = String(hechos.cliente ?? 'el cliente')
+  return `Eres el director de entrega de SoftwareOne. Escribes la lectura de un reporte INTERNO que leen los líderes y los PMs de SoftwareOne.
+
+Supón SIEMPRE que un PM va a copiar y pegar cualquier párrafo tuyo en un correo al banco. Todo lo que escribas tiene que poder leerse frente al cliente: sereno, profesional, sin alarma y sin señalar culpables. Pero sin ocultar nada: si una fecha está en riesgo, se dice.
+
+DATOS (ya calculados — úsalos, no inventes ninguno):
+${JSON.stringify(hechos, null, 2)}
+
+REGLAS, en orden de importancia:
+
+1. NO INVENTES UNA SOLA CIFRA NI UNA ACCIÓN. Solo puedes citar lo que está arriba. No digas que el equipo «ya está haciendo» algo que no esté en los datos.
+2. Cantidades de actividades, NUNCA. Usa porcentajes («el 16 % de las actividades»). Los días sí van como número, siempre como «días hábiles».
+3. Palabras prohibidas: «catastrófico», «crítico», «crisis», «grave», «alarmante», «deuda», «fracaso», «imposible», «culpa», «incumplimiento», «fallo», «suelo mecánico». Usa «requiere atención», «en riesgo», «desplazamiento», «por recuperar».
+4. Cada problema va seguido de lo que hace falta para resolverlo: qué compuerta o frente hay que destrabar y qué decisión se necesita y de quién, por papel («el equipo de SoftwareOne», «${cliente}»), nunca por nombre de persona.
+5. Nada de culpas: lo que depende del cliente se escribe como «decisiones que necesitamos», con su fecha.
+6. Nada de jerga: prohibidas «holgura», «ruta crítica», «línea base», «desfase», «WBS», «CPM».
+7. NO escribas un veredicto ni califiques el proyecto.
+8. Prosa corrida en español neutro. Sin viñetas, sin markdown, sin negritas.
+9. Si las olas van encadenadas, dilo una sola vez: el desplazamiento de las primeras se traslada a las demás, y recuperarlas recupera el resto.
+10. No menciones problemas de captura de datos ni la calidad del registro.
+11. Como máximo 3 secciones, cada una con 1 o 2 párrafos, y hasta 5 peticiones. El rótulo de cada sección lleva de 2 a 5 palabras (menos de 40 caracteres).
+
+Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
+{
+  "entradilla": "dos o tres frases con la lectura general, en tono sereno. La primera dice dónde está el proyecto; la segunda, qué hace falta.",
+  "secciones": [
+    { "rotulo": "ROTULO CORTO", "afirmacion": "afirmación de 6 a 12 palabras", "parrafos": ["párrafo", "párrafo"] }
+  ],
+  "peticiones": [
+    { "texto": "acción o decisión concreta para recuperar la fecha", "aQuien": "el equipo de SoftwareOne o ${cliente}, por papel", "paraCuando": "plazo" }
+  ]
+}
+
+Entre 2 y 3 secciones. Entre 3 y 5 peticiones.`
+}
+
 function construirPrompt(hechos: Record<string, unknown>): string {
   return `Eres el director de entrega de SoftwareOne. Escribes la lectura de un reporte que se presenta al COMITÉ DIRECTIVO DEL CLIENTE. Te leen el patrocinador, el director de TI y, a veces, el director general. No son técnicos y no van a leer el plan.
 
@@ -249,10 +381,15 @@ Entre 2 y 3 secciones. Entre 3 y 5 peticiones, y que sean decisiones que este co
  * la prosa lo acompaña.
  */
 export async function generarNarrativaEjecutiva(
-  e: Expediente
+  e: Expediente,
+  version: VersionDelReporte = 'EJECUTIVO'
 ): Promise<NarrativaEjecutiva | undefined> {
   try {
-    const crudo = await AIService.runRawPrompt(construirPrompt(hechosDelExpediente(e)), {
+    const prompt =
+      version === 'COMPARTIBLE'
+        ? construirPromptCompartible(hechosParaCompartir(e))
+        : construirPrompt(hechosDelExpediente(e))
+    const crudo = await AIService.runRawPrompt(prompt, {
       maxTokens: 3000,
       temperature: 0.35,
     })
