@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { locales } from '@/i18n/config'
 import { SessionProviderWrapper } from '@/components/providers/session-provider-wrapper'
+import { VigiaDeSesion } from '@/components/providers/vigia-de-sesion'
 import { Toaster } from '@/components/ui/toaster'
 import '../globals.css'
 
@@ -107,7 +108,12 @@ export default async function LocaleLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SessionProviderWrapper>
-          <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+          <NextIntlClientProvider messages={messages}>
+            {children}
+            {/* Avisa qué pasó cuando algo deja de funcionar: sesión terminada, base apagada fuera
+                de horario, sin red o versión nueva. Ver `lib/cliente/vigia.ts`. */}
+            <VigiaDeSesion />
+          </NextIntlClientProvider>
         </SessionProviderWrapper>
         {/* Una sola vez, aquí. Ocho diálogos de producción llevaban avisando de sus errores a la
             consola del navegador porque no había dónde dibujarlos. */}

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
+import { emitirToast } from '@/hooks/use-toast'
+import { leTocaAvisarALaPantalla } from '@/lib/cliente/vigia'
 import { z } from 'zod'
 import { ProjectStatus } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -238,6 +240,7 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
   const router = useRouter()
   const locale = useLocale()
   const t = useTranslations('projects.form')
+  const tVigia = useTranslations('vigia')
   const isEditMode = !!initialData
 
   const projectFormSchema = createProjectFormSchema(t)
@@ -270,9 +273,16 @@ export function ProjectForm({ initialData, onSuccess }: ProjectFormProps) {
 
   useEffect(() => {
     fetch('/api/v1/users')
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => {
+        if (r.ok) return r.json()
+        // Sin esto el selector de personas salía vacío sin decir por qué.
+        if (leTocaAvisarALaPantalla(r.status)) emitirToast({ title: tVigia('cargaFallida'), variant: 'destructive' })
+        return null
+      })
       .then((d) => { if (d?.users) setOrgUsers(d.users) })
-      .catch(() => {})
+      .catch(() => {
+        // La falla de red la avisa el vigía de sesión.
+      })
   }, [])
 
   const handleChange = (

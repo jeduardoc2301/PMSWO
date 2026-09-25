@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { emitirToast } from '@/hooks/use-toast'
+import { leTocaAvisarALaPantalla } from '@/lib/cliente/vigia'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,6 +33,7 @@ const inputStyle: React.CSSProperties = { background: 'var(--superficie)', borde
 
 export function AgreementsTab({ projectId }: AgreementsTabProps) {
   const t = useTranslations('agreements')
+  const tVigia = useTranslations('vigia')
   const locale = useLocale()
   const [agreements, setAgreements] = useState<Agreement[]>([])
   const [workItems, setWorkItems] = useState<Array<{ id: string; title: string }>>([])
@@ -52,7 +55,11 @@ export function AgreementsTab({ projectId }: AgreementsTabProps) {
     try {
       const res = await fetch(`/api/v1/projects/${projectId}/work-items`)
       if (res.ok) { const d = await res.json(); setWorkItems(d.workItems || []) }
-    } catch {}
+      // Sin esto el selector salía vacío y parecía que el plan no tenía líneas.
+      else if (leTocaAvisarALaPantalla(res.status)) emitirToast({ title: tVigia('cargaFallida'), variant: 'destructive' })
+    } catch {
+      // La falla de red la avisa el vigía de sesión.
+    }
   }
 
   const fetchAgreements = async () => {

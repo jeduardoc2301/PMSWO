@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { emitirToast } from '@/hooks/use-toast'
+import { leTocaAvisarALaPantalla } from '@/lib/cliente/vigia'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,6 +45,7 @@ const inputStyle: React.CSSProperties = { background: 'var(--superficie)', borde
 
 export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDataUsed }: RisksTabProps) {
   const t = useTranslations('risks')
+  const tVigia = useTranslations('vigia')
   const [risks, setRisks] = useState<Risk[]>([])
   const [users, setUsers] = useState<Array<{ id: string; name: string }>>([])
   const [loading, setLoading] = useState(true)
@@ -68,7 +71,11 @@ export function RisksTab({ projectId, onMetricsChange, initialRiskData, onRiskDa
     try {
       const res = await fetch(`/api/v1/projects/${projectId}/users`)
       if (res.ok) { const d = await res.json(); setUsers(d.users || []) }
-    } catch {}
+      // Sin esto el selector de responsable salía vacío sin decir por qué.
+      else if (leTocaAvisarALaPantalla(res.status)) emitirToast({ title: tVigia('cargaFallida'), variant: 'destructive' })
+    } catch {
+      // La falla de red la avisa el vigía de sesión.
+    }
   }
 
   const fetchRisks = async () => {

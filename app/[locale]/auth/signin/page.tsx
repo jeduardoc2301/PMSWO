@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
+import { destinoSeguro } from '@/lib/cliente/vigia'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +22,7 @@ type SignInFormData = z.infer<typeof signInSchema>
 export default function SignInPage() {
   const router = useRouter()
   const t = useTranslations()
+  const tVigia = useTranslations('vigia')
   const [formData, setFormData] = useState<SignInFormData>({
     email: '',
     password: '',
@@ -48,9 +50,29 @@ export default function SignInPage() {
       })
 
       if (result?.error) {
-        // Handle authentication errors
-        setAuthError(t('auth.invalidCredentials'))
+        /**
+         * «Credenciales inválidas» sólo cuando lo son.
+         *
+         * NextAuth devuelve `CredentialsSignin` cuando `authorize` dice que no. Cualquier otro
+         * código es que algo reventó antes de poder comprobar la contraseña —casi siempre la base
+         * apagada fuera de horario—, y decir «credenciales inválidas» con la contraseña correcta
+         * manda a la persona a pedir un cambio de contraseña que no necesita.
+         */
+        if (result.error === 'CredentialsSignin') {
+          setAuthError(t('auth.invalidCredentials'))
+        } else {
+          const salud = await fetch('/api/v1/salud', { cache: 'no-store' })
+            .then((r) => r.json())
+            .catch(() => null)
+          setAuthError(salud?.base === 'no-disponible' ? tVigia('entrada.baseApagada') : tVigia('entrada.noSePudo'))
+        }
       } else if (result?.ok) {
+        // Si llegó aquí porque se le terminó la sesión, vuelve a la página donde estaba.
+        const destino = destinoSeguro(new URLSearchParams(window.location.search).get('callbackUrl'))
+        if (destino) {
+          window.location.href = destino
+          return
+        }
         // Get session to determine redirect based on role
         const response = await fetch('/api/v1/auth/me')
         if (response.ok) {

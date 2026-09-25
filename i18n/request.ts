@@ -52,6 +52,7 @@ async function loadMessages(locale: string) {
     users,
     templates,
     categories,
+    vigia,
     legacy
   ] = await Promise.all([
     import(`../messages/${locale}/common.json`).then(m => m.default),
@@ -71,6 +72,10 @@ async function loadMessages(locale: string) {
     import(`../messages/${locale}/users.json`).then(m => m.default).catch(() => ({})),
     import(`../messages/${locale}/templates.json`).then(m => m.default).catch(() => ({})),
     import(`../messages/${locale}/categories.json`).then(m => m.default).catch(() => ({})),
+    // Los avisos del vigía de sesión. Espacio propio a propósito: el archivo heredado
+    // `messages/{locale}.json` trae `errors` y `auth` y, al mezclarse al final, pisaría cualquier
+    // texto nuevo puesto ahí.
+    import(`../messages/${locale}/vigia.json`).then(m => m.default).catch(() => ({})),
     import(`../messages/${locale}.json`).then(m => m.default).catch(() => ({}))
   ])
 
@@ -92,6 +97,7 @@ async function loadMessages(locale: string) {
     users,
     templates,
     categories,
+    vigia,
     // Merge legacy messages for backward compatibility
     ...legacy
   }

@@ -1,0 +1,30 @@
+{
+  "sesion": {
+    "titulo": "Tu sesión terminó",
+    "descripcion": "Para seguir trabajando, vuelve a entrar. Te regresamos a esta misma página.",
+    "boton": "Volver a entrar"
+  },
+  "base": {
+    "titulo": "La base de datos está apagada",
+    "descripcion": "Fuera de horario la base se apaga (lunes a viernes, de 07:00 a 20:00, hora del centro de México). Lo que hagas ahora no se va a guardar.",
+    "boton": "Reintentar"
+  },
+  "sinRed": {
+    "titulo": "Sin conexión",
+    "descripcion": "Tu equipo perdió la conexión a internet. Lo que hagas ahora no se va a guardar.",
+    "boton": "Reintentar"
+  },
+  "version": {
+    "titulo": "Hay una versión nueva de la herramienta",
+    "descripcion": "Recarga la página para seguir trabajando con la versión actual.",
+    "boton": "Recargar"
+  },
+  "cerrar": "Cerrar aviso",
+  "guardadoFallido": "No se pudo guardar",
+  "guardadoFallidoDescripcion": "El cambio no se guardó. Revisa tu conexión e inténtalo de nuevo.",
+  "cargaFallida": "No se pudo cargar la información",
+  "entrada": {
+    "baseApagada": "La base de datos está apagada fuera de horario (lunes a viernes, de 07:00 a 20:00, hora del centro de México). Intenta de nuevo en ese horario.",
+    "noSePudo": "No se pudo iniciar sesión en este momento. Inténtalo de nuevo en unos minutos."
+  }
+}

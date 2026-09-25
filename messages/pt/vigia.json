@@ -1,0 +1,30 @@
+{
+  "sesion": {
+    "titulo": "Sua sessão terminou",
+    "descripcion": "Para continuar trabalhando, entre novamente. Você voltará a esta mesma página.",
+    "boton": "Entrar novamente"
+  },
+  "base": {
+    "titulo": "O banco de dados está desligado",
+    "descripcion": "Fora do horário o banco de dados é desligado (segunda a sexta, das 07:00 às 20:00, horário do centro do México). O que você fizer agora não será salvo.",
+    "boton": "Tentar novamente"
+  },
+  "sinRed": {
+    "titulo": "Sem conexão",
+    "descripcion": "Seu computador perdeu a conexão com a internet. O que você fizer agora não será salvo.",
+    "boton": "Tentar novamente"
+  },
+  "version": {
+    "titulo": "Há uma nova versão da ferramenta",
+    "descripcion": "Recarregue a página para continuar trabalhando com a versão atual.",
+    "boton": "Recarregar"
+  },
+  "cerrar": "Fechar aviso",
+  "guardadoFallido": "Não foi possível salvar",
+  "guardadoFallidoDescripcion": "A alteração não foi salva. Verifique sua conexão e tente novamente.",
+  "cargaFallida": "Não foi possível carregar as informações",
+  "entrada": {
+    "baseApagada": "O banco de dados está desligado fora do horário (segunda a sexta, das 07:00 às 20:00, horário do centro do México). Tente novamente nesse horário.",
+    "noSePudo": "Não foi possível entrar neste momento. Tente novamente em alguns minutos."
+  }
+}

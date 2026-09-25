@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { emitirToast } from '@/hooks/use-toast'
 import { ProjectStatus, Permission, UserRole } from '@/types'
 import { hasPermission } from '@/lib/rbac'
 import {
@@ -259,6 +260,7 @@ export function ProjectsPageClient() {
   const locale = pathname.startsWith('/pt') ? 'pt' : 'es'
   const t = useTranslations('projects.list')
   const tStatus = useTranslations('projects.status')
+  const tVigia = useTranslations('vigia')
 
   const [projects, setProjects] = useState<Project[]>([])
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 })
@@ -318,8 +320,17 @@ export function ProjectsPageClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
-      if (res.ok) fetchProjects()
-    } catch {}
+      if (res.ok) {
+        fetchProjects()
+        return
+      }
+      // Antes se callaba: el estado no cambiaba y nadie decía por qué, y un guardado que falla en
+      // silencio se lee como «la herramienta no sirve».
+      const cuerpo = await res.json().catch(() => null)
+      emitirToast({ title: tVigia('guardadoFallido'), description: cuerpo?.message ?? tVigia('guardadoFallidoDescripcion'), variant: 'destructive' })
+    } catch {
+      emitirToast({ title: tVigia('guardadoFallido'), description: tVigia('guardadoFallidoDescripcion'), variant: 'destructive' })
+    }
   }
 
   const toggleSel = (id: string) => {

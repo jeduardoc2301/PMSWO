@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { emitirToast } from '@/hooks/use-toast'
 import { ExecutiveDashboard, Permission, ProjectStatus } from '@/types'
 import { hasPermission } from '@/lib/rbac'
 import {
@@ -335,6 +336,7 @@ export function DashboardClient() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const locale = useLocale()
+  const tVigia = useTranslations('vigia')
   const [dashboard, setDashboard] = useState<ExecutiveDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -420,8 +422,16 @@ export function DashboardClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
-      if (res.ok) fetchDashboard()
-    } catch {}
+      if (res.ok) {
+        fetchDashboard()
+        return
+      }
+      // Un cambio de estado que no se guardó tiene que decirlo: callado se ve igual que uno que sí.
+      const cuerpo = await res.json().catch(() => null)
+      emitirToast({ title: tVigia('guardadoFallido'), description: cuerpo?.message ?? tVigia('guardadoFallidoDescripcion'), variant: 'destructive' })
+    } catch {
+      emitirToast({ title: tVigia('guardadoFallido'), description: tVigia('guardadoFallidoDescripcion'), variant: 'destructive' })
+    }
   }
 
   const userName = session?.user?.name ?? ''

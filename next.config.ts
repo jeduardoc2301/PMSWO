@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   env: {
+    // La versión de este build. El navegador la trae incrustada y la ruta de salud devuelve la del
+    // servidor: si difieren, la pestaña es de antes de un despliegue y el vigía ofrece recargar.
+    // Amplify pone AWS_JOB_ID en cada build —también al redesplegar el mismo commit—; en local no
+    // existe y se usa la hora del build, que para el mismo fin sirve igual.
+    NEXT_PUBLIC_VERSION_DE_LA_APP: process.env.AWS_JOB_ID
+      ? `${process.env.AWS_BRANCH ?? 'build'}-${process.env.AWS_JOB_ID}`
+      : `local-${Date.now()}`,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? process.env.AUTH_URL ?? '',
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? '',
     AUTH_SECRET: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? '',

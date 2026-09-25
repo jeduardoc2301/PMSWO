@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { AlertCircle, Home, RefreshCw } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
+import { esErrorDeCodigoViejo } from '@/lib/cliente/vigia'
+import { recargarPorCodigoViejo } from '@/components/providers/vigia-de-sesion'
 
 /**
  * Error boundary component for handling errors in the application
@@ -31,6 +33,10 @@ export default function Error({
       digest: error.digest,
       stack: error.stack,
     })
+    // Una pestaña de antes de un despliegue pide código que ya no existe. Recargar trae la versión
+    // actual; enseñar «algo salió mal» con un botón de reintentar que vuelve a pedir el mismo
+    // archivo muerto no arregla nada. Una sola vez: si vuelve a fallar, se queda esta pantalla.
+    if (esErrorDeCodigoViejo(error.message, error.name)) recargarPorCodigoViejo()
   }, [error])
 
   // Determine error type and appropriate message
